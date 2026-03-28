@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Star, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
@@ -12,41 +12,17 @@ interface Props {
 }
 
 export default function FocusCarousel({ title, emoji, animes, loading, linkTo }: Props) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeIdx, setActiveIdx] = useState(0);
   const items = animes.slice(0, 15);
+  const [activeIdx, setActiveIdx] = useState(0);
 
-  const scrollToIdx = (idx: number) => {
-    const el = scrollRef.current;
-    if (el?.children[idx]) {
-      (el.children[idx] as HTMLElement).scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
-    }
-  };
-
-  const go = (dir: number) => {
-    let next = activeIdx + dir;
-    // Wrap around
-    if (next < 0) next = items.length - 1;
-    if (next >= items.length) next = 0;
-    setActiveIdx(next);
-    scrollToIdx(next);
-  };
-
-  const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el || !items.length) return;
-    const containerRect = el.getBoundingClientRect();
-    const centerX = containerRect.left + containerRect.width / 2;
-    let closestIdx = 0;
-    let closestDist = Infinity;
-    Array.from(el.children).forEach((child, i) => {
-      const rect = child.getBoundingClientRect();
-      const childCenter = rect.left + rect.width / 2;
-      const dist = Math.abs(childCenter - centerX);
-      if (dist < closestDist) { closestDist = dist; closestIdx = i; }
+  const go = useCallback((dir: number) => {
+    setActiveIdx((prev) => {
+      let next = prev + dir;
+      if (next < 0) next = items.length - 1;
+      if (next >= items.length) next = 0;
+      return next;
     });
-    setActiveIdx(closestIdx);
-  };
+  }, [items.length]);
 
   if (loading) {
     return (
@@ -59,6 +35,13 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
 
   if (!items.length) return null;
 
+  // Show 5 items centered around activeIdx
+  const getWrappedIndex = (offset: number) => {
+    return ((activeIdx + offset) % items.length + items.length) % items.length;
+  };
+
+  const visibleOffsets = [-2, -1, 0, 1, 2];
+
   return (
     <section className="mb-8">
       <div className="flex items-center justify-between px-4 mb-4">
@@ -66,11 +49,11 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
           {emoji && <span className="mr-1">{emoji}</span>}{title}
         </h2>
         <div className="flex items-center gap-2">
-          <button onClick={() => go(-1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-muted transition">
-            <ChevronLeft className="w-4 h-4 text-foreground" />
+          <button onClick={() => go(-1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/70 hover:text-primary-foreground transition-all duration-300">
+            <ChevronLeft className="w-4 h-4" />
           </button>
-          <button onClick={() => go(1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-muted transition">
-            <ChevronRight className="w-4 h-4 text-foreground" />
+          <button onClick={() => go(1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/70 hover:text-primary-foreground transition-all duration-300">
+            <ChevronRight className="w-4 h-4" />
           </button>
           {linkTo && (
             <Link to={linkTo} className="text-primary text-xs font-medium hover:underline">
@@ -80,39 +63,32 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
         </div>
       </div>
 
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex gap-0 overflow-x-auto hide-scrollbar pb-4 px-4"
-        style={{
-          scrollSnapType: "x mandatory",
-          scrollBehavior: "smooth",
-          scrollPaddingInline: "calc(50% - 100px)",
-        }}
-      >
-        {items.map((anime, i) => {
-          const isActive = i === activeIdx;
+      <div className="flex justify-center items-center gap-0 py-4 px-4 overflow-hidden" style={{ minHeight: "320px" }}>
+        {visibleOffsets.map((offset) => {
+          const idx = getWrappedIndex(offset);
+          const anime = items[idx];
+          const isActive = offset === 0;
           const img = anime.coverImage?.extraLarge || anime.coverImage?.large;
           const score = anime.averageScore;
+          const absOffset = Math.abs(offset);
 
           return (
             <div
-              key={anime.id}
-              className="flex-shrink-0 transition-all duration-300 ease-out"
+              key={`${anime.id}-${offset}`}
+              className="flex-shrink-0 transition-all duration-500 ease-out will-change-transform"
               style={{
-                scrollSnapAlign: "center",
-                scrollSnapStop: "always",
                 width: "200px",
-                transform: isActive ? "scale(1)" : "scale(0.65)",
-                opacity: isActive ? 1 : 0.5,
-                zIndex: isActive ? 10 : 1,
+                transform: isActive ? "scale(1)" : absOffset === 1 ? "scale(0.75)" : "scale(0.55)",
+                opacity: isActive ? 1 : absOffset === 1 ? 0.6 : 0.3,
+                zIndex: isActive ? 10 : 5 - absOffset,
+                marginLeft: offset === -2 ? 0 : "-20px",
               }}
             >
               <Link to={`/anime/${anime.id}`} className="block group text-center">
-                <div className="relative mx-auto overflow-hidden rounded-2xl aspect-[3/4] shadow-xl transition-shadow duration-300"
+                <div className="relative mx-auto overflow-hidden rounded-2xl aspect-[3/4] shadow-xl transition-shadow duration-500"
                   style={{ boxShadow: isActive ? "0 0 30px hsl(16 100% 50% / 0.4)" : "none" }}
                 >
-                  <img src={img} alt={getTitle(anime)} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                  <img src={img} alt={getTitle(anime)} className="w-full h-full object-cover" loading="lazy" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center backdrop-blur-sm">
@@ -138,7 +114,7 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
 
       <div className="flex justify-center gap-1.5 mt-1">
         {items.slice(0, 10).map((_, i) => (
-          <button key={i} onClick={() => { setActiveIdx(i); scrollToIdx(i); }}
+          <button key={i} onClick={() => setActiveIdx(i)}
             className={`transition-all duration-300 rounded-full ${i === activeIdx ? "w-5 h-1.5 bg-primary" : "w-1.5 h-1.5 bg-muted-foreground/30"}`} />
         ))}
       </div>

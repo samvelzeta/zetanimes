@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Play, Info, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, getStatusLabel, getStatusColor, type AniListMedia } from "@/lib/anilist";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -9,7 +9,10 @@ interface Props {
 }
 
 function DesktopHero({ animes }: { animes: AniListMedia[] }) {
+  const navigate = useNavigate();
   const [items, setItems] = useState<AniListMedia[]>([]);
+  const [animKey, setAnimKey] = useState(0);
+  const [entering, setEntering] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
   useEffect(() => {
@@ -22,6 +25,7 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
       const [first, ...rest] = prev;
       return [...rest, first];
     });
+    setAnimKey((k) => k + 1);
   }, []);
 
   const prev = useCallback(() => {
@@ -30,6 +34,7 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
       const last = prev[prev.length - 1];
       return [last, ...prev.slice(0, -1)];
     });
+    setAnimKey((k) => k + 1);
   }, []);
 
   useEffect(() => {
@@ -43,24 +48,37 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
     timerRef.current = setInterval(next, 7000);
   };
 
+  const handleEnter = (animeId: number) => {
+    setEntering(true);
+    clearInterval(timerRef.current);
+    setTimeout(() => {
+      navigate(`/anime/${animeId}`);
+    }, 900);
+  };
+
   if (!items.length) return <div className="w-full h-[500px] bg-secondary animate-pulse rounded-2xl" />;
 
-  const activeAnime = items[1] || items[0];
+  // The active anime is items[0] — background and info match
+  const activeAnime = items[0];
+  const bg = activeAnime.bannerImage || activeAnime.coverImage?.extraLarge || activeAnime.coverImage?.large;
 
   return (
-    <div className="relative w-full h-[500px] overflow-hidden rounded-2xl mx-auto select-none">
+    <div className={`relative w-full h-[500px] overflow-hidden rounded-2xl mx-auto select-none transition-transform duration-[900ms] ${entering ? "scale-[1.3] opacity-0" : ""}`}>
+      {/* Background - shows activeAnime */}
       {items.map((item, i) => {
-        const bg = item.bannerImage || item.coverImage?.extraLarge || item.coverImage?.large;
+        const itemBg = item.bannerImage || item.coverImage?.extraLarge || item.coverImage?.large;
         return (
-          <div key={item.id} className="absolute inset-0 transition-all duration-700" style={{ opacity: i <= 1 ? 1 : 0, zIndex: i === 0 ? 1 : 0 }}>
-            <img src={bg} alt="" className="w-full h-full object-cover" />
+          <div key={item.id} className="absolute inset-0 transition-opacity duration-700" style={{ opacity: i === 0 ? 1 : 0, zIndex: i === 0 ? 1 : 0 }}>
+            <img src={itemBg} alt="" className="w-full h-full object-cover" />
           </div>
         );
       })}
       <div className="absolute inset-0 z-10 bg-gradient-to-r from-background via-background/80 to-transparent" />
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-background via-transparent to-background/30" />
-      <div className="absolute bottom-0 left-0 z-20 p-8 pb-20 max-w-xl">
-        <div className="flex flex-wrap items-center gap-2 mb-3">
+
+      {/* Info content - animated on each change */}
+      <div className={`absolute bottom-0 left-0 z-20 p-8 pb-20 max-w-xl transition-all duration-700 ${entering ? "translate-y-20 opacity-0" : ""}`} key={`info-${animKey}`}>
+        <div className="flex flex-wrap items-center gap-2 mb-3 animate-[hero-slide-up_0.6s_ease-out_forwards]" style={{ opacity: 0 }}>
           <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg text-primary-foreground ${getStatusColor(activeAnime.status)}`}>
             {getStatusLabel(activeAnime.status)}
           </span>
@@ -71,32 +89,64 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
             </div>
           )}
         </div>
-        <h1 className="text-3xl font-black text-white leading-tight tracking-tight mb-2 drop-shadow-xl animate-[animate_0.8s_ease-in-out_forwards]">{getTitle(activeAnime)}</h1>
+        <h1 className="text-3xl font-black text-white leading-tight tracking-tight mb-2 drop-shadow-xl animate-[hero-slide-up_0.6s_ease-out_0.15s_forwards]" style={{ opacity: 0 }}>
+          {getTitle(activeAnime)}
+        </h1>
         {activeAnime.description && (
-          <p className="text-sm text-white/60 line-clamp-2 mb-4 max-w-md leading-relaxed animate-[animate_0.8s_ease-in-out_0.3s_forwards] opacity-0">
+          <p className="text-sm text-white/60 line-clamp-2 mb-4 max-w-md leading-relaxed animate-[hero-slide-up_0.6s_ease-out_0.3s_forwards]" style={{ opacity: 0 }}>
             {activeAnime.description.replace(/<[^>]*>/g, "").slice(0, 150)}...
           </p>
         )}
-        <Link to={`/anime/${activeAnime.id}`} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black text-primary-foreground bg-primary/90 backdrop-blur-sm shadow-lg transition-all hover:scale-105 animate-[animate_0.8s_ease-in-out_0.6s_forwards] opacity-0">
-          <Play className="w-4 h-4 fill-current" /> Ver Ahora
-        </Link>
+        <button
+          onClick={() => handleEnter(activeAnime.id)}
+          className="group relative inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black text-primary-foreground bg-primary/90 backdrop-blur-sm shadow-lg transition-all duration-300 hover:scale-105 animate-[hero-slide-up_0.6s_ease-out_0.45s_forwards] overflow-hidden"
+          style={{ opacity: 0 }}
+        >
+          {/* Neon border trace on hover */}
+          <span className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ boxShadow: "0 0 12px hsl(16 100% 55%), 0 0 4px hsl(16 100% 55%), inset 0 0 8px hsl(16 100% 55% / 0.3)" }} />
+          <span className="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-[hsl(16,100%,55%)] transition-all duration-300 group-hover:shadow-[0_0_15px_hsl(16,100%,55%/0.6)]" />
+          <Play className="w-4 h-4 fill-current relative z-10" />
+          <span className="relative z-10">Ver Ahora</span>
+        </button>
       </div>
-      <div className="absolute z-20 right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3">
-        {items.slice(2, 5).map((item, idx) => {
+
+      {/* Right side small images */}
+      <div className={`absolute z-20 right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 transition-all duration-700 ${entering ? "translate-y-20 opacity-0" : ""}`}>
+        {items.slice(1, 4).map((item, idx) => {
           const img = item.coverImage?.extraLarge || item.coverImage?.large;
           return (
-            <Link key={item.id} to={`/anime/${item.id}`} className="w-[100px] h-[130px] rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10 transition-all duration-500 hover:scale-110 hover:ring-primary/50" style={{ transform: `translateX(${idx * 15}px)`, opacity: 1 - idx * 0.15 }}>
+            <button
+              key={`thumb-${item.id}-${animKey}`}
+              onClick={() => {
+                clearInterval(timerRef.current);
+                // Move this item to front
+                setItems((prev) => {
+                  const filtered = prev.filter((p) => p.id !== item.id);
+                  return [item, ...filtered];
+                });
+                setAnimKey((k) => k + 1);
+                timerRef.current = setInterval(next, 7000);
+              }}
+              className="w-[100px] h-[130px] rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10 transition-all duration-500 hover:scale-110 hover:ring-primary/50 animate-[hero-thumb-in_0.5s_ease-out_forwards]"
+              style={{
+                transform: `translateX(${idx * 15}px)`,
+                opacity: 0,
+                animationDelay: `${idx * 0.12}s`,
+              }}
+            >
               <img src={img} alt={getTitle(item)} className="w-full h-full object-cover" />
-            </Link>
+            </button>
           );
         })}
       </div>
+
+      {/* Nav buttons with orange hover */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-4">
-        <button onClick={() => handleNav("prev")} className="w-10 h-9 rounded-lg border border-white/20 bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-black/60 transition">
-          <ChevronLeft className="w-5 h-5 text-white" />
+        <button onClick={() => handleNav("prev")} className="w-10 h-9 rounded-lg border border-white/20 bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-primary/80 hover:border-primary/60 transition-all duration-300 group">
+          <ChevronLeft className="w-5 h-5 text-white group-hover:text-primary-foreground transition-colors" />
         </button>
-        <button onClick={() => handleNav("next")} className="w-10 h-9 rounded-lg border border-white/20 bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-black/60 transition">
-          <ChevronRight className="w-5 h-5 text-white" />
+        <button onClick={() => handleNav("next")} className="w-10 h-9 rounded-lg border border-white/20 bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-primary/80 hover:border-primary/60 transition-all duration-300 group">
+          <ChevronRight className="w-5 h-5 text-white group-hover:text-primary-foreground transition-colors" />
         </button>
       </div>
     </div>
@@ -104,20 +154,29 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
 }
 
 function MobileHero({ animes }: { animes: AniListMedia[] }) {
+  const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
+  const [animKey, setAnimKey] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   const top = animes.slice(0, 6);
 
   useEffect(() => {
     if (!top.length) return;
-    timerRef.current = setInterval(() => setCurrent((p) => (p + 1) % top.length), 7000);
+    timerRef.current = setInterval(() => {
+      setCurrent((p) => (p + 1) % top.length);
+      setAnimKey((k) => k + 1);
+    }, 7000);
     return () => clearInterval(timerRef.current);
   }, [top.length]);
 
   const goTo = (idx: number) => {
     setCurrent(idx);
+    setAnimKey((k) => k + 1);
     clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setCurrent((p) => (p + 1) % top.length), 7000);
+    timerRef.current = setInterval(() => {
+      setCurrent((p) => (p + 1) % top.length);
+      setAnimKey((k) => k + 1);
+    }, 7000);
   };
 
   if (!top.length) return <div className="w-full h-[55vh] bg-secondary animate-pulse" />;
@@ -136,8 +195,8 @@ function MobileHero({ animes }: { animes: AniListMedia[] }) {
       })}
       <div className="absolute inset-0 z-10 bg-gradient-to-r from-background via-background/70 to-transparent" />
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-background via-transparent to-background/20" />
-      <div className="absolute bottom-0 left-0 right-0 z-20 p-5 pb-12">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="absolute bottom-0 left-0 right-0 z-20 p-5 pb-12" key={`mob-info-${animKey}`}>
+        <div className="flex items-center gap-2 mb-2 animate-[hero-slide-up_0.5s_ease-out_forwards]" style={{ opacity: 0 }}>
           <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded-md text-primary-foreground ${getStatusColor(anime.status)}`}>{getStatusLabel(anime.status)}</span>
           {anime.averageScore && (
             <div className="flex items-center gap-0.5 bg-black/40 px-1.5 py-0.5 rounded-md">
@@ -146,12 +205,12 @@ function MobileHero({ animes }: { animes: AniListMedia[] }) {
             </div>
           )}
         </div>
-        <h1 className="text-2xl font-black text-white leading-tight mb-1">{getTitle(anime)}</h1>
-        {anime.genres && <p className="text-[10px] text-white/50 mb-3">{anime.genres.slice(0, 3).join(" • ")}</p>}
-        <div className="flex gap-3">
-          <Link to={`/anime/${anime.id}`} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-primary-foreground bg-primary">
+        <h1 className="text-2xl font-black text-white leading-tight mb-1 animate-[hero-slide-up_0.5s_ease-out_0.1s_forwards]" style={{ opacity: 0 }}>{getTitle(anime)}</h1>
+        {anime.genres && <p className="text-[10px] text-white/50 mb-3 animate-[hero-slide-up_0.5s_ease-out_0.2s_forwards]" style={{ opacity: 0 }}>{anime.genres.slice(0, 3).join(" • ")}</p>}
+        <div className="flex gap-3 animate-[hero-slide-up_0.5s_ease-out_0.3s_forwards]" style={{ opacity: 0 }}>
+          <button onClick={() => navigate(`/anime/${anime.id}`)} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-primary-foreground bg-primary hover:scale-105 transition-transform">
             <Play className="w-3.5 h-3.5 fill-current" /> Ver Ahora
-          </Link>
+          </button>
           <Link to={`/anime/${anime.id}`} className="flex items-center gap-1.5 bg-white/10 text-white px-5 py-2.5 rounded-xl text-xs font-semibold">
             <Info className="w-3.5 h-3.5" /> Info
           </Link>
