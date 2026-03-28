@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Play, Info, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Info, Star } from "lucide-react";
 import { getTitle, getStatusLabel, getStatusColor, type AniListMedia } from "@/lib/anilist";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -42,12 +42,6 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
     return () => clearInterval(timerRef.current);
   }, [next]);
 
-  const handleNav = (dir: "prev" | "next") => {
-    clearInterval(timerRef.current);
-    dir === "next" ? next() : prev();
-    timerRef.current = setInterval(next, 7000);
-  };
-
   const handleEnter = (animeId: number) => {
     setEntering(true);
     clearInterval(timerRef.current);
@@ -58,13 +52,11 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
 
   if (!items.length) return <div className="w-full h-[500px] bg-secondary animate-pulse rounded-2xl" />;
 
-  // The active anime is items[0] — background and info match
   const activeAnime = items[0];
-  const bg = activeAnime.bannerImage || activeAnime.coverImage?.extraLarge || activeAnime.coverImage?.large;
 
   return (
     <div className={`relative w-full h-[500px] overflow-hidden rounded-2xl mx-auto select-none transition-transform duration-[900ms] ${entering ? "scale-[1.3] opacity-0" : ""}`}>
-      {/* Background - shows activeAnime */}
+      {/* Background */}
       {items.map((item, i) => {
         const itemBg = item.bannerImage || item.coverImage?.extraLarge || item.coverImage?.large;
         return (
@@ -76,7 +68,7 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
       <div className="absolute inset-0 z-10 bg-gradient-to-r from-background via-background/80 to-transparent" />
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-background via-transparent to-background/30" />
 
-      {/* Info content - animated on each change */}
+      {/* Info content */}
       <div className={`absolute bottom-0 left-0 z-20 p-8 pb-20 max-w-xl transition-all duration-700 ${entering ? "translate-y-20 opacity-0" : ""}`} key={`info-${animKey}`}>
         <div className="flex flex-wrap items-center gap-2 mb-3 animate-[hero-slide-up_0.6s_ease-out_forwards]" style={{ opacity: 0 }}>
           <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg text-primary-foreground ${getStatusColor(activeAnime.status)}`}>
@@ -99,18 +91,15 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
         )}
         <button
           onClick={() => handleEnter(activeAnime.id)}
-          className="group relative inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black text-primary-foreground bg-primary/90 backdrop-blur-sm shadow-lg transition-all duration-300 hover:scale-105 animate-[hero-slide-up_0.6s_ease-out_0.45s_forwards] overflow-hidden"
+          className="neon-btn group relative inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black text-primary-foreground bg-primary/90 backdrop-blur-sm shadow-lg transition-all duration-300 hover:scale-110 animate-[hero-slide-up_0.6s_ease-out_0.45s_forwards] overflow-hidden"
           style={{ opacity: 0 }}
         >
-          {/* Neon border trace on hover */}
-          <span className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ boxShadow: "0 0 12px hsl(16 100% 55%), 0 0 4px hsl(16 100% 55%), inset 0 0 8px hsl(16 100% 55% / 0.3)" }} />
-          <span className="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-[hsl(16,100%,55%)] transition-all duration-300 group-hover:shadow-[0_0_15px_hsl(16,100%,55%/0.6)]" />
           <Play className="w-4 h-4 fill-current relative z-10" />
           <span className="relative z-10">Ver Ahora</span>
         </button>
       </div>
 
-      {/* Right side small images */}
+      {/* Right side small images - clickable to navigate */}
       <div className={`absolute z-20 right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3 transition-all duration-700 ${entering ? "translate-y-20 opacity-0" : ""}`}>
         {items.slice(1, 4).map((item, idx) => {
           const img = item.coverImage?.extraLarge || item.coverImage?.large;
@@ -119,7 +108,6 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
               key={`thumb-${item.id}-${animKey}`}
               onClick={() => {
                 clearInterval(timerRef.current);
-                // Move this item to front
                 setItems((prev) => {
                   const filtered = prev.filter((p) => p.id !== item.id);
                   return [item, ...filtered];
@@ -138,16 +126,6 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
             </button>
           );
         })}
-      </div>
-
-      {/* Nav buttons with orange hover */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex gap-4">
-        <button onClick={() => handleNav("prev")} className="w-10 h-9 rounded-lg border border-white/20 bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-primary/80 hover:border-primary/60 transition-all duration-300 group">
-          <ChevronLeft className="w-5 h-5 text-white group-hover:text-primary-foreground transition-colors" />
-        </button>
-        <button onClick={() => handleNav("next")} className="w-10 h-9 rounded-lg border border-white/20 bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-primary/80 hover:border-primary/60 transition-all duration-300 group">
-          <ChevronRight className="w-5 h-5 text-white group-hover:text-primary-foreground transition-colors" />
-        </button>
       </div>
     </div>
   );
