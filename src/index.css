@@ -100,3 +100,27 @@
   from { opacity: 0; transform: translateY(100px); filter: blur(33px); }
   to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
+
+/* Hero slide-up animation (text blur to clear) */
+@keyframes hero-slide-up {
+  from { opacity: 0; transform: translateY(20px); filter: blur(8px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* Hero thumbnail slide in */
+@keyframes hero-thumb-in {
+  from { opacity: 0; transform: translateX(30px) scale(0.8); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* Roulette result pulsating */
+@keyframes roulette-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(16 100% 50% / 0.6), 0 0 20px hsl(16 100% 50% / 0.3); transform: scale(1); }
+  50% { box-shadow: 0 0 0 8px hsl(16 100% 50% / 0), 0 0 30px hsl(16 100% 50% / 0.5); transform: scale(1.03); }
+}
+
+/* Sphere spinning border */
+@keyframes sphere-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
