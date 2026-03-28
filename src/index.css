@@ -77,6 +77,45 @@
   100% { left: 160%; }
 }
 
+/* Neon button with racing border */
+.neon-btn {
+  position: relative;
+  overflow: visible;
+}
+.neon-btn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--neon-angle, 0deg),
+    transparent 0deg,
+    hsl(16 100% 55%) 30deg,
+    hsl(16 100% 55% / 0.8) 60deg,
+    transparent 120deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s;
+  animation: neon-btn-spin 1.5s linear infinite;
+  filter: drop-shadow(0 0 8px hsl(16 100% 55%)) drop-shadow(0 0 3px hsl(16 100% 55%));
+}
+.neon-btn:hover::before {
+  opacity: 1;
+}
+@keyframes neon-btn-spin {
+  to { --neon-angle: 360deg; }
+}
+@property --neon-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 /* Rotating ring */
 @keyframes spin-ring {
   from { transform: rotate(0deg); }
