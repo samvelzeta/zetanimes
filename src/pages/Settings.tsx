@@ -122,7 +122,7 @@ export default function SettingsPage() {
                       }`}
                       style={{
                         backgroundColor: c.hex,
-                        ringColor: isSelected ? c.hex : undefined,
+                        boxShadow: isSelected ? `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${c.hex}` : undefined,
                       }}
                     >
                       {isSelected && <Check className="w-5 h-5 text-white drop-shadow-md" />}
