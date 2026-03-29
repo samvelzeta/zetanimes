@@ -14,16 +14,346 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_payment_info: {
+        Row: {
+          account_holder: string | null
+          account_number: string | null
+          bank_name: string | null
+          id: string
+          instructions: string | null
+          price_annual: string | null
+          price_lifetime: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_holder?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          id?: string
+          instructions?: string | null
+          price_annual?: string | null
+          price_lifetime?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_holder?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          id?: string
+          instructions?: string | null
+          price_annual?: string | null
+          price_lifetime?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      anime_lists: {
+        Row: {
+          anime_cover: string | null
+          anime_id: number
+          anime_title: string | null
+          created_at: string
+          id: string
+          list_type: Database["public"]["Enums"]["anime_list_type"]
+          user_id: string
+        }
+        Insert: {
+          anime_cover?: string | null
+          anime_id: number
+          anime_title?: string | null
+          created_at?: string
+          id?: string
+          list_type: Database["public"]["Enums"]["anime_list_type"]
+          user_id: string
+        }
+        Update: {
+          anime_cover?: string | null
+          anime_id?: number
+          anime_title?: string | null
+          created_at?: string
+          id?: string
+          list_type?: Database["public"]["Enums"]["anime_list_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contact_links: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon_url: string | null
+          id: string
+          name: string
+          sort_order: number | null
+          url: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          name: string
+          sort_order?: number | null
+          url: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+          sort_order?: number | null
+          url?: string
+        }
+        Relationships: []
+      }
+      notification_dismissals: {
+        Row: {
+          dismissed_at: string
+          id: string
+          notification_id: string
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          id?: string
+          notification_id: string
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          id?: string
+          notification_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_dismissals_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          created_by: string | null
+          id: string
+          message: string
+          title: string
+          type: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message: string
+          title: string
+          type?: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      premium_memberships: {
+        Row: {
+          activated_at: string | null
+          activation_key: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          membership_type: Database["public"]["Enums"]["membership_type"]
+          status: Database["public"]["Enums"]["membership_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activation_key?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          membership_type: Database["public"]["Enums"]["membership_type"]
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          activation_key?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          membership_type?: Database["public"]["Enums"]["membership_type"]
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      premium_requests: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          membership_type: Database["public"]["Enums"]["membership_type"]
+          notes: string | null
+          proof_url: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["membership_status"]
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          membership_type: Database["public"]["Enums"]["membership_type"]
+          notes?: string | null
+          proof_url?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          membership_type?: Database["public"]["Enums"]["membership_type"]
+          notes?: string | null
+          proof_url?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      watch_history: {
+        Row: {
+          anime_cover: string | null
+          anime_id: number
+          anime_title: string | null
+          completed: boolean | null
+          created_at: string
+          episode_number: number
+          id: string
+          user_id: string
+          watch_duration_seconds: number | null
+        }
+        Insert: {
+          anime_cover?: string | null
+          anime_id: number
+          anime_title?: string | null
+          completed?: boolean | null
+          created_at?: string
+          episode_number: number
+          id?: string
+          user_id: string
+          watch_duration_seconds?: number | null
+        }
+        Update: {
+          anime_cover?: string | null
+          anime_id?: number
+          anime_title?: string | null
+          completed?: boolean | null
+          created_at?: string
+          episode_number?: number
+          id?: string
+          user_id?: string
+          watch_duration_seconds?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      anime_list_type:
+        | "favorite"
+        | "watching"
+        | "completed"
+        | "plan_to_watch"
+        | "undecided"
+      app_role: "owner" | "admin" | "premium" | "user"
+      membership_status: "pending" | "active" | "expired" | "rejected"
+      membership_type: "annual" | "lifetime"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +480,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      anime_list_type: [
+        "favorite",
+        "watching",
+        "completed",
+        "plan_to_watch",
+        "undecided",
+      ],
+      app_role: ["owner", "admin", "premium", "user"],
+      membership_status: ["pending", "active", "expired", "rejected"],
+      membership_type: ["annual", "lifetime"],
+    },
   },
 } as const
