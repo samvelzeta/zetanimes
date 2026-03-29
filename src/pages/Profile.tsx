@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, Eye, CheckCircle, Clock, HelpCircle, Settings, LogOut, Crown, Shield, MessageSquare, FileText, ExternalLink, Camera } from "lucide-react";
+import { Heart, Eye, CheckCircle, Clock, HelpCircle, Settings, LogOut, Crown, Shield, MessageSquare, FileText, ExternalLink, Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import AnimeCard from "@/components/anime/AnimeCard";
 import type { AniListMedia } from "@/lib/anilist";
