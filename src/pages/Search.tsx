@@ -1,13 +1,25 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { searchAnime, getTrending } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
 import { Search as SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 export default function SearchPage() {
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [searchParams] = useSearchParams();
+  const initialQ = searchParams.get("q") || "";
+  const [query, setQuery] = useState(initialQ);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQ);
+
+  // Sync URL param changes
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    if (q && q !== query) {
+      setQuery(q);
+      setDebouncedQuery(q);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 450);
