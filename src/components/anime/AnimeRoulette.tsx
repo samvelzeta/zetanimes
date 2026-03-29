@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Shuffle, Play } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
@@ -12,24 +12,29 @@ export default function AnimeRoulette({ animes }: Props) {
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<AniListMedia | null>(null);
   const [rotation, setRotation] = useState(0);
-  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const rotationRef = useRef(0);
 
   const spin = useCallback(() => {
     if (spinning || items.length === 0) return;
     setSpinning(true);
     setResult(null);
-    setSelectedIdx(null);
 
     const randomIdx = Math.floor(Math.random() * items.length);
     const sliceDeg = 360 / items.length;
     const extraSpins = 5 + Math.floor(Math.random() * 3);
-    // The pointer is at top (270°). We need the randomIdx slice to land at the pointer.
-    // Each item i is at angle (i / items.length) * 360 on the wheel.
-    // We rotate the wheel so that item lands at top: targetAngle = -(randomIdx * sliceDeg)
-    const targetDeg = extraSpins * 360 + (randomIdx * sliceDeg);
 
-    setRotation((prev) => prev + targetDeg);
-    setSelectedIdx(randomIdx);
+    // Item at angle α = randomIdx * sliceDeg (CCW from right).
+    // Pointer is at top = 90° CCW from right.
+    // After CW rotation θ, item at α appears at top when α = 90 + θ (mod 360)
+    // So θ = α - 90 (mod 360)
+    const itemAngle = randomIdx * sliceDeg;
+    const targetAngle = itemAngle - 90;
+    const remainder = ((targetAngle % 360) + 360) % 360;
+    const minRotation = rotationRef.current + extraSpins * 360;
+    const base = Math.ceil((minRotation - remainder) / 360) * 360 + remainder;
+
+    rotationRef.current = base;
+    setRotation(base);
 
     setTimeout(() => {
       setSpinning(false);
@@ -39,7 +44,7 @@ export default function AnimeRoulette({ animes }: Props) {
 
   if (items.length < 3) return null;
 
-  const radius = 200;
+  const radius = 220;
 
   return (
     <section className="mb-4 px-4">
@@ -56,7 +61,7 @@ export default function AnimeRoulette({ animes }: Props) {
               <img
                 src={result.coverImage?.extraLarge || result.coverImage?.large}
                 alt={getTitle(result)}
-                className="w-40 h-52 rounded-xl object-cover shadow-lg mx-auto animate-[roulette-pulse_2s_ease-in-out_infinite]"
+                className="w-44 h-56 rounded-xl object-cover shadow-lg mx-auto animate-[roulette-pulse_2s_ease-in-out_infinite]"
               />
               <p className="mt-2 text-sm font-bold text-foreground group-hover:text-primary transition-colors">{getTitle(result)}</p>
               {result.genres && <p className="text-[10px] text-muted-foreground">{result.genres.slice(0, 3).join(" · ")}</p>}
@@ -68,13 +73,13 @@ export default function AnimeRoulette({ animes }: Props) {
         )}
 
         {/* Half-moon arc */}
-        <div className="relative w-full overflow-hidden" style={{ height: `${radius * 0.6 + 50}px` }}>
+        <div className="relative w-full overflow-hidden" style={{ height: `${radius * 0.55 + 60}px` }}>
           <div
             className="absolute left-1/2"
             style={{
               transform: `translateX(-50%) rotate(${rotation}deg)`,
               transition: spinning ? "transform 3.5s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
-              bottom: `-${radius * 0.7}px`,
+              bottom: `-${radius * 0.65}px`,
             }}
           >
             {items.map((anime, i) => {
@@ -87,7 +92,7 @@ export default function AnimeRoulette({ animes }: Props) {
               return (
                 <div
                   key={anime.id}
-                  className="absolute w-[80px] h-[80px] rounded-full overflow-hidden border-2 border-primary/40 shadow-lg"
+                  className="absolute w-[90px] h-[90px] rounded-full overflow-hidden border-2 border-primary/40 shadow-lg"
                   style={{
                     left: `${x}px`,
                     top: `${-y}px`,
@@ -108,7 +113,7 @@ export default function AnimeRoulette({ animes }: Props) {
         <button
           onClick={spin}
           disabled={spinning}
-          className="mt-3 flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-3 flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm transition-all hover:scale-105 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Shuffle className={`w-4 h-4 ${spinning ? "animate-spin" : ""}`} />
           {spinning ? "Girando..." : "¡Gira la Ruleta!"}

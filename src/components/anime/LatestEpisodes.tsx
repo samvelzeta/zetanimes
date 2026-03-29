@@ -1,8 +1,9 @@
 import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getLatestEpisodes, type ZetLatestEpisode } from "@/lib/zetapi";
+import { searchAnime } from "@/lib/anilist";
 import { AlertCircle, Play, ChevronLeft, ChevronRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 function EpisodeSkeleton() {
   return (
@@ -33,10 +34,10 @@ export default function LatestEpisodes() {
       <div className="flex items-center justify-between px-4 mb-3">
         <h2 className="text-base font-bold text-foreground tracking-tight">⚡ Últimos Episodios</h2>
         <div className="hidden md:flex items-center gap-2">
-          <button onClick={() => scroll(-1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-muted transition">
+          <button onClick={() => scroll(-1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/20 hover:text-primary transition">
             <ChevronLeft className="w-4 h-4 text-foreground" />
           </button>
-          <button onClick={() => scroll(1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-muted transition">
+          <button onClick={() => scroll(1)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/20 hover:text-primary transition">
             <ChevronRight className="w-4 h-4 text-foreground" />
           </button>
         </div>
@@ -63,10 +64,26 @@ export default function LatestEpisodes() {
 }
 
 function EpisodeCard({ episode }: { episode: ZetLatestEpisode }) {
-  // FIX: Link to anime search by title to find it, but use directory search instead of /search
-  // Since we don't have anilist ID, we search via directory
+  const navigate = useNavigate();
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      // Search AniList for the anime by title to get the correct ID
+      const result = await searchAnime(episode.title, 1, 1);
+      if (result.media.length > 0) {
+        navigate(`/anime/${result.media[0].id}`);
+        return;
+      }
+    } catch {
+      // fallback
+    }
+    // Fallback: navigate to search
+    navigate(`/search?q=${encodeURIComponent(episode.title)}`);
+  };
+
   return (
-    <Link to={`/directory?search=${encodeURIComponent(episode.title)}`} className="group flex-shrink-0 w-[110px] block">
+    <button onClick={handleClick} className="group flex-shrink-0 w-[110px] block text-left">
       <div className="relative overflow-hidden rounded-xl aspect-[3/4] bg-secondary neon-card">
         {episode.cover ? (
           <img src={episode.cover} alt={episode.title} className="w-full h-full object-cover" loading="lazy" />
@@ -83,6 +100,6 @@ function EpisodeCard({ episode }: { episode: ZetLatestEpisode }) {
         )}
       </div>
       <p className="mt-1.5 text-[10px] font-medium text-muted-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors text-center">{episode.title}</p>
-    </Link>
+    </button>
   );
 }
