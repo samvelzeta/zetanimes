@@ -12,6 +12,8 @@ import {
   Globe, RefreshCw, ShieldAlert, ChevronDown, Bug,
 } from "lucide-react";
 import AnimePlayer from "@/components/video/AnimePlayer";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 type Lang = "sub" | "latino";
 
@@ -23,10 +25,12 @@ export default function Watch() {
   const anilistId = Number(id);
   const [searchParams, setSearchParams] = useSearchParams();
   const epParam = Number(searchParams.get("ep") || 1);
+  const { user } = useAuth();
 
   const [selectedEp, setSelectedEp] = useState(epParam);
   const [lang, setLang] = useState<Lang>("sub");
   const [showDebug, setShowDebug] = useState(false);
+  const watchTimeRef = useRef(0);
 
   const { data: anilistData } = useQuery({
     queryKey: ["anime-detail", anilistId],
@@ -76,13 +80,28 @@ export default function Watch() {
   };
 
   const handleProgress = useCallback((pct: number) => {
+    watchTimeRef.current += 1; // rough seconds counter
     if (pct >= 0.7 && zetSlug) {
       const epSlug = `${zetSlug}-${selectedEp}`;
       if (!isEpisodeWatched(epSlug)) {
         markEpisodeWatched(epSlug);
+        // Save to DB
+        if (user) {
+          const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
+          const title = anilistData ? getTitle(anilistData) : "";
+          supabase.from("watch_history").upsert({
+            user_id: user.id,
+            anime_id: anilistId,
+            episode_number: selectedEp,
+            anime_title: title,
+            anime_cover: cover,
+            completed: true,
+            watch_duration_seconds: Math.round(watchTimeRef.current),
+          }, { onConflict: "user_id,anime_id,episode_number" }).then(() => {});
+        }
       }
     }
-  }, [zetSlug, selectedEp]);
+  }, [zetSlug, selectedEp, user, anilistId, anilistData]);
 
   const toggleWatched = (epNum: number) => {
     if (!zetSlug) return;
