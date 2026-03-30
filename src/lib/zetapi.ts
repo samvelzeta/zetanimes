@@ -1,5 +1,6 @@
+// ZetAPI client - API key is stored server-side in edge function
 const ZET_BASE = "https://zetapi-api.samvelzeta.workers.dev/api";
-const ZET_API_KEY = "zetapi_super_secure_2026_v3lz3t4";
+const PROXY_BASE = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/zet-proxy`;
 
 export interface ZetServer {
   name: string;
@@ -45,11 +46,24 @@ export function sortServersByPriority(servers: ZetServer[]): ZetServer[] {
   });
 }
 
-async function zetFetch<T>(path: string, auth = true): Promise<T> {
+// Proxy authenticated requests through edge function (hides API key)
+async function zetProxyFetch<T>(apiPath: string): Promise<T> {
+  const url = `${PROXY_BASE}?path=${encodeURIComponent(apiPath)}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: { "Accept": "application/json" },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`ZetProxy ${res.status}: ${body}`);
+  }
+  return await res.json();
+}
+
+// Direct fetch for public endpoints (no API key needed)
+async function zetDirectFetch<T>(path: string): Promise<T> {
   const url = `${ZET_BASE}${path}`;
-  const headers: Record<string, string> = { "Accept": "application/json" };
-  if (auth) headers["x-api-key"] = ZET_API_KEY;
-  const res = await fetch(url, { method: "GET", headers });
+  const res = await fetch(url, { method: "GET", headers: { "Accept": "application/json" } });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`ZetAPI ${res.status}: ${body}`);
@@ -58,17 +72,17 @@ async function zetFetch<T>(path: string, auth = true): Promise<T> {
 }
 
 export async function getLatestEpisodes(): Promise<ZetLatestEpisode[]> {
-  const res = await zetFetch<{ success: boolean; data: ZetLatestEpisode[] }>("/list/latest-episodes", false);
+  const res = await zetDirectFetch<{ success: boolean; data: ZetLatestEpisode[] }>("/list/latest-episodes");
   return res.data || [];
 }
 
 export async function searchZetAnime(query: string): Promise<ZetSearchResult[]> {
-  const res = await zetFetch<{ success: boolean; data: ZetSearchResult[] }>(`/search?query=${encodeURIComponent(query)}`);
+  const res = await zetProxyFetch<{ success: boolean; data: ZetSearchResult[] }>(`/search?query=${encodeURIComponent(query)}`);
   return res.data || [];
 }
 
 export async function getEpisodeServers(slug: string, epNumber: number, lang: string = "sub"): Promise<ZetEpisodeServers> {
-  const res = await zetFetch<{ success: boolean; data: ZetEpisodeServers }>(`/anime/${slug}/episode/${epNumber}?lang=${lang}`, false);
+  const res = await zetDirectFetch<{ success: boolean; data: ZetEpisodeServers }>(`/anime/${slug}/episode/${epNumber}?lang=${lang}`);
   return res.data;
 }
 
