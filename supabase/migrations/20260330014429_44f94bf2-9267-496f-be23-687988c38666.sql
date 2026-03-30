@@ -1,0 +1,1 @@
+ALTER TABLE public.watch_history ADD CONSTRAINT watch_history_user_anime_ep UNIQUE (user_id, anime_id, episode_number);
