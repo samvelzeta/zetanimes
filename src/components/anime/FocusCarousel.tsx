@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Star, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
