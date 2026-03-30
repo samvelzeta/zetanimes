@@ -28,6 +28,21 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
     setTimeout(() => setIsTransitioning(false), 500);
   }, [items.length, isTransitioning]);
 
+  // Autoplay
+  const interactionRef = useRef(false);
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const interval = setInterval(() => {
+      if (!interactionRef.current) {
+        go(1);
+      }
+      interactionRef.current = false;
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [items.length, go]);
+
+  const handleUserInteraction = () => { interactionRef.current = true; };
+
   if (loading) {
     return (
       <section className="mb-8 px-4">

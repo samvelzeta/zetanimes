@@ -39,6 +39,21 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
     }, 300);
   }, [animating]);
 
+  // Autoplay: advance every 5s when user isn't interacting
+  const interactionRef = useRef(false);
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const interval = setInterval(() => {
+      if (!interactionRef.current) {
+        go(1);
+      }
+      interactionRef.current = false;
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [items.length, go]);
+
+  const handleUserInteraction = () => { interactionRef.current = true; };
+
   if (loading) {
     return (
       <section className="mb-8 px-4">
