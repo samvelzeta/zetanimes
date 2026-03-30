@@ -1,46 +1,31 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getAnimeById, getTitle, getStatusLabel, getStatusColor } from "@/lib/anilist";
-import { Star, Play, ArrowLeft, Calendar, Tv, Film, Bookmark, Clock, CheckCircle, HelpCircle } from "lucide-react";
+import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, HelpCircle, Eye } from "lucide-react";
 import AnimeCard from "@/components/anime/AnimeCard";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import AuthRequiredModal from "@/components/AuthRequiredModal";
+import { toast } from "sonner";
 
-const LISTS_KEY = "zet_anime_lists";
-type ListType = "saved" | "watch-later" | "finished" | "watching" | "undecided";
+type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
 
-function getUserLists(): Record<string, ListType[]> {
-  try { return JSON.parse(localStorage.getItem(LISTS_KEY) || "{}"); } catch { return {}; }
-}
-
-function toggleList(animeId: string, list: ListType) {
-  const lists = getUserLists();
-  if (!lists[animeId]) lists[animeId] = [];
-  if (lists[animeId].includes(list)) {
-    lists[animeId] = lists[animeId].filter((l) => l !== list);
-  } else {
-    lists[animeId] = lists[animeId].filter((l) => !["saved", "watch-later", "finished", "watching", "undecided"].includes(l));
-    lists[animeId].push(list);
-  }
-  localStorage.setItem(LISTS_KEY, JSON.stringify(lists));
-  return lists[animeId];
-}
-
-function getAnimeList(animeId: string): ListType[] {
-  return getUserLists()[animeId] || [];
-}
-
-const LIST_CONFIG: { type: ListType; icon: typeof Bookmark; label: string }[] = [
-  { type: "saved", icon: Bookmark, label: "Guardar" },
-  { type: "watch-later", icon: Clock, label: "Ver más tarde" },
-  { type: "watching", icon: Play, label: "Viendo" },
-  { type: "finished", icon: CheckCircle, label: "Terminado" },
+const LIST_CONFIG: { type: ListType; icon: typeof Heart; label: string }[] = [
+  { type: "favorite", icon: Heart, label: "Favorito" },
+  { type: "watching", icon: Eye, label: "Viendo" },
+  { type: "plan_to_watch", icon: Clock, label: "Ver después" },
+  { type: "completed", icon: CheckCircle, label: "Terminado" },
   { type: "undecided", icon: HelpCircle, label: "Indecisión" },
 ];
 
 export default function AnimeDetail() {
   const { id } = useParams();
   const animeId = parseInt(id || "0");
-  const [activeLists, setActiveLists] = useState<ListType[]>(() => getAnimeList(String(animeId)));
+  const { user } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [activeLists, setActiveLists] = useState<ListType[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
 
   const { data: anime, isLoading } = useQuery({
     queryKey: ["anime", animeId],
@@ -49,9 +34,50 @@ export default function AnimeDetail() {
     staleTime: 1000 * 60 * 10,
   });
 
-  const handleToggleList = (list: ListType) => {
-    const updated = toggleList(String(animeId), list);
-    setActiveLists([...updated]);
+  // Load user's lists for this anime from Supabase
+  useQuery({
+    queryKey: ["anime-list", animeId, user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("anime_lists")
+        .select("list_type")
+        .eq("user_id", user.id)
+        .eq("anime_id", animeId);
+      const types = (data?.map((d) => d.list_type) || []) as ListType[];
+      setActiveLists(types);
+      return types;
+    },
+    enabled: !!user && animeId > 0,
+  });
+
+  const handleToggleList = async (list: ListType) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    setLoadingList(true);
+    const title = anime ? getTitle(anime) : "";
+    const cover = anime?.coverImage?.extraLarge || anime?.coverImage?.large || "";
+
+    if (activeLists.includes(list)) {
+      // Remove
+      await supabase.from("anime_lists").delete().eq("user_id", user.id).eq("anime_id", animeId).eq("list_type", list as any);
+      setActiveLists((prev) => prev.filter((l) => l !== list));
+    } else {
+      // Remove other exclusive lists, add new one
+      await supabase.from("anime_lists").delete().eq("user_id", user.id).eq("anime_id", animeId);
+      await supabase.from("anime_lists").insert({
+        user_id: user.id,
+        anime_id: animeId,
+        list_type: list as any,
+        anime_title: title,
+        anime_cover: cover,
+      });
+      setActiveLists([list]);
+    }
+    setLoadingList(false);
+    toast.success(activeLists.includes(list) ? "Eliminado de la lista" : "Agregado a la lista");
   };
 
   if (isLoading) {
@@ -79,7 +105,7 @@ export default function AnimeDetail() {
   const banner = anime.bannerImage || anime.coverImage?.extraLarge;
   const cover = anime.coverImage?.extraLarge || anime.coverImage?.large;
   const description = anime.description?.replace(/<[^>]*>/g, "") || "";
-  const recommendations = anime.recommendations?.nodes?.map((n) => n.mediaRecommendation).filter(Boolean) || [];
+  const recommendations = anime.recommendations?.nodes?.map((n: any) => n.mediaRecommendation).filter(Boolean) || [];
 
   return (
     <div className="min-h-screen pb-24">
@@ -102,7 +128,7 @@ export default function AnimeDetail() {
           </div>
         </div>
 
-        <Link to={`/watch/${animeId}?ep=1`} className="mt-4 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-all text-sm">
+        <Link to={`/watch/${animeId}?ep=1`} className="mt-4 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-all text-sm hover:scale-[1.02] active:scale-[0.98]">
           <Play className="w-5 h-5 fill-current" /> Ver Ahora
         </Link>
 
@@ -110,7 +136,16 @@ export default function AnimeDetail() {
           {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
             const isActive = activeLists.includes(type);
             return (
-              <button key={type} onClick={() => handleToggleList(type)} className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${isActive ? "bg-primary/20 text-primary border border-primary/30" : "bg-secondary text-muted-foreground hover:bg-muted"}`}>
+              <button
+                key={type}
+                onClick={() => handleToggleList(type)}
+                disabled={loadingList}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  isActive
+                    ? "bg-primary/20 text-primary border border-primary/30"
+                    : "bg-secondary text-muted-foreground hover:bg-muted"
+                } disabled:opacity-50`}
+              >
                 <Icon className="w-3.5 h-3.5" />{label}
               </button>
             );
@@ -147,7 +182,7 @@ export default function AnimeDetail() {
 
         {anime.genres?.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3">
-            {anime.genres.map((g) => (
+            {anime.genres.map((g: string) => (
               <Link key={g} to={`/directory?genre=${g}`} className="px-2.5 py-1 bg-secondary rounded-lg text-[10px] font-medium text-muted-foreground hover:text-primary transition">{g}</Link>
             ))}
           </div>
@@ -164,7 +199,7 @@ export default function AnimeDetail() {
           <div className="mt-6">
             <h2 className="text-sm font-bold text-foreground mb-3">Relacionados</h2>
             <div className="flex gap-3 overflow-x-auto hide-scrollbar">
-              {anime.relations.edges.filter(e => e.node.type === "ANIME").map((edge) => (
+              {anime.relations.edges.filter((e: any) => e.node.type === "ANIME").map((edge: any) => (
                 <Link key={edge.node.id} to={`/anime/${edge.node.id}`} className="flex-shrink-0 w-28">
                   <div className="aspect-[3/4] rounded-xl overflow-hidden bg-secondary">
                     <img src={edge.node.coverImage?.large} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -186,6 +221,8 @@ export default function AnimeDetail() {
           </div>
         )}
       </div>
+
+      {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} message="Regístrate para guardar animes en tus listas, marcar favoritos y llevar control de lo que ves." />}
     </div>
   );
 }
