@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
@@ -39,6 +39,21 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
     }, 300);
   }, [animating]);
 
+  // Autoplay: advance every 5s when user isn't interacting
+  const interactionRef = useRef(false);
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const interval = setInterval(() => {
+      if (!interactionRef.current) {
+        go(1);
+      }
+      interactionRef.current = false;
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [items.length, go]);
+
+  const handleUserInteraction = () => { interactionRef.current = true; };
+
   if (loading) {
     return (
       <section className="mb-8 px-4">
@@ -73,7 +88,7 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
       </div>
 
       <div className="relative">
-        <button onClick={() => go(-1)} className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:bg-primary/70 hover:scale-110 transition-all duration-300">
+        <button onClick={() => { handleUserInteraction(); go(-1); }} className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:bg-primary/70 hover:scale-110 transition-all duration-300">
           <ChevronLeft className="w-5 h-5 text-white" />
         </button>
 
@@ -153,7 +168,7 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
           )}
         </div>
 
-        <button onClick={() => go(1)} className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:bg-primary/70 hover:scale-110 transition-all duration-300">
+        <button onClick={() => { handleUserInteraction(); go(1); }} className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:bg-primary/70 hover:scale-110 transition-all duration-300">
           <ChevronRight className="w-5 h-5 text-white" />
         </button>
       </div>
