@@ -10,9 +10,11 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import DownloadTracker from "@/components/admin/DownloadTracker";
 
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
+  { key: "downloads", label: "Descargas", icon: Store },
   { key: "premium", label: "Premium", icon: Crown },
   { key: "payment", label: "Pago", icon: CreditCard },
   { key: "notifs", label: "Notifs", icon: Bell },
@@ -55,6 +57,7 @@ export default function AdminPanel() {
 
       <div className="px-4 pt-6">
         {tab === "stats" && <StatsTab />}
+        {tab === "downloads" && <DownloadTracker />}
         {tab === "premium" && <PremiumTab />}
         {tab === "payment" && <PaymentTab />}
         {tab === "notifs" && <NotifsTab />}
