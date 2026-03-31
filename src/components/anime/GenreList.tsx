@@ -42,7 +42,7 @@ export default function GenreList() {
             <img
               src={img}
               alt={name}
-              className="absolute right-0 bottom-0 h-[120%] w-auto object-contain object-right-bottom pointer-events-none select-none opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 drop-shadow-lg"
+              className="absolute right-0 -bottom-1 h-[120%] w-auto object-cover object-top pointer-events-none select-none opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 drop-shadow-lg"
             />
 
             {/* Genre name */}
