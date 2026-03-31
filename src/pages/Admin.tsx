@@ -312,3 +312,74 @@ function ContactsTab() {
     </div>
   );
 }
+
+function ApiKeysTab() {
+  const [apiKey, setApiKey] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  const updateKey = async () => {
+    if (!apiKey.trim()) return toast.error("Ingresa la API key");
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/update-api-key`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({ key_name: "ZET_API_KEY", key_value: apiKey.trim() }),
+        }
+      );
+      if (!res.ok) throw new Error(await res.text());
+      setLastUpdated(new Date().toLocaleString());
+      setApiKey("");
+      toast.success("API Key actualizada correctamente");
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+        <Key className="w-4 h-4 text-primary" /> Gestión de API Keys
+      </h3>
+      <p className="text-[10px] text-muted-foreground">
+        Actualiza la API key de ZetAPI cuando expire. El valor se cifra y almacena como variable de entorno segura.
+      </p>
+
+      <div>
+        <label className="text-[10px] text-primary mb-1 block">ZET API Key</label>
+        <Input
+          type="password"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder="Pega la nueva API key aquí..."
+          className="h-10 bg-secondary border-primary/30 rounded-xl font-mono"
+        />
+      </div>
+
+      {lastUpdated && (
+        <p className="text-[10px] text-green-400">✓ Última actualización: {lastUpdated}</p>
+      )}
+
+      <button
+        onClick={updateKey}
+        disabled={loading}
+        className="w-full py-3 rounded-xl bg-primary/80 text-primary-foreground font-bold text-sm hover:bg-primary transition flex items-center justify-center gap-2"
+      >
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 🔑 Actualizar API Key
+      </button>
+
+      <div className="bg-secondary/50 border border-border rounded-xl p-3 mt-4">
+        <p className="text-[10px] text-muted-foreground">
+          ⚠️ La key nunca se muestra una vez guardada. Solo se almacena de forma segura en el servidor.
+        </p>
+      </div>
+    </div>
+  );
+}
