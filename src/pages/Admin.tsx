@@ -63,6 +63,7 @@ export default function AdminPanel() {
         {tab === "payment" && <PaymentTab />}
         {tab === "notifs" && <NotifsTab />}
         {tab === "contacts" && <ContactsTab />}
+        {tab === "apikeys" && <ApiKeysTab />}
       </div>
     </div>
   );
