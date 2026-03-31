@@ -28,7 +28,15 @@ const QUICK_FILTERS = [
   { key: "season", label: "🌸 Temporada", icon: Calendar },
 ];
 
+// Reverse map: English genre -> Spanish label
+const REVERSE_GENRE_MAP: Record<string, string> = Object.fromEntries(
+  Object.entries(GENRE_MAP).map(([es, en]) => [en, es])
+);
+
 export default function Directory() {
+  const [searchParams] = useSearchParams();
+  const genreParam = searchParams.get("genre");
+
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
@@ -36,6 +44,16 @@ export default function Directory() {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [quickFilter, setQuickFilter] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Auto-select genre from URL param
+  useEffect(() => {
+    if (genreParam) {
+      const spanishName = REVERSE_GENRE_MAP[genreParam] || genreParam;
+      setSelectedGenre(spanishName);
+      setQuickFilter(null);
+      setQuery("");
+    }
+  }, [genreParam]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 450);
