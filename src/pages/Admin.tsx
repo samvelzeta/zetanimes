@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, BarChart3, Crown, Image, Store, CreditCard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search,
-  Trash2, Pencil, Plus, ExternalLink,
+  Trash2, Pencil, Plus, ExternalLink, Key,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ const TABS = [
   { key: "payment", label: "Pago", icon: CreditCard },
   { key: "notifs", label: "Notifs", icon: Bell },
   { key: "contacts", label: "Contactos", icon: MessageSquare },
+  { key: "apikeys", label: "API Keys", icon: Key },
 ];
 
 export default function AdminPanel() {
