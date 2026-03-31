@@ -25,7 +25,10 @@ serve(async (req) => {
     const apiKey = Deno.env.get("ZET_API_KEY");
     const targetUrl = `${ZET_BASE}${path}`;
     const headers: Record<string, string> = { Accept: "application/json" };
-    if (apiKey) headers["x-api-key"] = apiKey;
+    if (apiKey) {
+      headers["x-api-key"] = apiKey;
+      headers["Authorization"] = `Bearer ${apiKey}`;
+    }
 
     const response = await fetch(targetUrl, { method: "GET", headers });
     const data = await response.text();
