@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { searchAnime, getPopular, getByGenre, getTrending, getTopRated, getThisSeason } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
 import { Input } from "@/components/ui/input";
