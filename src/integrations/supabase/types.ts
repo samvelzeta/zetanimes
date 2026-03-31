@@ -47,6 +47,77 @@ export type Database = {
         }
         Relationships: []
       }
+      anime_download_tracker: {
+        Row: {
+          airing_status: string | null
+          anilist_id: number
+          cover_image: string | null
+          created_at: string
+          genres: string[] | null
+          id: string
+          status: string
+          title: string
+          total_episodes: number | null
+          updated_at: string
+        }
+        Insert: {
+          airing_status?: string | null
+          anilist_id: number
+          cover_image?: string | null
+          created_at?: string
+          genres?: string[] | null
+          id?: string
+          status?: string
+          title: string
+          total_episodes?: number | null
+          updated_at?: string
+        }
+        Update: {
+          airing_status?: string | null
+          anilist_id?: number
+          cover_image?: string | null
+          created_at?: string
+          genres?: string[] | null
+          id?: string
+          status?: string
+          title?: string
+          total_episodes?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      anime_episode_downloads: {
+        Row: {
+          created_at: string
+          downloaded: boolean | null
+          episode_number: number
+          id: string
+          tracker_id: string
+        }
+        Insert: {
+          created_at?: string
+          downloaded?: boolean | null
+          episode_number: number
+          id?: string
+          tracker_id: string
+        }
+        Update: {
+          created_at?: string
+          downloaded?: boolean | null
+          episode_number?: number
+          id?: string
+          tracker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anime_episode_downloads_tracker_id_fkey"
+            columns: ["tracker_id"]
+            isOneToOne: false
+            referencedRelation: "anime_download_tracker"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       anime_lists: {
         Row: {
           anime_cover: string | null
