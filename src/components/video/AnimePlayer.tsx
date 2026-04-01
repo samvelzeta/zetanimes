@@ -13,6 +13,7 @@ interface Props {
   title?: string;
   onProgress?: (progress: number) => void;
   autoplay?: boolean;
+  initialTime?: number;
 }
 
 type SourceType = "hls" | "mp4" | "embed";
@@ -44,7 +45,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   return classified;
 }
 
-export default function AnimePlayer({ sources, title, onProgress, autoplay = true }: Props) {
+export default function AnimePlayer({ sources, title, onProgress, autoplay = true, initialTime }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,6 +60,7 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
   const [showControls, setShowControls] = useState(true);
   const [showServerPicker, setShowServerPicker] = useState(false);
   const controlsTimer = useRef<ReturnType<typeof setTimeout>>();
+  const hasRestoredTime = useRef(false);
 
   useEffect(() => {
     const c = classifySources(sources);
@@ -66,6 +68,7 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
     setCurrentIdx(0);
     setError(false);
     setLoading(true);
+    hasRestoredTime.current = false;
   }, [sources]);
 
   const currentSource = classified[currentIdx];
@@ -81,13 +84,21 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
     }
   }, [currentIdx, classified.length]);
 
+  // Restore time after video is ready
+  const restoreTime = useCallback(() => {
+    if (hasRestoredTime.current || !initialTime || initialTime <= 0) return;
+    const video = videoRef.current;
+    if (!video) return;
+    hasRestoredTime.current = true;
+    video.currentTime = initialTime;
+  }, [initialTime]);
+
   // HLS / MP4 setup
   useEffect(() => {
     if (!currentSource || currentSource.type === "embed") return;
     const video = videoRef.current;
     if (!video) return;
 
-    // Cleanup previous HLS
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
@@ -101,6 +112,7 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setLoading(false);
+          restoreTime();
           if (autoplay) video.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
@@ -110,16 +122,17 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
         video.src = currentSource.url;
         video.addEventListener("loadedmetadata", () => {
           setLoading(false);
+          restoreTime();
           if (autoplay) video.play().catch(() => {});
         }, { once: true });
       } else {
         tryNext();
       }
     } else {
-      // MP4
       video.src = currentSource.url;
       video.addEventListener("loadeddata", () => {
         setLoading(false);
+        restoreTime();
         if (autoplay) video.play().catch(() => {});
       }, { once: true });
       video.addEventListener("error", () => tryNext(), { once: true });
@@ -131,7 +144,7 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
         hlsRef.current = null;
       }
     };
-  }, [currentSource, autoplay, tryNext]);
+  }, [currentSource, autoplay, tryNext, restoreTime]);
 
   // Progress tracking
   useEffect(() => {
@@ -300,7 +313,6 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
 
         {/* Bottom controls */}
         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
-          {/* Progress bar */}
           <div onClick={seekTo} className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer mb-2 group/bar">
             <div className="h-full bg-primary rounded-full relative transition-all" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : "0%" }}>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />

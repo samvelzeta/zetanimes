@@ -3,7 +3,8 @@ import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   resolveSlugFromTitle, getEpisodeServers, sortServersByPriority,
-  isEpisodeWatched, markEpisodeWatched, titleToSlug,
+  isEpisodeWatched, markEpisodeWatched, titleToSlug, getCachedSlug,
+  saveCachedSlug, getLatinoEpisode,
   type ZetServer,
 } from "@/lib/zetapi";
 import { getAnimeById, getTitle } from "@/lib/anilist";
@@ -14,10 +15,10 @@ import {
 import AnimePlayer from "@/components/video/AnimePlayer";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
 
 type Lang = "sub" | "latino";
 
-// Episode cache
 const episodeCache = new Map<string, any>();
 
 export default function Watch() {
@@ -26,11 +27,13 @@ export default function Watch() {
   const [searchParams, setSearchParams] = useSearchParams();
   const epParam = Number(searchParams.get("ep") || 1);
   const { user } = useAuth();
+  const inWebView = isWebView();
 
   const [selectedEp, setSelectedEp] = useState(epParam);
   const [lang, setLang] = useState<Lang>("sub");
   const [showDebug, setShowDebug] = useState(false);
   const watchTimeRef = useRef(0);
+  const [initialTime, setInitialTime] = useState<number | undefined>(undefined);
 
   const { data: anilistData } = useQuery({
     queryKey: ["anime-detail", anilistId],
@@ -41,15 +44,27 @@ export default function Watch() {
 
   const animeTitle = anilistData ? (anilistData.title?.romaji || anilistData.title?.english || "") : "";
 
+  // Improved slug resolution with caching
   const { data: zetSlug, isLoading: loadingSlug } = useQuery({
-    queryKey: ["zet-slug", animeTitle],
+    queryKey: ["zet-slug", animeTitle, anilistId],
     queryFn: async () => {
-      const slug = await resolveSlugFromTitle(animeTitle);
-      if (slug) return slug;
+      // 1. Check DB cache
+      const cached = await getCachedSlug(anilistId);
+      if (cached) return cached;
+
+      // 2. Resolve via search with multiple strategies
+      const slug = await resolveSlugFromTitle(animeTitle, anilistId);
+      if (slug) {
+        // Save to DB cache for future
+        await saveCachedSlug(anilistId, slug, animeTitle);
+        return slug;
+      }
+
+      // 3. Fallback to generated slug
       return titleToSlug(animeTitle);
     },
     enabled: !!animeTitle,
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 30,
     retry: 1,
   });
 
@@ -57,6 +72,14 @@ export default function Watch() {
   const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, selectedEp) }, (_, i) => i + 1);
 
   const cacheKey = `${zetSlug}-${selectedEp}-${lang}`;
+
+  // Check for latino HLS episode first
+  const { data: latinoEp } = useQuery({
+    queryKey: ["latino-ep", zetSlug, selectedEp],
+    queryFn: () => getLatinoEpisode(zetSlug!, selectedEp),
+    enabled: !!zetSlug && lang === "latino",
+    staleTime: 1000 * 60 * 5,
+  });
 
   const { data: serverData, isLoading: loadingServers, error: serverError } = useQuery({
     queryKey: ["zet-servers", zetSlug, selectedEp, lang],
@@ -66,26 +89,69 @@ export default function Watch() {
       episodeCache.set(cacheKey, res);
       return res;
     },
-    enabled: !!zetSlug,
+    enabled: !!zetSlug && !(lang === "latino" && latinoEp),
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
 
-  const sortedServers = serverData?.servers ? sortServersByPriority(serverData.servers) : [];
+  // Build sources: prioritize latino HLS if available
+  const buildSources = useCallback(() => {
+    const sources: { name: string; embed: string }[] = [];
+
+    // If latino and we have HLS, add it first
+    if (lang === "latino" && latinoEp?.sources?.hls) {
+      latinoEp.sources.hls.forEach((url: string, i: number) => {
+        sources.push({ name: `HLS Latino ${i + 1}`, embed: url });
+      });
+    }
+
+    // Add scraper servers
+    const scraperServers = serverData?.servers ? sortServersByPriority(serverData.servers) : [];
+    scraperServers.forEach((s) => {
+      if (s.embed) sources.push({ name: s.name, embed: s.embed });
+    });
+
+    return sources;
+  }, [lang, latinoEp, serverData]);
+
+  const sortedSources = buildSources();
+
+  // Restore video progress on episode change
+  useEffect(() => {
+    if (zetSlug) {
+      const saved = getVideoProgress(zetSlug, selectedEp);
+      if (saved && saved.currentTime > 5) {
+        setInitialTime(saved.currentTime);
+      } else {
+        setInitialTime(undefined);
+      }
+    }
+  }, [zetSlug, selectedEp]);
 
   const selectEpisode = (epNumber: number) => {
     setSelectedEp(epNumber);
     setSearchParams({ ep: String(epNumber) });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    watchTimeRef.current = 0;
+    if (!inWebView) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const handleProgress = useCallback((pct: number) => {
-    watchTimeRef.current += 1; // rough seconds counter
+    watchTimeRef.current += 1;
+
+    // Save progress to localStorage every few seconds
+    if (zetSlug && watchTimeRef.current % 5 === 0) {
+      const video = document.querySelector("video");
+      if (video) {
+        saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
+      }
+    }
+
     if (pct >= 0.7 && zetSlug) {
       const epSlug = `${zetSlug}-${selectedEp}`;
       if (!isEpisodeWatched(epSlug)) {
         markEpisodeWatched(epSlug);
-        // Save to DB
         if (user) {
           const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
           const title = anilistData ? getTitle(anilistData) : "";
@@ -109,11 +175,11 @@ export default function Watch() {
     if (!isEpisodeWatched(epSlug)) {
       markEpisodeWatched(epSlug);
     }
-    // Force re-render
     setSelectedEp((p) => p);
   };
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
+  const isLoading = loadingServers || loadingSlug;
 
   return (
     <div className="min-h-screen pb-24">
@@ -125,15 +191,16 @@ export default function Watch() {
 
       {/* Player */}
       <div className="px-4 mb-4">
-        {(loadingServers || loadingSlug) ? (
+        {isLoading ? (
           <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
           </div>
-        ) : sortedServers.length > 0 ? (
+        ) : sortedSources.length > 0 ? (
           <AnimePlayer
-            sources={sortedServers.map((s) => ({ name: s.name, embed: s.embed }))}
+            sources={sortedSources.map((s) => ({ name: s.name, embed: s.embed }))}
             title={`${displayTitle} - EP ${selectedEp}`}
             onProgress={handleProgress}
+            initialTime={initialTime}
           />
         ) : (
           <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3">
@@ -148,7 +215,10 @@ export default function Watch() {
       {/* Title + controls */}
       <div className="px-4 mb-4">
         <h1 className="text-base font-bold text-foreground mb-1">{displayTitle}</h1>
-        <p className="text-xs text-muted-foreground mb-3">Episodio {selectedEp} {zetSlug && `• ${zetSlug}`}</p>
+        <p className="text-xs text-muted-foreground mb-3">
+          Episodio {selectedEp} {zetSlug && `• ${zetSlug}`}
+          {inWebView && " • 📱 APK"}
+        </p>
 
         {/* Language */}
         <div className="flex items-center gap-2 mb-4">
@@ -161,6 +231,12 @@ export default function Watch() {
             </button>
           ))}
         </div>
+
+        {lang === "latino" && latinoEp && (
+          <div className="flex items-center gap-2 bg-green-600/10 border border-green-600/30 rounded-xl px-4 py-2 mb-4">
+            <span className="text-xs text-green-400 font-medium">✓ HLS Latino disponible</span>
+          </div>
+        )}
 
         {serverError && (
           <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3 mb-4">
@@ -180,8 +256,10 @@ export default function Watch() {
             <p><span className="text-primary">slug:</span> {zetSlug || "—"}</p>
             <p><span className="text-primary">episode:</span> {selectedEp}</p>
             <p><span className="text-primary">lang:</span> {lang}</p>
-            <p><span className="text-primary">servers:</span> {sortedServers.length}</p>
-            <p><span className="text-primary">types:</span> {sortedServers.map(s => {
+            <p><span className="text-primary">servers:</span> {sortedSources.length}</p>
+            <p><span className="text-primary">latino_hls:</span> {latinoEp ? "✓" : "✗"}</p>
+            <p><span className="text-primary">webview:</span> {inWebView ? "✓" : "✗"}</p>
+            <p><span className="text-primary">types:</span> {sortedSources.map(s => {
               const url = s.embed || "";
               if (url.includes(".m3u8")) return "HLS";
               if (url.includes(".mp4")) return "MP4";
@@ -191,7 +269,7 @@ export default function Watch() {
         )}
       </div>
 
-      {/* Episodes grid - 4 columns horizontal */}
+      {/* Episodes grid */}
       <div className="px-4">
         <h2 className="text-sm font-bold text-foreground mb-3">Episodios</h2>
         {episodeNumbers.length > 0 ? (
@@ -202,12 +280,10 @@ export default function Watch() {
               const watched = epSlug ? isEpisodeWatched(epSlug) : false;
               return (
                 <div key={epNum} className={`flex rounded-lg overflow-hidden transition-all ${isActive ? "ring-2 ring-primary/50" : ""}`}>
-                  {/* Episode button - 70% */}
                   <button onClick={() => selectEpisode(epNum)}
                     className={`flex-1 py-2.5 px-3 text-sm font-bold transition-all text-left ${isActive ? "bg-primary text-primary-foreground" : watched ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                     EP {epNum}
                   </button>
-                  {/* Watch toggle - 30% */}
                   <button onClick={() => toggleWatched(epNum)}
                     className={`w-[30%] flex items-center justify-center transition-all border-l border-background/20 ${watched ? "bg-primary text-primary-foreground" : "bg-secondary/80 text-muted-foreground hover:text-primary"}`}>
                     {watched ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
