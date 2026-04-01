@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, BarChart3, Crown, Image, Store, CreditCard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search,
-  Trash2, Pencil, Plus, ExternalLink, Key,
+  Trash2, Pencil, Plus, ExternalLink, Key, Upload, Settings,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,13 @@ import DownloadTracker from "@/components/admin/DownloadTracker";
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
   { key: "downloads", label: "Descargas", icon: Store },
+  { key: "upload", label: "Upload HLS", icon: Upload },
   { key: "premium", label: "Premium", icon: Crown },
   { key: "payment", label: "Pago", icon: CreditCard },
   { key: "notifs", label: "Notifs", icon: Bell },
   { key: "contacts", label: "Contactos", icon: MessageSquare },
   { key: "apikeys", label: "API Keys", icon: Key },
+  { key: "settings", label: "Config R2", icon: Settings },
 ];
 
 export default function AdminPanel() {
@@ -59,28 +61,32 @@ export default function AdminPanel() {
       <div className="px-4 pt-6">
         {tab === "stats" && <StatsTab />}
         {tab === "downloads" && <DownloadTracker />}
+        {tab === "upload" && <UploadHLSTab />}
         {tab === "premium" && <PremiumTab />}
         {tab === "payment" && <PaymentTab />}
         {tab === "notifs" && <NotifsTab />}
         {tab === "contacts" && <ContactsTab />}
         {tab === "apikeys" && <ApiKeysTab />}
+        {tab === "settings" && <R2SettingsTab />}
       </div>
     </div>
   );
 }
 
+// ========== STATS ==========
 function StatsTab() {
-  const [stats, setStats] = useState({ users: 0, premium: 0, episodes: 0, notifs: 0 });
+  const [stats, setStats] = useState({ users: 0, premium: 0, episodes: 0, notifs: 0, latino: 0 });
 
   useEffect(() => {
     const load = async () => {
-      const [{ count: users }, { count: premium }, { count: episodes }, { count: notifs }] = await Promise.all([
+      const [{ count: users }, { count: premium }, { count: episodes }, { count: notifs }, { count: latino }] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "premium"),
         supabase.from("watch_history").select("*", { count: "exact", head: true }).eq("completed", true),
         supabase.from("notifications").select("*", { count: "exact", head: true }).eq("active", true),
+        supabase.from("latino_episodes" as any).select("*", { count: "exact", head: true }).eq("status", "uploaded"),
       ]);
-      setStats({ users: users || 0, premium: premium || 0, episodes: episodes || 0, notifs: notifs || 0 });
+      setStats({ users: users || 0, premium: premium || 0, episodes: episodes || 0, notifs: notifs || 0, latino: latino || 0 });
     };
     load();
   }, []);
@@ -90,6 +96,7 @@ function StatsTab() {
     { label: "Usuarios Premium", value: stats.premium, icon: Crown, color: "text-yellow-400" },
     { label: "Episodios vistos", value: stats.episodes, icon: BarChart3, color: "text-blue-400" },
     { label: "Notifs activas", value: stats.notifs, icon: Bell, color: "text-yellow-400" },
+    { label: "Eps Latino HLS", value: stats.latino, icon: Upload, color: "text-green-400" },
   ];
 
   return (
@@ -105,6 +112,205 @@ function StatsTab() {
   );
 }
 
+// ========== UPLOAD HLS ==========
+function UploadHLSTab() {
+  const [slug, setSlug] = useState("");
+  const [epNumber, setEpNumber] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [episodes, setEpisodes] = useState<any[]>([]);
+
+  useEffect(() => {
+    loadEpisodes();
+  }, []);
+
+  const loadEpisodes = async () => {
+    const { data } = await supabase
+      .from("latino_episodes" as any)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (data) setEpisodes(data);
+  };
+
+  const registerEpisode = async () => {
+    if (!slug.trim() || !epNumber.trim()) return toast.error("Slug y número de episodio requeridos");
+    setLoading(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const res = await fetch(
+        `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/upload-hls`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            slug: slug.trim(),
+            episode_number: parseInt(epNumber),
+            action: "register",
+          }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || result.message);
+      toast.success(`Episodio ${epNumber} de ${slug} registrado como HLS`);
+      setSlug("");
+      setEpNumber("");
+      loadEpisodes();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+    setLoading(false);
+  };
+
+  const statusColors: Record<string, string> = {
+    pending: "bg-yellow-600",
+    uploading: "bg-blue-600",
+    uploaded: "bg-green-600",
+    error: "bg-destructive",
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+        <Upload className="w-4 h-4 text-green-400" /> Registrar Episodio Latino HLS
+      </h3>
+      <p className="text-[10px] text-muted-foreground">
+        Registra episodios HLS que ya subiste a R2. El sistema generará las URLs automáticamente.
+      </p>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] text-primary mb-1 block">Slug del anime</label>
+          <Input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="one-piece"
+            className="h-10 bg-secondary border-primary/30 rounded-xl font-mono text-xs"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] text-primary mb-1 block">Nro. Episodio</label>
+          <Input
+            type="number"
+            value={epNumber}
+            onChange={(e) => setEpNumber(e.target.value)}
+            placeholder="1"
+            className="h-10 bg-secondary border-primary/30 rounded-xl"
+          />
+        </div>
+      </div>
+
+      <button
+        onClick={registerEpisode}
+        disabled={loading}
+        className="w-full py-3 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2"
+      >
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 📤 Registrar Episodio HLS
+      </button>
+
+      {/* Registered episodes list */}
+      <div className="mt-4">
+        <h4 className="text-xs font-bold text-foreground mb-2">Episodios Registrados</h4>
+        {episodes.length === 0 ? (
+          <p className="text-[10px] text-muted-foreground text-center py-4">No hay episodios latinos registrados</p>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {episodes.map((ep: any) => (
+              <div key={ep.id} className="flex items-center justify-between bg-secondary rounded-lg p-3 border border-border">
+                <div>
+                  <p className="text-xs font-bold text-foreground">{ep.slug} - EP {ep.episode_number}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {ep.sources?.hls?.[0] ? "HLS ✓" : "Sin fuente"}
+                  </p>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] text-white font-bold ${statusColors[ep.status] || "bg-muted"}`}>
+                  {ep.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ========== R2 SETTINGS ==========
+function R2SettingsTab() {
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    const { data } = await supabase
+      .from("app_settings" as any)
+      .select("key, value")
+      .in("key", ["R2_ACCOUNT_ID", "R2_ACCESS_KEY", "R2_SECRET_KEY", "R2_BUCKET_NAME", "R2_PUBLIC_URL"]);
+    const cfg: Record<string, string> = {};
+    (data || []).forEach((s: any) => { cfg[s.key] = s.value || ""; });
+    setSettings(cfg);
+    setLoading(false);
+  };
+
+  const saveSettings = async () => {
+    setSaving(true);
+    for (const [key, value] of Object.entries(settings)) {
+      await supabase.from("app_settings" as any).update({ value } as any).eq("key", key);
+    }
+    setSaving(false);
+    toast.success("Configuración R2 guardada");
+  };
+
+  const fields = [
+    { key: "R2_ACCOUNT_ID", label: "Account ID", type: "text" },
+    { key: "R2_ACCESS_KEY", label: "Access Key", type: "password" },
+    { key: "R2_SECRET_KEY", label: "Secret Key", type: "password" },
+    { key: "R2_BUCKET_NAME", label: "Bucket Name", type: "text" },
+    { key: "R2_PUBLIC_URL", label: "Public URL", type: "text" },
+  ];
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+        <Settings className="w-4 h-4 text-primary" /> Configuración Cloudflare R2
+      </h3>
+      <p className="text-[10px] text-muted-foreground">
+        Configura las credenciales de R2 para subir episodios HLS. Los valores se almacenan de forma segura.
+      </p>
+
+      {fields.map((f) => (
+        <div key={f.key}>
+          <label className="text-[10px] text-primary mb-1 block">{f.label}</label>
+          <Input
+            type={f.type}
+            value={settings[f.key] || ""}
+            onChange={(e) => setSettings({ ...settings, [f.key]: e.target.value })}
+            placeholder={f.label}
+            className="h-10 bg-secondary border-primary/30 rounded-xl font-mono text-xs"
+          />
+        </div>
+      ))}
+
+      <button
+        onClick={saveSettings}
+        disabled={saving}
+        className="w-full py-3 rounded-xl bg-primary/80 text-primary-foreground font-bold text-sm hover:bg-primary transition flex items-center justify-center gap-2"
+      >
+        {saving && <Loader2 className="w-4 h-4 animate-spin" />} 💾 Guardar Configuración R2
+      </button>
+    </div>
+  );
+}
+
+// ========== PREMIUM ==========
 function PremiumTab() {
   const [requests, setRequests] = useState<any[]>([]);
   const [searchQ, setSearchQ] = useState("");
@@ -116,15 +322,12 @@ function PremiumTab() {
   }, []);
 
   const approve = async (req: any) => {
-    // Add premium role
     await supabase.from("user_roles").insert({ user_id: req.user_id, role: "premium" as any });
-    // Update membership
     const expires = req.membership_type === "annual" ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
     await supabase.from("premium_memberships").insert({
       user_id: req.user_id, membership_type: req.membership_type, status: "active" as any,
       activated_at: new Date().toISOString(), expires_at: expires,
     });
-    // Update request status  
     await supabase.from("premium_requests").update({ status: "active" as any }).eq("id", req.id);
     setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "active" } : r));
     toast.success("Premium activado");
@@ -168,6 +371,7 @@ function PremiumTab() {
   );
 }
 
+// ========== PAYMENT ==========
 function PaymentTab() {
   const [info, setInfo] = useState({ bank_name: "", account_holder: "", account_number: "", price_annual: "", price_lifetime: "", instructions: "" });
   const [loading, setLoading] = useState(false);
@@ -181,17 +385,14 @@ function PaymentTab() {
   const save = async () => {
     setLoading(true);
     const { data: existing } = await supabase.from("admin_payment_info").select("id").limit(1).single();
-    if (existing) {
-      await supabase.from("admin_payment_info").update(info).eq("id", existing.id);
-    }
+    if (existing) await supabase.from("admin_payment_info").update(info).eq("id", existing.id);
     setLoading(false);
     toast.success("Info de pago guardada");
   };
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><CreditCard className="w-4 h-4 text-green-400" /> Información Bancaria para Usuarios</h3>
-      <p className="text-[10px] text-muted-foreground">Esta información se mostrará cuando soliciten Premium.</p>
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><CreditCard className="w-4 h-4 text-green-400" /> Información Bancaria</h3>
       {[
         { key: "bank_name", label: "Banco / Plataforma" },
         { key: "account_holder", label: "Titular de la cuenta" },
@@ -201,20 +402,21 @@ function PaymentTab() {
       ].map((f) => (
         <div key={f.key}>
           <label className="text-[10px] text-primary mb-1 block">{f.label}</label>
-          <Input value={(info as any)[f.key]} onChange={(e) => setInfo({ ...info, [f.key]: e.target.value })} className="h-10 bg-secondary border-green-800/30 rounded-xl" />
+          <Input value={(info as any)[f.key]} onChange={(e) => setInfo({ ...info, [f.key]: e.target.value })} className="h-10 bg-secondary border-primary/30 rounded-xl" />
         </div>
       ))}
       <div>
-        <label className="text-[10px] text-primary mb-1 block">Instrucciones adicionales</label>
-        <textarea value={info.instructions} onChange={(e) => setInfo({ ...info, instructions: e.target.value })} className="w-full h-24 bg-secondary border border-green-800/30 rounded-xl p-3 text-sm text-foreground resize-none" />
+        <label className="text-[10px] text-primary mb-1 block">Instrucciones</label>
+        <textarea value={info.instructions} onChange={(e) => setInfo({ ...info, instructions: e.target.value })} className="w-full h-24 bg-secondary border border-primary/30 rounded-xl p-3 text-sm text-foreground resize-none" />
       </div>
       <button onClick={save} disabled={loading} className="w-full py-3 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2">
-        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 💾 Guardar Info de Pago
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 💾 Guardar
       </button>
     </div>
   );
 }
 
+// ========== NOTIFS ==========
 function NotifsTab() {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
@@ -227,30 +429,28 @@ function NotifsTab() {
     setLoading(true);
     await supabase.from("notifications").insert({ title, message, type, created_by: user?.id });
     setLoading(false);
-    setTitle("");
-    setMessage("");
+    setTitle(""); setMessage("");
     toast.success("Notificación enviada a todos");
   };
-
-  const types = ["info", "warning", "success", "danger"];
 
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Bell className="w-4 h-4 text-yellow-400" /> Nueva Notificación</h3>
-      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título de la notificación" className="h-10 bg-secondary border-primary/30 rounded-xl" />
-      <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Mensaje completo..." className="w-full h-24 bg-secondary border border-primary/30 rounded-xl p-3 text-sm text-foreground resize-none" />
+      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" className="h-10 bg-secondary border-primary/30 rounded-xl" />
+      <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Mensaje..." className="w-full h-24 bg-secondary border border-primary/30 rounded-xl p-3 text-sm text-foreground resize-none" />
       <div className="flex gap-2">
-        {types.map((t) => (
+        {["info", "warning", "success", "danger"].map((t) => (
           <button key={t} onClick={() => setType(t)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${type === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{t}</button>
         ))}
       </div>
       <button onClick={send} disabled={loading} className="w-full py-3 rounded-xl bg-primary/80 text-primary-foreground font-bold text-sm hover:bg-primary transition flex items-center justify-center gap-2">
-        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 📢 Enviar a Todos
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 📢 Enviar
       </button>
     </div>
   );
 }
 
+// ========== CONTACTS ==========
 function ContactsTab() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [name, setName] = useState("");
@@ -275,15 +475,14 @@ function ContactsTab() {
   const remove = async (id: string) => {
     await supabase.from("contact_links").delete().eq("id", id);
     setContacts(contacts.filter((c) => c.id !== id));
-    toast.info("Contacto eliminado");
   };
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><MessageSquare className="w-4 h-4 text-primary" /> Agregar Contacto</h3>
-      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre (ej: WhatsApp, Discord...)" className="h-10 bg-secondary border-primary/30 rounded-xl" />
-      <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="URL del enlace" className="h-10 bg-secondary border-primary/30 rounded-xl" />
-      <Input value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="URL del logo/icono (opcional)" className="h-10 bg-secondary border-primary/30 rounded-xl" />
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><MessageSquare className="w-4 h-4 text-primary" /> Contactos</h3>
+      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" className="h-10 bg-secondary border-primary/30 rounded-xl" />
+      <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="URL" className="h-10 bg-secondary border-primary/30 rounded-xl" />
+      <Input value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="URL icono (opcional)" className="h-10 bg-secondary border-primary/30 rounded-xl" />
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground">Color:</span>
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
@@ -313,6 +512,7 @@ function ContactsTab() {
   );
 }
 
+// ========== API KEYS ==========
 function ApiKeysTab() {
   const [apiKey, setApiKey] = useState("");
   const [loading, setLoading] = useState(false);
@@ -336,7 +536,7 @@ function ApiKeysTab() {
       if (!res.ok) throw new Error(await res.text());
       setLastUpdated(new Date().toLocaleString());
       setApiKey("");
-      toast.success("API Key actualizada correctamente");
+      toast.success("API Key actualizada");
     } catch (e: any) {
       toast.error("Error: " + e.message);
     }
@@ -345,40 +545,18 @@ function ApiKeysTab() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-        <Key className="w-4 h-4 text-primary" /> Gestión de API Keys
-      </h3>
-      <p className="text-[10px] text-muted-foreground">
-        Actualiza la API key de ZetAPI cuando expire. El valor se cifra y almacena como variable de entorno segura.
-      </p>
-
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Key className="w-4 h-4 text-primary" /> API Keys</h3>
+      <p className="text-[10px] text-muted-foreground">Actualiza la API key de ZetAPI cuando expire.</p>
       <div>
         <label className="text-[10px] text-primary mb-1 block">ZET API Key</label>
-        <Input
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder="Pega la nueva API key aquí..."
-          className="h-10 bg-secondary border-primary/30 rounded-xl font-mono"
-        />
+        <Input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="Nueva API key..." className="h-10 bg-secondary border-primary/30 rounded-xl font-mono" />
       </div>
-
-      {lastUpdated && (
-        <p className="text-[10px] text-green-400">✓ Última actualización: {lastUpdated}</p>
-      )}
-
-      <button
-        onClick={updateKey}
-        disabled={loading}
-        className="w-full py-3 rounded-xl bg-primary/80 text-primary-foreground font-bold text-sm hover:bg-primary transition flex items-center justify-center gap-2"
-      >
-        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 🔑 Actualizar API Key
+      {lastUpdated && <p className="text-[10px] text-green-400">✓ Última actualización: {lastUpdated}</p>}
+      <button onClick={updateKey} disabled={loading} className="w-full py-3 rounded-xl bg-primary/80 text-primary-foreground font-bold text-sm hover:bg-primary transition flex items-center justify-center gap-2">
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 🔑 Actualizar
       </button>
-
       <div className="bg-secondary/50 border border-border rounded-xl p-3 mt-4">
-        <p className="text-[10px] text-muted-foreground">
-          ⚠️ La key nunca se muestra una vez guardada. Solo se almacena de forma segura en el servidor.
-        </p>
+        <p className="text-[10px] text-muted-foreground">⚠️ La key nunca se muestra una vez guardada.</p>
       </div>
     </div>
   );

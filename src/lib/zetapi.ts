@@ -86,15 +86,159 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
   return res.data;
 }
 
-export async function resolveSlugFromTitle(title: string): Promise<string | null> {
-  const results = await searchZetAnime(title);
-  if (results.length > 0) return results[0].slug;
+// ===== IMPROVED SLUG RESOLUTION =====
+
+// In-memory slug cache for the session
+const slugMemoryCache = new Map<string, string>();
+
+/**
+ * Clean a title to create a proper slug search term
+ * Removes season indicators, special chars, etc.
+ */
+function cleanTitleForSearch(title: string): string[] {
+  const variants: string[] = [title];
+  
+  // Remove common suffixes/patterns
+  const cleaned = title
+    .replace(/\s*(Season|Part|Cour|S)\s*\d+/gi, "")
+    .replace(/\s*(2nd|3rd|\d+th)\s*(Season|Part|Cour)/gi, "")
+    .replace(/\s*\d+$/, "")
+    .replace(/[:\-–—]\s*.*$/, "")  // Remove subtitle after colon/dash
+    .trim();
+  
+  if (cleaned && cleaned !== title) variants.push(cleaned);
+  
+  // Also try just the main name
+  const mainName = title.split(/[:\-–—]/)[0].trim();
+  if (mainName && !variants.includes(mainName)) variants.push(mainName);
+  
+  return variants.filter(Boolean);
+}
+
+/**
+ * Resolve slug from title with multiple search strategies and caching
+ */
+export async function resolveSlugFromTitle(title: string, anilistId?: number): Promise<string | null> {
+  // Check memory cache first
+  const cacheKey = anilistId ? `id-${anilistId}` : `title-${title}`;
+  if (slugMemoryCache.has(cacheKey)) {
+    return slugMemoryCache.get(cacheKey)!;
+  }
+  
+  // Try multiple search variants
+  const searchVariants = cleanTitleForSearch(title);
+  
+  for (const variant of searchVariants) {
+    try {
+      const results = await searchZetAnime(variant);
+      if (results.length > 0) {
+        // Find best match by comparing titles
+        const bestMatch = findBestSlugMatch(title, results);
+        const slug = bestMatch.slug;
+        slugMemoryCache.set(cacheKey, slug);
+        return slug;
+      }
+    } catch {
+      // Try next variant
+      continue;
+    }
+  }
+  
   return null;
+}
+
+/**
+ * Find the best matching result from search results
+ */
+function findBestSlugMatch(originalTitle: string, results: ZetSearchResult[]): ZetSearchResult {
+  const normalizedOriginal = originalTitle.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+  
+  let bestMatch = results[0];
+  let bestScore = 0;
+  
+  for (const result of results) {
+    const normalizedResult = result.title.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+    
+    // Exact match
+    if (normalizedResult === normalizedOriginal) return result;
+    
+    // Calculate similarity score
+    const words = normalizedOriginal.split(/\s+/);
+    const matchedWords = words.filter(w => normalizedResult.includes(w));
+    const score = matchedWords.length / words.length;
+    
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = result;
+    }
+  }
+  
+  return bestMatch;
 }
 
 export function titleToSlug(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
+
+// ===== SLUG CACHE DB OPERATIONS =====
+
+export async function getCachedSlug(anilistId: number): Promise<string | null> {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase
+      .from("slug_cache")
+      .select("slug")
+      .eq("anilist_id", anilistId)
+      .maybeSingle();
+    if (data?.slug) {
+      slugMemoryCache.set(`id-${anilistId}`, data.slug);
+      return data.slug;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveCachedSlug(anilistId: number, slug: string, title: string): Promise<void> {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    await supabase.from("slug_cache").upsert(
+      { anilist_id: anilistId, slug, title } as any,
+      { onConflict: "anilist_id" }
+    );
+    slugMemoryCache.set(`id-${anilistId}`, slug);
+  } catch {
+    // Silently fail - cache is optional
+  }
+}
+
+// ===== LATINO HLS EPISODES =====
+
+export interface LatinoEpisode {
+  slug: string;
+  episode_number: number;
+  sources: { hls: string[] };
+  status: string;
+}
+
+export async function getLatinoEpisode(slug: string, episodeNumber: number): Promise<LatinoEpisode | null> {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase
+      .from("latino_episodes")
+      .select("*")
+      .eq("slug", slug)
+      .eq("episode_number", episodeNumber)
+      .eq("status", "uploaded")
+      .maybeSingle();
+    return data as unknown as LatinoEpisode | null;
+  } catch {
+    return null;
+  }
+}
+
+// ===== WATCH HISTORY (localStorage) =====
 
 export interface WatchHistoryEntry {
   animeSlug: string;

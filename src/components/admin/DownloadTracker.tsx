@@ -49,14 +49,26 @@ export default function DownloadTracker() {
 
   const loadTrackers = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, count } = await supabase
       .from("anime_download_tracker")
-      .select("*")
+      .select("*", { count: "exact" })
       .eq("status", activeStatus)
       .order("updated_at", { ascending: false });
 
     if (data) {
-      setTrackers(data as unknown as TrackerItem[]);
+      // For "waiting" status, rotate/shuffle to avoid infinite scroll
+      if (activeStatus === "waiting" && data.length > 20) {
+        // Show a random subset of 20, rotated by current hour
+        const seed = new Date().getHours();
+        const shuffled = [...data].sort((a, b) => {
+          const hashA = (a.anilist_id * (seed + 1)) % 100;
+          const hashB = (b.anilist_id * (seed + 1)) % 100;
+          return hashA - hashB;
+        });
+        setTrackers(shuffled.slice(0, 20) as unknown as TrackerItem[]);
+      } else {
+        setTrackers(data as unknown as TrackerItem[]);
+      }
     }
     setLoading(false);
   }, [activeStatus]);

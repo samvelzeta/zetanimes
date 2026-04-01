@@ -148,6 +148,30 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
       contact_links: {
         Row: {
           color: string | null
@@ -175,6 +199,39 @@ export type Database = {
           name?: string
           sort_order?: number | null
           url?: string
+        }
+        Relationships: []
+      }
+      latino_episodes: {
+        Row: {
+          created_at: string
+          episode_number: number
+          id: string
+          slug: string
+          sources: Json
+          status: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          episode_number: number
+          id?: string
+          slug: string
+          sources?: Json
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          episode_number?: number
+          id?: string
+          slug?: string
+          sources?: Json
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
         }
         Relationships: []
       }
@@ -342,6 +399,30 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string
+        }
+        Relationships: []
+      }
+      slug_cache: {
+        Row: {
+          anilist_id: number
+          created_at: string
+          id: string
+          slug: string
+          title: string | null
+        }
+        Insert: {
+          anilist_id: number
+          created_at?: string
+          id?: string
+          slug: string
+          title?: string | null
+        }
+        Update: {
+          anilist_id?: number
+          created_at?: string
+          id?: string
+          slug?: string
+          title?: string | null
         }
         Relationships: []
       }
