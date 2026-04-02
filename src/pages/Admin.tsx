@@ -114,10 +114,17 @@ function StatsTab() {
 
 // ========== UPLOAD HLS ==========
 function UploadHLSTab() {
-  const [slug, setSlug] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedAnime, setSelectedAnime] = useState<{ slug: string; title: string; cover: string } | null>(null);
   const [epNumber, setEpNumber] = useState("");
   const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [episodes, setEpisodes] = useState<any[]>([]);
+  const [newServerUrl, setNewServerUrl] = useState("");
+  const [episodeStatuses, setEpisodeStatuses] = useState<any[]>([]);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     loadEpisodes();
@@ -132,8 +139,48 @@ function UploadHLSTab() {
     if (data) setEpisodes(data);
   };
 
+  // Debounced anime search
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (val.length < 2) { setSearchResults([]); return; }
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const { searchAnime } = await import("@/lib/anilist");
+        const result = await searchAnime(val, 1, 8);
+        setSearchResults(result.media || []);
+      } catch { setSearchResults([]); }
+      setSearching(false);
+    }, 400);
+  };
+
+  const selectAnime = (anime: any) => {
+    const slug = anime.title?.romaji?.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-") || "";
+    setSelectedAnime({
+      slug,
+      title: anime.title?.romaji || anime.title?.english || "",
+      cover: anime.coverImage?.medium || anime.coverImage?.large || "",
+    });
+    setSearchQuery("");
+    setSearchResults([]);
+    // Check episodes for this slug
+    checkEpisodeStatuses(slug);
+  };
+
+  const checkEpisodeStatuses = async (slug: string) => {
+    setCheckingStatus(true);
+    const { data } = await supabase
+      .from("latino_episodes" as any)
+      .select("*")
+      .eq("slug", slug)
+      .order("episode_number", { ascending: true });
+    setEpisodeStatuses(data || []);
+    setCheckingStatus(false);
+  };
+
   const registerEpisode = async () => {
-    if (!slug.trim() || !epNumber.trim()) return toast.error("Slug y número de episodio requeridos");
+    if (!selectedAnime?.slug || !epNumber.trim()) return toast.error("Selecciona anime y número de episodio");
     setLoading(true);
     try {
       const session = await supabase.auth.getSession();
@@ -146,7 +193,7 @@ function UploadHLSTab() {
             "Authorization": `Bearer ${session.data.session?.access_token}`,
           },
           body: JSON.stringify({
-            slug: slug.trim(),
+            slug: selectedAnime.slug,
             episode_number: parseInt(epNumber),
             action: "register",
           }),
@@ -154,10 +201,49 @@ function UploadHLSTab() {
       );
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || result.message);
-      toast.success(`Episodio ${epNumber} de ${slug} registrado como HLS`);
-      setSlug("");
+      toast.success(`EP ${epNumber} de ${selectedAnime.title} registrado`);
       setEpNumber("");
       loadEpisodes();
+      checkEpisodeStatuses(selectedAnime.slug);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+    setLoading(false);
+  };
+
+  const addServer = async () => {
+    if (!selectedAnime?.slug || !epNumber.trim() || !newServerUrl.trim()) return toast.error("Completa todos los campos");
+    setLoading(true);
+    try {
+      // Get current episode data
+      const { data: existing } = await supabase
+        .from("latino_episodes" as any)
+        .select("*")
+        .eq("slug", selectedAnime.slug)
+        .eq("episode_number", parseInt(epNumber))
+        .maybeSingle();
+
+      if (!existing) {
+        toast.error("Primero registra el episodio");
+        setLoading(false);
+        return;
+      }
+
+      const currentSources = (existing as any).sources || { hls: [] };
+      const hlsList = currentSources.hls || [];
+      if (!hlsList.includes(newServerUrl.trim())) {
+        hlsList.push(newServerUrl.trim());
+      }
+
+      await supabase
+        .from("latino_episodes" as any)
+        .update({ sources: { hls: hlsList } } as any)
+        .eq("id", (existing as any).id);
+
+      toast.success("Server agregado");
+      setNewServerUrl("");
+      loadEpisodes();
+      checkEpisodeStatuses(selectedAnime.slug);
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -171,25 +257,62 @@ function UploadHLSTab() {
     error: "bg-destructive",
   };
 
+  const isEpAlreadyUploaded = selectedAnime && epNumber
+    ? episodeStatuses.some((ep: any) => ep.episode_number === parseInt(epNumber) && ep.status === "uploaded")
+    : false;
+
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
         <Upload className="w-4 h-4 text-green-400" /> Registrar Episodio Latino HLS
       </h3>
-      <p className="text-[10px] text-muted-foreground">
-        Registra episodios HLS que ya subiste a R2. El sistema generará las URLs automáticamente.
-      </p>
 
+      {/* Anime search */}
+      <div className="relative">
+        <label className="text-[10px] text-primary mb-1 block">Buscar anime</label>
+        {selectedAnime ? (
+          <div className="flex items-center gap-3 bg-secondary rounded-xl p-3 border border-primary/30">
+            {selectedAnime.cover && <img src={selectedAnime.cover} alt="" className="w-10 h-14 rounded object-cover" />}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-foreground truncate">{selectedAnime.title}</p>
+              <p className="text-[10px] text-muted-foreground font-mono">{selectedAnime.slug}</p>
+            </div>
+            <button onClick={() => { setSelectedAnime(null); setEpisodeStatuses([]); }} className="text-muted-foreground hover:text-destructive">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Buscar anime por nombre..."
+                className="pl-10 h-10 bg-secondary border-primary/30 rounded-xl"
+              />
+              {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-primary" />}
+            </div>
+            {searchResults.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-background border border-border rounded-xl shadow-xl z-50 max-h-64 overflow-y-auto">
+                {searchResults.map((anime: any) => (
+                  <button key={anime.id} onClick={() => selectAnime(anime)}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-secondary transition text-left border-b border-border last:border-0">
+                    <img src={anime.coverImage?.medium || ""} alt="" className="w-8 h-12 rounded object-cover flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate">{anime.title?.romaji || anime.title?.english}</p>
+                      <p className="text-[10px] text-muted-foreground">{anime.episodes ? `${anime.episodes} eps` : "?"} · {anime.status}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Episode number + actions */}
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-[10px] text-primary mb-1 block">Slug del anime</label>
-          <Input
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="one-piece"
-            className="h-10 bg-secondary border-primary/30 rounded-xl font-mono text-xs"
-          />
-        </div>
         <div>
           <label className="text-[10px] text-primary mb-1 block">Nro. Episodio</label>
           <Input
@@ -200,19 +323,70 @@ function UploadHLSTab() {
             className="h-10 bg-secondary border-primary/30 rounded-xl"
           />
         </div>
+        <div className="flex items-end">
+          {isEpAlreadyUploaded && (
+            <span className="text-[10px] text-yellow-400 font-medium pb-2">⚠️ Ya subido</span>
+          )}
+        </div>
       </div>
 
       <button
         onClick={registerEpisode}
-        disabled={loading}
-        className="w-full py-3 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2"
+        disabled={loading || !selectedAnime}
+        className="w-full py-3 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {loading && <Loader2 className="w-4 h-4 animate-spin" />} 📤 Registrar Episodio HLS
       </button>
 
-      {/* Registered episodes list */}
+      {/* Add extra server */}
+      {selectedAnime && (
+        <div className="border border-border rounded-xl p-3 space-y-2">
+          <label className="text-[10px] text-primary block">➕ Agregar server extra (URL HLS)</label>
+          <Input
+            value={newServerUrl}
+            onChange={(e) => setNewServerUrl(e.target.value)}
+            placeholder="https://cdn.example.com/anime/slug/1/master.m3u8"
+            className="h-10 bg-secondary border-primary/30 rounded-xl font-mono text-xs"
+          />
+          <button
+            onClick={addServer}
+            disabled={loading || !epNumber}
+            className="w-full py-2 rounded-lg bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition flex items-center justify-center gap-1 disabled:opacity-50"
+          >
+            <Plus className="w-3.5 h-3.5" /> Agregar Server
+          </button>
+        </div>
+      )}
+
+      {/* Episode statuses for selected anime */}
+      {selectedAnime && (
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-bold text-foreground">Estado de episodios: {selectedAnime.title}</h4>
+            <button onClick={() => checkEpisodeStatuses(selectedAnime.slug)} className="text-[10px] text-primary">
+              🔄 Actualizar
+            </button>
+          </div>
+          {checkingStatus ? (
+            <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+          ) : episodeStatuses.length === 0 ? (
+            <p className="text-[10px] text-muted-foreground text-center py-4">Sin episodios registrados para este anime</p>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+              {episodeStatuses.map((ep: any) => (
+                <div key={ep.id} className={`rounded-lg p-2 text-center ${ep.status === "uploaded" ? "bg-green-600/20 border border-green-600/30" : "bg-yellow-600/20 border border-yellow-600/30"}`}>
+                  <p className="text-xs font-bold text-foreground">EP {ep.episode_number}</p>
+                  <p className="text-[10px] text-muted-foreground">{ep.status === "uploaded" ? "✓" : "⏳"} {ep.sources?.hls?.length || 0} srv</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* All registered episodes list */}
       <div className="mt-4">
-        <h4 className="text-xs font-bold text-foreground mb-2">Episodios Registrados</h4>
+        <h4 className="text-xs font-bold text-foreground mb-2">Últimos episodios registrados</h4>
         {episodes.length === 0 ? (
           <p className="text-[10px] text-muted-foreground text-center py-4">No hay episodios latinos registrados</p>
         ) : (
@@ -222,7 +396,7 @@ function UploadHLSTab() {
                 <div>
                   <p className="text-xs font-bold text-foreground">{ep.slug} - EP {ep.episode_number}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    {ep.sources?.hls?.[0] ? "HLS ✓" : "Sin fuente"}
+                    {ep.sources?.hls?.length || 0} server(s)
                   </p>
                 </div>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] text-white font-bold ${statusColors[ep.status] || "bg-muted"}`}>
