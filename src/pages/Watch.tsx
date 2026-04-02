@@ -56,7 +56,7 @@ export default function Watch() {
       const titles: string[] = [];
       if (anilistData?.title?.romaji) titles.push(anilistData.title.romaji);
       if (anilistData?.title?.english) titles.push(anilistData.title.english);
-      if (anilistData?.title?.native) titles.push(anilistData.title.native);
+      if ((anilistData?.title as any)?.native) titles.push((anilistData.title as any).native);
       // Remove duplicates
       const uniqueTitles = [...new Set(titles.filter(Boolean))];
 
