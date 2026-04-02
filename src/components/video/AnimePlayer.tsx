@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Play, Pause, Maximize, Volume2, VolumeX, SkipForward, Settings, Server, Loader2 } from "lucide-react";
+import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, SkipForward, Server, Loader2 } from "lucide-react";
+import { isWebView } from "@/lib/webview";
 
 export interface PlayerSource {
   name: string;
@@ -37,7 +38,6 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
       classified.push({ type: "embed", url, name: s.name });
     }
   }
-  // Sort: hls first, mp4 second, embed last
   classified.sort((a, b) => {
     const order: Record<SourceType, number> = { hls: 0, mp4: 1, embed: 2 };
     return order[a.type] - order[b.type];
@@ -59,8 +59,10 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [showServerPicker, setShowServerPicker] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const controlsTimer = useRef<ReturnType<typeof setTimeout>>();
   const hasRestoredTime = useRef(false);
+  const inWebView = isWebView();
 
   useEffect(() => {
     const c = classifySources(sources);
@@ -84,7 +86,6 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
     }
   }, [currentIdx, classified.length]);
 
-  // Restore time after video is ready
   const restoreTime = useCallback(() => {
     if (hasRestoredTime.current || !initialTime || initialTime <= 0) return;
     const video = videoRef.current;
@@ -171,6 +172,25 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
       video.removeEventListener("pause", onPause);
     };
   }, [currentSource, onProgress]);
+
+  // Fullscreen change listener - lock landscape on mobile/webview
+  useEffect(() => {
+    const onFsChange = () => {
+      const isFull = !!document.fullscreenElement;
+      setIsFullscreen(isFull);
+      if (isFull && (inWebView || /Mobi|Android/i.test(navigator.userAgent))) {
+        try {
+          (screen.orientation as any)?.lock?.("landscape").catch(() => {});
+        } catch {}
+      } else {
+        try {
+          (screen.orientation as any)?.unlock?.();
+        } catch {}
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, [inWebView]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -332,7 +352,7 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
             </div>
             <div className="flex items-center gap-2">
               <button onClick={toggleFullscreen} className="text-white hover:text-primary transition">
-                <Maximize className="w-5 h-5" />
+                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
               </button>
             </div>
           </div>

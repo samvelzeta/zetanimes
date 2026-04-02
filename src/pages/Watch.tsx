@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   resolveSlugFromTitle, getEpisodeServers, sortServersByPriority,
   isEpisodeWatched, markEpisodeWatched, titleToSlug, getCachedSlug,
-  saveCachedSlug, getLatinoEpisode,
-  type ZetServer,
+  saveCachedSlug, getLatinoEpisode, saveWatchProgress as saveWatchProgressHistory,
+  type ZetServer, type WatchHistoryEntry,
 } from "@/lib/zetapi";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
@@ -44,7 +44,7 @@ export default function Watch() {
 
   const animeTitle = anilistData ? (anilistData.title?.romaji || anilistData.title?.english || "") : "";
 
-  // Improved slug resolution with caching
+  // Improved slug resolution: try all title variants
   const { data: zetSlug, isLoading: loadingSlug } = useQuery({
     queryKey: ["zet-slug", animeTitle, anilistId],
     queryFn: async () => {
@@ -52,12 +52,20 @@ export default function Watch() {
       const cached = await getCachedSlug(anilistId);
       if (cached) return cached;
 
-      // 2. Resolve via search with multiple strategies
-      const slug = await resolveSlugFromTitle(animeTitle, anilistId);
-      if (slug) {
-        // Save to DB cache for future
-        await saveCachedSlug(anilistId, slug, animeTitle);
-        return slug;
+      // 2. Try all title variants from AniList
+      const titles: string[] = [];
+      if (anilistData?.title?.romaji) titles.push(anilistData.title.romaji);
+      if (anilistData?.title?.english) titles.push(anilistData.title.english);
+      if ((anilistData?.title as any)?.native) titles.push((anilistData.title as any).native);
+      // Remove duplicates
+      const uniqueTitles = [...new Set(titles.filter(Boolean))];
+
+      for (const t of uniqueTitles) {
+        const slug = await resolveSlugFromTitle(t, anilistId);
+        if (slug) {
+          await saveCachedSlug(anilistId, slug, animeTitle);
+          return slug;
+        }
       }
 
       // 3. Fallback to generated slug
@@ -98,14 +106,12 @@ export default function Watch() {
   const buildSources = useCallback(() => {
     const sources: { name: string; embed: string }[] = [];
 
-    // If latino and we have HLS, add it first
     if (lang === "latino" && latinoEp?.sources?.hls) {
       latinoEp.sources.hls.forEach((url: string, i: number) => {
         sources.push({ name: `HLS Latino ${i + 1}`, embed: url });
       });
     }
 
-    // Add scraper servers
     const scraperServers = serverData?.servers ? sortServersByPriority(serverData.servers) : [];
     scraperServers.forEach((s) => {
       if (s.embed) sources.push({ name: s.name, embed: s.embed });
@@ -143,8 +149,25 @@ export default function Watch() {
     // Save progress to localStorage every few seconds
     if (zetSlug && watchTimeRef.current % 5 === 0) {
       const video = document.querySelector("video");
-      if (video) {
+      if (video && video.duration > 0) {
         saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
+
+        // Also save to watch history for RecentlyWatched page
+        const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
+        const title = anilistData ? getTitle(anilistData) : "";
+        const historyEntry: WatchHistoryEntry = {
+          animeSlug: zetSlug,
+          animeTitle: title,
+          animeCover: cover,
+          episodeSlug: `${zetSlug}-${selectedEp}`,
+          episodeNumber: selectedEp,
+          currentTime: video.currentTime,
+          duration: video.duration,
+          progress: video.currentTime / video.duration,
+          timestamp: Date.now(),
+          anilistId: anilistId,
+        };
+        saveWatchProgressHistory(historyEntry);
       }
     }
 
@@ -259,12 +282,7 @@ export default function Watch() {
             <p><span className="text-primary">servers:</span> {sortedSources.length}</p>
             <p><span className="text-primary">latino_hls:</span> {latinoEp ? "✓" : "✗"}</p>
             <p><span className="text-primary">webview:</span> {inWebView ? "✓" : "✗"}</p>
-            <p><span className="text-primary">types:</span> {sortedSources.map(s => {
-              const url = s.embed || "";
-              if (url.includes(".m3u8")) return "HLS";
-              if (url.includes(".mp4")) return "MP4";
-              return "embed";
-            }).join(", ")}</p>
+            <p><span className="text-primary">titles:</span> {[anilistData?.title?.romaji, anilistData?.title?.english].filter(Boolean).join(", ")}</p>
           </div>
         )}
       </div>
