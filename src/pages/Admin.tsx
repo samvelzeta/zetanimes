@@ -251,3 +251,306 @@ function OverrideURLTab() {
     </div>
   );
 }
+
+// ========== PREMIUM ==========
+function PremiumTab() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [searchQ, setSearchQ] = useState("");
+
+  useEffect(() => {
+    supabase.from("premium_requests").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+      if (data) setRequests(data);
+    });
+  }, []);
+
+  const approve = async (req: any) => {
+    await supabase.from("user_roles").insert({ user_id: req.user_id, role: "premium" as any });
+    const expires = req.membership_type === "annual" ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
+    await supabase.from("premium_memberships").insert({
+      user_id: req.user_id, membership_type: req.membership_type, status: "active" as any,
+      activated_at: new Date().toISOString(), expires_at: expires,
+    });
+    await supabase.from("premium_requests").update({ status: "active" as any }).eq("id", req.id);
+    setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "active" } : r));
+    toast.success("Premium activado");
+  };
+
+  const reject = async (req: any) => {
+    await supabase.from("premium_requests").update({ status: "rejected" as any }).eq("id", req.id);
+    setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "rejected" } : r));
+    toast.info("Solicitud rechazada");
+  };
+
+  const filtered = requests.filter((r) => !searchQ || r.email?.includes(searchQ) || r.username?.includes(searchQ));
+
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Buscar usuario..." className="pl-10 h-10 bg-secondary border-primary/30 rounded-xl" />
+      </div>
+      {filtered.map((req) => (
+        <div key={req.id} className="bg-secondary rounded-xl p-4 border border-border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-foreground">{req.email || req.username}</p>
+              <p className="text-[10px] text-muted-foreground">{req.membership_type === "annual" ? "1 Año" : "Vitalicio"} · {req.status}</p>
+            </div>
+            {req.status === "pending" && (
+              <div className="flex gap-2">
+                <button onClick={() => approve(req)} className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-bold">✓</button>
+                <button onClick={() => reject(req)} className="px-3 py-1.5 rounded-lg bg-destructive text-white text-xs font-bold">✗</button>
+              </div>
+            )}
+          </div>
+          {req.proof_url && (
+            <a href={req.proof_url} target="_blank" rel="noopener" className="text-xs text-primary hover:underline mt-2 block">Ver comprobante →</a>
+          )}
+        </div>
+      ))}
+      {filtered.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No hay solicitudes</p>}
+    </div>
+  );
+}
+
+// ========== PAYMENT ==========
+function PaymentTab() {
+  const [info, setInfo] = useState({ bank_name: "", account_holder: "", account_number: "", price_annual: "", price_lifetime: "", instructions: "" });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.from("admin_payment_info").select("*").limit(1).single().then(({ data }) => {
+      if (data) setInfo({ bank_name: data.bank_name || "", account_holder: data.account_holder || "", account_number: data.account_number || "", price_annual: data.price_annual || "", price_lifetime: data.price_lifetime || "", instructions: data.instructions || "" });
+    });
+  }, []);
+
+  const save = async () => {
+    setLoading(true);
+    const { data: existing } = await supabase.from("admin_payment_info").select("id").limit(1).single();
+    if (existing) await supabase.from("admin_payment_info").update(info).eq("id", existing.id);
+    setLoading(false);
+    toast.success("Info de pago guardada");
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><CreditCard className="w-4 h-4 text-green-400" /> Información Bancaria</h3>
+      {[
+        { key: "bank_name", label: "Banco / Plataforma" },
+        { key: "account_holder", label: "Titular de la cuenta" },
+        { key: "account_number", label: "Cuenta / CLABE / CBU" },
+        { key: "price_annual", label: "Precio 1 año" },
+        { key: "price_lifetime", label: "Precio Vitalicio" },
+      ].map((f) => (
+        <div key={f.key}>
+          <label className="text-[10px] text-primary mb-1 block">{f.label}</label>
+          <Input value={(info as any)[f.key]} onChange={(e) => setInfo({ ...info, [f.key]: e.target.value })} className="h-10 bg-secondary border-primary/30 rounded-xl" />
+        </div>
+      ))}
+      <div>
+        <label className="text-[10px] text-primary mb-1 block">Instrucciones</label>
+        <textarea value={info.instructions} onChange={(e) => setInfo({ ...info, instructions: e.target.value })} className="w-full h-24 bg-secondary border border-primary/30 rounded-xl p-3 text-sm text-foreground resize-none" />
+      </div>
+      <button onClick={save} disabled={loading} className="w-full py-3 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2">
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 💾 Guardar
+      </button>
+    </div>
+  );
+}
+
+// ========== NOTIFS (with history + delete) ==========
+function NotifsTab() {
+  const { user } = useAuth();
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [type, setType] = useState("info");
+  const [loading, setLoading] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const loadNotifications = async () => {
+    const { data } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(50);
+    if (data) setNotifications(data);
+  };
+
+  const send = async () => {
+    if (!title || !message) return toast.error("Completa título y mensaje");
+    setLoading(true);
+    await supabase.from("notifications").insert({ title, message, type, created_by: user?.id });
+    setLoading(false);
+    setTitle(""); setMessage("");
+    toast.success("Notificación enviada a todos");
+    loadNotifications();
+  };
+
+  const deleteNotif = async (id: string) => {
+    await supabase.from("notifications").delete().eq("id", id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    toast.success("Notificación eliminada");
+  };
+
+  const typeColors: Record<string, string> = {
+    info: "bg-blue-600/20 text-blue-400",
+    warning: "bg-yellow-600/20 text-yellow-400",
+    success: "bg-green-600/20 text-green-400",
+    danger: "bg-destructive/20 text-destructive",
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Bell className="w-4 h-4 text-yellow-400" /> Nueva Notificación</h3>
+      <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" className="h-10 bg-secondary border-primary/30 rounded-xl" />
+      <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Mensaje..." className="w-full h-24 bg-secondary border border-primary/30 rounded-xl p-3 text-sm text-foreground resize-none" />
+      <div className="flex gap-2">
+        {["info", "warning", "success", "danger"].map((t) => (
+          <button key={t} onClick={() => setType(t)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${type === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{t}</button>
+        ))}
+      </div>
+      <button onClick={send} disabled={loading} className="w-full py-3 rounded-xl bg-primary/80 text-primary-foreground font-bold text-sm hover:bg-primary transition flex items-center justify-center gap-2">
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 📢 Enviar
+      </button>
+
+      {/* Notification history */}
+      <div className="mt-6">
+        <h4 className="text-xs font-bold text-foreground mb-3">Historial de notificaciones</h4>
+        {notifications.length === 0 ? (
+          <p className="text-[10px] text-muted-foreground text-center py-4">No hay notificaciones</p>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {notifications.map((n) => (
+              <div key={n.id} className="flex items-start gap-3 bg-secondary rounded-xl p-3 border border-border">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${typeColors[n.type] || "bg-muted text-muted-foreground"}`}>{n.type}</span>
+                    <span className="text-[10px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</span>
+                    {n.active && <span className="w-2 h-2 rounded-full bg-green-500" />}
+                  </div>
+                  <p className="text-xs font-bold text-foreground">{n.title}</p>
+                  <p className="text-[10px] text-muted-foreground line-clamp-2">{n.message}</p>
+                </div>
+                <button onClick={() => deleteNotif(n.id)} className="text-muted-foreground hover:text-destructive transition flex-shrink-0 mt-1">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ========== CONTACTS ==========
+function ContactsTab() {
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const [iconUrl, setIconUrl] = useState("");
+  const [color, setColor] = useState("#FF4500");
+
+  useEffect(() => {
+    supabase.from("contact_links").select("*").order("sort_order").then(({ data }) => {
+      if (data) setContacts(data);
+    });
+  }, []);
+
+  const add = async () => {
+    if (!name || !url) return toast.error("Nombre y URL requeridos");
+    const { data } = await supabase.from("contact_links").insert({ name, url, icon_url: iconUrl || null, color, sort_order: contacts.length }).select().single();
+    if (data) setContacts([...contacts, data]);
+    setName(""); setUrl(""); setIconUrl("");
+    toast.success("Contacto agregado");
+  };
+
+  const remove = async (id: string) => {
+    await supabase.from("contact_links").delete().eq("id", id);
+    setContacts(contacts.filter((c) => c.id !== id));
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><MessageSquare className="w-4 h-4 text-primary" /> Contactos</h3>
+      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" className="h-10 bg-secondary border-primary/30 rounded-xl" />
+      <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="URL" className="h-10 bg-secondary border-primary/30 rounded-xl" />
+      <Input value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="URL icono (opcional)" className="h-10 bg-secondary border-primary/30 rounded-xl" />
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Color:</span>
+        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer" />
+      </div>
+      <button onClick={add} className="w-full py-3 rounded-xl bg-primary/80 text-primary-foreground font-bold text-sm hover:bg-primary transition flex items-center justify-center gap-2">
+        <Plus className="w-4 h-4" /> Agregar
+      </button>
+      <div className="divide-y divide-border mt-4">
+        {contacts.map((c) => (
+          <div key={c.id} className="flex items-center gap-3 py-3">
+            {c.icon_url ? (
+              <img src={c.icon_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: c.color || "#FF4500" }}>
+                <MessageSquare className="w-4 h-4 text-white" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-foreground">{c.name}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{c.url}</p>
+            </div>
+            <button onClick={() => remove(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ========== API KEYS ==========
+function ApiKeysTab() {
+  const [apiKey, setApiKey] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  const updateKey = async () => {
+    if (!apiKey.trim()) return toast.error("Ingresa la API key");
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/update-api-key`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({ key_name: "ZET_API_KEY", key_value: apiKey.trim() }),
+        }
+      );
+      if (!res.ok) throw new Error(await res.text());
+      setLastUpdated(new Date().toLocaleString());
+      setApiKey("");
+      toast.success("API Key actualizada");
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Key className="w-4 h-4 text-primary" /> API Keys</h3>
+      <p className="text-[10px] text-muted-foreground">Actualiza la API key de ZetAPI cuando expire.</p>
+      <div>
+        <label className="text-[10px] text-primary mb-1 block">ZET API Key</label>
+        <Input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="Nueva API key..." className="h-10 bg-secondary border-primary/30 rounded-xl font-mono" />
+      </div>
+      {lastUpdated && <p className="text-[10px] text-green-400">✓ Última actualización: {lastUpdated}</p>}
+      <button onClick={updateKey} disabled={loading} className="w-full py-3 rounded-xl bg-primary/80 text-primary-foreground font-bold text-sm hover:bg-primary transition flex items-center justify-center gap-2">
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 🔑 Actualizar
+      </button>
+      <div className="bg-secondary/50 border border-border rounded-xl p-3 mt-4">
+        <p className="text-[10px] text-muted-foreground">⚠️ La key nunca se muestra una vez guardada.</p>
+      </div>
+    </div>
+  );
+}
