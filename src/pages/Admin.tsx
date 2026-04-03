@@ -94,7 +94,7 @@ function StatsTab() {
     { label: "Usuarios Premium", value: stats.premium, icon: Crown, color: "text-yellow-400" },
     { label: "Episodios vistos", value: stats.episodes, icon: BarChart3, color: "text-blue-400" },
     { label: "Notifs activas", value: stats.notifs, icon: Bell, color: "text-yellow-400" },
-    { label: "Eps Latino HLS", value: stats.latino, icon: Upload, color: "text-green-400" },
+    { label: "Eps Latino HLS", value: stats.latino, icon: BarChart3, color: "text-green-400" },
   ];
 
   return (
