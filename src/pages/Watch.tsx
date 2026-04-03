@@ -152,22 +152,24 @@ export default function Watch() {
       if (video && video.duration > 0) {
         saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
 
-        // Save to watch history for RecentlyWatched
-        const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
-        const title = anilistData ? getTitle(anilistData) : "";
-        const historyEntry: WatchHistoryEntry = {
-          animeSlug: zetSlug,
-          animeTitle: title,
-          animeCover: cover,
-          episodeSlug: `${zetSlug}-${selectedEp}`,
-          episodeNumber: selectedEp,
-          currentTime: video.currentTime,
-          duration: video.duration,
-          progress: video.currentTime / video.duration,
-          timestamp: Date.now(),
-          anilistId: anilistId,
-        };
-        saveWatchProgressHistory(historyEntry);
+        // Save to Supabase watch history with progress
+        if (user) {
+          const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
+          const title = anilistData ? getTitle(anilistData) : "";
+          const progressPct = Math.round((video.currentTime / video.duration) * 100);
+          supabase.from("watch_history").upsert({
+            user_id: user.id,
+            anime_id: anilistId,
+            episode_number: selectedEp,
+            anime_title: title,
+            anime_cover: cover,
+            completed: pct >= 0.7,
+            watch_duration_seconds: Math.round(watchTimeRef.current),
+            current_time_seconds: video.currentTime,
+            total_duration_seconds: video.duration,
+            progress_percent: progressPct,
+          } as any, { onConflict: "user_id,anime_id,episode_number" }).then(() => {});
+        }
       }
     }
 
@@ -175,19 +177,6 @@ export default function Watch() {
       const epSlug = `${zetSlug}-${selectedEp}`;
       if (!isEpisodeWatched(epSlug)) {
         markEpisodeWatched(epSlug);
-        if (user) {
-          const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
-          const title = anilistData ? getTitle(anilistData) : "";
-          supabase.from("watch_history").upsert({
-            user_id: user.id,
-            anime_id: anilistId,
-            episode_number: selectedEp,
-            anime_title: title,
-            anime_cover: cover,
-            completed: true,
-            watch_duration_seconds: Math.round(watchTimeRef.current),
-          }, { onConflict: "user_id,anime_id,episode_number" }).then(() => {});
-        }
       }
     }
   }, [zetSlug, selectedEp, user, anilistId, anilistData]);
