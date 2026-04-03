@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, SkipForward, Server, Loader2 } from "lucide-react";
+import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 
 export interface PlayerSource {
   name: string;
   embed?: string;
   url?: string;
+  type?: string; // "hls" | "embed" | etc from API
 }
 
 interface Props {
@@ -30,7 +31,9 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   for (const s of sources) {
     const url = s.embed || s.url || "";
     if (!url) continue;
-    if (url.includes(".m3u8")) {
+
+    // Use API-provided type if available
+    if (s.type === "hls" || url.includes(".m3u8")) {
       classified.push({ type: "hls", url, name: s.name });
     } else if (url.includes(".mp4")) {
       classified.push({ type: "mp4", url, name: s.name });
@@ -38,6 +41,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
       classified.push({ type: "embed", url, name: s.name });
     }
   }
+  // Sort: HLS first, then mp4, then embed
   classified.sort((a, b) => {
     const order: Record<SourceType, number> = { hls: 0, mp4: 1, embed: 2 };
     return order[a.type] - order[b.type];
@@ -75,6 +79,7 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
 
   const currentSource = classified[currentIdx];
 
+  // Auto-fallback to next server on error
   const tryNext = useCallback(() => {
     if (currentIdx + 1 < classified.length) {
       setCurrentIdx((i) => i + 1);
@@ -126,6 +131,7 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
           restoreTime();
           if (autoplay) video.play().catch(() => {});
         }, { once: true });
+        video.addEventListener("error", () => tryNext(), { once: true });
       } else {
         tryNext();
       }
@@ -156,8 +162,7 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
       setProgress(video.currentTime);
       setDuration(video.duration || 0);
       if (video.duration > 0) {
-        const pct = video.currentTime / video.duration;
-        onProgress?.(pct);
+        onProgress?.(video.currentTime / video.duration);
       }
     };
     const onPlay = () => setPlaying(true);
@@ -173,19 +178,15 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
     };
   }, [currentSource, onProgress]);
 
-  // Fullscreen change listener - lock landscape on mobile/webview
+  // Fullscreen: lock landscape on mobile/webview
   useEffect(() => {
     const onFsChange = () => {
       const isFull = !!document.fullscreenElement;
       setIsFullscreen(isFull);
       if (isFull && (inWebView || /Mobi|Android/i.test(navigator.userAgent))) {
-        try {
-          (screen.orientation as any)?.lock?.("landscape").catch(() => {});
-        } catch {}
+        try { (screen.orientation as any)?.lock?.("landscape").catch(() => {}); } catch {}
       } else {
-        try {
-          (screen.orientation as any)?.unlock?.();
-        } catch {}
+        try { (screen.orientation as any)?.unlock?.(); } catch {}
       }
     };
     document.addEventListener("fullscreenchange", onFsChange);
@@ -231,6 +232,7 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
     setError(false);
     setLoading(true);
     setShowServerPicker(false);
+    hasRestoredTime.current = false;
   };
 
   const formatTime = (s: number) => {
@@ -239,7 +241,30 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
-  // Embed fallback
+  // Server picker UI (shared between embed and native)
+  const ServerPicker = () => (
+    <div className="absolute top-2 right-2 z-20">
+      <button onClick={(e) => { e.stopPropagation(); setShowServerPicker(!showServerPicker); }}
+        className="px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs flex items-center gap-1 hover:bg-black/90 transition">
+        <Server className="w-3 h-3" /> {currentSource?.name || "Servidor"}
+      </button>
+      {showServerPicker && (
+        <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[200px] overflow-y-auto">
+          {classified.map((s, i) => (
+            <button key={i} onClick={(e) => { e.stopPropagation(); selectServer(i); }}
+              className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
+              <span>{s.name}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.type === "hls" ? "bg-green-500/20 text-green-400" : s.type === "mp4" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                {s.type.toUpperCase()}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // Embed mode
   if (currentSource?.type === "embed") {
     return (
       <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
@@ -247,25 +272,11 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
           src={currentSource.url}
           className="w-full h-full border-0"
           allowFullScreen
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups-to-escape-sandbox"
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           title={title}
         />
-        {classified.length > 1 && (
-          <div className="absolute top-2 right-2 z-20">
-            <button onClick={() => setShowServerPicker(!showServerPicker)} className="px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs flex items-center gap-1 hover:bg-black/90 transition">
-              <Server className="w-3 h-3" /> {currentSource.name}
-            </button>
-            {showServerPicker && (
-              <div className="absolute right-0 top-full mt-1 bg-black/90 rounded-lg p-2 min-w-[140px] z-30">
-                {classified.map((s, i) => (
-                  <button key={i} onClick={() => selectServer(i)} className={`w-full text-left px-3 py-1.5 rounded text-xs transition ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
-                    {s.name} ({s.type})
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {classified.length > 1 && <ServerPicker />}
       </div>
     );
   }
@@ -285,43 +296,47 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
       )}
 
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-3">
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-3 bg-black/80">
+          <AlertCircle className="w-8 h-8 text-destructive" />
           <p className="text-sm text-muted-foreground">No se pudo reproducir</p>
-          <button onClick={() => { setCurrentIdx(0); setError(false); setLoading(true); }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold">
+          <button onClick={(e) => { e.stopPropagation(); setCurrentIdx(0); setError(false); setLoading(true); }}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold">
             Reintentar
           </button>
         </div>
       )}
 
-      <video
-        ref={videoRef}
-        className="w-full h-full object-contain"
-        playsInline
-        muted={muted}
-      />
+      <video ref={videoRef} className="w-full h-full object-contain" playsInline muted={muted} />
 
       {/* Controls overlay */}
       <div
-        className={`absolute inset-0 z-10 transition-opacity duration-300 ${showControls || !playing ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 z-10 transition-opacity duration-300 ${showControls || !playing ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top bar */}
+        {/* Top bar with server picker */}
         <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between">
-          <p className="text-xs text-white font-medium truncate">{title}</p>
-          <div className="relative">
-            <button onClick={() => setShowServerPicker(!showServerPicker)} className="px-2 py-1 rounded bg-black/50 text-white text-[10px] flex items-center gap-1 hover:bg-black/80 transition">
-              <Server className="w-3 h-3" /> {currentSource?.name || "—"}
-            </button>
-            {showServerPicker && (
-              <div className="absolute right-0 top-full mt-1 bg-black/90 rounded-lg p-2 min-w-[140px] z-30">
-                {classified.map((s, i) => (
-                  <button key={i} onClick={() => selectServer(i)} className={`w-full text-left px-3 py-1.5 rounded text-xs transition ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
-                    {s.name} ({s.type})
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <p className="text-xs text-white font-medium truncate flex-1 mr-2">{title}</p>
+          {classified.length > 1 && (
+            <div className="relative">
+              <button onClick={() => setShowServerPicker(!showServerPicker)}
+                className="px-2 py-1 rounded bg-black/50 text-white text-[10px] flex items-center gap-1 hover:bg-black/80 transition">
+                <Server className="w-3 h-3" /> {currentSource?.name || "—"}
+              </button>
+              {showServerPicker && (
+                <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[200px] overflow-y-auto">
+                  {classified.map((s, i) => (
+                    <button key={i} onClick={() => selectServer(i)}
+                      className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
+                      <span>{s.name}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.type === "hls" ? "bg-green-500/20 text-green-400" : s.type === "mp4" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                        {s.type.toUpperCase()}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Center play button */}
@@ -350,11 +365,9 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
                 {formatTime(progress)} / {formatTime(duration)}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={toggleFullscreen} className="text-white hover:text-primary transition">
-                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-              </button>
-            </div>
+            <button onClick={toggleFullscreen} className="text-white hover:text-primary transition">
+              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+            </button>
           </div>
         </div>
       </div>
