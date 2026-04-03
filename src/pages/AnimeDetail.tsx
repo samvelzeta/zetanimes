@@ -109,37 +109,7 @@ export default function AnimeDetail() {
   const rawDescription = anime.description?.replace(/<[^>]*>/g, "") || "";
   const recommendations = anime.recommendations?.nodes?.map((n: any) => n.mediaRecommendation).filter(Boolean) || [];
 
-  // Translation state
-  const [translatedDesc, setTranslatedDesc] = useState<string | null>(null);
-  const [translating, setTranslating] = useState(false);
-
-  useEffect(() => {
-    if (!rawDescription) return;
-    // Check localStorage cache first
-    const cacheKey = `translate_${animeId}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) { setTranslatedDesc(cached); return; }
-    
-    setTranslating(true);
-    fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/translate-text`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: rawDescription }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.translated) {
-          setTranslatedDesc(data.translated);
-          localStorage.setItem(cacheKey, data.translated);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setTranslating(false));
-  }, [rawDescription, animeId]);
-
   const description = translatedDesc || rawDescription;
-
-  return (
     <div className="min-h-screen pb-24">
       <div className="relative w-full h-56 md:h-72">
         <img src={banner || cover} alt={title} className="w-full h-full object-cover" />
