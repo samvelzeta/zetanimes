@@ -1,25 +1,78 @@
-import { getWatchHistory, type WatchHistoryEntry } from "@/lib/zetapi";
 import { useState, useEffect } from "react";
 import { Play, Trash2, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+
+interface WatchEntry {
+  id: string;
+  anime_id: number;
+  anime_title: string | null;
+  anime_cover: string | null;
+  episode_number: number;
+  current_time_seconds: number;
+  total_duration_seconds: number;
+  progress_percent: number;
+  completed: boolean | null;
+  created_at: string;
+}
 
 export default function RecentlyWatched() {
-  const [history, setHistory] = useState<WatchHistoryEntry[]>([]);
+  const { user } = useAuth();
+  const [history, setHistory] = useState<WatchEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setHistory(getWatchHistory());
-  }, []);
+    if (!user) { setLoading(false); return; }
+    loadHistory();
+  }, [user]);
 
-  const clearHistory = () => {
-    localStorage.removeItem("zet_watch_history");
+  const loadHistory = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("watch_history")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    setHistory((data as unknown as WatchEntry[]) || []);
+    setLoading(false);
+  };
+
+  const clearHistory = async () => {
+    if (!user) return;
+    await supabase.from("watch_history").delete().eq("user_id", user.id);
     setHistory([]);
   };
 
-  const removeEntry = (episodeSlug: string) => {
-    const updated = history.filter((h) => h.episodeSlug !== episodeSlug);
-    localStorage.setItem("zet_watch_history", JSON.stringify(updated));
-    setHistory(updated);
+  const removeEntry = async (id: string) => {
+    await supabase.from("watch_history").delete().eq("id", id);
+    setHistory((prev) => prev.filter((h) => h.id !== id));
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen pt-4 px-4 pb-24">
+        <h1 className="text-xl font-black text-foreground mb-6 tracking-tight">Reproducidos Recientemente</h1>
+        <div className="flex flex-col items-center justify-center py-24 gap-3">
+          <Clock className="w-10 h-10 text-muted-foreground" />
+          <p className="text-muted-foreground text-sm">Inicia sesión para ver tu historial.</p>
+          <Link to="/auth" className="text-primary text-xs font-medium mt-2">Iniciar sesión →</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-4 px-4 pb-24">
+        <h1 className="text-xl font-black text-foreground mb-6 tracking-tight">Reproducidos Recientemente</h1>
+        <div className="flex justify-center py-24">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   if (history.length === 0) {
     return (
@@ -44,35 +97,33 @@ export default function RecentlyWatched() {
       </div>
       <div className="space-y-3">
         {history.map((entry) => {
-          const progressPct = Math.round(entry.progress * 100);
-          const currentMin = Math.floor(entry.currentTime / 60);
-          const currentSec = Math.floor(entry.currentTime % 60);
-          const durationMin = Math.floor(entry.duration / 60);
-          const durationSec = Math.floor(entry.duration % 60);
-          const timeStr = entry.duration > 0
+          const progressPct = Math.round(entry.progress_percent || 0);
+          const currentMin = Math.floor((entry.current_time_seconds || 0) / 60);
+          const currentSec = Math.floor((entry.current_time_seconds || 0) % 60);
+          const durationMin = Math.floor((entry.total_duration_seconds || 0) / 60);
+          const durationSec = Math.floor((entry.total_duration_seconds || 0) % 60);
+          const timeStr = (entry.total_duration_seconds || 0) > 0
             ? `${currentMin}:${currentSec.toString().padStart(2, "0")} / ${durationMin}:${durationSec.toString().padStart(2, "0")}`
             : "";
 
           return (
-            <div key={entry.episodeSlug} className="flex gap-3 bg-secondary rounded-xl p-3 group relative">
+            <div key={entry.id} className="flex gap-3 bg-secondary rounded-xl p-3 group relative">
               <Link
-                to={`/watch/${entry.anilistId || entry.animeSlug}?ep=${entry.episodeNumber}`}
+                to={`/watch/${entry.anime_id}?ep=${entry.episode_number}`}
                 className="flex gap-3 flex-1 min-w-0"
               >
                 <div className="relative w-28 h-[4.5rem] rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                  {entry.animeCover ? (
-                    <img src={entry.animeCover} alt="" className="w-full h-full object-cover" />
+                  {entry.anime_cover ? (
+                    <img src={entry.anime_cover} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-secondary">
                       <Play className="w-5 h-5 text-muted-foreground" />
                     </div>
                   )}
-                  {/* Play overlay */}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Play className="w-6 h-6 text-white fill-white" />
                   </div>
-                  {/* Progress bar */}
-                  {entry.duration > 0 && (
+                  {(entry.total_duration_seconds || 0) > 0 && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
                       <div className="h-full bg-primary rounded-full" style={{ width: `${progressPct}%` }} />
                     </div>
@@ -80,22 +131,19 @@ export default function RecentlyWatched() {
                 </div>
                 <div className="flex-1 min-w-0 py-0.5">
                   <p className="text-sm font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                    {entry.animeTitle}
+                    {entry.anime_title || "Anime"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Episodio {entry.episodeNumber}
+                    Episodio {entry.episode_number}
                   </p>
                   {timeStr && <p className="text-[10px] text-muted-foreground mt-0.5">{timeStr}</p>}
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] text-primary font-medium">
-                      {progressPct >= 90 ? "✓ Completado" : entry.duration > 0 ? `Continuar viendo · ${progressPct}%` : "Empezar a ver"}
-                    </span>
-                  </div>
+                  <span className="text-[10px] text-primary font-medium mt-1 block">
+                    {progressPct >= 90 ? "✓ Completado" : (entry.total_duration_seconds || 0) > 0 ? `Continuar viendo · ${progressPct}%` : "Empezar a ver"}
+                  </span>
                 </div>
               </Link>
-              {/* Delete button */}
               <button
-                onClick={() => removeEntry(entry.episodeSlug)}
+                onClick={() => removeEntry(entry.id)}
                 className="absolute top-2 right-2 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition opacity-0 group-hover:opacity-100"
               >
                 <Trash2 className="w-3.5 h-3.5" />
