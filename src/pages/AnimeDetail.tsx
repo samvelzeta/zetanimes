@@ -26,6 +26,8 @@ export default function AnimeDetail() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeLists, setActiveLists] = useState<ListType[]>([]);
   const [loadingList, setLoadingList] = useState(false);
+  const [translatedDesc, setTranslatedDesc] = useState<string | null>(null);
+  const [translating, setTranslating] = useState(false);
 
   const { data: anime, isLoading } = useQuery({
     queryKey: ["anime", animeId],
