@@ -1,9 +1,9 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getAnimeById, getTitle, getStatusLabel, getStatusColor } from "@/lib/anilist";
-import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, HelpCircle, Eye } from "lucide-react";
+import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, HelpCircle, Eye, Loader2 } from "lucide-react";
 import AnimeCard from "@/components/anime/AnimeCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import AuthRequiredModal from "@/components/AuthRequiredModal";
@@ -26,6 +26,8 @@ export default function AnimeDetail() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeLists, setActiveLists] = useState<ListType[]>([]);
   const [loadingList, setLoadingList] = useState(false);
+  const [translatedDesc, setTranslatedDesc] = useState<string | null>(null);
+  const [translating, setTranslating] = useState(false);
 
   const { data: anime, isLoading } = useQuery({
     queryKey: ["anime", animeId],
@@ -51,6 +53,31 @@ export default function AnimeDetail() {
     enabled: !!user && animeId > 0,
   });
 
+  // Translation effect - must be before early returns
+  const rawDescription = anime?.description?.replace(/<[^>]*>/g, "") || "";
+  useEffect(() => {
+    if (!rawDescription || !animeId) return;
+    const cacheKey = `translate_${animeId}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) { setTranslatedDesc(cached); return; }
+    
+    setTranslating(true);
+    fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/translate-text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: rawDescription }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.translated) {
+          setTranslatedDesc(data.translated);
+          localStorage.setItem(cacheKey, data.translated);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setTranslating(false));
+  }, [rawDescription, animeId]);
+
   const handleToggleList = async (list: ListType) => {
     if (!user) {
       setShowAuthModal(true);
@@ -61,11 +88,9 @@ export default function AnimeDetail() {
     const cover = anime?.coverImage?.extraLarge || anime?.coverImage?.large || "";
 
     if (activeLists.includes(list)) {
-      // Remove
       await supabase.from("anime_lists").delete().eq("user_id", user.id).eq("anime_id", animeId).eq("list_type", list as any);
       setActiveLists((prev) => prev.filter((l) => l !== list));
     } else {
-      // Remove other exclusive lists, add new one
       await supabase.from("anime_lists").delete().eq("user_id", user.id).eq("anime_id", animeId);
       await supabase.from("anime_lists").insert({
         user_id: user.id,
@@ -104,7 +129,7 @@ export default function AnimeDetail() {
   const title = getTitle(anime);
   const banner = anime.bannerImage || anime.coverImage?.extraLarge;
   const cover = anime.coverImage?.extraLarge || anime.coverImage?.large;
-  const description = anime.description?.replace(/<[^>]*>/g, "") || "";
+  const description = translatedDesc || rawDescription;
   const recommendations = anime.recommendations?.nodes?.map((n: any) => n.mediaRecommendation).filter(Boolean) || [];
 
   return (

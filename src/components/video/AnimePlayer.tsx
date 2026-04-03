@@ -272,7 +272,7 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
           src={currentSource.url}
           className="w-full h-full border-0"
           allowFullScreen
-          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups-to-escape-sandbox"
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           title={title}
         />

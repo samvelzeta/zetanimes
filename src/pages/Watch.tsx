@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   resolveSlugFromTitle, getEpisodeServers, sortServersByPriority,
   isEpisodeWatched, markEpisodeWatched, titleToSlug, getCachedSlug,
-  saveCachedSlug, getLatinoEpisode, saveWatchProgress as saveWatchProgressHistory,
-  type ZetServer, type WatchHistoryEntry,
+  saveCachedSlug, getLatinoEpisode,
+  type ZetServer,
 } from "@/lib/zetapi";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
@@ -152,22 +152,24 @@ export default function Watch() {
       if (video && video.duration > 0) {
         saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
 
-        // Save to watch history for RecentlyWatched
-        const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
-        const title = anilistData ? getTitle(anilistData) : "";
-        const historyEntry: WatchHistoryEntry = {
-          animeSlug: zetSlug,
-          animeTitle: title,
-          animeCover: cover,
-          episodeSlug: `${zetSlug}-${selectedEp}`,
-          episodeNumber: selectedEp,
-          currentTime: video.currentTime,
-          duration: video.duration,
-          progress: video.currentTime / video.duration,
-          timestamp: Date.now(),
-          anilistId: anilistId,
-        };
-        saveWatchProgressHistory(historyEntry);
+        // Save to Supabase watch history with progress
+        if (user) {
+          const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
+          const title = anilistData ? getTitle(anilistData) : "";
+          const progressPct = Math.round((video.currentTime / video.duration) * 100);
+          supabase.from("watch_history").upsert({
+            user_id: user.id,
+            anime_id: anilistId,
+            episode_number: selectedEp,
+            anime_title: title,
+            anime_cover: cover,
+            completed: pct >= 0.7,
+            watch_duration_seconds: Math.round(watchTimeRef.current),
+            current_time_seconds: video.currentTime,
+            total_duration_seconds: video.duration,
+            progress_percent: progressPct,
+          } as any, { onConflict: "user_id,anime_id,episode_number" }).then(() => {});
+        }
       }
     }
 
@@ -175,47 +177,27 @@ export default function Watch() {
       const epSlug = `${zetSlug}-${selectedEp}`;
       if (!isEpisodeWatched(epSlug)) {
         markEpisodeWatched(epSlug);
-        if (user) {
-          const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
-          const title = anilistData ? getTitle(anilistData) : "";
-          supabase.from("watch_history").upsert({
-            user_id: user.id,
-            anime_id: anilistId,
-            episode_number: selectedEp,
-            anime_title: title,
-            anime_cover: cover,
-            completed: true,
-            watch_duration_seconds: Math.round(watchTimeRef.current),
-          }, { onConflict: "user_id,anime_id,episode_number" }).then(() => {});
-        }
       }
     }
   }, [zetSlug, selectedEp, user, anilistId, anilistData]);
 
-  // Also save history immediately on mount/episode change (so "Recientes" shows even with little watch time)
+  // Save to Supabase immediately on mount/episode change
   useEffect(() => {
-    if (!zetSlug || !anilistData) return;
+    if (!zetSlug || !anilistData || !user) return;
     const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
     const title = getTitle(anilistData);
-    const historyEntry: WatchHistoryEntry = {
-      animeSlug: zetSlug,
-      animeTitle: title,
-      animeCover: cover,
-      episodeSlug: `${zetSlug}-${selectedEp}`,
-      episodeNumber: selectedEp,
-      currentTime: 0,
-      duration: 0,
-      progress: 0,
-      timestamp: Date.now(),
-      anilistId: anilistId,
-    };
-    // Only save if not already in history for this episode
-    const existing = JSON.parse(localStorage.getItem("zet_watch_history") || "[]");
-    const alreadyExists = existing.some((h: any) => h.episodeSlug === historyEntry.episodeSlug);
-    if (!alreadyExists) {
-      saveWatchProgressHistory(historyEntry);
-    }
-  }, [zetSlug, selectedEp, anilistData, anilistId]);
+    supabase.from("watch_history").upsert({
+      user_id: user.id,
+      anime_id: anilistId,
+      episode_number: selectedEp,
+      anime_title: title,
+      anime_cover: cover,
+      completed: false,
+      current_time_seconds: 0,
+      total_duration_seconds: 0,
+      progress_percent: 0,
+    } as any, { onConflict: "user_id,anime_id,episode_number" }).then(() => {});
+  }, [zetSlug, selectedEp, anilistData, anilistId, user]);
 
   const toggleWatched = (epNum: number) => {
     if (!zetSlug) return;
