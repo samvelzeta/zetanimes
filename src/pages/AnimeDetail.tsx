@@ -53,6 +53,31 @@ export default function AnimeDetail() {
     enabled: !!user && animeId > 0,
   });
 
+  // Translation effect - must be before early returns
+  const rawDescription = anime?.description?.replace(/<[^>]*>/g, "") || "";
+  useEffect(() => {
+    if (!rawDescription || !animeId) return;
+    const cacheKey = `translate_${animeId}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) { setTranslatedDesc(cached); return; }
+    
+    setTranslating(true);
+    fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/translate-text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: rawDescription }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.translated) {
+          setTranslatedDesc(data.translated);
+          localStorage.setItem(cacheKey, data.translated);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setTranslating(false));
+  }, [rawDescription, animeId]);
+
   const handleToggleList = async (list: ListType) => {
     if (!user) {
       setShowAuthModal(true);
@@ -63,11 +88,9 @@ export default function AnimeDetail() {
     const cover = anime?.coverImage?.extraLarge || anime?.coverImage?.large || "";
 
     if (activeLists.includes(list)) {
-      // Remove
       await supabase.from("anime_lists").delete().eq("user_id", user.id).eq("anime_id", animeId).eq("list_type", list as any);
       setActiveLists((prev) => prev.filter((l) => l !== list));
     } else {
-      // Remove other exclusive lists, add new one
       await supabase.from("anime_lists").delete().eq("user_id", user.id).eq("anime_id", animeId);
       await supabase.from("anime_lists").insert({
         user_id: user.id,
@@ -106,10 +129,10 @@ export default function AnimeDetail() {
   const title = getTitle(anime);
   const banner = anime.bannerImage || anime.coverImage?.extraLarge;
   const cover = anime.coverImage?.extraLarge || anime.coverImage?.large;
-  const rawDescription = anime.description?.replace(/<[^>]*>/g, "") || "";
+  const description = translatedDesc || rawDescription;
   const recommendations = anime.recommendations?.nodes?.map((n: any) => n.mediaRecommendation).filter(Boolean) || [];
 
-  const description = translatedDesc || rawDescription;
+  return (
     <div className="min-h-screen pb-24">
       <div className="relative w-full h-56 md:h-72">
         <img src={banner || cover} alt={title} className="w-full h-full object-cover" />
