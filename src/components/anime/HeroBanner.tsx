@@ -46,7 +46,7 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
     setEntering(true);
     clearInterval(timerRef.current);
     setTimeout(() => {
-      navigate(`/anime/${animeId}`);
+      navigate(`/watch/${animeId}?ep=1`);
     }, 900);
   };
 
