@@ -454,8 +454,11 @@ export type Database = {
           anime_title: string | null
           completed: boolean | null
           created_at: string
+          current_time_seconds: number | null
           episode_number: number
           id: string
+          progress_percent: number | null
+          total_duration_seconds: number | null
           user_id: string
           watch_duration_seconds: number | null
         }
@@ -465,8 +468,11 @@ export type Database = {
           anime_title?: string | null
           completed?: boolean | null
           created_at?: string
+          current_time_seconds?: number | null
           episode_number: number
           id?: string
+          progress_percent?: number | null
+          total_duration_seconds?: number | null
           user_id: string
           watch_duration_seconds?: number | null
         }
@@ -476,8 +482,11 @@ export type Database = {
           anime_title?: string | null
           completed?: boolean | null
           created_at?: string
+          current_time_seconds?: number | null
           episode_number?: number
           id?: string
+          progress_percent?: number | null
+          total_duration_seconds?: number | null
           user_id?: string
           watch_duration_seconds?: number | null
         }
