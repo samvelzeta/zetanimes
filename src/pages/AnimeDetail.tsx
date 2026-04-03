@@ -1,9 +1,9 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getAnimeById, getTitle, getStatusLabel, getStatusColor } from "@/lib/anilist";
-import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, HelpCircle, Eye } from "lucide-react";
+import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, HelpCircle, Eye, Loader2 } from "lucide-react";
 import AnimeCard from "@/components/anime/AnimeCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import AuthRequiredModal from "@/components/AuthRequiredModal";
