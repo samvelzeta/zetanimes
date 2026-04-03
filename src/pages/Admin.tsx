@@ -15,13 +15,12 @@ import DownloadTracker from "@/components/admin/DownloadTracker";
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
   { key: "downloads", label: "Descargas", icon: Store },
-  { key: "upload", label: "Upload HLS", icon: Upload },
+  { key: "override", label: "Override URL", icon: Link2 },
   { key: "premium", label: "Premium", icon: Crown },
   { key: "payment", label: "Pago", icon: CreditCard },
   { key: "notifs", label: "Notifs", icon: Bell },
   { key: "contacts", label: "Contactos", icon: MessageSquare },
   { key: "apikeys", label: "API Keys", icon: Key },
-  { key: "settings", label: "Config R2", icon: Settings },
 ];
 
 export default function AdminPanel() {
