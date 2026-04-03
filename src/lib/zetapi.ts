@@ -96,23 +96,41 @@ const slugMemoryCache = new Map<string, string>();
  * Removes season indicators, special chars, etc.
  */
 function cleanTitleForSearch(title: string): string[] {
-  const variants: string[] = [title];
-  
-  // Remove common suffixes/patterns
-  const cleaned = title
+  const seen = new Set<string>();
+  const variants: string[] = [];
+  const add = (s: string) => { const t = s.trim(); if (t && !seen.has(t.toLowerCase())) { seen.add(t.toLowerCase()); variants.push(t); } };
+
+  // 1. Original title
+  add(title);
+
+  // 2. Strip punctuation (commas, periods, colons, etc.) but keep spaces
+  const noPunct = title.replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim();
+  add(noPunct);
+
+  // 3. Remove season/part suffixes
+  const noSeason = noPunct
     .replace(/\s*(Season|Part|Cour|S)\s*\d+/gi, "")
     .replace(/\s*(2nd|3rd|\d+th)\s*(Season|Part|Cour)/gi, "")
     .replace(/\s*\d+$/, "")
-    .replace(/[:\-–—]\s*.*$/, "")  // Remove subtitle after colon/dash
     .trim();
-  
-  if (cleaned && cleaned !== title) variants.push(cleaned);
-  
-  // Also try just the main name
-  const mainName = title.split(/[:\-–—]/)[0].trim();
-  if (mainName && !variants.includes(mainName)) variants.push(mainName);
-  
-  return variants.filter(Boolean);
+  add(noSeason);
+
+  // 4. Before colon/dash/comma (main name only)
+  const mainName = title.split(/[:\-–—,]/)[0].trim();
+  add(mainName);
+  add(mainName.replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim());
+
+  // 5. For long titles (5+ words), try first 4 words, then first 3
+  const words = noPunct.split(/\s+/);
+  if (words.length >= 5) {
+    add(words.slice(0, 4).join(" "));
+    add(words.slice(0, 3).join(" "));
+  }
+  if (words.length >= 4) {
+    add(words.slice(0, 3).join(" "));
+  }
+
+  return variants;
 }
 
 /**
