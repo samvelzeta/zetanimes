@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   resolveSlugFromTitle, getEpisodeServers, sortServersByPriority,
@@ -10,7 +10,7 @@ import {
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
-  Globe, RefreshCw, ShieldAlert, ChevronDown, Bug,
+  Globe, Bug, ChevronDown,
 } from "lucide-react";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +24,8 @@ const episodeCache = new Map<string, any>();
 export default function Watch() {
   const { id } = useParams<{ id: string }>();
   const anilistId = Number(id);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const epParam = Number(searchParams.get("ep") || 1);
   const { user } = useAuth();
   const inWebView = isWebView();
@@ -44,20 +45,17 @@ export default function Watch() {
 
   const animeTitle = anilistData ? (anilistData.title?.romaji || anilistData.title?.english || "") : "";
 
-  // Improved slug resolution: try all title variants
+  // Slug resolution with multiple title variants
   const { data: zetSlug, isLoading: loadingSlug } = useQuery({
     queryKey: ["zet-slug", animeTitle, anilistId],
     queryFn: async () => {
-      // 1. Check DB cache
       const cached = await getCachedSlug(anilistId);
       if (cached) return cached;
 
-      // 2. Try all title variants from AniList
       const titles: string[] = [];
       if (anilistData?.title?.romaji) titles.push(anilistData.title.romaji);
       if (anilistData?.title?.english) titles.push(anilistData.title.english);
       if ((anilistData?.title as any)?.native) titles.push((anilistData.title as any).native);
-      // Remove duplicates
       const uniqueTitles = [...new Set(titles.filter(Boolean))];
 
       for (const t of uniqueTitles) {
@@ -67,8 +65,6 @@ export default function Watch() {
           return slug;
         }
       }
-
-      // 3. Fallback to generated slug
       return titleToSlug(animeTitle);
     },
     enabled: !!animeTitle,
@@ -81,7 +77,7 @@ export default function Watch() {
 
   const cacheKey = `${zetSlug}-${selectedEp}-${lang}`;
 
-  // Check for latino HLS episode first
+  // Latino HLS check
   const { data: latinoEp } = useQuery({
     queryKey: ["latino-ep", zetSlug, selectedEp],
     queryFn: () => getLatinoEpisode(zetSlug!, selectedEp),
@@ -89,6 +85,7 @@ export default function Watch() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Episode servers from scraper API
   const { data: serverData, isLoading: loadingServers, error: serverError } = useQuery({
     queryKey: ["zet-servers", zetSlug, selectedEp, lang],
     queryFn: async () => {
@@ -102,18 +99,20 @@ export default function Watch() {
     retry: 1,
   });
 
-  // Build sources: prioritize latino HLS if available
+  // Build sources: ALL servers, HLS prioritized via classifySources in player
   const buildSources = useCallback(() => {
-    const sources: { name: string; embed: string }[] = [];
+    const sources: { name: string; embed: string; type?: string }[] = [];
 
+    // Add latino HLS sources first
     if (lang === "latino" && latinoEp?.sources?.hls) {
       latinoEp.sources.hls.forEach((url: string, i: number) => {
-        sources.push({ name: `HLS Latino ${i + 1}`, embed: url });
+        sources.push({ name: `HLS Latino ${i + 1}`, embed: url, type: "hls" });
       });
     }
 
-    const scraperServers = serverData?.servers ? sortServersByPriority(serverData.servers) : [];
-    scraperServers.forEach((s) => {
+    // Add ALL scraper servers (don't filter, let player handle priority)
+    const scraperServers = serverData?.servers || [];
+    scraperServers.forEach((s: ZetServer) => {
       if (s.embed) sources.push({ name: s.name, embed: s.embed });
     });
 
@@ -122,7 +121,7 @@ export default function Watch() {
 
   const sortedSources = buildSources();
 
-  // Restore video progress on episode change
+  // Restore progress on episode change
   useEffect(() => {
     if (zetSlug) {
       const saved = getVideoProgress(zetSlug, selectedEp);
@@ -134,9 +133,10 @@ export default function Watch() {
     }
   }, [zetSlug, selectedEp]);
 
+  // Use replace instead of push for episode navigation (fixes back button)
   const selectEpisode = (epNumber: number) => {
     setSelectedEp(epNumber);
-    setSearchParams({ ep: String(epNumber) });
+    navigate(`/watch/${id}?ep=${epNumber}`, { replace: true });
     watchTimeRef.current = 0;
     if (!inWebView) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -146,13 +146,13 @@ export default function Watch() {
   const handleProgress = useCallback((pct: number) => {
     watchTimeRef.current += 1;
 
-    // Save progress to localStorage every few seconds
+    // Save progress every ~5 ticks
     if (zetSlug && watchTimeRef.current % 5 === 0) {
       const video = document.querySelector("video");
       if (video && video.duration > 0) {
         saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
 
-        // Also save to watch history for RecentlyWatched page
+        // Save to watch history for RecentlyWatched
         const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
         const title = anilistData ? getTitle(anilistData) : "";
         const historyEntry: WatchHistoryEntry = {
@@ -192,13 +192,36 @@ export default function Watch() {
     }
   }, [zetSlug, selectedEp, user, anilistId, anilistData]);
 
+  // Also save history immediately on mount/episode change (so "Recientes" shows even with little watch time)
+  useEffect(() => {
+    if (!zetSlug || !anilistData) return;
+    const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
+    const title = getTitle(anilistData);
+    const historyEntry: WatchHistoryEntry = {
+      animeSlug: zetSlug,
+      animeTitle: title,
+      animeCover: cover,
+      episodeSlug: `${zetSlug}-${selectedEp}`,
+      episodeNumber: selectedEp,
+      currentTime: 0,
+      duration: 0,
+      progress: 0,
+      timestamp: Date.now(),
+      anilistId: anilistId,
+    };
+    // Only save if not already in history for this episode
+    const existing = JSON.parse(localStorage.getItem("zet_watch_history") || "[]");
+    const alreadyExists = existing.some((h: any) => h.episodeSlug === historyEntry.episodeSlug);
+    if (!alreadyExists) {
+      saveWatchProgressHistory(historyEntry);
+    }
+  }, [zetSlug, selectedEp, anilistData, anilistId]);
+
   const toggleWatched = (epNum: number) => {
     if (!zetSlug) return;
     const epSlug = `${zetSlug}-${epNum}`;
-    if (!isEpisodeWatched(epSlug)) {
-      markEpisodeWatched(epSlug);
-    }
-    setSelectedEp((p) => p);
+    if (!isEpisodeWatched(epSlug)) markEpisodeWatched(epSlug);
+    setSelectedEp((p) => p); // force re-render
   };
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
@@ -220,7 +243,7 @@ export default function Watch() {
           </div>
         ) : sortedSources.length > 0 ? (
           <AnimePlayer
-            sources={sortedSources.map((s) => ({ name: s.name, embed: s.embed }))}
+            sources={sortedSources}
             title={`${displayTitle} - EP ${selectedEp}`}
             onProgress={handleProgress}
             initialTime={initialTime}
@@ -268,10 +291,16 @@ export default function Watch() {
           </div>
         )}
 
-        {/* Debug panel */}
+        {/* Servers info */}
+        {sortedSources.length > 0 && (
+          <p className="text-[10px] text-muted-foreground mb-2">
+            {sortedSources.length} servidor{sortedSources.length > 1 ? "es" : ""} disponible{sortedSources.length > 1 ? "s" : ""}
+          </p>
+        )}
+
+        {/* Debug */}
         <button onClick={() => setShowDebug(!showDebug)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition mb-2">
-          <Bug className="w-3.5 h-3.5" />
-          Debug
+          <Bug className="w-3.5 h-3.5" /> Debug
           <ChevronDown className={`w-3 h-3 transition-transform ${showDebug ? "rotate-180" : ""}`} />
         </button>
         {showDebug && (

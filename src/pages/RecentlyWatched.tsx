@@ -1,4 +1,4 @@
-import { getWatchHistory, saveWatchProgress, type WatchHistoryEntry } from "@/lib/zetapi";
+import { getWatchHistory, type WatchHistoryEntry } from "@/lib/zetapi";
 import { useState, useEffect } from "react";
 import { Play, Trash2, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -49,49 +49,58 @@ export default function RecentlyWatched() {
           const currentSec = Math.floor(entry.currentTime % 60);
           const durationMin = Math.floor(entry.duration / 60);
           const durationSec = Math.floor(entry.duration % 60);
-          const timeStr = `${currentMin}:${currentSec.toString().padStart(2, "0")} / ${durationMin}:${durationSec.toString().padStart(2, "0")}`;
+          const timeStr = entry.duration > 0
+            ? `${currentMin}:${currentSec.toString().padStart(2, "0")} / ${durationMin}:${durationSec.toString().padStart(2, "0")}`
+            : "";
 
           return (
-            <Link
-              key={entry.episodeSlug}
-              to={`/watch/${entry.anilistId || entry.animeSlug}?ep=${entry.episodeNumber}`}
-              className="flex gap-3 bg-secondary rounded-xl p-3 hover:bg-muted transition-colors group"
-            >
-              <div className="relative w-24 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                {entry.animeCover ? (
-                  <img src={entry.animeCover} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-secondary">
-                    <Play className="w-5 h-5 text-muted-foreground" />
+            <div key={entry.episodeSlug} className="flex gap-3 bg-secondary rounded-xl p-3 group relative">
+              <Link
+                to={`/watch/${entry.anilistId || entry.animeSlug}?ep=${entry.episodeNumber}`}
+                className="flex gap-3 flex-1 min-w-0"
+              >
+                <div className="relative w-28 h-[4.5rem] rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                  {entry.animeCover ? (
+                    <img src={entry.animeCover} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-secondary">
+                      <Play className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                  )}
+                  {/* Play overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Play className="w-6 h-6 text-white fill-white" />
                   </div>
-                )}
-                {/* Play overlay */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Play className="w-6 h-6 text-white fill-white" />
+                  {/* Progress bar */}
+                  {entry.duration > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${progressPct}%` }} />
+                    </div>
+                  )}
                 </div>
-                {/* Progress bar */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
-                  <div className="h-full bg-primary rounded-full" style={{ width: `${progressPct}%` }} />
+                <div className="flex-1 min-w-0 py-0.5">
+                  <p className="text-sm font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                    {entry.animeTitle}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Episodio {entry.episodeNumber}
+                  </p>
+                  {timeStr && <p className="text-[10px] text-muted-foreground mt-0.5">{timeStr}</p>}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-primary font-medium">
+                      {progressPct >= 90 ? "✓ Completado" : entry.duration > 0 ? `Continuar viendo · ${progressPct}%` : "Empezar a ver"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex-1 min-w-0 py-0.5">
-                <p className="text-sm font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                  {entry.animeTitle}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Episodio {entry.episodeNumber}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{timeStr}</p>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-[10px] text-primary font-medium">
-                    {progressPct >= 90 ? "✓ Completado" : `Continuar viendo · ${progressPct}%`}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {new Date(entry.timestamp).toLocaleDateString("es")}
-                  </span>
-                </div>
-              </div>
-            </Link>
+              </Link>
+              {/* Delete button */}
+              <button
+                onClick={() => removeEntry(entry.episodeSlug)}
+                className="absolute top-2 right-2 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition opacity-0 group-hover:opacity-100"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           );
         })}
       </div>
