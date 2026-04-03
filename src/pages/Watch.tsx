@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   resolveSlugFromTitle, getEpisodeServers, sortServersByPriority,
   isEpisodeWatched, markEpisodeWatched, titleToSlug, getCachedSlug,
-  saveCachedSlug, getLatinoEpisode, saveWatchProgress as saveWatchProgressHistory,
-  type ZetServer, type WatchHistoryEntry,
+  saveCachedSlug, getLatinoEpisode,
+  type ZetServer,
 } from "@/lib/zetapi";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {

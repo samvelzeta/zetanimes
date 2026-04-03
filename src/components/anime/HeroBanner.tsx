@@ -186,7 +186,7 @@ function MobileHero({ animes }: { animes: AniListMedia[] }) {
         <h1 className="text-2xl font-black text-white leading-tight mb-1 animate-[hero-slide-up_0.5s_ease-out_0.1s_forwards]" style={{ opacity: 0 }}>{getTitle(anime)}</h1>
         {anime.genres && <p className="text-[10px] text-white/50 mb-3 animate-[hero-slide-up_0.5s_ease-out_0.2s_forwards]" style={{ opacity: 0 }}>{anime.genres.slice(0, 3).join(" • ")}</p>}
         <div className="flex gap-3 animate-[hero-slide-up_0.5s_ease-out_0.3s_forwards]" style={{ opacity: 0 }}>
-          <button onClick={() => navigate(`/anime/${anime.id}`)} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-primary-foreground bg-primary hover:scale-105 transition-transform">
+          <button onClick={() => navigate(`/watch/${anime.id}?ep=1`)} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-primary-foreground bg-primary hover:scale-105 transition-transform">
             <Play className="w-3.5 h-3.5 fill-current" /> Ver Ahora
           </button>
           <Link to={`/anime/${anime.id}`} className="flex items-center gap-1.5 bg-white/10 text-white px-5 py-2.5 rounded-xl text-xs font-semibold">
