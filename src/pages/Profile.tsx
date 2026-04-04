@@ -285,7 +285,7 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
                   <p className="text-xs font-bold text-foreground mb-1">Datos de pago:</p>
                   <p className="text-[10px] text-muted-foreground">{paymentInfo.bank_name} · {paymentInfo.account_holder}</p>
                   <p className="text-[10px] text-muted-foreground">{paymentInfo.account_number}</p>
-                  <p className="text-[10px] text-primary mt-1">Anual: {paymentInfo.price_annual} · Vitalicio: {paymentInfo.price_lifetime}</p>
+                  <p className="text-[10px] text-primary mt-1">Anual: {paymentInfo.price_annual} · Para Siempre: {paymentInfo.price_lifetime}</p>
                   {paymentInfo.instructions && <p className="text-[10px] text-muted-foreground mt-1">{paymentInfo.instructions}</p>}
                 </div>
               )}
@@ -294,7 +294,7 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
                   📅 1 Año
                 </button>
                 <button onClick={() => setMembershipType("lifetime")} className={`flex-1 py-3 rounded-xl text-xs font-bold transition ${membershipType === "lifetime" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                  ∞ Vitalicio
+                  ∞ Para Siempre
                 </button>
               </div>
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas adicionales..." className="w-full h-20 bg-secondary border border-border rounded-xl p-3 text-sm text-foreground resize-none" />

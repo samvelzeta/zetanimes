@@ -115,7 +115,6 @@ function OverrideURLTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedAnime, setSelectedAnime] = useState<{ slug: string; title: string; cover: string } | null>(null);
-  const [epNumber, setEpNumber] = useState("");
   const [overrideUrl, setOverrideUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -149,7 +148,7 @@ function OverrideURLTab() {
   };
 
   const sendOverride = async () => {
-    if (!selectedAnime?.slug || !epNumber.trim() || !overrideUrl.trim()) return toast.error("Completa todos los campos");
+    if (!selectedAnime?.slug || !overrideUrl.trim()) return toast.error("Completa todos los campos");
     setLoading(true);
     setResult(null);
     try {
@@ -158,7 +157,6 @@ function OverrideURLTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug: selectedAnime.slug,
-          number: parseInt(epNumber),
           url: overrideUrl.trim(),
         }),
       });
@@ -166,7 +164,6 @@ function OverrideURLTab() {
       if (res.ok) {
         setResult("✅ Override registrado correctamente");
         toast.success("Override enviado");
-        setEpNumber("");
         setOverrideUrl("");
       } else {
         setResult(`❌ Error: ${data.message || data.error || "Error desconocido"}`);
@@ -228,17 +225,12 @@ function OverrideURLTab() {
       </div>
 
       <div>
-        <label className="text-[10px] text-primary mb-1 block">Nro. Episodio</label>
-        <Input type="number" value={epNumber} onChange={(e) => setEpNumber(e.target.value)} placeholder="1" className="h-10 bg-secondary border-primary/30 rounded-xl" />
-      </div>
-
-      <div>
-        <label className="text-[10px] text-primary mb-1 block">URL directa del episodio</label>
-        <Input value={overrideUrl} onChange={(e) => setOverrideUrl(e.target.value)} placeholder="https://jkanime.net/anime-slug/1/"
+        <label className="text-[10px] text-primary mb-1 block">URL directa del anime</label>
+        <Input value={overrideUrl} onChange={(e) => setOverrideUrl(e.target.value)} placeholder="https://jkanime.net/anime-slug/"
           className="h-10 bg-secondary border-primary/30 rounded-xl font-mono text-xs" />
       </div>
 
-      <button onClick={sendOverride} disabled={loading || !selectedAnime || !epNumber || !overrideUrl}
+      <button onClick={sendOverride} disabled={loading || !selectedAnime || !overrideUrl}
         className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition flex items-center justify-center gap-2 disabled:opacity-50">
         {loading && <Loader2 className="w-4 h-4 animate-spin" />} 🔗 Enviar Override
       </button>
@@ -256,6 +248,9 @@ function OverrideURLTab() {
 function PremiumTab() {
   const [requests, setRequests] = useState<any[]>([]);
   const [searchQ, setSearchQ] = useState("");
+  const [selectedReq, setSelectedReq] = useState<any | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     supabase.from("premium_requests").select("*").order("created_at", { ascending: false }).then(({ data }) => {
@@ -263,22 +258,43 @@ function PremiumTab() {
     });
   }, []);
 
-  const approve = async (req: any) => {
-    await supabase.from("user_roles").insert({ user_id: req.user_id, role: "premium" as any });
-    const expires = req.membership_type === "annual" ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
-    await supabase.from("premium_memberships").insert({
-      user_id: req.user_id, membership_type: req.membership_type, status: "active" as any,
-      activated_at: new Date().toISOString(), expires_at: expires,
-    });
-    await supabase.from("premium_requests").update({ status: "active" as any }).eq("id", req.id);
-    setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "active" } : r));
-    toast.success("Premium activado");
+  const approve = async (req: any, type: "annual" | "lifetime") => {
+    setActionLoading(true);
+    try {
+      await supabase.from("user_roles").insert({ user_id: req.user_id, role: "premium" as any });
+      const expires = type === "annual" ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
+      await supabase.from("premium_memberships").insert({
+        user_id: req.user_id, membership_type: type, status: "active" as any,
+        activated_at: new Date().toISOString(), expires_at: expires,
+      });
+      await supabase.from("premium_requests").update({ status: "active" as any }).eq("id", req.id);
+      await supabase.from("notifications").insert({
+        title: "🎉 ¡Premium Activado!",
+        message: `Tu membresía ${type === "annual" ? "Anual" : "Para Siempre"} ha sido aprobada. ¡Disfruta de todos los beneficios!`,
+        type: "success",
+      });
+      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "active" } : r));
+      setSelectedReq(null);
+      toast.success("Premium activado y usuario notificado");
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
+    setActionLoading(false);
   };
 
   const reject = async (req: any) => {
-    await supabase.from("premium_requests").update({ status: "rejected" as any }).eq("id", req.id);
-    setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "rejected" } : r));
-    toast.info("Solicitud rechazada");
+    if (!rejectReason.trim()) return toast.error("Escribe un motivo de rechazo");
+    setActionLoading(true);
+    try {
+      await supabase.from("premium_requests").update({ status: "rejected" as any, notes: rejectReason }).eq("id", req.id);
+      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "rejected" } : r));
+      setSelectedReq(null);
+      setRejectReason("");
+      toast.info("Solicitud rechazada");
+    } catch (e: any) {
+      toast.error("Error: " + e.message);
+    }
+    setActionLoading(false);
   };
 
   const filtered = requests.filter((r) => !searchQ || r.email?.includes(searchQ) || r.username?.includes(searchQ));
@@ -294,21 +310,64 @@ function PremiumTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-bold text-foreground">{req.email || req.username}</p>
-              <p className="text-[10px] text-muted-foreground">{req.membership_type === "annual" ? "1 Año" : "Vitalicio"} · {req.status}</p>
+              <p className="text-[10px] text-muted-foreground">{req.membership_type === "annual" ? "1 Año" : "Para Siempre"} · {req.status}</p>
             </div>
             {req.status === "pending" && (
-              <div className="flex gap-2">
-                <button onClick={() => approve(req)} className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-bold">✓</button>
-                <button onClick={() => reject(req)} className="px-3 py-1.5 rounded-lg bg-destructive text-white text-xs font-bold">✗</button>
-              </div>
+              <button onClick={() => setSelectedReq(req)} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold">Revisar</button>
             )}
           </div>
-          {req.proof_url && (
-            <a href={req.proof_url} target="_blank" rel="noopener" className="text-xs text-primary hover:underline mt-2 block">Ver comprobante →</a>
-          )}
+          {req.notes && <p className="text-[10px] text-muted-foreground mt-1">Nota: {req.notes}</p>}
         </div>
       ))}
       {filtered.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No hay solicitudes</p>}
+
+      {selectedReq && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setSelectedReq(null)}>
+          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-black text-foreground flex items-center gap-2"><Crown className="w-4 h-4 text-primary" /> Revisar Solicitud</h2>
+                <button onClick={() => setSelectedReq(null)} className="text-muted-foreground hover:text-foreground">✕</button>
+              </div>
+              <div className="bg-secondary rounded-xl p-3 border border-border space-y-1">
+                <p className="text-sm font-bold text-foreground">{selectedReq.email || selectedReq.username}</p>
+                <p className="text-xs text-muted-foreground">Plan solicitado: <span className="text-primary font-bold">{selectedReq.membership_type === "annual" ? "1 Año" : "Para Siempre"}</span></p>
+                {selectedReq.notes && <p className="text-xs text-muted-foreground">Mensaje: {selectedReq.notes}</p>}
+                <p className="text-[10px] text-muted-foreground">{new Date(selectedReq.created_at).toLocaleString()}</p>
+              </div>
+              {selectedReq.proof_url ? (
+                <div>
+                  <p className="text-xs font-bold text-foreground mb-2">Comprobante de pago:</p>
+                  <img src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/premium-proofs/${selectedReq.proof_url}`} alt="Comprobante" className="w-full rounded-xl border border-border max-h-64 object-contain bg-black/20" />
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">Sin comprobante adjunto</p>
+              )}
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-foreground">Aprobar como:</p>
+                <div className="flex gap-2">
+                  <button onClick={() => approve(selectedReq, "annual")} disabled={actionLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                    {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />} ✓ Anual
+                  </button>
+                  <button onClick={() => approve(selectedReq, "lifetime")} disabled={actionLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                    {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />} ∞ Para Siempre
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2 pt-2 border-t border-border">
+                <p className="text-xs font-bold text-foreground">Rechazar:</p>
+                <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Motivo del rechazo..." className="w-full h-16 bg-secondary border border-border rounded-xl p-3 text-xs text-foreground resize-none" />
+                <button onClick={() => reject(selectedReq)} disabled={actionLoading || !rejectReason.trim()}
+                  className="w-full py-2.5 rounded-xl bg-destructive text-white text-xs font-bold hover:bg-destructive/90 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                  {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />} ✗ Rechazar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -340,7 +399,7 @@ function PaymentTab() {
         { key: "account_holder", label: "Titular de la cuenta" },
         { key: "account_number", label: "Cuenta / CLABE / CBU" },
         { key: "price_annual", label: "Precio 1 año" },
-        { key: "price_lifetime", label: "Precio Vitalicio" },
+        { key: "price_lifetime", label: "Precio Para Siempre" },
       ].map((f) => (
         <div key={f.key}>
           <label className="text-[10px] text-primary mb-1 block">{f.label}</label>
