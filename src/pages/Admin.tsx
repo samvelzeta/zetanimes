@@ -341,7 +341,8 @@ function PaymentTab() {
         { key: "account_number", label: "Cuenta / CLABE / CBU" },
         { key: "price_annual", label: "Precio 1 año" },
         { key: "price_lifetime", label: "Precio Vitalicio" },
-      ].map((f) => (
+        { key: "price_lifetime", label: "Precio Para Siempre" },
+      ].filter((f, i, arr) => arr.findIndex(a => a.key === f.key) === i).map((f) => (
         <div key={f.key}>
           <label className="text-[10px] text-primary mb-1 block">{f.label}</label>
           <Input value={(info as any)[f.key]} onChange={(e) => setInfo({ ...info, [f.key]: e.target.value })} className="h-10 bg-secondary border-primary/30 rounded-xl" />
