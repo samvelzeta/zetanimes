@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import { useIsTV } from "@/hooks/useIsTV";
 
 interface Props {
   title: string;
@@ -15,7 +16,8 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
   const items = useMemo(() => animes.slice(0, 12), [animes]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [animating, setAnimating] = useState(false);
-  const [animDir, setAnimDir] = useState<"in" | "out">("in");
+  const [visible, setVisible] = useState(true);
+  const isTV = useIsTV();
 
   const getWrapped = (idx: number) => {
     const len = items.length;
@@ -31,22 +33,21 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
   const go = useCallback((dir: number) => {
     if (animating) return;
     setAnimating(true);
-    setAnimDir("out");
+    // Lighter animation: shrink to 50% then swap
+    setVisible(false);
     setTimeout(() => {
       setActiveIdx((prev) => prev + dir);
-      setAnimDir("in");
-      setTimeout(() => setAnimating(false), 350);
-    }, 300);
-  }, [animating]);
+      setVisible(true);
+      setTimeout(() => setAnimating(false), isTV ? 150 : 300);
+    }, isTV ? 150 : 250);
+  }, [animating, isTV]);
 
-  // Autoplay: advance every 5s when user isn't interacting
+  // Autoplay
   const interactionRef = useRef(false);
   useEffect(() => {
     if (items.length <= 1) return;
     const interval = setInterval(() => {
-      if (!interactionRef.current) {
-        go(1);
-      }
+      if (!interactionRef.current) go(1);
       interactionRef.current = false;
     }, 5000);
     return () => clearInterval(interval);
@@ -74,7 +75,12 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
   const size = 200;
   const sideSize = 120;
 
-  const centerScale = animDir === "out" ? "scale-0 opacity-0" : "scale-100 opacity-100";
+  // Lighter transition: scale to 50% instead of 0, then fade
+  const centerStyle: React.CSSProperties = {
+    transform: visible ? "scale(1)" : "scale(0.5)",
+    opacity: visible ? 1 : 0,
+    transition: isTV ? "transform 0.15s ease, opacity 0.15s ease" : "transform 0.3s ease-out, opacity 0.25s ease-out",
+  };
 
   return (
     <section className="mb-8">
@@ -93,12 +99,12 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
         </button>
 
         <div className="flex justify-center items-center py-6 px-4 overflow-hidden gap-6" style={{ minHeight: "300px" }}>
-          {/* Left side sphere */}
+          {/* Left */}
           {leftAnime && (
             <div className="flex flex-col items-center opacity-40 flex-shrink-0" style={{ width: `${sideSize}px` }}>
               <Link to={`/anime/${leftAnime.id}`} className="block text-center">
                 {variant === "circle" ? (
-                  <div className="mx-auto rounded-full overflow-hidden" style={{ width: `${sideSize}px`, height: `${sideSize}px`, boxShadow: "0 0 15px hsl(16 100% 50% / 0.2)" }}>
+                  <div className="mx-auto rounded-full overflow-hidden" style={{ width: `${sideSize}px`, height: `${sideSize}px`, boxShadow: "0 0 15px hsl(var(--primary) / 0.2)" }}>
                     <img src={leftImg} alt={getTitle(leftAnime)} className="w-full h-full object-cover" loading="lazy" />
                   </div>
                 ) : (
@@ -111,34 +117,38 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
             </div>
           )}
 
-          {/* Center active item with scale animation */}
+          {/* Center */}
           {activeAnime && (
-            <div
-              className={`flex flex-col items-center transition-all duration-300 ease-out flex-shrink-0 ${centerScale}`}
-              style={{ width: `${size}px` }}
-            >
+            <div className="flex flex-col items-center flex-shrink-0" style={{ width: `${size}px`, ...centerStyle }}>
               <Link to={`/anime/${activeAnime.id}`} className="block group text-center">
                 {variant === "circle" ? (
-                  <div
-                    className="mx-auto rounded-full overflow-hidden relative"
-                    style={{
-                      width: `${size}px`,
-                      height: `${size}px`,
-                      boxShadow: "0 0 30px hsl(16 100% 50% / 0.5), 0 0 0 3px hsl(16 100% 50% / 0.6)",
-                    }}
-                  >
+                  <div className="mx-auto rounded-full overflow-hidden relative" style={{ width: `${size}px`, height: `${size}px` }}>
                     <img src={activeImg} alt={getTitle(activeAnime)} className="w-full h-full object-cover" loading="lazy" />
-                    {/* Spinning glowing border line */}
-                    <div className="absolute inset-[-5px] rounded-full animate-[sphere-spin_2.5s_linear_infinite]" style={{
-                      border: "3px solid transparent",
-                      borderTopColor: "hsl(16 100% 55%)",
-                      borderRightColor: "hsl(16 100% 55% / 0.2)",
-                      filter: "drop-shadow(0 0 6px hsl(16 100% 55%))",
+                    {/* Neon spinning border - bright and visible */}
+                    {!isTV && (
+                      <div className="absolute inset-[-6px] rounded-full animate-[sphere-spin_2.5s_linear_infinite]" style={{
+                        border: "3px solid transparent",
+                        borderTopColor: "hsl(var(--primary))",
+                        borderRightColor: "hsl(var(--primary) / 0.3)",
+                        filter: "drop-shadow(0 0 8px hsl(var(--primary))) drop-shadow(0 0 16px hsl(var(--primary) / 0.5))",
+                      }} />
+                    )}
+                    {/* Outer glow ring */}
+                    <div className="absolute inset-[-3px] rounded-full" style={{
+                      boxShadow: `0 0 20px hsl(var(--primary) / 0.6), 0 0 40px hsl(var(--primary) / 0.3), inset 0 0 15px hsl(var(--primary) / 0.1)`,
                     }} />
                   </div>
                 ) : (
-                  <div className="rounded-2xl overflow-hidden ring-2 ring-primary/40" style={{ width: `${size}px`, height: `${size * 1.4}px` }}>
+                  <div className="rounded-2xl overflow-hidden ring-2 ring-primary/40 relative" style={{ width: `${size}px`, height: `${size * 1.4}px` }}>
                     <img src={activeImg} alt={getTitle(activeAnime)} className="w-full h-full object-cover" loading="lazy" />
+                    {/* Loading ring for card variant */}
+                    {!isTV && (
+                      <div className="absolute inset-[-4px] rounded-2xl animate-[sphere-spin_3s_linear_infinite]" style={{
+                        border: "2px solid transparent",
+                        borderTopColor: "hsl(var(--primary))",
+                        filter: "drop-shadow(0 0 6px hsl(var(--primary)))",
+                      }} />
+                    )}
                   </div>
                 )}
                 <div className="mt-3 text-center">
@@ -149,12 +159,12 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
             </div>
           )}
 
-          {/* Right side sphere */}
+          {/* Right */}
           {rightAnime && (
             <div className="flex flex-col items-center opacity-40 flex-shrink-0" style={{ width: `${sideSize}px` }}>
               <Link to={`/anime/${rightAnime.id}`} className="block text-center">
                 {variant === "circle" ? (
-                  <div className="mx-auto rounded-full overflow-hidden" style={{ width: `${sideSize}px`, height: `${sideSize}px`, boxShadow: "0 0 15px hsl(16 100% 50% / 0.2)" }}>
+                  <div className="mx-auto rounded-full overflow-hidden" style={{ width: `${sideSize}px`, height: `${sideSize}px`, boxShadow: "0 0 15px hsl(var(--primary) / 0.2)" }}>
                     <img src={rightImg} alt={getTitle(rightAnime)} className="w-full h-full object-cover" loading="lazy" />
                   </div>
                 ) : (
@@ -176,7 +186,13 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
       {/* Dots */}
       <div className="flex justify-center gap-1.5 mt-2">
         {items.map((_, i) => (
-          <button key={i} onClick={() => { if (!animating) { setAnimating(true); setAnimDir("out"); setTimeout(() => { setActiveIdx(i); setAnimDir("in"); setTimeout(() => setAnimating(false), 350); }, 300); } }}
+          <button key={i} onClick={() => {
+            if (!animating) {
+              setAnimating(true);
+              setVisible(false);
+              setTimeout(() => { setActiveIdx(i); setVisible(true); setTimeout(() => setAnimating(false), isTV ? 150 : 300); }, isTV ? 150 : 250);
+            }
+          }}
             className={`transition-all duration-300 rounded-full ${getWrapped(activeIdx) === i ? "w-5 h-1.5 bg-primary" : "w-1.5 h-1.5 bg-muted-foreground/30"}`} />
         ))}
       </div>
