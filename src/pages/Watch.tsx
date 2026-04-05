@@ -48,24 +48,20 @@ export default function Watch() {
 
   // Slug resolution with multiple title variants
   const { data: zetSlug, isLoading: loadingSlug } = useQuery({
-    queryKey: ["zet-slug", animeTitle, anilistId],
+    queryKey: ["zet-slug-multi", animeTitle, anilistId],
     queryFn: async () => {
       const cached = await getCachedSlug(anilistId);
       if (cached) return cached;
 
-      const titles: string[] = [];
-      if (anilistData?.title?.romaji) titles.push(anilistData.title.romaji);
-      if (anilistData?.title?.english) titles.push(anilistData.title.english);
-      if ((anilistData?.title as any)?.native) titles.push((anilistData.title as any).native);
-      const uniqueTitles = [...new Set(titles.filter(Boolean))];
-
-      for (const t of uniqueTitles) {
-        const slug = await resolveSlugFromTitle(t, anilistId);
+      // Use multi-API resolver
+      if (anilistData?.title) {
+        const slug = await resolveSlugMultiAPI(anilistData.title, anilistId);
         if (slug) {
           await saveCachedSlug(anilistId, slug, animeTitle);
           return slug;
         }
       }
+
       return titleToSlug(animeTitle);
     },
     enabled: !!animeTitle,
