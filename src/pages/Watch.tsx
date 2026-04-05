@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  resolveSlugFromTitle, getEpisodeServers, sortServersByPriority,
+  getEpisodeServers, sortServersByPriority,
   isEpisodeWatched, markEpisodeWatched, titleToSlug, getCachedSlug,
   saveCachedSlug, getLatinoEpisode,
   type ZetServer,
 } from "@/lib/zetapi";
+import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
