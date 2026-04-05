@@ -1,13 +1,14 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getAnimeById, getTitle, getStatusLabel, getStatusColor } from "@/lib/anilist";
-import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, HelpCircle, Eye, Loader2 } from "lucide-react";
+import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, HelpCircle, Eye, ChevronDown } from "lucide-react";
 import AnimeCard from "@/components/anime/AnimeCard";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import AuthRequiredModal from "@/components/AuthRequiredModal";
 import { toast } from "sonner";
+import { translateText } from "@/lib/translate";
 
 type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
 
@@ -19,6 +20,8 @@ const LIST_CONFIG: { type: ListType; icon: typeof Heart; label: string }[] = [
   { type: "undecided", icon: HelpCircle, label: "Indecisión" },
 ];
 
+const SYNOPSIS_LIMIT = 200;
+
 export default function AnimeDetail() {
   const { id } = useParams();
   const animeId = parseInt(id || "0");
@@ -27,7 +30,7 @@ export default function AnimeDetail() {
   const [activeLists, setActiveLists] = useState<ListType[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [translatedDesc, setTranslatedDesc] = useState<string | null>(null);
-  const [translating, setTranslating] = useState(false);
+  const [showFullDesc, setShowFullDesc] = useState(false);
 
   const { data: anime, isLoading } = useQuery({
     queryKey: ["anime", animeId],
@@ -36,7 +39,6 @@ export default function AnimeDetail() {
     staleTime: 1000 * 60 * 10,
   });
 
-  // Load user's lists for this anime from Supabase
   useQuery({
     queryKey: ["anime-list", animeId, user?.id],
     queryFn: async () => {
@@ -53,36 +55,17 @@ export default function AnimeDetail() {
     enabled: !!user && animeId > 0,
   });
 
-  // Translation effect - must be before early returns
+  // Translation
   const rawDescription = anime?.description?.replace(/<[^>]*>/g, "") || "";
   useEffect(() => {
     if (!rawDescription || !animeId) return;
-    const cacheKey = `translate_${animeId}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) { setTranslatedDesc(cached); return; }
-    
-    setTranslating(true);
-    fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/translate-text`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: rawDescription }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.translated) {
-          setTranslatedDesc(data.translated);
-          localStorage.setItem(cacheKey, data.translated);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setTranslating(false));
+    translateText(rawDescription, `translate_${animeId}`).then((t) => {
+      setTranslatedDesc(t);
+    });
   }, [rawDescription, animeId]);
 
   const handleToggleList = async (list: ListType) => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    if (!user) { setShowAuthModal(true); return; }
     setLoadingList(true);
     const title = anime ? getTitle(anime) : "";
     const cover = anime?.coverImage?.extraLarge || anime?.coverImage?.large || "";
@@ -93,11 +76,8 @@ export default function AnimeDetail() {
     } else {
       await supabase.from("anime_lists").delete().eq("user_id", user.id).eq("anime_id", animeId);
       await supabase.from("anime_lists").insert({
-        user_id: user.id,
-        anime_id: animeId,
-        list_type: list as any,
-        anime_title: title,
-        anime_cover: cover,
+        user_id: user.id, anime_id: animeId, list_type: list as any,
+        anime_title: title, anime_cover: cover,
       });
       setActiveLists([list]);
     }
@@ -130,6 +110,8 @@ export default function AnimeDetail() {
   const banner = anime.bannerImage || anime.coverImage?.extraLarge;
   const cover = anime.coverImage?.extraLarge || anime.coverImage?.large;
   const description = translatedDesc || rawDescription;
+  const isLongDesc = description.length > SYNOPSIS_LIMIT;
+  const displayDesc = isLongDesc && !showFullDesc ? description.slice(0, SYNOPSIS_LIMIT) + "..." : description;
   const recommendations = anime.recommendations?.nodes?.map((n: any) => n.mediaRecommendation).filter(Boolean) || [];
 
   return (
@@ -161,16 +143,10 @@ export default function AnimeDetail() {
           {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
             const isActive = activeLists.includes(type);
             return (
-              <button
-                key={type}
-                onClick={() => handleToggleList(type)}
-                disabled={loadingList}
+              <button key={type} onClick={() => handleToggleList(type)} disabled={loadingList}
                 className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  isActive
-                    ? "bg-primary/20 text-primary border border-primary/30"
-                    : "bg-secondary text-muted-foreground hover:bg-muted"
-                } disabled:opacity-50`}
-              >
+                  isActive ? "bg-primary/20 text-primary border border-primary/30" : "bg-secondary text-muted-foreground hover:bg-muted"
+                } disabled:opacity-50`}>
                 <Icon className="w-3.5 h-3.5" />{label}
               </button>
             );
@@ -216,7 +192,18 @@ export default function AnimeDetail() {
         {description && (
           <div className="mt-4">
             <h2 className="text-sm font-bold text-foreground mb-2">Sinopsis</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {displayDesc}
+            </p>
+            {isLongDesc && (
+              <button
+                onClick={() => setShowFullDesc(!showFullDesc)}
+                className="mt-1 flex items-center gap-1 text-primary text-xs font-medium hover:underline"
+              >
+                <ChevronDown className={`w-4 h-4 transition-transform ${showFullDesc ? "rotate-180" : ""}`} />
+                {showFullDesc ? "Ver menos" : "Ver más"}
+              </button>
+            )}
           </div>
         )}
 
