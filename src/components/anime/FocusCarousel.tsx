@@ -109,7 +109,7 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
                 <Link to={`/anime/${anime.id}`} className="block group text-center">
                   <div className="relative mx-auto overflow-hidden rounded-2xl aspect-[3/4] shadow-xl"
                     style={{
-                      boxShadow: isActive ? "0 0 30px hsl(16 100% 50% / 0.4)" : "none",
+                      boxShadow: isActive ? "0 0 30px hsl(var(--primary) / 0.4)" : "none",
                       transition: "box-shadow 0.5s ease",
                     }}
                   >
