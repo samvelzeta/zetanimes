@@ -14,6 +14,7 @@ import {
   Globe, Bug, ChevronDown,
 } from "lucide-react";
 import AnimePlayer from "@/components/video/AnimePlayer";
+import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
