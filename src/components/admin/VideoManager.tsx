@@ -77,7 +77,7 @@ export default function VideoManager() {
       id: anime.id,
       title: getTitle(anime),
       slug,
-      cover: anime.coverImage?.medium || anime.coverImage?.large || "",
+      cover: anime.coverImage?.large || anime.coverImage?.extraLarge || "",
       totalEpisodes: anime.episodes || 24,
     });
     setSearchQuery("");
@@ -214,7 +214,7 @@ export default function VideoManager() {
               {searchResults.map((anime) => (
                 <button key={anime.id} onClick={() => selectAnime(anime)}
                   className="w-full flex items-center gap-3 p-3 hover:bg-secondary transition text-left border-b border-border last:border-0">
-                  <img src={anime.coverImage?.medium || ""} alt="" className="w-8 h-12 rounded object-cover flex-shrink-0" />
+                  <img src={anime.coverImage?.large || ""} alt="" className="w-8 h-12 rounded object-cover flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-foreground truncate">{getTitle(anime)}</p>
                     <p className="text-[10px] text-muted-foreground">{anime.episodes || "?"} eps · {anime.status}</p>
