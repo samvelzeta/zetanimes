@@ -172,6 +172,57 @@ export type Database = {
         }
         Relationships: []
       }
+      broken_link_reports: {
+        Row: {
+          anilist_id: number | null
+          anime_cover: string | null
+          anime_title: string | null
+          created_at: string
+          episode_number: number | null
+          first_reported_at: string
+          id: string
+          last_reported_at: string
+          report_count: number
+          report_type: string
+          resolved_at: string | null
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          anilist_id?: number | null
+          anime_cover?: string | null
+          anime_title?: string | null
+          created_at?: string
+          episode_number?: number | null
+          first_reported_at?: string
+          id?: string
+          last_reported_at?: string
+          report_count?: number
+          report_type?: string
+          resolved_at?: string | null
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number | null
+          anime_cover?: string | null
+          anime_title?: string | null
+          created_at?: string
+          episode_number?: number | null
+          first_reported_at?: string
+          id?: string
+          last_reported_at?: string
+          report_count?: number
+          report_type?: string
+          resolved_at?: string | null
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contact_links: {
         Row: {
           color: string | null
