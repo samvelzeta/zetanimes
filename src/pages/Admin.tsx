@@ -6,16 +6,19 @@ import { toast } from "sonner";
 import {
   ArrowLeft, BarChart3, Crown, Image, Store, CreditCard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search,
-  Trash2, Pencil, Plus, ExternalLink, Key, Link2,
+  Trash2, Pencil, Plus, ExternalLink, Key, Link2, Film, AlertTriangle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import DownloadTracker from "@/components/admin/DownloadTracker";
+import VideoManager from "@/components/admin/VideoManager";
+import BrokenReports from "@/components/admin/BrokenReports";
 
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
   { key: "downloads", label: "Descargas", icon: Store },
-  { key: "override", label: "Override URL", icon: Link2 },
+  { key: "videos", label: "Videos", icon: Film },
+  { key: "reports", label: "Reportes", icon: AlertTriangle },
   { key: "premium", label: "Premium", icon: Crown },
   { key: "payment", label: "Pago", icon: CreditCard },
   { key: "notifs", label: "Notifs", icon: Bell },
