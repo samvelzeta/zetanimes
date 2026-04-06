@@ -278,6 +278,19 @@ export default function Watch() {
           </p>
         )}
 
+        {/* Report broken link */}
+        {zetSlug && anilistData && (
+          <div className="mb-3">
+            <ReportBrokenLink
+              slug={zetSlug}
+              episodeNumber={selectedEp}
+              animeTitle={displayTitle}
+              animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
+              anilistId={anilistId}
+            />
+          </div>
+        )}
+
         {/* Debug */}
         <button onClick={() => setShowDebug(!showDebug)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition mb-2">
           <Bug className="w-3.5 h-3.5" /> Debug
