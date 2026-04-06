@@ -11,8 +11,10 @@ import SphereCarousel from "@/components/anime/SphereCarousel";
 import TopRanking from "@/components/anime/TopRanking";
 import FocusCarousel from "@/components/anime/FocusCarousel";
 import AnimeRoulette from "@/components/anime/AnimeRoulette";
+import { useIsTV } from "@/hooks/useIsTV";
 
 export default function Home() {
+  const isTV = useIsTV();
   const [splashDone, setSplashDone] = useState(() => {
     if (sessionStorage.getItem("zet_splash_done")) return true;
     return false;
@@ -37,27 +39,44 @@ export default function Home() {
 
   const { data: topRated, isLoading: l4 } = useQuery({
     queryKey: ["topRated"],
-    queryFn: () => getTopRated(1, 15),
+    queryFn: () => getTopRated(1, isTV ? 10 : 15),
     staleTime: 1000 * 60 * 10,
   });
 
   const { data: season, isLoading: l5 } = useQuery({
     queryKey: ["thisSeason"],
-    queryFn: () => getThisSeason(1, 15),
+    queryFn: () => getThisSeason(1, isTV ? 10 : 15),
     staleTime: 1000 * 60 * 10,
+    enabled: !isTV, // Skip on TV to reduce load
   });
 
   const { data: actionAnimes, isLoading: lAction } = useQuery({
     queryKey: ["genre-action"],
-    queryFn: () => getByGenre("Action", 1, 15),
+    queryFn: () => getByGenre("Action", 1, isTV ? 10 : 15),
     staleTime: 1000 * 60 * 10,
+    enabled: !isTV,
   });
 
   const { data: fantasyAnimes, isLoading: lFantasy } = useQuery({
     queryKey: ["genre-fantasy"],
     queryFn: () => getByGenre("Fantasy", 1, 15),
     staleTime: 1000 * 60 * 10,
+    enabled: !isTV,
   });
+
+  // TV: simplified home with fewer sections, no animations
+  if (isTV) {
+    return (
+      <div className="min-h-screen">
+        <HeroBanner animes={trending?.media || []} />
+        <div className="mt-4 space-y-4 px-2">
+          <HorizontalList title="🔥 En Tendencia" animes={trending?.media || []} loading={l1} linkTo="/directory" />
+          <HorizontalList title="⭐ Más Populares" animes={popular?.media || []} loading={l2} linkTo="/directory" />
+          <TopRanking title="🏆 Top Rating" animes={topRated?.media || []} loading={l4} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

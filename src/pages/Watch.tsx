@@ -14,6 +14,7 @@ import {
   Globe, Bug, ChevronDown,
 } from "lucide-react";
 import AnimePlayer from "@/components/video/AnimePlayer";
+import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
@@ -275,6 +276,19 @@ export default function Watch() {
           <p className="text-[10px] text-muted-foreground mb-2">
             {sortedSources.length} servidor{sortedSources.length > 1 ? "es" : ""} disponible{sortedSources.length > 1 ? "s" : ""}
           </p>
+        )}
+
+        {/* Report broken link */}
+        {zetSlug && anilistData && (
+          <div className="mb-3">
+            <ReportBrokenLink
+              slug={zetSlug}
+              episodeNumber={selectedEp}
+              animeTitle={displayTitle}
+              animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
+              anilistId={anilistId}
+            />
+          </div>
         )}
 
         {/* Debug */}
