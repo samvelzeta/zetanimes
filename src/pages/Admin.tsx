@@ -63,7 +63,8 @@ export default function AdminPanel() {
       <div className="px-4 pt-6">
         {tab === "stats" && <StatsTab />}
         {tab === "downloads" && <DownloadTracker />}
-        {tab === "override" && <OverrideURLTab />}
+        {tab === "videos" && <VideoManager />}
+        {tab === "reports" && <BrokenReports />}
         {tab === "premium" && <PremiumTab />}
         {tab === "payment" && <PaymentTab />}
         {tab === "notifs" && <NotifsTab />}
