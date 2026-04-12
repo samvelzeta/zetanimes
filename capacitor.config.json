@@ -1,10 +1,11 @@
 {
   "appId": "com.zetanime.app",
   "appName": "zetAnime",
-  "webDir": "www",
+  "webDir": ".",
   "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https",
-    "cleartext": true
+    "url": "https://zetanimes.lovable.app",
+    "cleartext": true,
+    "androidScheme": "https"
   }
 }
