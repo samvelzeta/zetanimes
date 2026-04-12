@@ -1,5 +1,10 @@
 name: Generar APK zetanime
-on: [push]
+on: 
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*' # Esto activa el Release automático cuando creas una etiqueta como v1.0
 
 jobs:
   build:
@@ -25,11 +30,8 @@ jobs:
 
       - name: Force Android Project
         run: |
-          # Borramos configuraciones viejas para que no den conflicto
           rm -f capacitor.config.json
           npx cap init zetanime com.zetanime.app --web-dir www
-          
-          # Si ya existe la carpeta android, la borramos para que se cree limpia y con el 'gradlew'
           rm -rf android
           npx cap add android
           npx cap sync android
@@ -37,12 +39,21 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          # Ahora sí va a encontrar el archivo gradlew porque lo creamos limpio arriba
           chmod +x gradlew
           ./gradlew assembleDebug
+          # Renombrar el archivo de debug a zetanime.apk
+          mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/zetanime.apk
 
-      - name: Upload APK
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: zetanime-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/zetanime.apk
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: android/app/build/outputs/apk/debug/zetanime.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
