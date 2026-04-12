@@ -6,12 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Descargando Repositorio
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configurando Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Instalando Herramientas de Capacitor
         run: |
@@ -19,27 +19,24 @@ jobs:
 
       - name: Inicializando Proyecto Android
         run: |
-          # Esto crea la base de la app nativa
           npx cap add android
 
       - name: Procesando Iconos y Splash JPG
         run: |
-          # Usamos tus archivos JPG para que la app tenga tu marca
           npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg
 
       - name: Aplicando Configuración de Rotación
         run: |
-          # Este paso asegura que NO se reinicie al girar el celular
           sed -i 's/android:configChanges="orientation|keyboardHidden|screenSize"/android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode"/g' android/app/src/main/AndroidManifest.xml
 
-      - name: Fabricando APK Finall
+      - name: Fabricando APK Final
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Entregar APK de zetanime
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: zetanime-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
