@@ -10,25 +10,33 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # Actualizado a la 20 para evitar advertencias
+          node-version: 20
 
       - name: Install Dependencies
         run: |
           npm install
           npm install @capacitor/assets @capacitor/android @capacitor/core @capacitor/cli
 
-      - name: Initialize Capacitor
+      - name: Prepare Web Directory and Fix Config
         run: |
-          # Solo inicializa si no existe el config, y añade la plataforma solo si falta
-          npx cap init zetanime com.zetanime.app --web-dir . || true
-          npx cap add android || echo "La plataforma Android ya existe, saltando paso..."
+          # 1. Crear carpeta www y copiar todo el contenido
+          mkdir -p www
+          cp -r * www/ || true
+          
+          # 2. Forzar que el config use "www" en lugar de "."
+          # Esto busca la línea de webDir y la cambia automáticamente
+          sed -i 's/"webDir": "."/"webDir": "www"/' capacitor.config.json || echo "Ya estaba corregido"
 
-      - name: Sync Capacitor
-        run: npx cap sync android # Esto une tu código web con la carpeta android existente
-
-      - name: Generate Assets (Logos y Splash)
+      - name: Initialize and Sync
         run: |
-          npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg || echo "Error en assets, continuando..."
+          npx cap init zetanime com.zetanime.app --web-dir www || true
+          npx cap add android || echo "La plataforma ya existe"
+          npx cap sync android
+
+      - name: Generate Assets
+        run: |
+          # Intentamos generar con JPG, si falla saltamos para no detener la APK
+          npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg || echo "Error en assets, se usará el icono por defecto"
 
       - name: Build APK
         run: |
