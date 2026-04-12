@@ -2,5 +2,9 @@
   "appId": "com.zetanime.app",
   "appName": "zetAnime",
   "webDir": ".",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
 }
