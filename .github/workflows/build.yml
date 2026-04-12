@@ -10,39 +10,34 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22 # Usamos la versión más nueva para quitar el aviso amarillo
+          node-version: 22
 
       - name: Install Dependencies
         run: |
           npm install
-          npm install @capacitor/assets @capacitor/android @capacitor/core @capacitor/cli
+          npm install @capacitor/android @capacitor/core @capacitor/cli
 
       - name: Build Web Project
         run: |
           mkdir -p www
           cp -r * www/ || true
-          # Eliminamos la carpeta www de adentro de www para evitar bucles
-          rm -rf www/www 
+          rm -rf www/www
 
-      - name: Fresh Capacitor Setup
+      - name: Force Android Project
         run: |
-          # Borramos el config viejo si existe y creamos uno nuevo perfecto
+          # Borramos configuraciones viejas para que no den conflicto
           rm -f capacitor.config.json
           npx cap init zetanime com.zetanime.app --web-dir www
           
-          # Si la carpeta android ya existe, solo la sincronizamos
-          if [ -d "android" ]; then
-            npx cap sync android
-          else
-            npx cap add android
-          fi
+          # Si ya existe la carpeta android, la borramos para que se cree limpia y con el 'gradlew'
+          rm -rf android
+          npx cap add android
+          npx cap sync android
 
-      - name: Assets & Build
+      - name: Build APK
         run: |
-          # Si los iconos fallan, que siga adelante para que al menos tengas la APK
-          npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg || echo "Saltando assets por error"
-          
           cd android
+          # Ahora sí va a encontrar el archivo gradlew porque lo creamos limpio arriba
           chmod +x gradlew
           ./gradlew assembleDebug
 
