@@ -1,0 +1,6 @@
+{
+  "appId": "com.zetanime.app",
+  "appName": "zetAnime",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
