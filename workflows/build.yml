@@ -1,0 +1,40 @@
+name: Generar APK zetanime
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Instalando Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Instalando Dependencias
+        run: |
+          npm install
+          npm install @capacitor/assets @capacitor/android
+
+      - name: Configurando Capacitor
+        run: |
+          npx cap init zetanime com.zetanime.app --web-dir .
+          npx cap add android
+
+      - name: Generando Iconos y Splash
+        run: |
+          # Esto fuerza al sistema a usar tus JPGs aunque busque PNGs
+          npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg
+
+      - name: Compilando APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Descargar APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: zetanime-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
