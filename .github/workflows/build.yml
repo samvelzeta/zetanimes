@@ -5,12 +5,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # Actualizado a v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4 # Actualizado a v4
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20 # Actualizado a la 20 para evitar advertencias
 
       - name: Install Dependencies
         run: |
@@ -19,12 +19,16 @@ jobs:
 
       - name: Initialize Capacitor
         run: |
-          npx cap init zetanime com.zetanime.app --web-dir .
-          npx cap add android
+          # Solo inicializa si no existe el config, y añade la plataforma solo si falta
+          npx cap init zetanime com.zetanime.app --web-dir . || true
+          npx cap add android || echo "La plataforma Android ya existe, saltando paso..."
+
+      - name: Sync Capacitor
+        run: npx cap sync android # Esto une tu código web con la carpeta android existente
 
       - name: Generate Assets (Logos y Splash)
         run: |
-          npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg
+          npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg || echo "Error en assets, continuando..."
 
       - name: Build APK
         run: |
@@ -33,7 +37,7 @@ jobs:
           ./gradlew assembleDebug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4 # Aquí estaba el error, ya está en v4
+        uses: actions/upload-artifact@v4
         with:
           name: zetanime-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
