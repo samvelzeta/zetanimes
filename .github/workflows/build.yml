@@ -10,36 +10,38 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22 # Usamos la versión más nueva para quitar el aviso amarillo
 
       - name: Install Dependencies
         run: |
           npm install
           npm install @capacitor/assets @capacitor/android @capacitor/core @capacitor/cli
 
-      - name: Prepare Web Directory and Fix Config
+      - name: Build Web Project
         run: |
-          # 1. Crear carpeta www y copiar todo el contenido
           mkdir -p www
           cp -r * www/ || true
+          # Eliminamos la carpeta www de adentro de www para evitar bucles
+          rm -rf www/www 
+
+      - name: Fresh Capacitor Setup
+        run: |
+          # Borramos el config viejo si existe y creamos uno nuevo perfecto
+          rm -f capacitor.config.json
+          npx cap init zetanime com.zetanime.app --web-dir www
           
-          # 2. Forzar que el config use "www" en lugar de "."
-          # Esto busca la línea de webDir y la cambia automáticamente
-          sed -i 's/"webDir": "."/"webDir": "www"/' capacitor.config.json || echo "Ya estaba corregido"
+          # Si la carpeta android ya existe, solo la sincronizamos
+          if [ -d "android" ]; then
+            npx cap sync android
+          else
+            npx cap add android
+          fi
 
-      - name: Initialize and Sync
+      - name: Assets & Build
         run: |
-          npx cap init zetanime com.zetanime.app --web-dir www || true
-          npx cap add android || echo "La plataforma ya existe"
-          npx cap sync android
-
-      - name: Generate Assets
-        run: |
-          # Intentamos generar con JPG, si falla saltamos para no detener la APK
-          npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg || echo "Error en assets, se usará el icono por defecto"
-
-      - name: Build APK
-        run: |
+          # Si los iconos fallan, que siga adelante para que al menos tengas la APK
+          npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg || echo "Saltando assets por error"
+          
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
