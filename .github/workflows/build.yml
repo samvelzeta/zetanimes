@@ -17,17 +17,16 @@ jobs:
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
 
-      - name: Inicializando Proyecto Android
+      - name: Limpiar y Crear Proyecto Android
         run: |
-          # Creamos una carpeta vacía temporal para evitar el error de copia infinita
-          mkdir -p temp_empty
+          # Borramos cualquier rastro de la carpeta android para evitar bucles
+          rm -rf android
           
-          if [ -d "android" ]; then
-            # Sincronizamos usando la carpeta vacía para que no falle
-            npx cap sync android --web-dir temp_empty
-          else
-            npx cap add android
-          fi
+          # Creamos una carpeta vacía para que Capacitor no intente copiarse a sí mismo
+          mkdir -p www
+          
+          # Inicializamos Android de forma limpia
+          npx cap add android
 
       - name: Procesando Iconos y Splash JPG
         run: |
@@ -35,6 +34,7 @@ jobs:
 
       - name: Aplicando Configuración de Rotación
         run: |
+          # Aquí forzamos la configuración de rotación en el archivo nuevo
           sed -i 's/android:configChanges="orientation|keyboardHidden|screenSize"/android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode"/g' android/app/src/main/AndroidManifest.xml
 
       - name: Fabricando APK Final
