@@ -19,7 +19,12 @@ jobs:
 
       - name: Inicializando Proyecto Android
         run: |
-          npx cap add android
+          # Si la carpeta android existe, solo sincroniza. Si no, la añade.
+          if [ -d "android" ]; then
+            npx cap sync android
+          else
+            npx cap add android
+          fi
 
       - name: Procesando Iconos y Splash JPG
         run: |
@@ -27,6 +32,7 @@ jobs:
 
       - name: Aplicando Configuración de Rotación
         run: |
+          # Buscamos el archivo que creaste y le metemos la mejora de rotación
           sed -i 's/android:configChanges="orientation|keyboardHidden|screenSize"/android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode"/g' android/app/src/main/AndroidManifest.xml
 
       - name: Fabricando APK Final
