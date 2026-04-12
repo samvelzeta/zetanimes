@@ -19,9 +19,12 @@ jobs:
 
       - name: Inicializando Proyecto Android
         run: |
-          # Si la carpeta android existe, solo sincroniza. Si no, la añade.
+          # Creamos una carpeta vacía temporal para evitar el error de copia infinita
+          mkdir -p temp_empty
+          
           if [ -d "android" ]; then
-            npx cap sync android
+            # Sincronizamos usando la carpeta vacía para que no falle
+            npx cap sync android --web-dir temp_empty
           else
             npx cap add android
           fi
@@ -32,7 +35,6 @@ jobs:
 
       - name: Aplicando Configuración de Rotación
         run: |
-          # Buscamos el archivo que creaste y le metemos la mejora de rotación
           sed -i 's/android:configChanges="orientation|keyboardHidden|screenSize"/android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode"/g' android/app/src/main/AndroidManifest.xml
 
       - name: Fabricando APK Final
