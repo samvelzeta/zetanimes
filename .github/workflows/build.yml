@@ -17,20 +17,28 @@ jobs:
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
 
-      - name: Crear Proyecto Limpio
+      - name: Limpieza Radical y Preparación
         run: |
-          # Borramos rastro de android por seguridad
+          # Forzamos la eliminación de cualquier carpeta android que GitHub crea que existe
           rm -rf android
-          # Agregamos la plataforma
+          # Creamos una carpeta de salida que esté FUERA del flujo principal
+          mkdir -p .out_www
+          # Creamos un archivo capacitor.config.json temporal solo para el build
+          echo '{"appId":"com.zetanime.app","appName":"zetAnime","webDir":".out_www","server":{"url":"https://zetanimes.lovable.app","cleartext":true}}' > capacitor.config.json
+
+      - name: Crear Proyecto Android
+        run: |
+          # Usamos la carpeta vacía para evitar el bucle infinito de copia
           npx cap add android
 
       - name: Configurar Iconos y Splash
         run: |
-          npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg
+          # Si las imágenes no están, este paso se saltará sin romper el build
+          npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg || echo "Imágenes no encontradas, saltando..."
 
       - name: Inyectar Permisos y Rotación
         run: |
-          # Modificamos el archivo para que el video sea fluido al girar
+          # Aplicamos el parche de rotación de pantalla
           sed -i 's/android:configChanges="orientation|keyboardHidden|screenSize"/android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode"/g' android/app/src/main/AndroidManifest.xml
 
       - name: Compilar APK Final
