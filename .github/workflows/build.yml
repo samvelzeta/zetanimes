@@ -19,18 +19,18 @@ jobs:
 
       - name: Crear Proyecto Limpio
         run: |
-          # Creamos una carpeta vacía para engañar al sistema y que no copie nada
-          mkdir -p www_vacia
-          # Forzamos la creación de la plataforma Android desde cero
-          npx cap add android --web-dir www_vacia
+          # Borramos rastro de android por seguridad
+          rm -rf android
+          # Agregamos la plataforma
+          npx cap add android
 
       - name: Configurar Iconos y Splash
         run: |
           npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg
 
-      - name: Inyectar Permisos y Rotación Nativa
+      - name: Inyectar Permisos y Rotación
         run: |
-          # Modificamos el AndroidManifest para que el video no se reinicie al girar
+          # Modificamos el archivo para que el video sea fluido al girar
           sed -i 's/android:configChanges="orientation|keyboardHidden|screenSize"/android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode"/g' android/app/src/main/AndroidManifest.xml
 
       - name: Compilar APK Final
