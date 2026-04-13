@@ -13,37 +13,37 @@ jobs:
         with:
           node-version: 20
 
-      - name: Instalando Herramientas de Capacitor
+      - name: Preparando Carpetas
+        run: |
+          mkdir -p www
+          rm -rf android
+
+      - name: Instalando Herramientas
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
 
-      - name: Limpiar y Crear Proyecto Android
+      - name: Crear Proyecto Android
         run: |
-          # Borramos cualquier rastro de la carpeta android para evitar bucles
-          rm -rf android
-          
-          # Creamos una carpeta vacía para que Capacitor no intente copiarse a sí mismo
-          mkdir -p www
-          
-          # Inicializamos Android de forma limpia
           npx cap add android
 
-      - name: Procesando Iconos y Splash JPG
+      - name: Configurar Iconos
         run: |
           npx capacitor-assets generate --android --icon-only assets/icon-only.jpg --splash assets/splash.jpg
 
-      - name: Aplicando Configuración de Rotación
+      - name: Inyectar Permisos y Rotacion
         run: |
-          # Aquí forzamos la configuración de rotación en el archivo nuevo
+          # Esto modifica el archivo recién creado para que no se reinicie al girar
           sed -i 's/android:configChanges="orientation|keyboardHidden|screenSize"/android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout|uiMode"/g' android/app/src/main/AndroidManifest.xml
+          # Añadimos permisos de cámara (opcional pero lo pediste)
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Fabricando APK Final
+      - name: Compilar APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Entregar APK de zetanime
+      - name: Subir APK
         uses: actions/upload-artifact@v4
         with:
           name: zetanime-apk
