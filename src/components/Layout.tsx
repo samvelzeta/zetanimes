@@ -6,6 +6,7 @@ import { useIsTV } from "@/hooks/useIsTV";
 
 const NO_NAV_PAGES = ["/watch", "/auth", "/reset-password", "/download"];
 const NO_HEADER_PAGES = ["/watch", "/auth", "/reset-password", "/settings", "/admin", "/download"];
+const TRANSPARENT_HEADER_PAGES = ["/", "/anime"]; // Hero detrás del header glass
 
 export default function Layout() {
   const location = useLocation();
