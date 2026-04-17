@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import HeaderBar from "@/components/HeaderBar";
 import TVSidebar from "@/components/TVSidebar";
+import SteamGears from "@/components/SteamGears";
 import { useIsTV } from "@/hooks/useIsTV";
 
 const NO_NAV_PAGES = ["/watch", "/auth", "/reset-password", "/download"];
