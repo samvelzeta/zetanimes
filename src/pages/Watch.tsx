@@ -14,7 +14,7 @@ import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
   Globe, Bug, ChevronDown, List,
 } from "lucide-react";
-import AdBanner300x250Watch from "@/components/ads/AdBanner300x250Watch";
+import AdsterraBanner from "@/components/ads/AdsterraBanner";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
@@ -407,7 +407,22 @@ export default function Watch() {
         </div>
 
         {/* Ad 300x250 debajo de los botones */}
-        <AdBanner300x250Watch />
+        <AdsterraBanner
+          adKey="b411f21fa26a4e8427eb13433959b4e8"
+          width={300}
+          height={250}
+          uid="watch-ep-300x250"
+        />
+      </div>
+
+      {/* Ad 320x50 al final de la página, debajo de la lista de episodios */}
+      <div className="px-4 mt-6">
+        <AdsterraBanner
+          adKey="b411f21fa26a4e8427eb13433959b4e8"
+          width={320}
+          height={50}
+          uid="watch-bottom-320x50"
+        />
       </div>
 
       {/* Lista colapsable de episodios */}
