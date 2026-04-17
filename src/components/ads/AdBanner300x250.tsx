@@ -42,7 +42,7 @@ const AdBanner300x250 = forwardRef<HTMLDivElement>((_, _outerRef) => {
     iframe.contentWindow?.document.close();
   }, [isPremium]);
 
-  if (isPremium) return null;
+  if (isPremium) return <div style={{ width: 0, height: 0, overflow: "hidden" }} aria-hidden />;
 
   return (
     <div className="px-4 my-6 flex justify-center">
