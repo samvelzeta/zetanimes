@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTrending, getPopular, getTopRated, getThisSeason, getByGenre } from "@/lib/anilist";
 import HeroBanner from "@/components/anime/HeroBanner";
@@ -12,6 +12,7 @@ import TopRanking from "@/components/anime/TopRanking";
 import FocusCarousel from "@/components/anime/FocusCarousel";
 import AnimeRoulette from "@/components/anime/AnimeRoulette";
 import { useIsTV } from "@/hooks/useIsTV";
+import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 
 export default function Home() {
   const isTV = useIsTV();
@@ -24,6 +25,15 @@ export default function Home() {
     sessionStorage.setItem("zet_splash_done", "1");
     setSplashDone(true);
   };
+
+  // Cargar IDs ocultos para filtrar listas
+  const { data: hiddenIds } = useQuery({
+    queryKey: ["hidden-anime-ids"],
+    queryFn: async () => Array.from(await getHiddenAnimeIds()),
+    staleTime: 1000 * 60 * 5,
+  });
+  const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
+  const filterFn = (list: any[] | undefined) => (list || []).filter((a) => !hiddenSet.has(a.id));
 
   const { data: trending, isLoading: l1 } = useQuery({
     queryKey: ["trending"],

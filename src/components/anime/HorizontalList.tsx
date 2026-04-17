@@ -60,13 +60,12 @@ export default function HorizontalList({ title, animes, loading, linkTo, showSta
       </div>
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto px-4 hide-scrollbar" style={{ scrollBehavior: "smooth" }}>
         {animes.map((anime, idx) => (
-          <>
-            <AnimeCard key={anime.id} anime={anime} showStatus={showStatus} />
-            {/* Anuncio cada 3 cards, no en posición 0 */}
+          <div key={anime.id} className="contents">
+            <AnimeCard anime={anime} showStatus={showStatus} />
             {(idx + 1) % 3 === 0 && idx < animes.length - 1 && (
-              <AdCard key={`ad-${idx}`} />
+              <AdCard />
             )}
-          </>
+          </div>
         ))}
       </div>
     </div>
