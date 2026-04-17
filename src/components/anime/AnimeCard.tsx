@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { getTitle, getStatusLabel, getStatusColor, type AniListMedia } from "@/lib/anilist";
 import { Star, Play } from "lucide-react";
+import LazyImage from "@/components/LazyImage";
 
 interface AnimeCardProps {
   anime: AniListMedia;
@@ -23,7 +24,7 @@ export default function AnimeCard({ anime, showStatus = false, size = "default" 
   return (
     <Link to={`/anime/${anime.id}`} className={`group block ${sizeClasses[size]}`}>
       <div className="relative overflow-hidden rounded-xl aspect-[3/4] bg-secondary neon-card">
-        <img src={image} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+        <LazyImage src={image || ""} alt={title} className="w-full h-full transition-transform duration-500 group-hover:scale-105" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <div className="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center backdrop-blur-sm">

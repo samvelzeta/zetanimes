@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AuthRequiredModal from "@/components/AuthRequiredModal";
 import { toast } from "sonner";
 import { translateText } from "@/lib/translate";
+import { trackAnimeView, getAnimeViews, formatViews } from "@/lib/anime-views";
 
 type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
 
@@ -31,6 +32,17 @@ export default function AnimeDetail() {
   const [loadingList, setLoadingList] = useState(false);
   const [translatedDesc, setTranslatedDesc] = useState<string | null>(null);
   const [showFullDesc, setShowFullDesc] = useState(false);
+  const [viewCount, setViewCount] = useState<number>(0);
+
+  // Trackear vista (1 por sesión) y leer conteo actualizado
+  useEffect(() => {
+    if (!animeId) return;
+    (async () => {
+      await trackAnimeView(animeId);
+      const v = await getAnimeViews(animeId);
+      setViewCount(v);
+    })();
+  }, [animeId]);
 
   const { data: anime, isLoading } = useQuery({
     queryKey: ["anime", animeId],
@@ -155,6 +167,12 @@ export default function AnimeDetail() {
 
         <div className="flex flex-wrap items-center gap-2 mt-4">
           <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg text-primary-foreground ${getStatusColor(anime.status)}`}>{getStatusLabel(anime.status)}</span>
+          {viewCount > 0 && (
+            <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+              <Eye className="w-3 h-3 text-primary" />
+              <span className="text-xs font-bold text-foreground">{formatViews(viewCount)} vistas</span>
+            </div>
+          )}
           {anime.averageScore && (
             <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
               <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
