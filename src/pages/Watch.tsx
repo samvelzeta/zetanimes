@@ -173,6 +173,7 @@ export default function Watch() {
   // Use replace instead of push for episode navigation (fixes back button)
   const selectEpisode = (epNumber: number) => {
     setSelectedEp(epNumber);
+    setActiveSourceIdx(0);
     navigate(`/watch/${id}?ep=${epNumber}`, { replace: true });
     watchTimeRef.current = 0;
     if (!inWebView) {
