@@ -15,10 +15,12 @@ import {
   Globe, Bug, ChevronDown,
 } from "lucide-react";
 import AnimePlayer from "@/components/video/AnimePlayer";
+import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
+import { resolveEpisodeCount } from "@/lib/episode-count";
 
 type Lang = "sub" | "latino";
 
@@ -38,6 +40,7 @@ export default function Watch() {
   const [showDebug, setShowDebug] = useState(false);
   const watchTimeRef = useRef(0);
   const [initialTime, setInitialTime] = useState<number | undefined>(undefined);
+  const playerWrapperRef = useRef<HTMLDivElement>(null);
 
   const { data: anilistData } = useQuery({
     queryKey: ["anime-detail", anilistId],
@@ -71,7 +74,14 @@ export default function Watch() {
     retry: 1,
   });
 
-  const totalEpisodes = anilistData?.episodes || 0;
+  // Multi-source episode count: admin override > AniList episodes > nextAiringEpisode-1 > Jikan
+  const { data: resolvedTotal = 0 } = useQuery({
+    queryKey: ["ep-count", anilistId, anilistData?.episodes, anilistData?.nextAiringEpisode?.episode],
+    queryFn: () => resolveEpisodeCount(anilistData, anilistId),
+    enabled: !!anilistData && anilistId > 0,
+    staleTime: 1000 * 60 * 30,
+  });
+  const totalEpisodes = resolvedTotal || anilistData?.episodes || 0;
   const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, selectedEp) }, (_, i) => i + 1);
 
   const cacheKey = `${zetSlug}-${selectedEp}-${lang}`;
