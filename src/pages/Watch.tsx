@@ -293,17 +293,26 @@ export default function Watch() {
           {inWebView && " • 📱 APK"}
         </p>
 
-        {/* Idioma: solo cambia si hay 2+ Z servers o latino HLS */}
+        {/* Idioma / fuente alternativa */}
         <div className="flex items-center gap-2 mb-4">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
           {hasMultipleLangs ? (
             <button
-              onClick={() => setLang(lang === "sub" ? "latino" : "sub")}
+              onClick={() => {
+                if (hasLatinoHLS) {
+                  setLang(lang === "sub" ? "latino" : "sub");
+                } else {
+                  // Sin HLS latino real → rota entre las fuentes disponibles
+                  setActiveSourceIdx((i) => (i + 1) % Math.max(1, sortedSources.length));
+                }
+              }}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all flex items-center gap-1.5"
             >
               {langButtonLabel}
               <span className="text-[10px] opacity-80">
-                ({lang === "sub" ? "🇯🇵 JP → 🌎 LAT" : "🌎 LAT → 🇯🇵 JP"})
+                {hasLatinoHLS
+                  ? `(${lang === "sub" ? "🇯🇵 JP → 🌎 LAT" : "🌎 LAT → 🇯🇵 JP"})`
+                  : `(${sortedSources[activeSourceIdx]?.name || "—"})`}
               </span>
             </button>
           ) : (
@@ -314,8 +323,8 @@ export default function Watch() {
         </div>
 
         {lang === "latino" && latinoEp && (
-          <div className="flex items-center gap-2 bg-green-600/10 border border-green-600/30 rounded-xl px-4 py-2 mb-4">
-            <span className="text-xs text-green-400 font-medium">✓ HLS Latino disponible</span>
+          <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2 mb-4">
+            <span className="text-xs text-primary font-medium">✓ HLS Latino disponible</span>
           </div>
         )}
 
@@ -364,33 +373,69 @@ export default function Watch() {
         )}
       </div>
 
-      {/* Episodes grid */}
-      <div className="px-4">
-        <h2 className="text-sm font-bold text-foreground mb-3">Episodios</h2>
-        {episodeNumbers.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {episodeNumbers.map((epNum) => {
-              const isActive = epNum === selectedEp;
-              const epSlug = zetSlug ? `${zetSlug}-${epNum}` : "";
-              const watched = epSlug ? isEpisodeWatched(epSlug) : false;
-              return (
-                <div key={epNum} className={`flex rounded-lg overflow-hidden transition-all ${isActive ? "ring-2 ring-primary/50" : ""}`}>
-                  <button onClick={() => selectEpisode(epNum)}
-                    className={`flex-1 py-2.5 px-3 text-sm font-bold transition-all text-left ${isActive ? "bg-primary text-primary-foreground" : watched ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                    EP {epNum}
-                  </button>
-                  <button onClick={() => toggleWatched(epNum)}
-                    className={`w-[30%] flex items-center justify-center transition-all border-l border-background/20 ${watched ? "bg-primary text-primary-foreground" : "bg-secondary/80 text-muted-foreground hover:text-primary"}`}>
-                    {watched ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground text-center py-8">Cargando episodios...</p>
-        )}
+      {/* Navegación de episodios: prev / dropdown / next */}
+      <div className="px-4 mb-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
+            disabled={selectedEp <= 1}
+            className="flex-1 py-2.5 px-3 rounded-lg bg-secondary hover:bg-muted text-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition"
+          >
+            <ChevronLeft className="w-4 h-4" /> Anterior
+          </button>
+          <button
+            onClick={() => setShowEpisodes((v) => !v)}
+            className="px-3 py-2.5 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary text-xs font-bold flex items-center gap-1.5 transition"
+            aria-label="Mostrar lista de episodios"
+          >
+            <List className="w-4 h-4" />
+            EP {selectedEp}
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showEpisodes ? "rotate-180" : ""}`} />
+          </button>
+          <button
+            onClick={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
+            disabled={selectedEp >= totalEpisodes}
+            className="flex-1 py-2.5 px-3 rounded-lg bg-secondary hover:bg-muted text-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition"
+          >
+            Siguiente <ChevronLeft className="w-4 h-4 rotate-180" />
+          </button>
+        </div>
+
+        {/* Ad 300x250 debajo de los botones */}
+        <AdBanner300x250Watch />
       </div>
+
+      {/* Lista colapsable de episodios */}
+      {showEpisodes && (
+        <div className="px-4">
+          <h2 className="text-sm font-bold text-foreground mb-3">
+            Episodios <span className="text-muted-foreground font-normal">({totalEpisodes})</span>
+          </h2>
+          {episodeNumbers.length > 0 ? (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-[60vh] overflow-y-auto pr-1">
+              {episodeNumbers.map((epNum) => {
+                const isActive = epNum === selectedEp;
+                const epSlug = zetSlug ? `${zetSlug}-${epNum}` : "";
+                const watched = epSlug ? isEpisodeWatched(epSlug) : false;
+                return (
+                  <div key={epNum} className={`flex rounded-lg overflow-hidden transition-all ${isActive ? "ring-2 ring-primary/50" : ""}`}>
+                    <button onClick={() => { selectEpisode(epNum); setShowEpisodes(false); }}
+                      className={`flex-1 py-2 px-2 text-xs font-bold transition-all text-left ${isActive ? "bg-primary text-primary-foreground" : watched ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                      EP {epNum}
+                    </button>
+                    <button onClick={() => toggleWatched(epNum)}
+                      className={`w-7 flex items-center justify-center transition-all border-l border-background/20 ${watched ? "bg-primary text-primary-foreground" : "bg-secondary/80 text-muted-foreground hover:text-primary"}`}>
+                      {watched ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-8">Cargando episodios...</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
