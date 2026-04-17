@@ -2,7 +2,6 @@ import { Outlet, useLocation } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import HeaderBar from "@/components/HeaderBar";
 import TVSidebar from "@/components/TVSidebar";
-import SteamGears from "@/components/SteamGears";
 import { useIsTV } from "@/hooks/useIsTV";
 
 const NO_NAV_PAGES = ["/watch", "/auth", "/reset-password", "/download"];
@@ -17,10 +16,8 @@ export default function Layout() {
   const transparentHeader = location.pathname === "/" || location.pathname.startsWith("/anime/");
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative">
-      <SteamGears />
+    <div className="min-h-screen bg-background text-foreground">
       {isTV ? (
-        // TV mode: no header/search bar, use side navigation
         <>
           {!hideNav && <TVSidebar />}
           <main>
@@ -28,7 +25,6 @@ export default function Layout() {
           </main>
         </>
       ) : (
-        // Normal mode
         <>
           {!hideHeader && <HeaderBar />}
           <main className={`${hideNav ? "" : "pb-20"} ${!hideHeader && !transparentHeader ? "pt-12" : ""}`}>
