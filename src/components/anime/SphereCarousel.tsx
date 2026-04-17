@@ -124,29 +124,35 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
                 {variant === "circle" ? (
                   <div className="mx-auto rounded-full overflow-hidden relative" style={{ width: `${size}px`, height: `${size}px` }}>
                     <img src={activeImg} alt={getTitle(activeAnime)} className="w-full h-full object-cover" loading="lazy" />
-                    {/* Neon spinning border - bright and visible */}
+                    {/* Anillo giratorio neon — más brillante */}
                     {!isTV && (
-                      <div className="absolute inset-[-6px] rounded-full animate-[sphere-spin_2.5s_linear_infinite]" style={{
-                        border: "3px solid transparent",
+                      <div className="absolute inset-[-7px] rounded-full animate-[sphere-spin_2.5s_linear_infinite]" style={{
+                        border: "4px solid transparent",
                         borderTopColor: "hsl(var(--primary))",
-                        borderRightColor: "hsl(var(--primary) / 0.3)",
-                        filter: "drop-shadow(0 0 8px hsl(var(--primary))) drop-shadow(0 0 16px hsl(var(--primary) / 0.5))",
+                        borderRightColor: "hsl(var(--primary) / 0.5)",
+                        filter: "drop-shadow(0 0 14px hsl(var(--primary))) drop-shadow(0 0 28px hsl(var(--primary) / 0.7))",
                       }} />
                     )}
-                    {/* Outer glow ring */}
-                    <div className="absolute inset-[-3px] rounded-full" style={{
-                      boxShadow: `0 0 20px hsl(var(--primary) / 0.6), 0 0 40px hsl(var(--primary) / 0.3), inset 0 0 15px hsl(var(--primary) / 0.1)`,
+                    {/* Halo exterior MUY luminoso */}
+                    <div className="absolute inset-[-4px] rounded-full pointer-events-none" style={{
+                      boxShadow: "0 0 40px hsl(var(--primary) / 0.9), 0 0 80px hsl(var(--primary) / 0.5), 0 0 120px hsl(var(--primary) / 0.25), inset 0 0 20px hsl(var(--primary) / 0.2)",
                     }} />
+                    {/* Pulso adicional para dar vida */}
+                    {!isTV && (
+                      <div className="absolute inset-[-10px] rounded-full pointer-events-none animate-pulse" style={{
+                        boxShadow: "0 0 30px hsl(var(--primary) / 0.6)",
+                      }} />
+                    )}
                   </div>
                 ) : (
-                  <div className="rounded-2xl overflow-hidden ring-2 ring-primary/40 relative" style={{ width: `${size}px`, height: `${size * 1.4}px` }}>
+                  <div className="rounded-2xl overflow-hidden ring-2 ring-primary/60 relative" style={{ width: `${size}px`, height: `${size * 1.4}px`, boxShadow: "0 0 30px hsl(var(--primary) / 0.7), 0 0 60px hsl(var(--primary) / 0.35)" }}>
                     <img src={activeImg} alt={getTitle(activeAnime)} className="w-full h-full object-cover" loading="lazy" />
-                    {/* Loading ring for card variant */}
+                    {/* Loading ring para card variant — más brillante */}
                     {!isTV && (
-                      <div className="absolute inset-[-4px] rounded-2xl animate-[sphere-spin_3s_linear_infinite]" style={{
-                        border: "2px solid transparent",
+                      <div className="absolute inset-[-5px] rounded-2xl animate-[sphere-spin_3s_linear_infinite]" style={{
+                        border: "3px solid transparent",
                         borderTopColor: "hsl(var(--primary))",
-                        filter: "drop-shadow(0 0 6px hsl(var(--primary)))",
+                        filter: "drop-shadow(0 0 12px hsl(var(--primary))) drop-shadow(0 0 24px hsl(var(--primary) / 0.6))",
                       }} />
                     )}
                   </div>
