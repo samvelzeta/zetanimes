@@ -11,8 +11,8 @@ const NO_HEADER_PAGES = ["/watch", "/auth", "/reset-password", "/settings", "/ad
 export default function Layout() {
   const location = useLocation();
   const isTV = useIsTV();
-  // D-Pad spatial navigation activa solo en TV mode (control remoto usa flechas del teclado)
-  useTVRemote(isTV);
+  // D-Pad spatial navigation activa solo en TV mode (el hook chequea internamente)
+  useTVRemote();
 
   const hideNav = NO_NAV_PAGES.some((p) => location.pathname.startsWith(p));
   const hideHeader = NO_HEADER_PAGES.some((p) => location.pathname.startsWith(p));
