@@ -18,7 +18,7 @@ interface Props {
 
 /** TUERCA hexagonal oscura con rayo central. horizontal=true → rayo tumbado (pausado). */
 const NutBolt = forwardRef<SVGSVGElement, { horizontal: boolean; size?: number }>(
-  ({ horizontal, size = 72 }, ref) => (
+  ({ horizontal, size = 110 }, ref) => (
     <svg ref={ref} width={size} height={size} viewBox="0 0 100 100" style={{ display: "block" }}>
       <defs>
         <radialGradient id="nutBg" cx="50%" cy="40%" r="60%">
@@ -35,6 +35,9 @@ const NutBolt = forwardRef<SVGSVGElement, { horizontal: boolean; size?: number }
           <stop offset="50%" stopColor="hsl(20 100% 55%)" />
           <stop offset="100%" stopColor="hsl(10 100% 45%)" />
         </linearGradient>
+        <clipPath id="nutClip">
+          <circle cx="50" cy="50" r="28" />
+        </clipPath>
       </defs>
       <polygon
         points="50,4 91,27 91,73 50,96 9,73 9,27"
@@ -49,21 +52,25 @@ const NutBolt = forwardRef<SVGSVGElement, { horizontal: boolean; size?: number }
         strokeWidth="0.8"
       />
       <circle cx="50" cy="50" r="28" fill="hsl(15 35% 6%)" stroke="hsl(22 45% 25%)" strokeWidth="1.2" />
-      <g
-        transform={`rotate(${horizontal ? 90 : 0} 50 50)`}
-        style={{
-          transformOrigin: "50px 50px",
-          transition: "transform 250ms cubic-bezier(0.4,0,0.2,1)",
-          filter: "drop-shadow(0 0 4px hsl(16 100% 55%)) drop-shadow(0 0 8px hsl(16 100% 50% / 0.6))",
-        }}
-      >
-        <path
-          d="M54 28 L38 54 H50 L46 72 L62 46 H50 L54 28 Z"
-          fill="url(#nutBolt)"
-          stroke="hsl(40 100% 75%)"
-          strokeWidth="0.8"
-          strokeLinejoin="round"
-        />
+      {/* Rayo recortado dentro del círculo central para que NO se salga de la tuerca */}
+      <g clipPath="url(#nutClip)">
+        <g
+          transform={`rotate(${horizontal ? 90 : 0} 50 50)`}
+          style={{
+            transformOrigin: "50px 50px",
+            transition: "transform 250ms cubic-bezier(0.4,0,0.2,1)",
+            filter: "drop-shadow(0 0 3px hsl(16 100% 55%))",
+          }}
+        >
+          {/* Rayo más pequeño y centrado: cabe dentro del círculo r=28 */}
+          <path
+            d="M53 32 L41 51 H50 L47 68 L59 49 H50 L53 32 Z"
+            fill="url(#nutBolt)"
+            stroke="hsl(40 100% 75%)"
+            strokeWidth="0.6"
+            strokeLinejoin="round"
+          />
+        </g>
       </g>
     </svg>
   )
@@ -75,7 +82,9 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
   const [show, setShow] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [hasNativeVideo, setHasNativeVideo] = useState(false);
+  const [sacrificeMode, setSacrificeMode] = useState(false); // capa invisible para dejar pasar el clic al iframe
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
+  const sacrificeTimer = useRef<ReturnType<typeof setTimeout>>();
 
   // Detectar fullscreen
   useEffect(() => {
@@ -163,9 +172,14 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
       try {
         iframe.contentWindow.postMessage({ action: isPlaying ? "pause" : "play" }, "*");
         iframe.contentWindow.postMessage(isPlaying ? "pause" : "play", "*");
-        setIsPlaying(!isPlaying);
       } catch {}
     }
+    // CAPA DE SACRIFICIO: ocultamos brevemente el overlay para que el siguiente
+    // clic del usuario llegue al iframe real (truco recomendado).
+    setIsPlaying((p) => !p);
+    setSacrificeMode(true);
+    if (sacrificeTimer.current) clearTimeout(sacrificeTimer.current);
+    sacrificeTimer.current = setTimeout(() => setSacrificeMode(false), 700);
   };
 
   const skip = (seconds: number) => {
@@ -182,23 +196,26 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
 
   return (
     <div
-      className={`pointer-events-none ${posClass} transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"}`}
+      className={`pointer-events-none ${posClass} transition-opacity duration-300 ${
+        show && !sacrificeMode ? "opacity-100" : "opacity-0"
+      }`}
+      style={sacrificeMode ? { pointerEvents: "none" } : undefined}
     >
       {/* Chip episodio */}
       <div className="pointer-events-auto absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/80 text-white text-xs font-bold tracking-wide shadow-lg border border-primary/20">
         EP {episode} {totalEpisodes > 0 && <span className="opacity-60">/ {totalEpisodes}</span>}
       </div>
 
-      {/* TUERCA play/pause central */}
+      {/* TUERCA play/pause central — más grande para tapar el botón nativo de abajo */}
       <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
         <button
           onClick={togglePlayPause}
           className="active:scale-95 hover:scale-110 transition-transform"
           aria-label={isPlaying ? "Pausar" : "Reproducir"}
-          title={hasNativeVideo ? (isPlaying ? "Pausar" : "Reproducir") : "Reproducir (control limitado en este servidor)"}
-          style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.7))" }}
+          title={hasNativeVideo ? (isPlaying ? "Pausar" : "Reproducir") : "Reproducir"}
+          style={{ filter: "drop-shadow(0 4px 14px rgba(0,0,0,0.8))" }}
         >
-          <NutBolt horizontal={!isPlaying} size={isFullscreen ? 96 : 72} />
+          <NutBolt horizontal={!isPlaying} size={isFullscreen ? 160 : 130} />
         </button>
       </div>
 
