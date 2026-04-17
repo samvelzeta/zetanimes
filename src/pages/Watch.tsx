@@ -247,17 +247,51 @@ export default function Watch() {
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
   const isLoading = loadingServers || loadingSlug;
 
+  // Tuerca decorativa SVG (estática, mitad visible en esquina)
+  const CornerNut = ({ className }: { className: string }) => (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
+      <defs>
+        <radialGradient id="cornerNutBg" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stopColor="hsl(20 25% 18%)" />
+          <stop offset="100%" stopColor="hsl(15 40% 5%)" />
+        </radialGradient>
+      </defs>
+      <polygon
+        points="50,4 91,27 91,73 50,96 9,73 9,27"
+        fill="url(#cornerNutBg)"
+        stroke="hsl(22 60% 35%)"
+        strokeWidth="2.5"
+      />
+      <polygon
+        points="50,12 84,30 84,70 50,88 16,70 16,30"
+        fill="none"
+        stroke="hsl(22 40% 22%)"
+        strokeWidth="0.8"
+      />
+      <circle cx="50" cy="50" r="14" fill="hsl(15 35% 6%)" stroke="hsl(22 45% 25%)" strokeWidth="1.2" />
+    </svg>
+  );
+
   return (
     <div className="min-h-screen pb-24">
-      <div className="px-4 pt-4 pb-2">
-        <Link to={`/anime/${id}`} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
-          <ChevronLeft className="w-4 h-4" /> Volver al anime
-        </Link>
-      </div>
+      {/* Player con marco decorativo (brillo naranja + tuercas en las 4 esquinas) */}
+      <div className="px-4 pt-4 mb-3">
+        <div className="relative">
+          {/* Tuercas DEBAJO del player (z-0), solo sobresale la mitad */}
+          <CornerNut className="absolute -top-3 -left-3 w-9 h-9 sm:w-11 sm:h-11 z-0 pointer-events-none drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" />
+          <CornerNut className="absolute -top-3 -right-3 w-9 h-9 sm:w-11 sm:h-11 z-0 pointer-events-none drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" />
+          <CornerNut className="absolute -bottom-3 -left-3 w-9 h-9 sm:w-11 sm:h-11 z-0 pointer-events-none drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" />
+          <CornerNut className="absolute -bottom-3 -right-3 w-9 h-9 sm:w-11 sm:h-11 z-0 pointer-events-none drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" />
 
-      {/* Player */}
-      <div className="px-4 mb-4">
-        <div ref={playerWrapperRef} className="relative">
+          {/* Wrapper del player con borde + brillo naranja, encima de las tuercas */}
+          <div
+            ref={playerWrapperRef}
+            className="relative z-10 rounded-xl overflow-hidden border-2 border-primary/40"
+            style={{
+              boxShadow:
+                "0 0 0 1px hsl(var(--primary) / 0.15), 0 0 22px hsl(var(--primary) / 0.45), 0 0 50px hsl(var(--primary) / 0.25)",
+            }}
+          >
           {isLoading ? (
             <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
