@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import { useIsTV } from "@/hooks/useIsTV";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useInViewport } from "@/hooks/useInViewport";
 import LazyImage from "@/components/LazyImage";
 
@@ -20,6 +21,9 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
   const [animating, setAnimating] = useState(false);
   const [visible, setVisible] = useState(true);
   const isTV = useIsTV();
+  const isMobile = useIsMobile();
+  // En mobile cortamos animaciones decorativas para ganar fluidez
+  const heavyFx = !isTV && !isMobile;
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInViewport(sectionRef, "200px");
 
@@ -128,35 +132,39 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
               <Link to={`/anime/${activeAnime.id}`} className="block group text-center">
                 {variant === "circle" ? (
                   <div className="mx-auto rounded-full overflow-hidden relative" style={{ width: `${size}px`, height: `${size}px` }}>
-                    <LazyImage src={activeImg!} alt={getTitle(activeAnime)} keepWhenOffscreen className="w-full h-full rounded-full" placeholderClassName="rounded-full" />
-                    {/* Anillo giratorio neon — pausado fuera de viewport */}
-                    {!isTV && inView && (
+                    <LazyImage src={activeImg!} alt={getTitle(activeAnime)} className="w-full h-full rounded-full" placeholderClassName="rounded-full" />
+                    {/* Anillo giratorio neon — solo desktop, pausado fuera de viewport */}
+                    {heavyFx && inView && (
                       <div className="absolute inset-[-7px] rounded-full animate-[sphere-spin_2.5s_linear_infinite]" style={{
                         border: "4px solid transparent",
                         borderTopColor: "hsl(var(--primary))",
                         borderRightColor: "hsl(var(--primary) / 0.5)",
                         filter: "drop-shadow(0 0 14px hsl(var(--primary))) drop-shadow(0 0 28px hsl(var(--primary) / 0.7))",
+                        willChange: "transform",
                       }} />
                     )}
-                    {/* Halo exterior MUY luminoso */}
+                    {/* Halo: en mobile uno simple, en desktop más rico */}
                     <div className="absolute inset-[-4px] rounded-full pointer-events-none" style={{
-                      boxShadow: "0 0 40px hsl(var(--primary) / 0.9), 0 0 80px hsl(var(--primary) / 0.5), 0 0 120px hsl(var(--primary) / 0.25), inset 0 0 20px hsl(var(--primary) / 0.2)",
+                      boxShadow: heavyFx
+                        ? "0 0 40px hsl(var(--primary) / 0.9), 0 0 80px hsl(var(--primary) / 0.5), 0 0 120px hsl(var(--primary) / 0.25), inset 0 0 20px hsl(var(--primary) / 0.2)"
+                        : "0 0 20px hsl(var(--primary) / 0.6)",
                     }} />
-                    {/* Pulso adicional para dar vida — pausado fuera de viewport */}
-                    {!isTV && inView && (
+                    {/* Pulso adicional — solo desktop */}
+                    {heavyFx && inView && (
                       <div className="absolute inset-[-10px] rounded-full pointer-events-none animate-pulse" style={{
                         boxShadow: "0 0 30px hsl(var(--primary) / 0.6)",
                       }} />
                     )}
                   </div>
                 ) : (
-                  <div className="rounded-2xl overflow-hidden ring-2 ring-primary/60 relative" style={{ width: `${size}px`, height: `${size * 1.4}px`, boxShadow: "0 0 30px hsl(var(--primary) / 0.7), 0 0 60px hsl(var(--primary) / 0.35)" }}>
-                    <LazyImage src={activeImg!} alt={getTitle(activeAnime)} keepWhenOffscreen className="w-full h-full" />
-                    {!isTV && inView && (
+                  <div className="rounded-2xl overflow-hidden ring-2 ring-primary/60 relative" style={{ width: `${size}px`, height: `${size * 1.4}px`, boxShadow: heavyFx ? "0 0 30px hsl(var(--primary) / 0.7), 0 0 60px hsl(var(--primary) / 0.35)" : "0 0 15px hsl(var(--primary) / 0.5)" }}>
+                    <LazyImage src={activeImg!} alt={getTitle(activeAnime)} className="w-full h-full" />
+                    {heavyFx && inView && (
                       <div className="absolute inset-[-5px] rounded-2xl animate-[sphere-spin_3s_linear_infinite]" style={{
                         border: "3px solid transparent",
                         borderTopColor: "hsl(var(--primary))",
                         filter: "drop-shadow(0 0 12px hsl(var(--primary))) drop-shadow(0 0 24px hsl(var(--primary) / 0.6))",
+                        willChange: "transform",
                       }} />
                     )}
                   </div>
