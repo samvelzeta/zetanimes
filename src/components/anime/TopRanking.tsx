@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import AdBanner300x250 from "@/components/ads/AdBanner300x250";
 
 interface Props {
   title: string;
@@ -80,6 +81,8 @@ export default function TopRanking({ title, animes, loading }: Props) {
           );
         })}
       </div>
+      {/* Banner Adsterra debajo del Top 10 */}
+      <AdBanner300x250 />
     </section>
   );
 }

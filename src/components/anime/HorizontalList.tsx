@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import AnimeCard from "@/components/anime/AnimeCard";
+import AdCard from "@/components/ads/AdCard";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { AniListMedia } from "@/lib/anilist";
@@ -58,8 +59,13 @@ export default function HorizontalList({ title, animes, loading, linkTo, showSta
         </div>
       </div>
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto px-4 hide-scrollbar" style={{ scrollBehavior: "smooth" }}>
-        {animes.map((anime) => (
-          <AnimeCard key={anime.id} anime={anime} showStatus={showStatus} />
+        {animes.map((anime, idx) => (
+          <div key={anime.id} className="contents">
+            <AnimeCard anime={anime} showStatus={showStatus} />
+            {(idx + 1) % 3 === 0 && idx < animes.length - 1 && (
+              <AdCard />
+            )}
+          </div>
         ))}
       </div>
     </div>

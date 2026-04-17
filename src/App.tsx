@@ -17,6 +17,7 @@ import AuthPage from "@/pages/Auth";
 import ResetPassword from "@/pages/ResetPassword";
 import AdminPanel from "@/pages/Admin";
 import TermsPage from "@/pages/Terms";
+import DownloadPage from "@/pages/Download";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/terms" element={<TermsPage />} />
             </Route>
+            <Route path="/download" element={<DownloadPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

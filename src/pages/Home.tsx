@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTrending, getPopular, getTopRated, getThisSeason, getByGenre } from "@/lib/anilist";
 import HeroBanner from "@/components/anime/HeroBanner";
@@ -12,6 +12,7 @@ import TopRanking from "@/components/anime/TopRanking";
 import FocusCarousel from "@/components/anime/FocusCarousel";
 import AnimeRoulette from "@/components/anime/AnimeRoulette";
 import { useIsTV } from "@/hooks/useIsTV";
+import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 
 export default function Home() {
   const isTV = useIsTV();
@@ -24,6 +25,15 @@ export default function Home() {
     sessionStorage.setItem("zet_splash_done", "1");
     setSplashDone(true);
   };
+
+  // Cargar IDs ocultos para filtrar listas
+  const { data: hiddenIds } = useQuery({
+    queryKey: ["hidden-anime-ids"],
+    queryFn: async () => Array.from(await getHiddenAnimeIds()),
+    staleTime: 1000 * 60 * 5,
+  });
+  const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
+  const filterFn = (list: any[] | undefined) => (list || []).filter((a) => !hiddenSet.has(a.id));
 
   const { data: trending, isLoading: l1 } = useQuery({
     queryKey: ["trending"],
@@ -68,11 +78,11 @@ export default function Home() {
   if (isTV) {
     return (
       <div className="min-h-screen">
-        <HeroBanner animes={trending?.media || []} />
+        <HeroBanner animes={filterFn(trending?.media)} />
         <div className="mt-4 space-y-4 px-2">
-          <HorizontalList title="🔥 En Tendencia" animes={trending?.media || []} loading={l1} linkTo="/directory" />
-          <HorizontalList title="⭐ Más Populares" animes={popular?.media || []} loading={l2} linkTo="/directory" />
-          <TopRanking title="🏆 Top Rating" animes={topRated?.media || []} loading={l4} />
+          <HorizontalList title="🔥 En Tendencia" animes={filterFn(trending?.media)} loading={l1} linkTo="/directory" />
+          <HorizontalList title="⭐ Más Populares" animes={filterFn(popular?.media)} loading={l2} linkTo="/directory" />
+          <TopRanking title="🏆 Top Rating" animes={filterFn(topRated?.media)} loading={l4} />
         </div>
       </div>
     );
@@ -82,7 +92,7 @@ export default function Home() {
     <>
       {!splashDone && <SplashScreen onComplete={handleSplashComplete} />}
       <div className="min-h-screen">
-        <HeroBanner animes={trending?.media || []} />
+        <HeroBanner animes={filterFn(trending?.media)} />
 
         <div className="mt-6 space-y-2">
           <LatestEpisodes />
@@ -91,7 +101,7 @@ export default function Home() {
 
           <SphereCarousel
             title="🔥 En Tendencia"
-            animes={trending?.media || []}
+            animes={filterFn(trending?.media)}
             loading={l1}
             linkTo="/directory"
             variant="circle"
@@ -100,31 +110,31 @@ export default function Home() {
           <FocusCarousel
             title="Acción"
             emoji="⚔️"
-            animes={actionAnimes?.media || []}
+            animes={filterFn(actionAnimes?.media)}
             loading={lAction}
             linkTo="/directory?genre=Action"
           />
 
           <TopRanking
             title="📈 🏆 Top Rating"
-            animes={topRated?.media || []}
+            animes={filterFn(topRated?.media)}
             loading={l4}
           />
 
-          <HorizontalList title="✨ Fantasía" animes={fantasyAnimes?.media || []} loading={lFantasy} linkTo="/directory?genre=Fantasy" />
-          <HorizontalList title="🌸 Temporada Actual" animes={season?.media || []} loading={l5} showStatus />
+          <HorizontalList title="✨ Fantasía" animes={filterFn(fantasyAnimes?.media)} loading={lFantasy} linkTo="/directory?genre=Fantasy" />
+          <HorizontalList title="🌸 Temporada Actual" animes={filterFn(season?.media)} loading={l5} showStatus />
 
           <SphereCarousel
             title="⭐ Más Populares"
-            animes={popular?.media || []}
+            animes={filterFn(popular?.media)}
             loading={l2}
             linkTo="/directory"
             variant="circle"
           />
 
-          <HorizontalList title="✨ Descubre" animes={popular?.media?.slice(5) || []} loading={l2} linkTo="/directory" />
+          <HorizontalList title="✨ Descubre" animes={filterFn(popular?.media?.slice(5))} loading={l2} linkTo="/directory" />
 
-          <AnimeRoulette animes={[...(trending?.media || []), ...(popular?.media || [])]} />
+          <AnimeRoulette animes={[...filterFn(trending?.media), ...filterFn(popular?.media)]} />
         </div>
       </div>
     </>
