@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, Eye, CheckCircle, Clock, HelpCircle, Settings, LogOut, Crown, Shield, MessageSquare, FileText, ExternalLink, Camera, Loader2 } from "lucide-react";
+import { Heart, Eye, CheckCircle, Clock, HelpCircle, Settings, LogOut, Crown, Shield, MessageSquare, FileText, ExternalLink, Camera, Loader2, Share2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import AnimeCard from "@/components/anime/AnimeCard";
 import type { AniListMedia } from "@/lib/anilist";
@@ -187,7 +187,27 @@ export default function Profile() {
           </div>
         )}
 
-        <button onClick={() => { signOut(); navigate("/"); }} className="w-full flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-destructive/10 transition mt-4">
+        {/* Compartir aplicación */}
+        <button
+          onClick={async () => {
+            const url = `${window.location.origin}/download`;
+            if (navigator.share) {
+              try {
+                await navigator.share({ title: "zetAnime APK", text: "Descarga zetAnime y mira anime sin límites", url });
+                return;
+              } catch {}
+            }
+            await navigator.clipboard.writeText(url);
+            toast.success("Enlace copiado al portapapeles");
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary/10 to-transparent rounded-xl border border-primary/30 hover:from-primary/20 transition mt-4"
+        >
+          <Smartphone className="w-4 h-4 text-primary" />
+          <span className="text-sm text-foreground font-bold flex-1 text-left">Compartir aplicación</span>
+          <Share2 className="w-4 h-4 text-primary" />
+        </button>
+
+        <button onClick={() => { signOut(); navigate("/"); }} className="w-full flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-destructive/10 transition mt-2">
           <LogOut className="w-4 h-4 text-destructive" /><span className="text-sm text-destructive">Cerrar Sesión</span>
         </button>
       </div>
