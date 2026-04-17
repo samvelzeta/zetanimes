@@ -169,35 +169,73 @@ export default function Profile() {
         </div>
       </Link>
 
-      {/* Acciones */}
-      <div className="space-y-2">
-        <Link to="/settings" className="flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-muted transition">
-          <Settings className="w-4 h-4 text-muted-foreground" /><span className="text-sm text-foreground">Configuración</span>
+      {/* Acciones rediseñadas estilo steampunk */}
+      <div className="space-y-2.5">
+        <Link
+          to="/settings"
+          className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary/60 border border-border hover:border-primary/50 hover:bg-secondary transition-all"
+        >
+          <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 transition">
+            <Settings className="w-4 h-4 text-primary" />
+          </div>
+          <span className="text-sm text-foreground font-medium flex-1">Configuración</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition" />
         </Link>
+
         {!isPremium && (
-          <button onClick={() => setShowPremiumModal(true)} className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl border border-primary/30 hover:from-primary/30 transition">
-            <Crown className="w-4 h-4 text-primary" /><span className="text-sm text-foreground font-bold">Obtener Premium</span>
+          <button
+            onClick={() => setShowPremiumModal(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/40 hover:from-primary/30 transition-all"
+            style={{ boxShadow: "0 0 16px hsl(var(--primary) / 0.2)" }}
+          >
+            <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
+              <Crown className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-sm text-foreground font-bold flex-1 text-left">Obtener Premium</span>
+            <ChevronRight className="w-4 h-4 text-primary" />
           </button>
         )}
+
         {isOwner && (
-          <Link to="/admin" className="flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl border border-primary/20 hover:bg-muted transition">
-            <Shield className="w-4 h-4 text-primary" /><span className="text-sm text-primary font-bold">Panel Admin</span>
+          <Link
+            to="/admin"
+            className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 border-2 border-primary/40 hover:bg-primary/15 hover:border-primary transition-all"
+            style={{ boxShadow: "0 0 14px hsl(var(--primary) / 0.25)" }}
+          >
+            <div className="w-9 h-9 rounded-lg bg-primary/25 flex items-center justify-center">
+              <Shield className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-sm text-primary font-bold flex-1">Panel Admin</span>
+            <ChevronRight className="w-4 h-4 text-primary group-hover:translate-x-0.5 transition" />
           </Link>
         )}
 
+        {/* Contáctanos rediseñado */}
         {contacts.length > 0 && (
-          <div className="pt-4">
-            <h3 className="text-xs font-bold text-muted-foreground mb-2 flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Contáctanos</h3>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="pt-5">
+            <div className="flex items-center gap-2 mb-3 px-1">
+              <MessageSquare className="w-3.5 h-3.5 text-primary" />
+              <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.15em]">Contáctanos</h3>
+              <div className="flex-1 h-px bg-gradient-to-r from-primary/40 via-primary/10 to-transparent" />
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
               {contacts.map((c) => (
-                <a key={c.id} href={c.url} target="_blank" rel="noopener" className="flex items-center gap-2 px-3 py-2.5 bg-secondary rounded-xl border border-border hover:border-primary/30 transition">
-                  {c.icon_url ? (
-                    <img src={c.icon_url} alt="" className="w-5 h-5 rounded-full" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full" style={{ backgroundColor: c.color || "hsl(var(--primary))" }} />
-                  )}
-                  <span className="text-xs font-medium text-foreground truncate">{c.name}</span>
-                  <ExternalLink className="w-3 h-3 text-muted-foreground ml-auto" />
+                <a
+                  key={c.id}
+                  href={c.url}
+                  target="_blank"
+                  rel="noopener"
+                  className="group flex items-center gap-2.5 px-3 py-3 rounded-xl bg-secondary/60 border border-border hover:border-primary/50 hover:bg-secondary transition-all"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition">
+                    {c.icon_url ? (
+                      <img src={c.icon_url} alt="" className="w-5 h-5 rounded" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: c.color || "hsl(var(--primary))" }} />
+                    )}
+                  </div>
+                  <span className="text-xs font-semibold text-foreground truncate flex-1">{c.name}</span>
+                  <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary transition" />
                 </a>
               ))}
             </div>
