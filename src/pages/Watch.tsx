@@ -251,25 +251,37 @@ export default function Watch() {
 
       {/* Player */}
       <div className="px-4 mb-4">
-        {isLoading ? (
-          <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          </div>
-        ) : sortedSources.length > 0 ? (
-          <AnimePlayer
-            sources={sortedSources}
-            title={`${displayTitle} - EP ${selectedEp}`}
-            onProgress={handleProgress}
-            initialTime={initialTime}
-          />
-        ) : (
-          <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3">
-            <AlertCircle className="w-10 h-10 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground text-center px-4">
-              {serverError ? "Error al cargar servidores." : !zetSlug ? "Buscando anime..." : "No hay servidores disponibles"}
-            </p>
-          </div>
-        )}
+        <div ref={playerWrapperRef} className="relative">
+          {isLoading ? (
+            <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          ) : sortedSources.length > 0 ? (
+            <>
+              <AnimePlayer
+                sources={sortedSources}
+                title={`${displayTitle} - EP ${selectedEp}`}
+                onProgress={handleProgress}
+                initialTime={initialTime}
+              />
+              {/* Overlay only visible in fullscreen — does NOT affect playback */}
+              <PlayerOverlay
+                episode={selectedEp}
+                totalEpisodes={totalEpisodes}
+                onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
+                onNext={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
+                containerRef={playerWrapperRef}
+              />
+            </>
+          ) : (
+            <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3">
+              <AlertCircle className="w-10 h-10 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground text-center px-4">
+                {serverError ? "Error al cargar servidores." : !zetSlug ? "Buscando anime..." : "No hay servidores disponibles"}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Title + controls */}
