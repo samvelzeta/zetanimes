@@ -163,3 +163,47 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* ============ Skeleton con rayo naranja pulsante ============ */
+.skeleton-zet {
+  position: relative;
+  overflow: hidden;
+  background: hsl(var(--secondary));
+}
+.skeleton-zet::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    hsl(var(--primary) / 0.18) 45%,
+    hsl(var(--primary) / 0.35) 50%,
+    hsl(var(--primary) / 0.18) 55%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: skeleton-ray 1.6s ease-in-out infinite;
+}
+@keyframes skeleton-ray {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ============ Glassmorphism header ============ */
+.glass-header {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--background) / 0.55) 0%,
+    hsl(var(--background) / 0.25) 70%,
+    transparent 100%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid hsl(var(--primary) / 0.08);
+}
+.glass-header.scrolled {
+  background: hsl(var(--background) / 0.85);
+  border-bottom: 1px solid hsl(var(--border));
+}
+
