@@ -3,18 +3,38 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
   onComplete: () => void;
+  ready?: boolean; // si está definido, espera a que sea true antes de cerrar
 }
 
-export default function SplashScreen({ onComplete }: Props) {
+export default function SplashScreen({ onComplete, ready }: Props) {
   const [show, setShow] = useState(true);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
+  // Mínimo 1.2s para que se vea la animación, máximo 5s aunque las queries no respondan
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const minT = setTimeout(() => setMinTimeElapsed(true), 1200);
+    const maxT = setTimeout(() => {
       setShow(false);
-      setTimeout(onComplete, 600);
-    }, 2200);
-    return () => clearTimeout(timer);
+      setTimeout(onComplete, 500);
+    }, 5000);
+    return () => { clearTimeout(minT); clearTimeout(maxT); };
   }, [onComplete]);
+
+  // Cerrar cuando ya terminó tiempo mínimo Y las queries están listas
+  useEffect(() => {
+    // Si no se pasa "ready", funciona como antes (timer 2.2s)
+    if (ready === undefined) {
+      const t = setTimeout(() => {
+        setShow(false);
+        setTimeout(onComplete, 500);
+      }, 2200);
+      return () => clearTimeout(t);
+    }
+    if (minTimeElapsed && ready && show) {
+      setShow(false);
+      setTimeout(onComplete, 500);
+    }
+  }, [ready, minTimeElapsed, show, onComplete]);
 
   return (
     <AnimatePresence>
@@ -48,9 +68,18 @@ export default function SplashScreen({ onComplete }: Props) {
               <span className="text-primary">Anime</span>
             </h1>
             <p className="text-xs text-muted-foreground mt-1 tracking-[0.3em]">アニメゾーン</p>
+            {ready === false && (
+              <p className="text-[10px] text-primary/70 mt-3 animate-pulse">Cargando contenido…</p>
+            )}
           </motion.div>
+          {/* Barra de progreso indeterminada que va y vuelve */}
           <motion.div className="absolute bottom-20 w-32 h-1 bg-secondary rounded-full overflow-hidden">
-            <motion.div className="h-full bg-primary rounded-full" initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 2, ease: "easeInOut" }} />
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ duration: 1.2, ease: "easeInOut", repeat: Infinity }}
+              style={{ width: "60%" }}
+            />
           </motion.div>
         </motion.div>
       )}
