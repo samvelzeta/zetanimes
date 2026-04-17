@@ -69,14 +69,51 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen pt-12 px-4 pb-24">
-      {/* Avatar steampunk con engranajes orbitales */}
+      {/* Header avatar — limpio, sin tuercas decorativas de fondo */}
       <div className="flex flex-col items-center text-center mb-6 relative">
-        {/* Engranajes decorativos */}
-        <Cog className="absolute top-2 left-6 w-5 h-5 text-primary/30 animate-spin" style={{ animationDuration: "14s" }} />
-        <Cog className="absolute top-4 right-8 w-4 h-4 text-primary/40 animate-spin" style={{ animationDuration: "10s", animationDirection: "reverse" }} />
-
         <div className="relative">
-          <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-primary/60" style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.5)" }}>
+          {/* Anillo dentado giratorio premium (estilo engranaje rotando alrededor) */}
+          {isPremium && (
+            <>
+              <svg
+                className="absolute inset-[-14px] w-[124px] h-[124px] animate-spin pointer-events-none"
+                style={{ animationDuration: "14s", filter: "drop-shadow(0 0 8px hsl(var(--primary) / 0.7))" }}
+                viewBox="0 0 100 100"
+                aria-hidden
+              >
+                {/* Engranaje: 12 dientes alrededor */}
+                <g fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5">
+                  <circle cx="50" cy="50" r="44" strokeDasharray="2 4" opacity="0.6" />
+                </g>
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const angle = (i * 360) / 12;
+                  return (
+                    <rect
+                      key={i}
+                      x="48.5"
+                      y="2"
+                      width="3"
+                      height="7"
+                      rx="0.8"
+                      fill="hsl(var(--primary))"
+                      transform={`rotate(${angle} 50 50)`}
+                    />
+                  );
+                })}
+              </svg>
+              {/* Anillo interno contra-rotando (sutil) */}
+              <svg
+                className="absolute inset-[-6px] w-[108px] h-[108px] animate-spin pointer-events-none opacity-70"
+                style={{ animationDuration: "9s", animationDirection: "reverse" }}
+                viewBox="0 0 100 100"
+                aria-hidden
+              >
+                <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(var(--primary))" strokeWidth="0.8" strokeDasharray="1 6" />
+              </svg>
+            </>
+          )}
+
+          <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-primary/60 relative" style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.5)" }}>
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -85,12 +122,12 @@ export default function Profile() {
               </div>
             )}
           </div>
-          <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/80 transition">
+          <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/80 transition z-10">
             <Camera className="w-3.5 h-3.5 text-primary-foreground" />
             <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
           </label>
         </div>
-        <h1 className="text-lg font-black text-foreground mt-3">{profile?.display_name || profile?.username}</h1>
+        <h1 className="text-lg font-black text-foreground mt-4">{profile?.display_name || profile?.username}</h1>
         <p className="text-xs text-muted-foreground">{user.email}</p>
         {isPremium && (
           <span className="mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-xs font-bold text-primary-foreground">
