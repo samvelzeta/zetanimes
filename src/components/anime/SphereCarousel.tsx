@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import { useIsTV } from "@/hooks/useIsTV";
+import { useInViewport } from "@/hooks/useInViewport";
+import LazyImage from "@/components/LazyImage";
 
 interface Props {
   title: string;
@@ -18,6 +20,8 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
   const [animating, setAnimating] = useState(false);
   const [visible, setVisible] = useState(true);
   const isTV = useIsTV();
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInViewport(sectionRef, "200px");
 
   const getWrapped = (idx: number) => {
     const len = items.length;
@@ -45,13 +49,13 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
   // Autoplay
   const interactionRef = useRef(false);
   useEffect(() => {
-    if (items.length <= 1) return;
+    if (items.length <= 1 || !inView) return;
     const interval = setInterval(() => {
       if (!interactionRef.current) go(1);
       interactionRef.current = false;
     }, 5000);
     return () => clearInterval(interval);
-  }, [items.length, go]);
+  }, [items.length, go, inView]);
 
   const handleUserInteraction = () => { interactionRef.current = true; };
 
@@ -70,8 +74,9 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
   const leftAnime = getItem(activeIdx - 1);
   const rightAnime = getItem(activeIdx + 1);
   const activeImg = activeAnime?.coverImage?.extraLarge || activeAnime?.coverImage?.large;
-  const leftImg = leftAnime?.coverImage?.extraLarge || leftAnime?.coverImage?.large;
-  const rightImg = rightAnime?.coverImage?.extraLarge || rightAnime?.coverImage?.large;
+  // Thumbnails laterales: usar versión 'large' (más liviana)
+  const leftImg = leftAnime?.coverImage?.large || leftAnime?.coverImage?.extraLarge;
+  const rightImg = rightAnime?.coverImage?.large || rightAnime?.coverImage?.extraLarge;
   const size = 200;
   const sideSize = 120;
 
@@ -83,7 +88,7 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
   };
 
   return (
-    <section className="mb-8">
+    <section ref={sectionRef} className="mb-8">
       <div className="flex items-center justify-between px-4 mb-4">
         <h2 className="text-base font-bold text-foreground tracking-tight">{title}</h2>
         {linkTo && (
