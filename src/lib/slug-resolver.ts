@@ -1,5 +1,7 @@
 // Multi-API slug resolver: Jikan, Kitsu, Shikimori + AniList title variants
-import { searchZetAnime, type ZetSearchResult } from "./zetapi";
+// Valida coincidencia >=70% Dice antes de aceptar un slug.
+import { searchZetAnime } from "./zetapi";
+import { getSlugOverride, similarity } from "./slug-overrides";
 
 interface SlugCandidate {
   slug: string;
@@ -8,6 +10,7 @@ interface SlugCandidate {
 }
 
 const slugCache = new Map<string, string>();
+const MIN_SIMILARITY = 0.7;
 
 // Jikan (MyAnimeList) search
 async function searchJikan(query: string): Promise<SlugCandidate[]> {
