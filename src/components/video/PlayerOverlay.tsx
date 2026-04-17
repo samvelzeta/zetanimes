@@ -82,7 +82,9 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
   const [show, setShow] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [hasNativeVideo, setHasNativeVideo] = useState(false);
+  const [sacrificeMode, setSacrificeMode] = useState(false); // capa invisible para dejar pasar el clic al iframe
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
+  const sacrificeTimer = useRef<ReturnType<typeof setTimeout>>();
 
   // Detectar fullscreen
   useEffect(() => {
