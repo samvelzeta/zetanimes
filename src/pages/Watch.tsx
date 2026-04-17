@@ -8,6 +8,7 @@ import {
   type ZetServer,
 } from "@/lib/zetapi";
 import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
+import { getCachedVideo, cachedVideoToSources } from "@/lib/video-cache";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
