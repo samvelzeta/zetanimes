@@ -107,10 +107,10 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
           <ChevronLeft className="w-5 h-5 text-white" />
         </button>
 
-        <div className="flex justify-center items-center py-6 px-4 overflow-hidden gap-6" style={{ minHeight: "300px" }}>
-          {/* Left */}
+        <div className="flex justify-center items-start py-6 px-4 overflow-hidden gap-6 md:gap-10" style={{ minHeight: "320px" }}>
+          {/* Left — alineado al centro vertical de la esfera grande */}
           {leftAnime && (
-            <div className="flex flex-col items-center opacity-40 flex-shrink-0" style={{ width: `${sideSize}px` }}>
+            <div className="flex flex-col items-center opacity-40 flex-shrink-0" style={{ width: `${sideSize}px`, marginTop: `${(size - sideSize) / 2}px` }}>
               <Link to={`/anime/${leftAnime.id}`} className="block text-center">
                 {variant === "circle" ? (
                   <div className="mx-auto rounded-full overflow-hidden" style={{ width: `${sideSize}px`, height: `${sideSize}px`, boxShadow: "0 0 15px hsl(var(--primary) / 0.2)" }}>
@@ -177,9 +177,9 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
             </div>
           )}
 
-          {/* Right */}
+          {/* Right — mismo offset que Left para alinear con el centro de la esfera grande */}
           {rightAnime && (
-            <div className="flex flex-col items-center opacity-40 flex-shrink-0" style={{ width: `${sideSize}px` }}>
+            <div className="flex flex-col items-center opacity-40 flex-shrink-0" style={{ width: `${sideSize}px`, marginTop: `${(size - sideSize) / 2}px` }}>
               <Link to={`/anime/${rightAnime.id}`} className="block text-center">
                 {variant === "circle" ? (
                   <div className="mx-auto rounded-full overflow-hidden" style={{ width: `${sideSize}px`, height: `${sideSize}px`, boxShadow: "0 0 15px hsl(var(--primary) / 0.2)" }}>
