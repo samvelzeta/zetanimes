@@ -194,16 +194,15 @@
 .glass-header {
   background: linear-gradient(
     180deg,
-    hsl(var(--background) / 0.55) 0%,
-    hsl(var(--background) / 0.25) 70%,
+    hsl(var(--background) / 0.95) 0%,
+    hsl(var(--background) / 0.75) 50%,
+    hsl(var(--background) / 0.4) 80%,
     transparent 100%
   );
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid hsl(var(--primary) / 0.08);
+  border-bottom: 1px solid transparent;
 }
 .glass-header.scrolled {
-  background: hsl(var(--background) / 0.85);
+  background: hsl(var(--background) / 0.92);
   border-bottom: 1px solid hsl(var(--border));
 }
 
