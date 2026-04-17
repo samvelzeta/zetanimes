@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Share2, Smartphone, Tv, Zap, Gauge, ArrowLeft, Check, Volume2, VolumeX } from "lucide-react";
+import { Download, Share2, Smartphone, Tv, Zap, Gauge, ArrowLeft, Check, Volume2, VolumeX, Copy, ExternalLink, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isTV } from "@/hooks/useIsTV";
+import { isWebView } from "@/lib/webview";
 import logoUrl from "@/assets/zetanime-apk-logo.png";
 
 const APK_SETTING_KEY = "apk_download_url";
@@ -33,6 +34,7 @@ export default function DownloadPage() {
   const [videoReady, setVideoReady] = useState(false);
   const [audioOn, setAudioOn] = useState(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Device detection: TV vs Mobile/Desktop
   const device = useMemo(() => {
@@ -65,44 +67,82 @@ export default function DownloadPage() {
     const video = videoRef.current;
     if (!video) return;
 
-    const tryPlayWithAudio = async () => {
+    let unmuteTimer: ReturnType<typeof setInterval> | null = null;
+    let removed = false;
+
+    const stopUnmuteWatcher = () => {
+      if (unmuteTimer) {
+        clearInterval(unmuteTimer);
+        unmuteTimer = null;
+      }
+    };
+
+    const ensureAudio = async () => {
+      const v = videoRef.current;
+      if (!v) return false;
       try {
-        video.muted = false;
-        video.volume = 1;
-        await video.play();
-        setAudioOn(true);
+        v.muted = false;
+        v.volume = 1;
+        await v.play();
+        if (!v.muted) {
+          setAudioOn(true);
+          return true;
+        }
+        return false;
       } catch {
-        // Autoplay con sonido bloqueado: arrancamos muteado y reintentamos al primer toque
-        video.muted = true;
-        try { await video.play(); } catch {}
-        setAudioOn(false);
+        return false;
+      }
+    };
+
+    const tryFirstPlay = async () => {
+      const v = videoRef.current;
+      if (!v) return;
+      const ok = await ensureAudio();
+      if (ok) {
+        stopUnmuteWatcher();
+        return;
+      }
+      // Fallback: arranca muteado y reintenta cada 700ms hasta que un gesto del usuario permita audio
+      try {
+        v.muted = true;
+        await v.play();
+      } catch {}
+      setAudioOn(false);
+      if (!unmuteTimer) {
+        unmuteTimer = setInterval(async () => {
+          if (removed) return stopUnmuteWatcher();
+          const ok2 = await ensureAudio();
+          if (ok2) stopUnmuteWatcher();
+        }, 700);
       }
     };
 
     const onCanPlayThrough = () => {
       setVideoReady(true);
-      void tryPlayWithAudio();
+      void tryFirstPlay();
     };
 
-    const enableAudioOnInteraction = async () => {
+    const onUserGesture = async () => {
       const v = videoRef.current;
-      if (!v || !v.muted) return;
-      try {
-        v.muted = false;
-        v.volume = 1;
-        await v.play();
-        setAudioOn(true);
-      } catch {}
+      if (!v) return;
+      if (v.muted) await ensureAudio();
     };
 
     video.addEventListener("canplaythrough", onCanPlayThrough);
-    window.addEventListener("pointerdown", enableAudioOnInteraction, { passive: true });
+    const gestureEvents: Array<keyof WindowEventMap> = ["pointerdown", "keydown", "touchstart"];
+    gestureEvents.forEach((ev) =>
+      window.addEventListener(ev, onUserGesture, { passive: true })
+    );
 
-    if (video.readyState >= 4) onCanPlayThrough();
+    if (video.readyState >= 3) onCanPlayThrough();
 
     return () => {
+      removed = true;
+      stopUnmuteWatcher();
       video.removeEventListener("canplaythrough", onCanPlayThrough);
-      window.removeEventListener("pointerdown", enableAudioOnInteraction);
+      gestureEvents.forEach((ev) =>
+        window.removeEventListener(ev, onUserGesture)
+      );
     };
   }, []);
 
@@ -124,18 +164,43 @@ export default function DownloadPage() {
     }
   };
 
-  const shareLink = async () => {
-    const url = `${window.location.origin}/download`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "zetAnime APK", text: "Descarga la app de zetAnime", url });
-        return;
-      } catch {}
+  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/download` : "";
+  const shareText = "Descarga zetAnime para Android y mira anime sub y latino sin límites";
+  const inApp = typeof window !== "undefined" && (isWebView() || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || ""));
+
+  const nativeShare = async () => {
+    if (!navigator.share) return false;
+    try {
+      await navigator.share({ title: "zetAnime APK", text: shareText, url: shareUrl });
+      return true;
+    } catch {
+      return false;
     }
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    toast.success("Link copiado al portapapeles");
-    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      toast.success("Enlace copiado");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("No se pudo copiar el enlace");
+    }
+  };
+
+  const handleShareClick = async () => {
+    if (inApp && (await nativeShare())) return;
+    setShareOpen((s) => !s);
+  };
+
+  const openWhatsApp = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const openInNewTab = () => {
+    window.open(shareUrl, "_blank", "noopener,noreferrer");
   };
 
   const deviceLabel =
@@ -239,14 +304,39 @@ export default function DownloadPage() {
             </div>
           </a>
 
-          {/* Share button */}
+          {/* Share controls */}
           <button
-            onClick={shareLink}
+            onClick={handleShareClick}
             className="mt-3 w-full max-w-xs flex items-center justify-center gap-2 py-3 px-6 rounded-2xl bg-secondary/70 backdrop-blur-sm border border-border text-foreground text-sm font-bold hover:bg-muted transition"
           >
-            {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4" />}
-            {copied ? "Copiado" : "Compartir enlace"}
+            <Share2 className="w-4 h-4" /> Compartir aplicación
           </button>
+
+          {shareOpen && (
+            <div className="mt-3 w-full max-w-xs grid grid-cols-3 gap-2 animate-fade-in">
+              <button
+                onClick={openWhatsApp}
+                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-secondary/80 border border-border hover:bg-muted transition"
+              >
+                <MessageCircle className="w-5 h-5 text-primary" />
+                <span className="text-[10px] font-bold text-foreground">WhatsApp</span>
+              </button>
+              <button
+                onClick={copyShareLink}
+                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-secondary/80 border border-border hover:bg-muted transition"
+              >
+                {copied ? <Check className="w-5 h-5 text-primary" /> : <Copy className="w-5 h-5 text-primary" />}
+                <span className="text-[10px] font-bold text-foreground">{copied ? "Copiado" : "Copiar enlace"}</span>
+              </button>
+              <button
+                onClick={openInNewTab}
+                className="flex flex-col items-center gap-1 py-3 rounded-xl bg-secondary/80 border border-border hover:bg-muted transition"
+              >
+                <ExternalLink className="w-5 h-5 text-primary" />
+                <span className="text-[10px] font-bold text-foreground">Abrir</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Features */}
