@@ -110,7 +110,7 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
               <Link to={`/anime/${leftAnime.id}`} className="block text-center">
                 {variant === "circle" ? (
                   <div className="mx-auto rounded-full overflow-hidden" style={{ width: `${sideSize}px`, height: `${sideSize}px`, boxShadow: "0 0 15px hsl(var(--primary) / 0.2)" }}>
-                    <LazyImage src={leftImg!} alt={getTitle(leftAnime)} className="w-full h-full" />
+                    <LazyImage src={leftImg!} alt={getTitle(leftAnime)} className="w-full h-full rounded-full" placeholderClassName="rounded-full" />
                   </div>
                 ) : (
                   <div className="rounded-2xl overflow-hidden ring-1 ring-primary/20" style={{ width: `${sideSize}px`, height: `${sideSize * 1.4}px` }}>
@@ -128,7 +128,7 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
               <Link to={`/anime/${activeAnime.id}`} className="block group text-center">
                 {variant === "circle" ? (
                   <div className="mx-auto rounded-full overflow-hidden relative" style={{ width: `${size}px`, height: `${size}px` }}>
-                    <LazyImage src={activeImg!} alt={getTitle(activeAnime)} keepWhenOffscreen className="w-full h-full" />
+                    <LazyImage src={activeImg!} alt={getTitle(activeAnime)} keepWhenOffscreen className="w-full h-full rounded-full" placeholderClassName="rounded-full" />
                     {/* Anillo giratorio neon — pausado fuera de viewport */}
                     {!isTV && inView && (
                       <div className="absolute inset-[-7px] rounded-full animate-[sphere-spin_2.5s_linear_infinite]" style={{
@@ -175,7 +175,7 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
               <Link to={`/anime/${rightAnime.id}`} className="block text-center">
                 {variant === "circle" ? (
                   <div className="mx-auto rounded-full overflow-hidden" style={{ width: `${sideSize}px`, height: `${sideSize}px`, boxShadow: "0 0 15px hsl(var(--primary) / 0.2)" }}>
-                    <LazyImage src={rightImg!} alt={getTitle(rightAnime)} className="w-full h-full" />
+                    <LazyImage src={rightImg!} alt={getTitle(rightAnime)} className="w-full h-full rounded-full" placeholderClassName="rounded-full" />
                   </div>
                 ) : (
                   <div className="rounded-2xl overflow-hidden ring-1 ring-primary/20" style={{ width: `${sideSize}px`, height: `${sideSize * 1.4}px` }}>
