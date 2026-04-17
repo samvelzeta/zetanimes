@@ -14,6 +14,7 @@ import AnimeRoulette from "@/components/anime/AnimeRoulette";
 import { useIsTV } from "@/hooks/useIsTV";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import LazySection from "@/components/LazySection";
+import AdBannerInline from "@/components/ads/AdBannerInline";
 
 export default function Home() {
   const isTV = useIsTV();
@@ -112,6 +113,11 @@ export default function Home() {
           {/* Above-the-fold: montar inmediato */}
           <LatestEpisodes />
 
+          {/* 728x90 leaderboard entre Últimos Episodios y Nuevos Episodios */}
+          <LazySection minHeight={110}>
+            <AdBannerInline size="728x90" className="my-2" />
+          </LazySection>
+
           <LazySection minHeight={400}>
             <BentoEpisodes />
           </LazySection>
@@ -159,6 +165,11 @@ export default function Home() {
           <LazySection minHeight={300}>
             <ActionTrigger onMount={() => setEnableSeason(true)} />
             <HorizontalList title="🌸 Temporada Actual" animes={filterFn(season?.media)} loading={l5} showStatus />
+          </LazySection>
+
+          {/* 468x60 banner discreto entre Temporada y Más Populares */}
+          <LazySection minHeight={80}>
+            <AdBannerInline size="468x60" className="my-3" />
           </LazySection>
 
           <LazySection minHeight={350}>
