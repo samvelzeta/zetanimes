@@ -88,7 +88,8 @@ export default function LatestEpisodes() {
         </div>
       )}
 
-      <div ref={scrollRef} className="flex gap-3 overflow-x-auto px-4 hide-scrollbar">
+      {/* items-center → centra verticalmente AdCard y EpisodeCardWide en una misma fila */}
+      <div ref={scrollRef} className="flex items-center gap-3 overflow-x-auto px-4 hide-scrollbar">
         {isLoading
           ? Array(6).fill(0).map((_, i) => <EpisodeSkeleton key={i} />)
           : episodes?.flatMap((ep, i) => {
