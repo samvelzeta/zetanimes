@@ -81,20 +81,19 @@ export default function AnimeDetail() {
     setLoadingList(true);
     const title = anime ? getTitle(anime) : "";
     const cover = anime?.coverImage?.extraLarge || anime?.coverImage?.large || "";
-
-    if (activeLists.includes(list)) {
-      await supabase.from("anime_lists").delete().eq("user_id", user.id).eq("anime_id", animeId).eq("list_type", list as any);
-      setActiveLists((prev) => prev.filter((l) => l !== list));
-    } else {
-      await supabase.from("anime_lists").delete().eq("user_id", user.id).eq("anime_id", animeId);
-      await supabase.from("anime_lists").insert({
-        user_id: user.id, anime_id: animeId, list_type: list as any,
-        anime_title: title, anime_cover: cover,
+    const wasActive = activeLists.includes(list);
+    try {
+      const { toggleAnimeListSmart } = await import("@/lib/anime-lists");
+      const next = await toggleAnimeListSmart({
+        userId: user.id, animeId, list, currentLists: activeLists,
+        animeTitle: title, animeCover: cover,
       });
-      setActiveLists([list]);
+      setActiveLists(next);
+      toast.success(wasActive ? "Eliminado de la lista" : "Agregado a la lista");
+    } catch (e) {
+      toast.error("Error al actualizar lista");
     }
     setLoadingList(false);
-    toast.success(activeLists.includes(list) ? "Eliminado de la lista" : "Agregado a la lista");
   };
 
   if (isLoading) {
