@@ -326,7 +326,7 @@ export default function Watch() {
       </div>
 
       {/* Title + controls */}
-      <div className="px-4 mb-4">
+      <div className="px-4 mt-8 mb-4">
         <h1 className="text-base font-bold text-foreground mb-1">{displayTitle}</h1>
         <div className="flex items-center justify-between gap-3 mb-3">
           <p className="text-xs text-muted-foreground">
