@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Shuffle, Play } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import LazyImage from "@/components/LazyImage";
 
 interface Props {
   animes: AniListMedia[];
@@ -99,7 +100,7 @@ export default function AnimeRoulette({ animes }: Props) {
                     transform: "translate(-50%, -50%)",
                   }}
                 >
-                  <img src={img} alt={getTitle(anime)} className="w-full h-full object-cover" loading="lazy" />
+                  <LazyImage src={img!} alt={getTitle(anime)} className="w-full h-full rounded-full" placeholderClassName="rounded-full" />
                 </div>
               );
             })}
