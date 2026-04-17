@@ -110,11 +110,11 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
               <Link to={`/anime/${leftAnime.id}`} className="block text-center">
                 {variant === "circle" ? (
                   <div className="mx-auto rounded-full overflow-hidden" style={{ width: `${sideSize}px`, height: `${sideSize}px`, boxShadow: "0 0 15px hsl(var(--primary) / 0.2)" }}>
-                    <img src={leftImg} alt={getTitle(leftAnime)} className="w-full h-full object-cover" loading="lazy" />
+                    <LazyImage src={leftImg!} alt={getTitle(leftAnime)} className="w-full h-full" />
                   </div>
                 ) : (
                   <div className="rounded-2xl overflow-hidden ring-1 ring-primary/20" style={{ width: `${sideSize}px`, height: `${sideSize * 1.4}px` }}>
-                    <img src={leftImg} alt={getTitle(leftAnime)} className="w-full h-full object-cover" loading="lazy" />
+                    <LazyImage src={leftImg!} alt={getTitle(leftAnime)} className="w-full h-full" />
                   </div>
                 )}
                 <p className="mt-2 text-[10px] font-semibold text-muted-foreground line-clamp-1">{getTitle(leftAnime)}</p>
@@ -128,9 +128,9 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
               <Link to={`/anime/${activeAnime.id}`} className="block group text-center">
                 {variant === "circle" ? (
                   <div className="mx-auto rounded-full overflow-hidden relative" style={{ width: `${size}px`, height: `${size}px` }}>
-                    <img src={activeImg} alt={getTitle(activeAnime)} className="w-full h-full object-cover" loading="lazy" />
-                    {/* Anillo giratorio neon — más brillante */}
-                    {!isTV && (
+                    <LazyImage src={activeImg!} alt={getTitle(activeAnime)} keepWhenOffscreen className="w-full h-full" />
+                    {/* Anillo giratorio neon — pausado fuera de viewport */}
+                    {!isTV && inView && (
                       <div className="absolute inset-[-7px] rounded-full animate-[sphere-spin_2.5s_linear_infinite]" style={{
                         border: "4px solid transparent",
                         borderTopColor: "hsl(var(--primary))",
@@ -142,8 +142,8 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
                     <div className="absolute inset-[-4px] rounded-full pointer-events-none" style={{
                       boxShadow: "0 0 40px hsl(var(--primary) / 0.9), 0 0 80px hsl(var(--primary) / 0.5), 0 0 120px hsl(var(--primary) / 0.25), inset 0 0 20px hsl(var(--primary) / 0.2)",
                     }} />
-                    {/* Pulso adicional para dar vida */}
-                    {!isTV && (
+                    {/* Pulso adicional para dar vida — pausado fuera de viewport */}
+                    {!isTV && inView && (
                       <div className="absolute inset-[-10px] rounded-full pointer-events-none animate-pulse" style={{
                         boxShadow: "0 0 30px hsl(var(--primary) / 0.6)",
                       }} />
@@ -151,9 +151,8 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
                   </div>
                 ) : (
                   <div className="rounded-2xl overflow-hidden ring-2 ring-primary/60 relative" style={{ width: `${size}px`, height: `${size * 1.4}px`, boxShadow: "0 0 30px hsl(var(--primary) / 0.7), 0 0 60px hsl(var(--primary) / 0.35)" }}>
-                    <img src={activeImg} alt={getTitle(activeAnime)} className="w-full h-full object-cover" loading="lazy" />
-                    {/* Loading ring para card variant — más brillante */}
-                    {!isTV && (
+                    <LazyImage src={activeImg!} alt={getTitle(activeAnime)} keepWhenOffscreen className="w-full h-full" />
+                    {!isTV && inView && (
                       <div className="absolute inset-[-5px] rounded-2xl animate-[sphere-spin_3s_linear_infinite]" style={{
                         border: "3px solid transparent",
                         borderTopColor: "hsl(var(--primary))",
@@ -176,11 +175,11 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
               <Link to={`/anime/${rightAnime.id}`} className="block text-center">
                 {variant === "circle" ? (
                   <div className="mx-auto rounded-full overflow-hidden" style={{ width: `${sideSize}px`, height: `${sideSize}px`, boxShadow: "0 0 15px hsl(var(--primary) / 0.2)" }}>
-                    <img src={rightImg} alt={getTitle(rightAnime)} className="w-full h-full object-cover" loading="lazy" />
+                    <LazyImage src={rightImg!} alt={getTitle(rightAnime)} className="w-full h-full" />
                   </div>
                 ) : (
                   <div className="rounded-2xl overflow-hidden ring-1 ring-primary/20" style={{ width: `${sideSize}px`, height: `${sideSize * 1.4}px` }}>
-                    <img src={rightImg} alt={getTitle(rightAnime)} className="w-full h-full object-cover" loading="lazy" />
+                    <LazyImage src={rightImg!} alt={getTitle(rightAnime)} className="w-full h-full" />
                   </div>
                 )}
                 <p className="mt-2 text-[10px] font-semibold text-muted-foreground line-clamp-1">{getTitle(rightAnime)}</p>
