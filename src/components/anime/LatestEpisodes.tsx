@@ -6,6 +6,7 @@ import { AlertCircle, Play, ChevronLeft, ChevronRight, Eye, Clock } from "lucide
 import { useNavigate } from "react-router-dom";
 import { getAnimeViewsBatch, formatViews } from "@/lib/anime-views";
 import LazyImage from "@/components/LazyImage";
+import AdCard from "@/components/ads/AdCard";
 
 function EpisodeSkeleton() {
   return (
@@ -90,13 +91,21 @@ export default function LatestEpisodes() {
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto px-4 hide-scrollbar">
         {isLoading
           ? Array(6).fill(0).map((_, i) => <EpisodeSkeleton key={i} />)
-          : episodes?.map((ep, i) => (
-              <EpisodeCardWide
-                key={`${ep.slug}-${i}`}
-                episode={ep}
-                views={viewsMap.get(ep.slug) || 0}
-              />
-            ))}
+          : episodes?.flatMap((ep, i) => {
+              const card = (
+                <EpisodeCardWide
+                  key={`${ep.slug}-${i}`}
+                  episode={ep}
+                  views={viewsMap.get(ep.slug) || 0}
+                />
+              );
+              // Insertar AdCard cada 5 episodios (después del 5°, 10°, …) salvo al final
+              const shouldInsertAd =
+                (i + 1) % 5 === 0 && i !== (episodes.length - 1);
+              return shouldInsertAd
+                ? [card, <AdCard key={`ad-${i}`} size="large" />]
+                : [card];
+            })}
       </div>
 
       {!isLoading && !error && episodes?.length === 0 && (

@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 interface Props extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   alt: string;
-  /** @deprecated Mantenido por compatibilidad. Ahora la imagen siempre se conserva en memoria una vez descargada. */
+  /** @deprecated Mantenido por compatibilidad. */
   keepWhenOffscreen?: boolean;
   /** Clase para el placeholder */
   placeholderClassName?: string;
@@ -11,26 +11,23 @@ interface Props extends React.ImgHTMLAttributes<HTMLImageElement> {
 
 /**
  * <LazyImage /> optimizado:
- * - Descarga la imagen una sola vez cuando entra al viewport (o cerca: rootMargin 300px)
- * - Una vez cargada, NO se descarga: solo se oculta visualmente (visibility:hidden) cuando sale del viewport
- *   → esto "hiberna" el render sin volver a pedir bytes a la red
- * - Resultado: scroll fluido en celular sin recargas continuas
+ * - Descarga la imagen una sola vez al entrar al viewport (rootMargin 300px).
+ * - Una vez cargada, se "hiberna" visualmente (visibility:hidden) cuando sale.
+ * - Usa forwardRef para evitar warnings cuando va dentro de botones u otros wrappers.
  */
-export default function LazyImage({
-  src,
-  alt,
-  keepWhenOffscreen: _ignored,
-  placeholderClassName = "",
-  className = "",
-  ...rest
-}: Props) {
-  const ref = useRef<HTMLDivElement>(null);
+const LazyImage = forwardRef<HTMLDivElement, Props>(function LazyImage(
+  { src, alt, keepWhenOffscreen: _ignored, placeholderClassName = "", className = "", ...rest },
+  outerRef
+) {
+  const innerRef = useRef<HTMLDivElement>(null);
+  useImperativeHandle(outerRef, () => innerRef.current as HTMLDivElement);
+
   const [shouldLoad, setShouldLoad] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [inView, setInView] = useState(false);
 
   useEffect(() => {
-    const el = ref.current;
+    const el = innerRef.current;
     if (!el) return;
 
     const obs = new IntersectionObserver(
@@ -40,7 +37,6 @@ export default function LazyImage({
             setShouldLoad(true);
             setInView(true);
           } else {
-            // Hibernar visualmente, pero conservar el <img> en memoria
             setInView(false);
           }
         });
@@ -52,7 +48,7 @@ export default function LazyImage({
   }, []);
 
   return (
-    <div ref={ref} className={`relative overflow-hidden ${className}`}>
+    <div ref={innerRef} className={`relative overflow-hidden ${className}`}>
       {(!shouldLoad || !loaded) && (
         <div
           className={`absolute inset-0 bg-secondary animate-pulse ${placeholderClassName}`}
@@ -65,7 +61,6 @@ export default function LazyImage({
           loading="lazy"
           decoding="async"
           onLoad={() => setLoaded(true)}
-          // visibility:hidden libera GPU/composición pero mantiene la imagen decodificada
           style={{ visibility: inView ? "visible" : "hidden" }}
           className={`w-full h-full object-cover transition-opacity duration-300 ${
             loaded ? "opacity-100" : "opacity-0"
@@ -75,4 +70,6 @@ export default function LazyImage({
       )}
     </div>
   );
-}
+});
+
+export default LazyImage;
