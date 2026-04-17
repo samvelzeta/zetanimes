@@ -3,8 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { searchAnime, getPopular, getByGenre, getTrending, getTopRated, getThisSeason } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
-import { Input } from "@/components/ui/input";
-import { Search, Filter, X, Flame, Star, Calendar, Tv } from "lucide-react";
+import { Filter, X, Tv } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 
 const GENRES = ["Acción","Aventura","Comedia","Drama","Fantasía","Horror","Misterio","Romance","Sci-Fi","Slice of Life","Sobrenatural","Sports","Thriller"];
@@ -38,8 +37,6 @@ export default function Directory() {
   const [searchParams] = useSearchParams();
   const genreParam = searchParams.get("genre");
 
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
@@ -52,14 +49,8 @@ export default function Directory() {
       const spanishName = REVERSE_GENRE_MAP[genreParam] || genreParam;
       setSelectedGenre(spanishName);
       setQuickFilter(null);
-      setQuery("");
     }
   }, [genreParam]);
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(query), 450);
-    return () => clearTimeout(t);
-  }, [query]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["directory", debouncedQuery, selectedGenre, selectedYear, selectedStatus, quickFilter],
