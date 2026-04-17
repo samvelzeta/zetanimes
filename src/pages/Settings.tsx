@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 import { ACCENT_COLORS, getAccentColor, setAccentColor, type AccentColor } from "@/lib/accent";
 import { toast } from "sonner";
+import AdBanner300x250 from "@/components/ads/AdBanner300x250";
 
 export default function SettingsPage() {
   const [selectedAccent, setSelectedAccent] = useState<AccentColor>(getAccentColor);
@@ -144,6 +145,9 @@ export default function SettingsPage() {
         >
           Guardar Cambios
         </button>
+
+        {/* Ad – usuarios free */}
+        <AdBanner300x250 />
       </div>
     </div>
   );
