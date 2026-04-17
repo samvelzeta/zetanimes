@@ -13,6 +13,7 @@ export default function Layout() {
   const isTV = useIsTV();
   const hideNav = NO_NAV_PAGES.some((p) => location.pathname.startsWith(p));
   const hideHeader = NO_HEADER_PAGES.some((p) => location.pathname.startsWith(p));
+  const transparentHeader = location.pathname === "/" || location.pathname.startsWith("/anime/");
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -28,7 +29,7 @@ export default function Layout() {
         // Normal mode
         <>
           {!hideHeader && <HeaderBar />}
-          <main className={`${hideNav ? "" : "pb-20"} ${!hideHeader ? "pt-12" : ""}`}>
+          <main className={`${hideNav ? "" : "pb-20"} ${!hideHeader && !transparentHeader ? "pt-12" : ""}`}>
             <Outlet />
           </main>
           {!hideNav && <BottomNav />}
