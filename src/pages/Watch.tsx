@@ -84,7 +84,15 @@ export default function Watch() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Episode servers from scraper API
+  // 1) Cache global (DB) - PRIORIDAD MÁXIMA: lo guardado en admin manda
+  const { data: cachedVideo } = useQuery({
+    queryKey: ["video-cache", zetSlug, selectedEp, lang],
+    queryFn: () => getCachedVideo(zetSlug!, selectedEp, lang),
+    enabled: !!zetSlug,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // 2) Episode servers from scraper API (solo si NO hay cache de DB ni HLS latino)
   const { data: serverData, isLoading: loadingServers, error: serverError } = useQuery({
     queryKey: ["zet-servers", zetSlug, selectedEp, lang],
     queryFn: async () => {
@@ -93,30 +101,35 @@ export default function Watch() {
       episodeCache.set(cacheKey, res);
       return res;
     },
-    enabled: !!zetSlug && !(lang === "latino" && latinoEp),
+    enabled: !!zetSlug && !cachedVideo && !(lang === "latino" && latinoEp),
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
 
-  // Build sources: ALL servers, HLS prioritized via classifySources in player
+  // Build sources: cache DB > latino HLS > scraper
   const buildSources = useCallback(() => {
     const sources: { name: string; embed: string; type?: string }[] = [];
 
-    // Add latino HLS sources first
+    // 1. Cache global de DB (admin uploads)
+    if (cachedVideo) {
+      sources.push(...cachedVideoToSources(cachedVideo));
+    }
+
+    // 2. Latino HLS sources
     if (lang === "latino" && latinoEp?.sources?.hls) {
       latinoEp.sources.hls.forEach((url: string, i: number) => {
         sources.push({ name: `HLS Latino ${i + 1}`, embed: url, type: "hls" });
       });
     }
 
-    // Add ALL scraper servers (don't filter, let player handle priority)
+    // 3. Scraper servers (fallback)
     const scraperServers = serverData?.servers || [];
     scraperServers.forEach((s: ZetServer) => {
       if (s.embed) sources.push({ name: s.name, embed: s.embed });
     });
 
     return sources;
-  }, [lang, latinoEp, serverData]);
+  }, [lang, latinoEp, serverData, cachedVideo]);
 
   const sortedSources = buildSources();
 
