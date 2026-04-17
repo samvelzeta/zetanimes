@@ -8,6 +8,17 @@ import { getAnimeViewsBatch, formatViews } from "@/lib/anime-views";
 import LazyImage from "@/components/LazyImage";
 import AdCard from "@/components/ads/AdCard";
 
+/** Slot de anuncio del MISMO ALTO que las tarjetas de episodio (140px) — evita huecos. */
+function EpisodeAdSlot() {
+  return (
+    <div className="flex-shrink-0 w-[180px] h-[140px] flex items-center justify-center">
+      <div className="w-full h-full [&>div]:!w-full [&>div]:!h-full [&_.aspect-\[3\/4\]]:!aspect-auto [&_.aspect-\[3\/4\]]:!h-full [&>div]:!my-0 [&_p]:!hidden">
+        <AdCard size="default" />
+      </div>
+    </div>
+  );
+}
+
 function EpisodeSkeleton() {
   return (
     <div className="animate-pulse flex-shrink-0 w-[280px] h-[140px] bg-secondary rounded-2xl" />
@@ -104,7 +115,7 @@ export default function LatestEpisodes() {
               const shouldInsertAd =
                 (i + 1) % 5 === 0 && i !== (episodes.length - 1);
               return shouldInsertAd
-                ? [card, <AdCard key={`ad-${i}`} size="large" />]
+                ? [card, <EpisodeAdSlot key={`ad-${i}`} />]
                 : [card];
             })}
       </div>
