@@ -13,6 +13,7 @@ import FocusCarousel from "@/components/anime/FocusCarousel";
 import AnimeRoulette from "@/components/anime/AnimeRoulette";
 import { useIsTV } from "@/hooks/useIsTV";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
+import LazySection from "@/components/LazySection";
 
 export default function Home() {
   const isTV = useIsTV();
@@ -35,43 +36,53 @@ export default function Home() {
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
   const filterFn = (list: any[] | undefined) => (list || []).filter((a) => !hiddenSet.has(a.id));
 
+  // Above-the-fold: cargar inmediato (HeroBanner + Trending)
   const { data: trending, isLoading: l1 } = useQuery({
     queryKey: ["trending"],
     queryFn: () => getTrending(1, 15),
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 30,
   });
+
+  // Below-the-fold: solo se disparan cuando LazySection las monte
+  const [enablePopular, setEnablePopular] = useState(false);
+  const [enableTopRated, setEnableTopRated] = useState(false);
+  const [enableSeason, setEnableSeason] = useState(false);
+  const [enableAction, setEnableAction] = useState(false);
+  const [enableFantasy, setEnableFantasy] = useState(false);
 
   const { data: popular, isLoading: l2 } = useQuery({
     queryKey: ["popular"],
     queryFn: () => getPopular(1, 15),
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 30,
+    enabled: enablePopular,
   });
 
   const { data: topRated, isLoading: l4 } = useQuery({
     queryKey: ["topRated"],
     queryFn: () => getTopRated(1, isTV ? 10 : 15),
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 30,
+    enabled: enableTopRated,
   });
 
   const { data: season, isLoading: l5 } = useQuery({
     queryKey: ["thisSeason"],
     queryFn: () => getThisSeason(1, isTV ? 10 : 15),
-    staleTime: 1000 * 60 * 10,
-    enabled: !isTV, // Skip on TV to reduce load
+    staleTime: 1000 * 60 * 30,
+    enabled: !isTV && enableSeason,
   });
 
   const { data: actionAnimes, isLoading: lAction } = useQuery({
     queryKey: ["genre-action"],
     queryFn: () => getByGenre("Action", 1, isTV ? 10 : 15),
-    staleTime: 1000 * 60 * 10,
-    enabled: !isTV,
+    staleTime: 1000 * 60 * 30,
+    enabled: !isTV && enableAction,
   });
 
   const { data: fantasyAnimes, isLoading: lFantasy } = useQuery({
     queryKey: ["genre-fantasy"],
     queryFn: () => getByGenre("Fantasy", 1, 15),
-    staleTime: 1000 * 60 * 10,
-    enabled: !isTV,
+    staleTime: 1000 * 60 * 30,
+    enabled: !isTV && enableFantasy,
   });
 
   // TV: simplified home with fewer sections, no animations
