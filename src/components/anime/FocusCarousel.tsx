@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Star, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import { useInViewport } from "@/hooks/useInViewport";
+import LazyImage from "@/components/LazyImage";
 
 interface Props {
   title: string;
@@ -15,6 +17,8 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
   const items = animes.slice(0, 15);
   const [activeIdx, setActiveIdx] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInViewport(sectionRef, "200px");
 
   const go = useCallback((dir: number) => {
     if (isTransitioning) return;
@@ -28,10 +32,10 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
     setTimeout(() => setIsTransitioning(false), 500);
   }, [items.length, isTransitioning]);
 
-  // Autoplay
+  // Autoplay — solo cuando está en viewport
   const interactionRef = useRef(false);
   useEffect(() => {
-    if (items.length <= 1) return;
+    if (items.length <= 1 || !inView) return;
     const interval = setInterval(() => {
       if (!interactionRef.current) {
         go(1);
@@ -39,7 +43,7 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
       interactionRef.current = false;
     }, 5000);
     return () => clearInterval(interval);
-  }, [items.length, go]);
+  }, [items.length, go, inView]);
 
   const handleUserInteraction = () => { interactionRef.current = true; };
 
@@ -61,7 +65,7 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
   const visibleOffsets = [-2, -1, 0, 1, 2];
 
   return (
-    <section className="mb-8">
+    <section ref={sectionRef} className="mb-8">
       <div className="flex items-center justify-between px-4 mb-4">
         <h2 className="text-base font-bold text-foreground tracking-tight">
           {emoji && <span className="mr-1">{emoji}</span>}{title}
@@ -89,7 +93,10 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
             const idx = getWrappedIndex(offset);
             const anime = items[idx];
             const isActive = offset === 0;
-            const img = anime.coverImage?.extraLarge || anime.coverImage?.large;
+            // Activa: extraLarge, laterales: large (más liviano)
+            const img = isActive
+              ? (anime.coverImage?.extraLarge || anime.coverImage?.large)
+              : (anime.coverImage?.large || anime.coverImage?.extraLarge);
             const score = anime.averageScore;
             const absOffset = Math.abs(offset);
 
@@ -113,7 +120,7 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
                       transition: "box-shadow 0.5s ease",
                     }}
                   >
-                    <img src={img} alt={getTitle(anime)} className="w-full h-full object-cover" loading="lazy" />
+                    <LazyImage src={img!} alt={getTitle(anime)} keepWhenOffscreen={isActive} className="w-full h-full" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center backdrop-blur-sm">

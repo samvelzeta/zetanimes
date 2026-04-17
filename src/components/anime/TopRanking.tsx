@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import AdBanner300x250 from "@/components/ads/AdBanner300x250";
+import LazyImage from "@/components/LazyImage";
 
 interface Props {
   title: string;
@@ -47,7 +48,7 @@ export default function TopRanking({ title, animes, loading }: Props) {
 
               {/* Cover image */}
               <div className="flex-shrink-0 w-14 h-[72px] rounded-lg overflow-hidden ring-1 ring-border">
-                <img src={img} alt={getTitle(anime)} className="w-full h-full object-cover" loading="lazy" />
+                <LazyImage src={img!} alt={getTitle(anime)} className="w-full h-full" />
               </div>
 
               {/* Info */}
