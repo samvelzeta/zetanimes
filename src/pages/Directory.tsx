@@ -185,6 +185,9 @@ export default function Directory() {
         </div>
       )}
 
+      {/* Banner 728x90 entre filtros y grid de resultados */}
+      <AdBannerInline size="728x90" className="mb-4" />
+
       {/* Results */}
       {isLoading ? (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
