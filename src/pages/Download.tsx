@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Share2, Smartphone, Tv, Zap, Gauge, ArrowLeft, Check, Volume2 } from "lucide-react";
+import { Download, Share2, Smartphone, Tv, Zap, Gauge, ArrowLeft, Check, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isTV } from "@/hooks/useIsTV";
@@ -31,8 +31,7 @@ export default function DownloadPage() {
   const [version, setVersion] = useState("1.0.0");
   const [copied, setCopied] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
-  const [audioReady, setAudioReady] = useState(false);
-  const [needsInteraction, setNeedsInteraction] = useState(false);
+  const [audioOn, setAudioOn] = useState(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Device detection: TV vs Mobile/Desktop
@@ -71,15 +70,12 @@ export default function DownloadPage() {
         video.muted = false;
         video.volume = 1;
         await video.play();
-        setAudioReady(true);
-        setNeedsInteraction(false);
+        setAudioOn(true);
       } catch {
+        // Autoplay con sonido bloqueado: arrancamos muteado y reintentamos al primer toque
         video.muted = true;
-        try {
-          await video.play();
-        } catch {}
-        setAudioReady(false);
-        setNeedsInteraction(true);
+        try { await video.play(); } catch {}
+        setAudioOn(false);
       }
     };
 
@@ -89,14 +85,13 @@ export default function DownloadPage() {
     };
 
     const enableAudioOnInteraction = async () => {
-      const currentVideo = videoRef.current;
-      if (!currentVideo || !needsInteraction) return;
+      const v = videoRef.current;
+      if (!v || !v.muted) return;
       try {
-        currentVideo.muted = false;
-        currentVideo.volume = 1;
-        await currentVideo.play();
-        setAudioReady(true);
-        setNeedsInteraction(false);
+        v.muted = false;
+        v.volume = 1;
+        await v.play();
+        setAudioOn(true);
       } catch {}
     };
 
@@ -109,7 +104,25 @@ export default function DownloadPage() {
       video.removeEventListener("canplaythrough", onCanPlayThrough);
       window.removeEventListener("pointerdown", enableAudioOnInteraction);
     };
-  }, [needsInteraction]);
+  }, []);
+
+  const toggleAudio = async () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.muted) {
+      try {
+        v.muted = false;
+        v.volume = 1;
+        await v.play();
+        setAudioOn(true);
+      } catch {
+        toast.error("Toca de nuevo para activar el audio");
+      }
+    } else {
+      v.muted = true;
+      setAudioOn(false);
+    }
+  };
 
   const shareLink = async () => {
     const url = `${window.location.origin}/download`;
@@ -171,24 +184,13 @@ export default function DownloadPage() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full opacity-30 blur-3xl" style={{ background: "radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)" }} />
       </div>
 
-      {needsInteraction && videoReady && (
+      {videoReady && (
         <button
-          onClick={async () => {
-            const video = videoRef.current;
-            if (!video) return;
-            try {
-              video.muted = false;
-              video.volume = 1;
-              await video.play();
-              setAudioReady(true);
-              setNeedsInteraction(false);
-            } catch {
-              toast.error("Toca de nuevo para activar el audio");
-            }
-          }}
+          onClick={toggleAudio}
           className="absolute right-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/80 px-4 py-2 text-xs font-bold text-foreground backdrop-blur-sm"
         >
-          <Volume2 className="h-4 w-4 text-primary" /> Activar sonido
+          {audioOn ? <Volume2 className="h-4 w-4 text-primary" /> : <VolumeX className="h-4 w-4 text-primary" />}
+          {audioOn ? "Desactivar sonido" : "Activar sonido"}
         </button>
       )}
 
@@ -218,7 +220,7 @@ export default function DownloadPage() {
           <p className="text-sm text-foreground/90 mb-1 drop-shadow">App oficial Android · v{version}</p>
           <div className="flex items-center gap-1.5 mt-1 px-3 py-1 rounded-full bg-primary/20 border border-primary/40 backdrop-blur-sm">
             {device === "tv" ? <Tv className="w-3 h-3 text-primary" /> : <Smartphone className="w-3 h-3 text-primary" />}
-            <span className="text-[10px] font-bold text-primary">{deviceLabel}{audioReady ? " · Audio activo" : ""}</span>
+            <span className="text-[10px] font-bold text-primary">{deviceLabel}</span>
           </div>
 
           {/* Download button */}
