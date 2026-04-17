@@ -18,7 +18,7 @@ interface Props {
 
 /** TUERCA hexagonal oscura con rayo central. horizontal=true → rayo tumbado (pausado). */
 const NutBolt = forwardRef<SVGSVGElement, { horizontal: boolean; size?: number }>(
-  ({ horizontal, size = 72 }, ref) => (
+  ({ horizontal, size = 110 }, ref) => (
     <svg ref={ref} width={size} height={size} viewBox="0 0 100 100" style={{ display: "block" }}>
       <defs>
         <radialGradient id="nutBg" cx="50%" cy="40%" r="60%">
@@ -35,6 +35,9 @@ const NutBolt = forwardRef<SVGSVGElement, { horizontal: boolean; size?: number }
           <stop offset="50%" stopColor="hsl(20 100% 55%)" />
           <stop offset="100%" stopColor="hsl(10 100% 45%)" />
         </linearGradient>
+        <clipPath id="nutClip">
+          <circle cx="50" cy="50" r="28" />
+        </clipPath>
       </defs>
       <polygon
         points="50,4 91,27 91,73 50,96 9,73 9,27"
@@ -49,21 +52,25 @@ const NutBolt = forwardRef<SVGSVGElement, { horizontal: boolean; size?: number }
         strokeWidth="0.8"
       />
       <circle cx="50" cy="50" r="28" fill="hsl(15 35% 6%)" stroke="hsl(22 45% 25%)" strokeWidth="1.2" />
-      <g
-        transform={`rotate(${horizontal ? 90 : 0} 50 50)`}
-        style={{
-          transformOrigin: "50px 50px",
-          transition: "transform 250ms cubic-bezier(0.4,0,0.2,1)",
-          filter: "drop-shadow(0 0 4px hsl(16 100% 55%)) drop-shadow(0 0 8px hsl(16 100% 50% / 0.6))",
-        }}
-      >
-        <path
-          d="M54 28 L38 54 H50 L46 72 L62 46 H50 L54 28 Z"
-          fill="url(#nutBolt)"
-          stroke="hsl(40 100% 75%)"
-          strokeWidth="0.8"
-          strokeLinejoin="round"
-        />
+      {/* Rayo recortado dentro del círculo central para que NO se salga de la tuerca */}
+      <g clipPath="url(#nutClip)">
+        <g
+          transform={`rotate(${horizontal ? 90 : 0} 50 50)`}
+          style={{
+            transformOrigin: "50px 50px",
+            transition: "transform 250ms cubic-bezier(0.4,0,0.2,1)",
+            filter: "drop-shadow(0 0 3px hsl(16 100% 55%))",
+          }}
+        >
+          {/* Rayo más pequeño y centrado: cabe dentro del círculo r=28 */}
+          <path
+            d="M53 32 L41 51 H50 L47 68 L59 49 H50 L53 32 Z"
+            fill="url(#nutBolt)"
+            stroke="hsl(40 100% 75%)"
+            strokeWidth="0.6"
+            strokeLinejoin="round"
+          />
+        </g>
       </g>
     </svg>
   )
