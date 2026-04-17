@@ -144,7 +144,11 @@ export default function Watch() {
     return sources;
   }, [lang, latinoEp, serverData, cachedVideo]);
 
-  const sortedSources = buildSources();
+  const rawSources = buildSources();
+  // Si el usuario rotó manualmente, mover esa fuente al inicio para que el player la cargue
+  const sortedSources = activeSourceIdx > 0 && activeSourceIdx < rawSources.length
+    ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
+    : rawSources;
 
   // Total de fuentes disponibles (cache + scraper + latino HLS)
   // Si hay 2+ sources → permite cambiar entre ellos (típicamente JP/LATINO o servidores diferentes)
