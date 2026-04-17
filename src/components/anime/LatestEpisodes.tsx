@@ -4,6 +4,7 @@ import { getLatestEpisodes, type ZetLatestEpisode } from "@/lib/zetapi";
 import { searchAnime } from "@/lib/anilist";
 import { AlertCircle, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import AdCard from "@/components/ads/AdCard";
 
 function EpisodeSkeleton() {
   return (
