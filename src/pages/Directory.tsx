@@ -5,6 +5,7 @@ import { searchAnime, getPopular, getByGenre, getTrending, getTopRated, getThisS
 import AnimeCard from "@/components/anime/AnimeCard";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, X, Flame, Star, Calendar, Tv } from "lucide-react";
+import AdBannerInline from "@/components/ads/AdBannerInline";
 
 const GENRES = ["Acción","Aventura","Comedia","Drama","Fantasía","Horror","Misterio","Romance","Sci-Fi","Slice of Life","Sobrenatural","Sports","Thriller"];
 const GENRE_MAP: Record<string, string> = {

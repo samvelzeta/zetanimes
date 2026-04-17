@@ -10,6 +10,7 @@ import AuthRequiredModal from "@/components/AuthRequiredModal";
 import { toast } from "sonner";
 import { translateText } from "@/lib/translate";
 import { trackAnimeView, getAnimeViews, formatViews } from "@/lib/anime-views";
+import AdBannerInline from "@/components/ads/AdBannerInline";
 
 type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
 
@@ -223,6 +224,11 @@ export default function AnimeDetail() {
             )}
           </div>
         )}
+
+        {/* 468x60 banner discreto antes de Relacionados */}
+        <div className="mt-6">
+          <AdBannerInline size="468x60" />
+        </div>
 
         {anime.relations?.edges && anime.relations.edges.length > 0 && (
           <div className="mt-6">
