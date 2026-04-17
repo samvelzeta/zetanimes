@@ -207,3 +207,79 @@
   border-bottom: 1px solid hsl(var(--border));
 }
 
+/* ============ Steampunk: tipografía ============ */
+.font-steam {
+  font-family: "Cinzel", "Times New Roman", serif;
+  letter-spacing: 0.02em;
+}
+h1, h2, h3, .heading-steam {
+  font-family: "Cinzel", "Times New Roman", serif;
+  letter-spacing: 0.01em;
+}
+
+/* ============ Steampunk: fondo global de engranajes ============ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.06;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 100 100'><g fill='none' stroke='%23ffffff' stroke-width='0.6'><circle cx='50' cy='50' r='28'/><circle cx='50' cy='50' r='20'/><circle cx='50' cy='50' r='8'/><g><rect x='46' y='12' width='8' height='10'/><rect x='46' y='78' width='8' height='10'/><rect x='12' y='46' width='10' height='8'/><rect x='78' y='46' width='10' height='8'/></g><g transform='rotate(45 50 50)'><rect x='46' y='12' width='8' height='10'/><rect x='46' y='78' width='8' height='10'/><rect x='12' y='46' width='10' height='8'/><rect x='78' y='46' width='10' height='8'/></g></g></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 100 100'><g fill='none' stroke='%23ffffff' stroke-width='0.5'><circle cx='50' cy='50' r='22'/><circle cx='50' cy='50' r='14'/><g><rect x='47' y='18' width='6' height='8'/><rect x='47' y='74' width='6' height='8'/><rect x='18' y='47' width='8' height='6'/><rect x='74' y='47' width='8' height='6'/></g><g transform='rotate(30 50 50)'><rect x='47' y='18' width='6' height='8'/><rect x='47' y='74' width='6' height='8'/><rect x='18' y='47' width='8' height='6'/><rect x='74' y='47' width='8' height='6'/></g><g transform='rotate(60 50 50)'><rect x='47' y='18' width='6' height='8'/><rect x='47' y='74' width='6' height='8'/><rect x='18' y='47' width='8' height='6'/><rect x='74' y='47' width='8' height='6'/></g></g></svg>");
+  background-position: 5% 10%, 80% 60%;
+  background-repeat: no-repeat, no-repeat;
+  background-size: 220px 220px, 140px 140px;
+  animation: gear-bg-spin 90s linear infinite;
+}
+@keyframes gear-bg-spin {
+  from { background-position: 5% 10%, 80% 60%; transform: rotate(0deg) scale(1); }
+  to   { background-position: 5% 10%, 80% 60%; transform: rotate(0deg) scale(1); }
+}
+
+/* Capas de engranajes giratorios reales (más performante que rotar background-image) */
+.gear-layer {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.05;
+  color: hsl(0 0% 100%);
+}
+.gear-layer.gear-1 {
+  top: 8%; left: 4%;
+  width: 200px; height: 200px;
+  animation: gear-spin-cw 60s linear infinite;
+}
+.gear-layer.gear-2 {
+  bottom: 12%; right: 6%;
+  width: 140px; height: 140px;
+  animation: gear-spin-ccw 75s linear infinite;
+}
+.gear-layer.gear-3 {
+  top: 55%; left: 60%;
+  width: 90px; height: 90px;
+  animation: gear-spin-cw 45s linear infinite;
+  opacity: 0.04;
+}
+@keyframes gear-spin-cw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes gear-spin-ccw {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* En modo TV o reduce-motion: desactivar animación de engranajes */
+@media (prefers-reduced-motion: reduce) {
+  .gear-layer { animation: none !important; }
+  body::before { animation: none !important; }
+}
+
+/* Asegurar que el contenido principal queda por encima del fondo */
+#root {
+  position: relative;
+  z-index: 1;
+}
+
