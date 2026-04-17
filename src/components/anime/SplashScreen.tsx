@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useIsTV } from "@/hooks/useIsTV";
 
 interface Props {
   onComplete: () => void;
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export default function SplashScreen({ onComplete, ready }: Props) {
+  const isTV = useIsTV();
   const [show, setShow] = useState(true);
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
@@ -33,6 +35,85 @@ export default function SplashScreen({ onComplete, ready }: Props) {
     }
   }, [ready, minTimeElapsed, show, onComplete]);
 
+  // 20% menos chispas: 12 → 10
+  const sparkCount = isTV ? 0 : 10;
+
+  // ===== TV: estático, sin animaciones =====
+  if (isTV) {
+    return (
+      <AnimatePresence>
+        {show && (
+          <div
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
+            style={{
+              background:
+                "radial-gradient(ellipse at center, hsl(20 60% 12%) 0%, hsl(20 30% 6%) 50%, hsl(0 0% 2%) 100%)",
+            }}
+          >
+            <div className="relative mb-8" style={{ filter: "drop-shadow(0 0 20px hsl(16 100% 50% / 0.4))" }}>
+              <svg width="140" height="140" viewBox="0 0 100 100">
+                <defs>
+                  <radialGradient id="logoGearGradTv" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="hsl(22 55% 28%)" />
+                    <stop offset="70%" stopColor="hsl(20 50% 18%)" />
+                    <stop offset="100%" stopColor="hsl(18 40% 10%)" />
+                  </radialGradient>
+                  <linearGradient id="bevelGradTv" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="hsl(25 60% 40%)" />
+                    <stop offset="100%" stopColor="hsl(18 30% 8%)" />
+                  </linearGradient>
+                </defs>
+                <g transform="translate(50 50)">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <g key={i} transform={`rotate(${i * 30})`}>
+                      <polygon
+                        points="-5,-46 5,-46 4,-38 -4,-38"
+                        fill="url(#bevelGradTv)"
+                        stroke="hsl(20 60% 35%)"
+                        strokeWidth="0.4"
+                      />
+                    </g>
+                  ))}
+                  <circle r="38" fill="url(#logoGearGradTv)" stroke="hsl(22 70% 40%)" strokeWidth="1.2" />
+                  <circle r="30" fill="none" stroke="hsl(22 60% 32%)" strokeWidth="0.8" />
+                  <circle r="20" fill="hsl(20 45% 15%)" stroke="hsl(22 55% 28%)" strokeWidth="0.8" />
+                </g>
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <svg width="44" height="44" viewBox="0 0 24 24">
+                  <defs>
+                    <linearGradient id="boltGradTv" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="hsl(45 100% 70%)" />
+                      <stop offset="50%" stopColor="hsl(20 100% 55%)" />
+                      <stop offset="100%" stopColor="hsl(10 100% 45%)" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"
+                    fill="url(#boltGradTv)"
+                    stroke="hsl(40 100% 75%)"
+                    strokeWidth="0.4"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div className="text-center">
+              <h1 className="text-4xl tracking-wider" style={{ fontFamily: '"Cinzel", serif', fontWeight: 700 }}>
+                <span className="text-foreground">zet</span>
+                <span className="text-primary">Anime</span>
+              </h1>
+              <p className="text-[10px] text-muted-foreground mt-2 tracking-[0.5em] uppercase">
+                アニメゾーン
+              </p>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+    );
+  }
+
+  // ===== Móvil/PC: animado pero más liviano (sin engranaje de fondo) =====
   return (
     <AnimatePresence>
       {show && (
@@ -46,8 +127,8 @@ export default function SplashScreen({ onComplete, ready }: Props) {
               "radial-gradient(ellipse at center, hsl(20 60% 12%) 0%, hsl(20 30% 6%) 50%, hsl(0 0% 2%) 100%)",
           }}
         >
-          {/* Chispas naranjas flotando */}
-          {Array(12).fill(0).map((_, i) => (
+          {/* Chispas naranjas flotando (-20%) */}
+          {Array(sparkCount).fill(0).map((_, i) => (
             <motion.div
               key={i}
               className="absolute w-1 h-1 rounded-full bg-primary"
@@ -69,41 +150,7 @@ export default function SplashScreen({ onComplete, ready }: Props) {
             />
           ))}
 
-          {/* Engranaje grande de fondo (girando lento) */}
-          <motion.svg
-            width="280"
-            height="280"
-            viewBox="0 0 100 100"
-            className="absolute opacity-15"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          >
-            <defs>
-              <radialGradient id="gearGrad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="hsl(20 40% 20%)" />
-                <stop offset="100%" stopColor="hsl(20 30% 8%)" />
-              </radialGradient>
-            </defs>
-            <g transform="translate(50 50)">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <rect
-                  key={i}
-                  x="-4"
-                  y="-48"
-                  width="8"
-                  height="10"
-                  fill="url(#gearGrad)"
-                  stroke="hsl(20 50% 25%)"
-                  strokeWidth="0.5"
-                  transform={`rotate(${i * 30})`}
-                />
-              ))}
-              <circle r="38" fill="url(#gearGrad)" stroke="hsl(20 50% 25%)" strokeWidth="1" />
-              <circle r="28" fill="none" stroke="hsl(20 60% 30%)" strokeWidth="0.8" />
-            </g>
-          </motion.svg>
-
-          {/* Logo central: engranaje pequeño girando + rayo fijo */}
+          {/* Logo central: engranaje girando + rayo fijo */}
           <motion.div
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
@@ -111,7 +158,6 @@ export default function SplashScreen({ onComplete, ready }: Props) {
             className="relative mb-8"
             style={{ filter: "drop-shadow(0 0 30px hsl(16 100% 50% / 0.4))" }}
           >
-            {/* Engranaje del logo */}
             <motion.svg
               width="140"
               height="140"
@@ -131,7 +177,6 @@ export default function SplashScreen({ onComplete, ready }: Props) {
                 </linearGradient>
               </defs>
               <g transform="translate(50 50)">
-                {/* Dientes del engranaje */}
                 {Array.from({ length: 12 }).map((_, i) => (
                   <g key={i} transform={`rotate(${i * 30})`}>
                     <polygon
@@ -142,11 +187,8 @@ export default function SplashScreen({ onComplete, ready }: Props) {
                     />
                   </g>
                 ))}
-                {/* Cuerpo del engranaje */}
                 <circle r="38" fill="url(#logoGearGrad)" stroke="hsl(22 70% 40%)" strokeWidth="1.2" />
-                {/* Anillo interior */}
                 <circle r="30" fill="none" stroke="hsl(22 60% 32%)" strokeWidth="0.8" />
-                {/* Marcas decorativas (como el logo) */}
                 {Array.from({ length: 8 }).map((_, i) => (
                   <line
                     key={i}
@@ -159,12 +201,11 @@ export default function SplashScreen({ onComplete, ready }: Props) {
                     transform={`rotate(${i * 45})`}
                   />
                 ))}
-                {/* Centro */}
                 <circle r="20" fill="hsl(20 45% 15%)" stroke="hsl(22 55% 28%)" strokeWidth="0.8" />
               </g>
             </motion.svg>
 
-            {/* Rayo central FIJO (no gira con el engranaje) */}
+            {/* Rayo central FIJO */}
             <div
               className="absolute inset-0 flex items-center justify-center pointer-events-none"
               style={{ filter: "drop-shadow(0 0 8px hsl(16 100% 55%)) drop-shadow(0 0 16px hsl(16 100% 50%))" }}
