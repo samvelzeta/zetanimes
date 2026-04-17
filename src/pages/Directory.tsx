@@ -53,9 +53,8 @@ export default function Directory() {
   }, [genreParam]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["directory", debouncedQuery, selectedGenre, selectedYear, selectedStatus, quickFilter],
+    queryKey: ["directory", selectedGenre, selectedYear, selectedStatus, quickFilter],
     queryFn: () => {
-      if (debouncedQuery) return searchAnime(debouncedQuery, 1, 30);
       if (quickFilter === "trending") return getTrending(1, 30);
       if (quickFilter === "top") return getTopRated(1, 30);
       if (quickFilter === "season") return getThisSeason(1, 30);
@@ -72,7 +71,6 @@ export default function Directory() {
     setSelectedYear(null);
     setSelectedStatus(null);
     setQuickFilter(null);
-    setQuery("");
   };
 
   const hasActiveFilters = selectedGenre || selectedYear || selectedStatus || quickFilter;
@@ -94,14 +92,14 @@ export default function Directory() {
       <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-3 pb-1">
         <button
           onClick={clearFilters}
-          className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${!hasActiveFilters && !query ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
+          className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${!hasActiveFilters ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
         >
           Todos
         </button>
         {QUICK_FILTERS.map((f) => (
           <button
             key={f.key}
-            onClick={() => { setQuickFilter(f.key); setSelectedGenre(null); setQuery(""); }}
+            onClick={() => { setQuickFilter(f.key); setSelectedGenre(null); }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${quickFilter === f.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
           >
             {f.label}
@@ -114,7 +112,7 @@ export default function Directory() {
         {GENRES.map((g) => (
           <button
             key={g}
-            onClick={() => { setSelectedGenre(g); setQuickFilter(null); setQuery(""); }}
+            onClick={() => { setSelectedGenre(g); setQuickFilter(null); }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedGenre === g ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
           >
             {g}
@@ -192,7 +190,7 @@ export default function Directory() {
 
       {!isLoading && animes.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Search className="w-10 h-10 text-muted" />
+          <SearchX className="w-10 h-10 text-muted" />
           <p className="text-muted-foreground text-sm">No encontramos resultados.</p>
         </div>
       )}
