@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, BarChart3, Crown, Image, Store, CreditCard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search,
-  Trash2, Pencil, Plus, ExternalLink, Key, Link2, Film, AlertTriangle,
+  Trash2, Pencil, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -16,11 +16,13 @@ import BrokenReports from "@/components/admin/BrokenReports";
 import SlugManager from "@/components/admin/SlugManager";
 import HiddenAnimesManager from "@/components/admin/HiddenAnimesManager";
 import ApkManager from "@/components/admin/ApkManager";
+import EpisodeCountManager from "@/components/admin/EpisodeCountManager";
 
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
   { key: "downloads", label: "Descargas", icon: Store },
   { key: "videos", label: "Videos", icon: Film },
+  { key: "epcount", label: "Episodios", icon: ListOrdered },
   { key: "slugs", label: "Slugs", icon: Link2 },
   { key: "hidden", label: "Ocultar", icon: X },
   { key: "apk", label: "APK", icon: ExternalLink },
@@ -70,6 +72,7 @@ export default function AdminPanel() {
         {tab === "stats" && <StatsTab />}
         {tab === "downloads" && <DownloadTracker />}
         {tab === "videos" && <VideoManager />}
+        {tab === "epcount" && <EpisodeCountManager />}
         {tab === "slugs" && <SlugManager />}
         {tab === "hidden" && <HiddenAnimesManager />}
         {tab === "apk" && <ApkManager />}
