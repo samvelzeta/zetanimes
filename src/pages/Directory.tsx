@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { searchAnime, getPopular, getByGenre, getTrending, getTopRated, getThisSeason } from "@/lib/anilist";
+import { getPopular, getByGenre, getTrending, getTopRated, getThisSeason } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
-import { Input } from "@/components/ui/input";
-import { Search, Filter, X, Flame, Star, Calendar, Tv } from "lucide-react";
+import { Filter, X, Tv, SearchX } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 
 const GENRES = ["Acción","Aventura","Comedia","Drama","Fantasía","Horror","Misterio","Romance","Sci-Fi","Slice of Life","Sobrenatural","Sports","Thriller"];
@@ -23,10 +22,10 @@ const STATUSES = [
 ];
 
 const QUICK_FILTERS = [
-  { key: "trending", label: "🔥 Tendencia", icon: Flame },
-  { key: "popular", label: "⭐ Popular", icon: Star },
-  { key: "top", label: "🏆 Top Rating", icon: Star },
-  { key: "season", label: "🌸 Temporada", icon: Calendar },
+  { key: "trending", label: "🔥 Tendencia" },
+  { key: "popular",  label: "⭐ Popular"   },
+  { key: "top",      label: "🏆 Top Rating" },
+  { key: "season",   label: "🌸 Temporada" },
 ];
 
 // Reverse map: English genre -> Spanish label
@@ -38,8 +37,6 @@ export default function Directory() {
   const [searchParams] = useSearchParams();
   const genreParam = searchParams.get("genre");
 
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
@@ -52,19 +49,12 @@ export default function Directory() {
       const spanishName = REVERSE_GENRE_MAP[genreParam] || genreParam;
       setSelectedGenre(spanishName);
       setQuickFilter(null);
-      setQuery("");
     }
   }, [genreParam]);
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(query), 450);
-    return () => clearTimeout(t);
-  }, [query]);
-
   const { data, isLoading } = useQuery({
-    queryKey: ["directory", debouncedQuery, selectedGenre, selectedYear, selectedStatus, quickFilter],
+    queryKey: ["directory", selectedGenre, selectedYear, selectedStatus, quickFilter],
     queryFn: () => {
-      if (debouncedQuery) return searchAnime(debouncedQuery, 1, 30);
       if (quickFilter === "trending") return getTrending(1, 30);
       if (quickFilter === "top") return getTopRated(1, 30);
       if (quickFilter === "season") return getThisSeason(1, 30);
@@ -81,29 +71,20 @@ export default function Directory() {
     setSelectedYear(null);
     setSelectedStatus(null);
     setQuickFilter(null);
-    setQuery("");
   };
 
   const hasActiveFilters = selectedGenre || selectedYear || selectedStatus || quickFilter;
 
   return (
     <div className="min-h-screen pt-4 px-4 pb-24">
-      <h1 className="text-xl font-black text-foreground mb-4 tracking-tight">Directorio</h1>
-
-      {/* Search */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setSelectedGenre(null); setQuickFilter(null); }}
-          placeholder="Buscar anime..."
-          className="pl-10 pr-10 h-10 bg-secondary border-border text-foreground placeholder:text-muted-foreground rounded-xl focus-visible:ring-primary/40"
-        />
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-black text-foreground tracking-tight">Directorio</h1>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${showFilters ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${showFilters ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
         >
-          <Filter className="w-4 h-4" />
+          <Filter className="w-3.5 h-3.5" />
+          Filtros
         </button>
       </div>
 
@@ -111,14 +92,14 @@ export default function Directory() {
       <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-3 pb-1">
         <button
           onClick={clearFilters}
-          className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${!hasActiveFilters && !query ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
+          className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${!hasActiveFilters ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
         >
           Todos
         </button>
         {QUICK_FILTERS.map((f) => (
           <button
             key={f.key}
-            onClick={() => { setQuickFilter(f.key); setSelectedGenre(null); setQuery(""); }}
+            onClick={() => { setQuickFilter(f.key); setSelectedGenre(null); }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${quickFilter === f.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
           >
             {f.label}
@@ -131,7 +112,7 @@ export default function Directory() {
         {GENRES.map((g) => (
           <button
             key={g}
-            onClick={() => { setSelectedGenre(g); setQuickFilter(null); setQuery(""); }}
+            onClick={() => { setSelectedGenre(g); setQuickFilter(null); }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedGenre === g ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
           >
             {g}
@@ -209,7 +190,7 @@ export default function Directory() {
 
       {!isLoading && animes.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <Search className="w-10 h-10 text-muted" />
+          <SearchX className="w-10 h-10 text-muted" />
           <p className="text-muted-foreground text-sm">No encontramos resultados.</p>
         </div>
       )}
