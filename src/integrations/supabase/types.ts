@@ -274,6 +274,39 @@ export type Database = {
         }
         Relationships: []
       }
+      episode_count_overrides: {
+        Row: {
+          anilist_id: number
+          anime_title: string | null
+          created_at: string
+          created_by: string | null
+          episode_count: number
+          id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          anime_title?: string | null
+          created_at?: string
+          created_by?: string | null
+          episode_count: number
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          anime_title?: string | null
+          created_at?: string
+          created_by?: string | null
+          episode_count?: number
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hidden_home_animes: {
         Row: {
           anilist_id: number

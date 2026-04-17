@@ -15,10 +15,12 @@ import {
   Globe, Bug, ChevronDown,
 } from "lucide-react";
 import AnimePlayer from "@/components/video/AnimePlayer";
+import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
+import { resolveEpisodeCount } from "@/lib/episode-count";
 
 type Lang = "sub" | "latino";
 
@@ -38,6 +40,7 @@ export default function Watch() {
   const [showDebug, setShowDebug] = useState(false);
   const watchTimeRef = useRef(0);
   const [initialTime, setInitialTime] = useState<number | undefined>(undefined);
+  const playerWrapperRef = useRef<HTMLDivElement>(null);
 
   const { data: anilistData } = useQuery({
     queryKey: ["anime-detail", anilistId],
@@ -71,7 +74,14 @@ export default function Watch() {
     retry: 1,
   });
 
-  const totalEpisodes = anilistData?.episodes || 0;
+  // Multi-source episode count: admin override > AniList episodes > nextAiringEpisode-1 > Jikan
+  const { data: resolvedTotal = 0 } = useQuery({
+    queryKey: ["ep-count", anilistId, anilistData?.episodes, anilistData?.nextAiringEpisode?.episode],
+    queryFn: () => resolveEpisodeCount(anilistData, anilistId),
+    enabled: !!anilistData && anilistId > 0,
+    staleTime: 1000 * 60 * 30,
+  });
+  const totalEpisodes = resolvedTotal || anilistData?.episodes || 0;
   const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, selectedEp) }, (_, i) => i + 1);
 
   const cacheKey = `${zetSlug}-${selectedEp}-${lang}`;
@@ -241,25 +251,37 @@ export default function Watch() {
 
       {/* Player */}
       <div className="px-4 mb-4">
-        {isLoading ? (
-          <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          </div>
-        ) : sortedSources.length > 0 ? (
-          <AnimePlayer
-            sources={sortedSources}
-            title={`${displayTitle} - EP ${selectedEp}`}
-            onProgress={handleProgress}
-            initialTime={initialTime}
-          />
-        ) : (
-          <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3">
-            <AlertCircle className="w-10 h-10 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground text-center px-4">
-              {serverError ? "Error al cargar servidores." : !zetSlug ? "Buscando anime..." : "No hay servidores disponibles"}
-            </p>
-          </div>
-        )}
+        <div ref={playerWrapperRef} className="relative">
+          {isLoading ? (
+            <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          ) : sortedSources.length > 0 ? (
+            <>
+              <AnimePlayer
+                sources={sortedSources}
+                title={`${displayTitle} - EP ${selectedEp}`}
+                onProgress={handleProgress}
+                initialTime={initialTime}
+              />
+              {/* Overlay only visible in fullscreen — does NOT affect playback */}
+              <PlayerOverlay
+                episode={selectedEp}
+                totalEpisodes={totalEpisodes}
+                onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
+                onNext={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
+                containerRef={playerWrapperRef}
+              />
+            </>
+          ) : (
+            <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3">
+              <AlertCircle className="w-10 h-10 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground text-center px-4">
+                {serverError ? "Error al cargar servidores." : !zetSlug ? "Buscando anime..." : "No hay servidores disponibles"}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Title + controls */}
