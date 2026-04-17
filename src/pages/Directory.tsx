@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { searchAnime, getPopular, getByGenre, getTrending, getTopRated, getThisSeason } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
-import { Filter, X, Tv } from "lucide-react";
+import { Filter, X, Tv, SearchX } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 
 const GENRES = ["Acción","Aventura","Comedia","Drama","Fantasía","Horror","Misterio","Romance","Sci-Fi","Slice of Life","Sobrenatural","Sports","Thriller"];
@@ -22,10 +22,10 @@ const STATUSES = [
 ];
 
 const QUICK_FILTERS = [
-  { key: "trending", label: "🔥 Tendencia", icon: Flame },
-  { key: "popular", label: "⭐ Popular", icon: Star },
-  { key: "top", label: "🏆 Top Rating", icon: Star },
-  { key: "season", label: "🌸 Temporada", icon: Calendar },
+  { key: "trending", label: "🔥 Tendencia" },
+  { key: "popular",  label: "⭐ Popular"   },
+  { key: "top",      label: "🏆 Top Rating" },
+  { key: "season",   label: "🌸 Temporada" },
 ];
 
 // Reverse map: English genre -> Spanish label
