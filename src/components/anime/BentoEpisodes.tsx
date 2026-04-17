@@ -2,11 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { getRecentlyUpdated, getTitle, type AniListMedia } from "@/lib/anilist";
 import { Play, Star } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import AdCard from "@/components/ads/AdCard";
 
 export default function BentoEpisodes() {
+  const { isPremium } = useAuth();
+  // Si es free pedimos solo 4 (último cuadro = anuncio). Premium pide 5 normal.
+  const fetchCount = isPremium ? 5 : 4;
   const { data, isLoading } = useQuery({
-    queryKey: ["recentlyUpdated"],
-    queryFn: () => getRecentlyUpdated(1, 5),
+    queryKey: ["recentlyUpdated", fetchCount],
+    queryFn: () => getRecentlyUpdated(1, fetchCount),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -32,12 +37,19 @@ export default function BentoEpisodes() {
   return (
     <section className="px-4 mb-8">
       <h2 className="text-base font-bold text-foreground tracking-tight mb-3">🔥 Nuevos Episodios</h2>
-      {/* 4-col grid: hero takes 2x2, then 4 cards fill remaining cells */}
+      {/* 4-col grid: hero takes 2x2, then cards fill remaining cells. Free: la última (esquina inferior derecha) es anuncio */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 auto-rows-[180px]">
         <BentoCard anime={hero} isHero className="col-span-2 row-span-2" />
-        {rest.slice(0, 4).map((anime) => (
+        {rest.slice(0, isPremium ? 4 : 3).map((anime) => (
           <BentoCard key={anime.id} anime={anime} />
         ))}
+        {!isPremium && (
+          <div className="relative overflow-hidden rounded-xl bg-secondary neon-card flex items-center justify-center">
+            <div className="w-full h-full [&>div]:!w-full [&>div]:!h-full [&_.aspect-\[3\/4\]]:!aspect-auto [&_.aspect-\[3\/4\]]:!h-full">
+              <AdCard size="default" />
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
