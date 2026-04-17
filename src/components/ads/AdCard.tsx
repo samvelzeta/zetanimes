@@ -1,26 +1,28 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Native banner Adsterra estilo "card" (mismo tamaño que AnimeCard).
- * Para usuarios premium se renderiza un placeholder 0x0 sin scripts.
+ * - Premium: render 0×0 (sin scripts).
+ * - Free pero ad no carga (adblock/sin inventario): se colapsa para no dejar hueco negro.
  */
 interface Props {
   size?: "small" | "default" | "large";
 }
 
-const SCRIPT_SRC = "https://pl29176506.profitablecpmratenetwork.com/f22e36f62a5acf07d25a8dd129e84655/invoke.js";
+const SCRIPT_SRC =
+  "https://pl29176506.profitablecpmratenetwork.com/f22e36f62a5acf07d25a8dd129e84655/invoke.js";
 const CONTAINER_ID = "container-f22e36f62a5acf07d25a8dd129e84655";
 
 export default function AdCard({ size = "default" }: Props) {
   const { isPremium } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
   const loaded = useRef(false);
+  const [adFilled, setAdFilled] = useState<boolean | null>(null); // null = checking
 
   useEffect(() => {
     if (isPremium || loaded.current || !ref.current) return;
     loaded.current = true;
-    // Inyecta script una sola vez globalmente
     if (!document.querySelector(`script[src="${SCRIPT_SRC}"]`)) {
       const s = document.createElement("script");
       s.async = true;
@@ -28,11 +30,20 @@ export default function AdCard({ size = "default" }: Props) {
       s.src = SCRIPT_SRC;
       document.body.appendChild(s);
     }
+    // Verificar si el contenedor recibió contenido tras 2.5s
+    const t = setTimeout(() => {
+      if (ref.current && ref.current.children.length > 0) {
+        setAdFilled(true);
+      } else {
+        setAdFilled(false);
+      }
+    }, 2500);
+    return () => clearTimeout(t);
   }, [isPremium]);
 
-  // Premium = invisible y no clickeable
-  if (isPremium) {
-    return <div style={{ width: 0, height: 0, overflow: "hidden", pointerEvents: "none" }} />;
+  // Premium o ad no llenado → ocultar completamente (colapsa el hueco)
+  if (isPremium || adFilled === false) {
+    return null;
   }
 
   const sizeClasses = {
@@ -54,7 +65,9 @@ export default function AdCard({ size = "default" }: Props) {
           style={{ overflow: "hidden" }}
         />
       </div>
-      <p className="mt-2 text-[10px] text-muted-foreground/60 text-center">Patrocinado</p>
+      <p className="mt-2 text-[10px] text-muted-foreground/60 text-center">
+        Patrocinado
+      </p>
     </div>
   );
 }

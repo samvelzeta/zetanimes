@@ -5,6 +5,7 @@ import { getTitle, getStatusLabel, getStatusColor, type AniListMedia } from "@/l
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsTV } from "@/hooks/useIsTV";
 import { translateText } from "@/lib/translate";
+import { playHeartbeat } from "@/lib/heartbeat-sound";
 
 interface Props {
   animes: AniListMedia[];
@@ -59,6 +60,7 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
   }, [next]);
 
   const handleEnter = (animeId: number) => {
+    playHeartbeat();
     setEntering(true);
     clearInterval(timerRef.current);
     setTimeout(() => navigate(`/watch/${animeId}?ep=1`), isTV ? 300 : 900);
@@ -215,7 +217,7 @@ function MobileHero({ animes }: { animes: AniListMedia[] }) {
         )}
         {anime.genres && <p className="text-[10px] text-white/50 mb-3 animate-[hero-slide-up_0.5s_ease-out_0.2s_forwards]" style={{ opacity: 0 }}>{anime.genres.slice(0, 3).join(" • ")}</p>}
         <div className="flex gap-3 animate-[hero-slide-up_0.5s_ease-out_0.3s_forwards]" style={{ opacity: 0 }}>
-          <button onClick={() => navigate(`/watch/${anime.id}?ep=1`)} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-primary-foreground bg-primary hover:scale-105 transition-transform">
+          <button onClick={() => { playHeartbeat(); navigate(`/watch/${anime.id}?ep=1`); }} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-primary-foreground bg-primary hover:scale-105 transition-transform">
             <Play className="w-3.5 h-3.5 fill-current" /> Ver Ahora
           </button>
           <Link to={`/anime/${anime.id}`} className="flex items-center gap-1.5 bg-white/10 text-white px-5 py-2.5 rounded-xl text-xs font-semibold">
