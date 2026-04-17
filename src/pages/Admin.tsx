@@ -13,11 +13,17 @@ import { Input } from "@/components/ui/input";
 import DownloadTracker from "@/components/admin/DownloadTracker";
 import VideoManager from "@/components/admin/VideoManager";
 import BrokenReports from "@/components/admin/BrokenReports";
+import SlugManager from "@/components/admin/SlugManager";
+import HiddenAnimesManager from "@/components/admin/HiddenAnimesManager";
+import ApkManager from "@/components/admin/ApkManager";
 
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
   { key: "downloads", label: "Descargas", icon: Store },
   { key: "videos", label: "Videos", icon: Film },
+  { key: "slugs", label: "Slugs", icon: Link2 },
+  { key: "hidden", label: "Ocultar", icon: X },
+  { key: "apk", label: "APK", icon: ExternalLink },
   { key: "reports", label: "Reportes", icon: AlertTriangle },
   { key: "premium", label: "Premium", icon: Crown },
   { key: "payment", label: "Pago", icon: CreditCard },
@@ -64,6 +70,9 @@ export default function AdminPanel() {
         {tab === "stats" && <StatsTab />}
         {tab === "downloads" && <DownloadTracker />}
         {tab === "videos" && <VideoManager />}
+        {tab === "slugs" && <SlugManager />}
+        {tab === "hidden" && <HiddenAnimesManager />}
+        {tab === "apk" && <ApkManager />}
         {tab === "reports" && <BrokenReports />}
         {tab === "premium" && <PremiumTab />}
         {tab === "payment" && <PaymentTab />}
