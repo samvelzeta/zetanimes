@@ -1,92 +1,132 @@
 import { Link, useLocation } from "react-router-dom";
 
 /* ============================================================
- *  Iconos steampunk personalizados — más detallados y reconocibles
- *  Estilo: forma principal nítida + 1-2 detalles steampunk sutiles
- *  (tornillos, dientes pequeños, válvula). Activo: relleno + glow.
+ *  Iconos steampunk personalizados
+ *  - Inicio: máquina de vapor (caldera + chimenea + vapor)
+ *  - Recientes: 2 engranajes (grande con manecillas + pequeño)
+ *  - Buscar: llave inglesa con 5 rayos (energía)
+ *  - Directorio: nube de neblina/vapor
+ *  - Perfil: cabeza robot CUADRADA con tornillos en el cuerpo
  * ============================================================ */
 
-const baseClass = "w-[22px] h-[22px]";
+const baseClass = "w-[24px] h-[24px]";
 
-// INICIO: casa nítida con tornillo en cada esquina del techo
-const HomeIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className={baseClass} fill="none" stroke="currentColor"
-    strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-    {/* Techo */}
-    <path d="M3 11.5L12 4l9 7.5" />
-    {/* Cuerpo de casa */}
-    <path d="M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
-    {/* Puerta */}
-    <path d="M10 20v-5a2 2 0 014 0v5" stroke={active ? "currentColor" : "currentColor"} strokeWidth={active ? 2 : 1.6} />
-    {/* Tornillos decorativos en esquinas del techo */}
-    <circle cx="4" cy="11.8" r="0.6" fill="currentColor" />
-    <circle cx="20" cy="11.8" r="0.6" fill="currentColor" />
+// INICIO — Máquina de vapor (caldera redonda + chimenea + vapor saliendo)
+const SteamMachine = ({ active }: { active: boolean }) => (
+  <svg viewBox="0 0 28 28" className={baseClass} fill="none" stroke="currentColor"
+    strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
+    {/* Caldera principal (tanque cilíndrico horizontal) */}
+    <rect x="3" y="14" width="16" height="9" rx="2"
+      fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.18 : 0} />
+    {/* Visor de presión */}
+    <circle cx="7.5" cy="18.5" r="1.6" />
+    <circle cx="7.5" cy="18.5" r="0.4" fill="currentColor" />
+    {/* Chimenea */}
+    <rect x="14.5" y="8" width="4" height="6.5" rx="0.5"
+      fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
+    <rect x="13.8" y="7.5" width="5.4" height="1.2" rx="0.3" fill="currentColor" />
+    {/* Vapor saliendo (3 nubes) */}
+    <path d="M15 5.5c0.6-0.6 1.4-0.6 2 0M17.5 4c0.5-0.5 1.2-0.5 1.7 0M19.5 5c0.4-0.4 1-0.4 1.4 0" strokeWidth="1.4" />
+    {/* Ruedas */}
+    <circle cx="7" cy="24" r="1.6" fill={active ? "currentColor" : "none"} />
+    <circle cx="15" cy="24" r="1.6" fill={active ? "currentColor" : "none"} />
+    {/* Pitón/válvula derecha */}
+    <line x1="19" y1="16.5" x2="22" y2="16.5" />
+    <circle cx="22.5" cy="16.5" r="1" fill="currentColor" />
   </svg>
 );
 
-// RECIENTES: reloj clásico claro (manecillas grandes) con dientes sutiles
-const ClockIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className={baseClass} fill="none" stroke="currentColor"
-    strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="9" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.12 : 0} />
-    {/* 4 marcas cardinales como dientes */}
-    <line x1="12" y1="3" x2="12" y2="4.5" />
-    <line x1="12" y1="19.5" x2="12" y2="21" />
-    <line x1="3" y1="12" x2="4.5" y2="12" />
-    <line x1="19.5" y1="12" x2="21" y2="12" />
-    {/* Manecillas */}
-    <path d="M12 7.5V12l4 2.5" strokeWidth={active ? 2.4 : 2} />
-    <circle cx="12" cy="12" r="1" fill="currentColor" />
+// RECIENTES — Dos engranajes engranados (grande con reloj + pequeño girando)
+const DualGearClock = ({ active }: { active: boolean }) => (
+  <svg viewBox="0 0 28 28" className={baseClass} fill="none" stroke="currentColor"
+    strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
+    {/* Engranaje grande (con reloj dentro) */}
+    <circle cx="11" cy="14" r="7" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.12 : 0} />
+    {/* Dientes del engranaje grande */}
+    {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
+      <rect key={deg} x="10.2" y="4.5" width="1.6" height="2"
+        transform={`rotate(${deg} 11 14)`} fill="currentColor" />
+    ))}
+    {/* Manecillas de reloj dentro */}
+    <line x1="11" y1="14" x2="11" y2="10.5" strokeWidth={active ? 2 : 1.6} />
+    <line x1="11" y1="14" x2="13.5" y2="14" strokeWidth={active ? 2 : 1.6} />
+    <circle cx="11" cy="14" r="0.8" fill="currentColor" />
+    {/* Engranaje pequeño arriba derecha */}
+    <circle cx="22" cy="7" r="3" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.18 : 0} />
+    {[0, 60, 120, 180, 240, 300].map((deg) => (
+      <rect key={`s${deg}`} x="21.5" y="3" width="1" height="1.5"
+        transform={`rotate(${deg} 22 7)`} fill="currentColor" />
+    ))}
+    <circle cx="22" cy="7" r="0.6" fill="currentColor" />
   </svg>
 );
 
-// BUSCAR: lupa grande clara con tornillo en el mango
-const SearchIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className={baseClass} fill="none" stroke="currentColor"
-    strokeWidth={active ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">
-    {/* Lupa */}
-    <circle cx="10" cy="10" r="6.5" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
-    {/* Mango */}
-    <line x1="15" y1="15" x2="20.5" y2="20.5" strokeWidth={active ? 2.6 : 2.2} />
-    {/* Tornillo en la unión del mango */}
-    <circle cx="14.6" cy="14.6" r="0.8" fill="currentColor" />
-    {/* Brillo interno */}
-    {active && <circle cx="8" cy="8" r="1.5" fill="hsl(var(--primary-foreground))" fillOpacity={0.4} />}
+// BUSCAR — Llave inglesa con 5 rayos de energía saliendo
+const KeyWithRays = ({ active }: { active: boolean }) => (
+  <svg viewBox="0 0 28 28" className={baseClass} fill="none" stroke="currentColor"
+    strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
+    {/* Cabeza de llave (anillo) */}
+    <circle cx="9" cy="14" r="4.5" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
+    <circle cx="9" cy="14" r="1.5" />
+    {/* Cuerpo de la llave */}
+    <line x1="13.2" y1="14" x2="22" y2="14" strokeWidth={active ? 2.6 : 2.2} />
+    {/* Dientes de la llave */}
+    <path d="M19 14v2.5M21 14v3M22 14v-2" strokeWidth="1.6" />
+    {/* 5 rayos saliendo del anillo (estrella de energía) */}
+    {[0, 72, 144, 216, 288].map((deg) => (
+      <line key={deg}
+        x1="9" y1="7.5" x2="9" y2="6"
+        transform={`rotate(${deg} 9 14)`}
+        strokeWidth="1.6"
+      />
+    ))}
   </svg>
 );
 
-// DIRECTORIO: libro/biblioteca con engranaje pequeño en lomo (más reconocible que engranaje solo)
-const LibraryIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className={baseClass} fill="none" stroke="currentColor"
-    strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-    {/* 3 libros verticales */}
-    <rect x="3.5" y="5" width="4" height="15" rx="0.5" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.18 : 0} />
-    <rect x="9" y="5" width="4" height="15" rx="0.5" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.12 : 0} />
-    <rect x="14.5" y="7" width="4" height="13" rx="0.5" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.18 : 0} />
-    {/* Líneas en lomos */}
-    <line x1="3.5" y1="9" x2="7.5" y2="9" />
-    <line x1="14.5" y1="11" x2="18.5" y2="11" />
-    {/* Engranaje pequeño steampunk en libro central */}
-    <circle cx="11" cy="13" r="1.2" fill="currentColor" />
-    <line x1="11" y1="11.2" x2="11" y2="10.5" strokeWidth="1.4" />
-    <line x1="11" y1="14.8" x2="11" y2="15.5" strokeWidth="1.4" />
+// DIRECTORIO — Nube de vapor/neblina (3 burbujas conectadas)
+const FogCloud = ({ active }: { active: boolean }) => (
+  <svg viewBox="0 0 28 28" className={baseClass} fill="none" stroke="currentColor"
+    strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
+    {/* Cuerpo principal de la nube */}
+    <path d="M6 18c-2 0-3.5-1.5-3.5-3.5S4 11 6 11c0.4-2.5 2.7-4.5 5.5-4.5s5.1 2 5.5 4.5c0.3 0 0.5 0 0.8 0.05 2 0.3 3.7 2 3.7 4.2 0 2.4-1.9 4.2-4.2 4.2H6z"
+      fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.18 : 0} />
+    {/* Líneas de neblina debajo */}
+    <line x1="5" y1="22" x2="13" y2="22" strokeWidth="1.4" />
+    <line x1="9" y1="24.5" x2="19" y2="24.5" strokeWidth="1.4" />
+    <line x1="15" y1="22" x2="22" y2="22" strokeWidth="1.4" />
   </svg>
 );
 
-// PERFIL: silueta de persona clara con engrane pequeño (configuración) en hombro
-const ProfileIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className={baseClass} fill="none" stroke="currentColor"
-    strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-    {/* Cabeza */}
-    <circle cx="12" cy="8" r="3.5" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.2 : 0} />
-    {/* Hombros */}
-    <path d="M4.5 21c0-4.2 3.4-7 7.5-7s7.5 2.8 7.5 7" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.12 : 0} />
-    {/* Engranaje mini sobre el hombro derecho */}
-    <circle cx="18.5" cy="6" r="1.6" />
-    <line x1="18.5" y1="3.8" x2="18.5" y2="3" strokeWidth="1.2" />
-    <line x1="18.5" y1="9" x2="18.5" y2="8.2" strokeWidth="1.2" />
-    <line x1="16.3" y1="6" x2="15.5" y2="6" strokeWidth="1.2" />
-    <line x1="21.5" y1="6" x2="20.7" y2="6" strokeWidth="1.2" />
+// PERFIL — Cabeza de robot CUADRADA con tornillos en el cuerpo
+const RobotHead = ({ active }: { active: boolean }) => (
+  <svg viewBox="0 0 28 28" className={baseClass} fill="none" stroke="currentColor"
+    strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
+    {/* Antena */}
+    <line x1="14" y1="3" x2="14" y2="5.5" />
+    <circle cx="14" cy="2.3" r="0.9" fill="currentColor" />
+    {/* Cabeza CUADRADA */}
+    <rect x="6" y="5.5" width="16" height="13" rx="1.5"
+      fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.18 : 0} />
+    {/* Ojos */}
+    <circle cx="10.5" cy="11" r="1.3" fill={active ? "hsl(var(--background))" : "currentColor"} />
+    <circle cx="17.5" cy="11" r="1.3" fill={active ? "hsl(var(--background))" : "currentColor"} />
+    {/* Boca (línea de circuitos) */}
+    <line x1="10" y1="15.5" x2="18" y2="15.5" strokeWidth="1.5" />
+    <line x1="11.5" y1="14.5" x2="11.5" y2="16.5" strokeWidth="1.2" />
+    <line x1="14" y1="14.5" x2="14" y2="16.5" strokeWidth="1.2" />
+    <line x1="16.5" y1="14.5" x2="16.5" y2="16.5" strokeWidth="1.2" />
+    {/* Cuerpo trapezoidal (hombros) */}
+    <path d="M5 23l1.5-3h15L23 23v2H5v-2z"
+      fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.12 : 0} />
+    {/* Tornillos en línea sobre el cuerpo (3 en hilera) */}
+    <circle cx="10" cy="22" r="0.8" fill="currentColor" />
+    <circle cx="14" cy="22" r="0.8" fill="currentColor" />
+    <circle cx="18" cy="22" r="0.8" fill="currentColor" />
+    {/* Tornillos en esquinas de la cabeza */}
+    <circle cx="7.5" cy="7" r="0.5" fill="currentColor" />
+    <circle cx="20.5" cy="7" r="0.5" fill="currentColor" />
+    <circle cx="7.5" cy="17" r="0.5" fill="currentColor" />
+    <circle cx="20.5" cy="17" r="0.5" fill="currentColor" />
   </svg>
 );
 
@@ -95,11 +135,11 @@ const navItems: {
   label: string;
   Icon: (p: { active: boolean }) => JSX.Element;
 }[] = [
-  { path: "/", label: "Inicio", Icon: HomeIcon },
-  { path: "/recent", label: "Recientes", Icon: ClockIcon },
-  { path: "/search", label: "Buscar", Icon: SearchIcon },
-  { path: "/directory", label: "Directorio", Icon: LibraryIcon },
-  { path: "/profile", label: "Perfil", Icon: ProfileIcon },
+  { path: "/", label: "Inicio", Icon: SteamMachine },
+  { path: "/recent", label: "Recientes", Icon: DualGearClock },
+  { path: "/search", label: "Buscar", Icon: KeyWithRays },
+  { path: "/directory", label: "Directorio", Icon: FogCloud },
+  { path: "/profile", label: "Perfil", Icon: RobotHead },
 ];
 
 export default function BottomNav() {

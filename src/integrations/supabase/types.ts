@@ -148,6 +148,27 @@ export type Database = {
         }
         Relationships: []
       }
+      anime_views: {
+        Row: {
+          anilist_id: number
+          id: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          anilist_id: number
+          id?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          anilist_id?: number
+          id?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           description: string | null
@@ -660,6 +681,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_anime_view: { Args: { _anilist_id: number }; Returns: number }
     }
     Enums: {
       anime_list_type:
