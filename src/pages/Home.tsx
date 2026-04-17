@@ -99,8 +99,8 @@ export default function Home() {
     );
   }
 
-  // Splash listo cuando las queries críticas iniciales hayan respondido
-  const initialReady = !!(trending && popular);
+  // Splash listo cuando la query crítica (trending) haya respondido
+  const initialReady = !!trending;
 
   return (
     <>
@@ -109,48 +109,84 @@ export default function Home() {
         <HeroBanner animes={filterFn(trending?.media)} />
 
         <div className="mt-6 space-y-2">
+          {/* Above-the-fold: montar inmediato */}
           <LatestEpisodes />
-          <BentoEpisodes />
-          <GenreList />
 
-          <SphereCarousel
-            title="🔥 En Tendencia"
-            animes={filterFn(trending?.media)}
-            loading={l1}
-            linkTo="/directory"
-            variant="circle"
-          />
+          <LazySection minHeight={400}>
+            <BentoEpisodes />
+          </LazySection>
 
-          <FocusCarousel
-            title="Acción"
-            emoji="⚔️"
-            animes={filterFn(actionAnimes?.media)}
-            loading={lAction}
-            linkTo="/directory?genre=Action"
-          />
+          <LazySection minHeight={120}>
+            <GenreList />
+          </LazySection>
 
-          <TopRanking
-            title="📈 🏆 Top Rating"
-            animes={filterFn(topRated?.media)}
-            loading={l4}
-          />
+          <LazySection minHeight={350}>
+            <SphereCarousel
+              title="🔥 En Tendencia"
+              animes={filterFn(trending?.media)}
+              loading={l1}
+              linkTo="/directory"
+              variant="circle"
+            />
+          </LazySection>
 
-          <HorizontalList title="✨ Fantasía" animes={filterFn(fantasyAnimes?.media)} loading={lFantasy} linkTo="/directory?genre=Fantasy" />
-          <HorizontalList title="🌸 Temporada Actual" animes={filterFn(season?.media)} loading={l5} showStatus />
+          <LazySection minHeight={400} placeholderClassName="" >
+            {/* Trigger fetch de Action al montarse */}
+            <ActionTrigger onMount={() => setEnableAction(true)} />
+            <FocusCarousel
+              title="Acción"
+              emoji="⚔️"
+              animes={filterFn(actionAnimes?.media)}
+              loading={lAction}
+              linkTo="/directory?genre=Action"
+            />
+          </LazySection>
 
-          <SphereCarousel
-            title="⭐ Más Populares"
-            animes={filterFn(popular?.media)}
-            loading={l2}
-            linkTo="/directory"
-            variant="circle"
-          />
+          <LazySection minHeight={500}>
+            <ActionTrigger onMount={() => setEnableTopRated(true)} />
+            <TopRanking
+              title="📈 🏆 Top Rating"
+              animes={filterFn(topRated?.media)}
+              loading={l4}
+            />
+          </LazySection>
 
-          <HorizontalList title="✨ Descubre" animes={filterFn(popular?.media?.slice(5))} loading={l2} linkTo="/directory" />
+          <LazySection minHeight={300}>
+            <ActionTrigger onMount={() => setEnableFantasy(true)} />
+            <HorizontalList title="✨ Fantasía" animes={filterFn(fantasyAnimes?.media)} loading={lFantasy} linkTo="/directory?genre=Fantasy" />
+          </LazySection>
 
-          <AnimeRoulette animes={[...filterFn(trending?.media), ...filterFn(popular?.media)]} />
+          <LazySection minHeight={300}>
+            <ActionTrigger onMount={() => setEnableSeason(true)} />
+            <HorizontalList title="🌸 Temporada Actual" animes={filterFn(season?.media)} loading={l5} showStatus />
+          </LazySection>
+
+          <LazySection minHeight={350}>
+            <ActionTrigger onMount={() => setEnablePopular(true)} />
+            <SphereCarousel
+              title="⭐ Más Populares"
+              animes={filterFn(popular?.media)}
+              loading={l2}
+              linkTo="/directory"
+              variant="circle"
+            />
+          </LazySection>
+
+          <LazySection minHeight={300}>
+            <HorizontalList title="✨ Descubre" animes={filterFn(popular?.media?.slice(5))} loading={l2} linkTo="/directory" />
+          </LazySection>
+
+          <LazySection minHeight={400}>
+            <AnimeRoulette animes={[...filterFn(trending?.media), ...filterFn(popular?.media)]} />
+          </LazySection>
         </div>
       </div>
     </>
   );
+}
+
+/** Pequeño helper que dispara onMount cuando se renderiza (cuando LazySection lo monta) */
+function ActionTrigger({ onMount }: { onMount: () => void }) {
+  useEffect(() => { onMount(); }, [onMount]);
+  return null;
 }
