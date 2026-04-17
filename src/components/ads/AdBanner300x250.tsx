@@ -1,11 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Banner 300x250 Adsterra. Se inserta debajo del Top 10.
  * Premium = oculto y sin clicks.
  */
-export default function AdBanner300x250() {
+const AdBanner300x250 = forwardRef<HTMLDivElement>((_, _outerRef) => {
   const { isPremium } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
   const loaded = useRef(false);
@@ -14,7 +14,6 @@ export default function AdBanner300x250() {
     if (isPremium || loaded.current || !ref.current) return;
     loaded.current = true;
 
-    // Inyecta el script con atOptions dentro de un iframe sandbox controlado
     const html = `
       <html><head><style>body{margin:0;background:transparent;display:flex;justify-content:center;align-items:center;}</style></head>
       <body>
@@ -56,4 +55,6 @@ export default function AdBanner300x250() {
       </div>
     </div>
   );
-}
+});
+AdBanner300x250.displayName = "AdBanner300x250";
+export default AdBanner300x250;
