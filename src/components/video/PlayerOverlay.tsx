@@ -1,6 +1,7 @@
 // Overlay de "maquillaje" que va ENCIMA del player.
-// Visible siempre (no solo fullscreen). Provee prev/next + skip intro/ending + ±10s.
-// NO controla play/pause/seek bar — eso queda en el player nativo del proveedor.
+// Visible siempre en modo normal Y en fullscreen.
+// Provee: prev/next, play/pause central con rayo, skip intro/ending + ±10s.
+// NO controla la barra de progreso del player nativo.
 import { useEffect, useState, useRef } from "react";
 import { ChevronLeft, ChevronRight, FastForward, Rewind } from "lucide-react";
 
@@ -12,23 +13,101 @@ interface Props {
   containerRef: React.RefObject<HTMLElement>;
 }
 
+// Rayo SVG reutilizado del SplashScreen — vertical (orientation = "vertical")
+// o tumbado horizontal (rotado 90°). Aplica drop-shadow naranja.
+function BoltIcon({ horizontal, size = 28 }: { horizontal: boolean; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      style={{
+        transform: horizontal ? "rotate(90deg)" : "rotate(0deg)",
+        transition: "transform 200ms ease",
+        filter: "drop-shadow(0 0 6px hsl(16 100% 55%)) drop-shadow(0 0 12px hsl(16 100% 50% / 0.6))",
+      }}
+    >
+      <defs>
+        <linearGradient id="boltGradOverlay" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="hsl(45 100% 70%)" />
+          <stop offset="50%" stopColor="hsl(20 100% 55%)" />
+          <stop offset="100%" stopColor="hsl(10 100% 45%)" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"
+        fill="url(#boltGradOverlay)"
+        stroke="hsl(40 100% 75%)"
+        strokeWidth="0.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, containerRef }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [show, setShow] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
 
+  // Detectar fullscreen sobre nuestro contenedor
   useEffect(() => {
     const onChange = () => {
       const el = document.fullscreenElement;
-      setIsFullscreen(!!el && (el === containerRef.current || containerRef.current?.contains(el as Node) || (el as Node)?.contains(containerRef.current!)));
+      setIsFullscreen(
+        !!el &&
+          (el === containerRef.current ||
+            containerRef.current?.contains(el as Node) ||
+            (el as Node)?.contains(containerRef.current!))
+      );
     };
     document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange as any);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange as any);
+    };
   }, [containerRef]);
 
-  // Auto-hide solo en fullscreen; en modo normal siempre visible
+  // Tracker del estado play/pause del video subyacente
   useEffect(() => {
-    if (!isFullscreen) { setShow(true); return; }
+    const findVideo = () => containerRef.current?.querySelector("video") as HTMLVideoElement | null;
+    let v = findVideo();
+
+    const sync = () => {
+      const cur = findVideo();
+      if (!cur) return;
+      setIsPlaying(!cur.paused);
+    };
+
+    // Reintenta encontrar el video cada 500ms hasta los 5s (los iframes tardan)
+    let attempts = 0;
+    const findInterval = setInterval(() => {
+      attempts++;
+      v = findVideo();
+      if (v || attempts > 10) clearInterval(findInterval);
+      if (v) {
+        sync();
+        v.addEventListener("play", sync);
+        v.addEventListener("pause", sync);
+      }
+    }, 500);
+
+    return () => {
+      clearInterval(findInterval);
+      const cur = findVideo();
+      cur?.removeEventListener("play", sync);
+      cur?.removeEventListener("pause", sync);
+    };
+  }, [containerRef, episode]);
+
+  // Auto-hide en fullscreen tras 3.5s; en modo normal siempre visible
+  useEffect(() => {
+    if (!isFullscreen) {
+      setShow(true);
+      return;
+    }
     const reveal = () => {
       setShow(true);
       if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -45,23 +124,29 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
     };
   }, [isFullscreen, containerRef]);
 
-  // Intenta seekear el video del provider (puede fallar si es cross-origin iframe → no-op)
+  const togglePlayPause = () => {
+    const v = containerRef.current?.querySelector("video") as HTMLVideoElement | null;
+    if (!v) return;
+    try {
+      if (v.paused) v.play();
+      else v.pause();
+    } catch {}
+  };
+
   const skip = (seconds: number) => {
     const v = containerRef.current?.querySelector("video") as HTMLVideoElement | null;
     if (!v) return;
     try {
-      v.currentTime = Math.max(0, Math.min((v.duration || Infinity), v.currentTime + seconds));
+      v.currentTime = Math.max(0, Math.min(v.duration || Infinity, v.currentTime + seconds));
     } catch {}
   };
 
   const hasPrev = episode > 1;
   const hasNext = episode < totalEpisodes;
 
-  // Si está en fullscreen: posición fixed para flotar sobre el video.
-  // En modo normal: absolute encima del player container.
-  const posClass = isFullscreen
-    ? "fixed inset-0 z-[2147483647]"
-    : "absolute inset-0 z-30";
+  // En fullscreen: posición fixed para flotar sobre el video real (z-index máximo)
+  // En modo normal: absolute encima del player container
+  const posClass = isFullscreen ? "fixed inset-0 z-[2147483647]" : "absolute inset-0 z-30";
 
   return (
     <div
@@ -72,7 +157,20 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
         EP {episode} {totalEpisodes > 0 && <span className="opacity-60">/ {totalEpisodes}</span>}
       </div>
 
-      {/* Botones laterales prev/next — siempre visibles */}
+      {/* Botón play/pause CENTRAL con rayo */}
+      <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
+        <button
+          onClick={togglePlayPause}
+          className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/50 hover:bg-primary/30 backdrop-blur flex items-center justify-center transition-all shadow-2xl active:scale-95"
+          aria-label={isPlaying ? "Pausar" : "Reproducir"}
+          title={isPlaying ? "Pausar" : "Reproducir"}
+        >
+          {/* Rayo: horizontal = pausa visual, vertical = reproduciendo */}
+          <BoltIcon horizontal={isPlaying} size={isFullscreen ? 36 : 30} />
+        </button>
+      </div>
+
+      {/* Botones laterales prev/next — siempre visibles (modo normal Y fullscreen) */}
       <div className="pointer-events-auto absolute left-2 sm:left-4 top-1/2 -translate-y-1/2">
         <button
           onClick={onPrev}
@@ -96,7 +194,7 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
         </button>
       </div>
 
-      {/* Skip controls abajo — solo se ven en fullscreen para no estorbar el player */}
+      {/* Skip controls abajo — solo en fullscreen */}
       {isFullscreen && (
         <div className="pointer-events-auto absolute bottom-20 left-1/2 -translate-x-1/2 flex items-center gap-2 flex-wrap justify-center">
           <button
