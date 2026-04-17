@@ -164,10 +164,10 @@ function EpisodeCardWide({
         </div>
       )}
 
-      {/* Badge "C" (Capítulo / Calidad) arriba-derecha */}
+      {/* Badge "Z" (ZetAnime) arriba-derecha */}
       <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-primary/90 backdrop-blur-sm z-10">
         <span className="text-[9px] font-black text-primary-foreground tracking-wider">
-          C
+          Z
         </span>
       </div>
 
