@@ -41,8 +41,12 @@ export default function AdCard({ size = "default" }: Props) {
     return () => clearTimeout(t);
   }, [isPremium]);
 
-  // Premium o ad no llenado → ocultar completamente (colapsa el hueco)
-  if (isPremium || adFilled === false) {
+  // Premium → 0×0 sin renderizar contenido (no ocupa espacio en carruseles, sin clicks)
+  if (isPremium) {
+    return <div style={{ width: 0, height: 0, overflow: "hidden" }} aria-hidden />;
+  }
+  // Ad no llenado (free + adblock) → colapsar
+  if (adFilled === false) {
     return null;
   }
 
