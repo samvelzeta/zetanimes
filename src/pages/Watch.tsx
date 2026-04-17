@@ -14,7 +14,7 @@ import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
   Globe, Bug, ChevronDown, List,
 } from "lucide-react";
-import AdBanner300x250Watch from "@/components/ads/AdBanner300x250Watch";
+import AdsterraBanner from "@/components/ads/AdsterraBanner";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
