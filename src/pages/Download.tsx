@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Share2, Smartphone, Tv, Zap, Gauge, ArrowLeft, Share, Check } from "lucide-react";
+import { Download, Share2, Smartphone, Tv, Zap, Gauge, ArrowLeft, Check, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isTV } from "@/hooks/useIsTV";
@@ -8,12 +8,32 @@ import logoUrl from "@/assets/zetanime-apk-logo.png";
 
 const APK_SETTING_KEY = "apk_download_url";
 const FALLBACK_APK = "https://github.com/zetanime/app/releases/latest/download/zetanime.apk";
-const YT_VIDEO_ID = "PRsfKxIdlqI";
+const BACKGROUND_VIDEO_URL = "https://www.dropbox.com/scl/fi/jjm661r08rfvpgkmqdkrc/videoback-anime-zetanime-1.mp4?rlkey=osecdinr9zos3nni8bgzmiq4e&st=sjzr8ts1&raw=1";
+const LOADING_DOTS = [
+  { left: 14, top: 18, size: 6, delay: 0.2, duration: 2.8 },
+  { left: 25, top: 35, size: 8, delay: 0.7, duration: 3.4 },
+  { left: 36, top: 22, size: 5, delay: 0.3, duration: 2.6 },
+  { left: 48, top: 44, size: 7, delay: 1.1, duration: 3.1 },
+  { left: 58, top: 19, size: 5, delay: 0.5, duration: 2.9 },
+  { left: 68, top: 37, size: 9, delay: 1.5, duration: 3.6 },
+  { left: 79, top: 24, size: 6, delay: 0.9, duration: 2.7 },
+  { left: 84, top: 56, size: 7, delay: 0.4, duration: 3.3 },
+  { left: 21, top: 63, size: 5, delay: 1.2, duration: 2.5 },
+  { left: 39, top: 72, size: 8, delay: 0.8, duration: 3.2 },
+  { left: 53, top: 61, size: 6, delay: 1.7, duration: 2.8 },
+  { left: 65, top: 78, size: 5, delay: 0.6, duration: 3.5 },
+  { left: 76, top: 68, size: 7, delay: 1.4, duration: 2.9 },
+  { left: 88, top: 31, size: 6, delay: 1.9, duration: 3.4 },
+];
 
 export default function DownloadPage() {
   const [apkUrl, setApkUrl] = useState(FALLBACK_APK);
   const [version, setVersion] = useState("1.0.0");
   const [copied, setCopied] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const [audioReady, setAudioReady] = useState(false);
+  const [needsInteraction, setNeedsInteraction] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Device detection: TV vs Mobile/Desktop
   const device = useMemo(() => {
@@ -42,6 +62,55 @@ export default function DownloadPage() {
       });
   }, []);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const tryPlayWithAudio = async () => {
+      try {
+        video.muted = false;
+        video.volume = 1;
+        await video.play();
+        setAudioReady(true);
+        setNeedsInteraction(false);
+      } catch {
+        video.muted = true;
+        try {
+          await video.play();
+        } catch {}
+        setAudioReady(false);
+        setNeedsInteraction(true);
+      }
+    };
+
+    const onCanPlayThrough = () => {
+      setVideoReady(true);
+      void tryPlayWithAudio();
+    };
+
+    const enableAudioOnInteraction = async () => {
+      const currentVideo = videoRef.current;
+      if (!currentVideo || !needsInteraction) return;
+      try {
+        currentVideo.muted = false;
+        currentVideo.volume = 1;
+        await currentVideo.play();
+        setAudioReady(true);
+        setNeedsInteraction(false);
+      } catch {}
+    };
+
+    video.addEventListener("canplaythrough", onCanPlayThrough);
+    window.addEventListener("pointerdown", enableAudioOnInteraction, { passive: true });
+
+    if (video.readyState >= 4) onCanPlayThrough();
+
+    return () => {
+      video.removeEventListener("canplaythrough", onCanPlayThrough);
+      window.removeEventListener("pointerdown", enableAudioOnInteraction);
+    };
+  }, [needsInteraction]);
+
   const shareLink = async () => {
     const url = `${window.location.origin}/download`;
     if (navigator.share) {
@@ -63,24 +132,65 @@ export default function DownloadPage() {
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* === BACKGROUND VIDEO (YouTube no-cookie, oculto chrome) === */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-black">
-        <div className="absolute inset-0 w-[300%] h-[300%] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <iframe
-            src={`https://www.youtube-nocookie.com/embed/${YT_VIDEO_ID}?autoplay=1&mute=0&controls=0&loop=1&playlist=${YT_VIDEO_ID}&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&playsinline=1&disablekb=1&fs=0&cc_load_policy=0&color=white`}
-            title="bg"
-            allow="autoplay; encrypted-media"
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ border: 0 }}
-          />
+        <div
+          className={`absolute inset-0 transition-opacity duration-1000 ${videoReady ? "opacity-0" : "opacity-100"}`}
+          style={{ background: "radial-gradient(ellipse at center, hsl(16 100% 8%) 0%, hsl(0 0% 3%) 70%)" }}
+        >
+          {LOADING_DOTS.map((dot, index) => (
+            <div
+              key={`${dot.left}-${dot.top}-${index}`}
+              className="absolute rounded-full bg-primary/60 animate-pulse"
+              style={{
+                left: `${dot.left}%`,
+                top: `${dot.top}%`,
+                width: `${dot.size}px`,
+                height: `${dot.size}px`,
+                animationDelay: `${dot.delay}s`,
+                animationDuration: `${dot.duration}s`,
+                boxShadow: "0 0 20px hsl(var(--primary) / 0.35)",
+              }}
+            />
+          ))}
         </div>
-        {/* Dark overlay for readability */}
+
+        <video
+          ref={videoRef}
+          src={BACKGROUND_VIDEO_URL}
+          loop
+          playsInline
+          preload="auto"
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${videoReady ? "opacity-100" : "opacity-0"}`}
+        />
+
         <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/70 to-background/95" />
-        <div className="absolute inset-0 backdrop-blur-[2px]" />
+        <div className={`absolute inset-0 transition-all duration-1000 ${videoReady ? "backdrop-blur-[1px]" : "backdrop-blur-[2px]"}`} />
       </div>
 
       {/* Glow accents */}
       <div className="absolute inset-0 pointer-events-none z-[1]">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full opacity-30 blur-3xl" style={{ background: "radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)" }} />
       </div>
+
+      {needsInteraction && videoReady && (
+        <button
+          onClick={async () => {
+            const video = videoRef.current;
+            if (!video) return;
+            try {
+              video.muted = false;
+              video.volume = 1;
+              await video.play();
+              setAudioReady(true);
+              setNeedsInteraction(false);
+            } catch {
+              toast.error("Toca de nuevo para activar el audio");
+            }
+          }}
+          className="absolute right-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/80 px-4 py-2 text-xs font-bold text-foreground backdrop-blur-sm"
+        >
+          <Volume2 className="h-4 w-4 text-primary" /> Activar sonido
+        </button>
+      )}
 
       {/* Back button */}
       <Link to="/" className="absolute top-4 left-4 z-20 w-10 h-10 rounded-full bg-secondary/80 backdrop-blur-sm flex items-center justify-center hover:bg-secondary transition">
@@ -108,7 +218,7 @@ export default function DownloadPage() {
           <p className="text-sm text-foreground/90 mb-1 drop-shadow">App oficial Android · v{version}</p>
           <div className="flex items-center gap-1.5 mt-1 px-3 py-1 rounded-full bg-primary/20 border border-primary/40 backdrop-blur-sm">
             {device === "tv" ? <Tv className="w-3 h-3 text-primary" /> : <Smartphone className="w-3 h-3 text-primary" />}
-            <span className="text-[10px] font-bold text-primary">{deviceLabel}</span>
+            <span className="text-[10px] font-bold text-primary">{deviceLabel}{audioReady ? " · Audio activo" : ""}</span>
           </div>
 
           {/* Download button */}
