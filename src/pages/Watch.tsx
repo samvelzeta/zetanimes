@@ -12,8 +12,9 @@ import { getCachedVideo, cachedVideoToSources } from "@/lib/video-cache";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
-  Globe, Bug, ChevronDown,
+  Globe, Bug, ChevronDown, List,
 } from "lucide-react";
+import AdBanner300x250Watch from "@/components/ads/AdBanner300x250Watch";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
@@ -41,6 +42,8 @@ export default function Watch() {
   const watchTimeRef = useRef(0);
   const [initialTime, setInitialTime] = useState<number | undefined>(undefined);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
+  const [showEpisodes, setShowEpisodes] = useState(false);
+  const [activeSourceIdx, setActiveSourceIdx] = useState(0);
 
   const { data: anilistData } = useQuery({
     queryKey: ["anime-detail", anilistId],
@@ -141,16 +144,18 @@ export default function Watch() {
     return sources;
   }, [lang, latinoEp, serverData, cachedVideo]);
 
-  const sortedSources = buildSources();
+  const rawSources = buildSources();
+  // Si el usuario rotó manualmente, mover esa fuente al inicio para que el player la cargue
+  const sortedSources = activeSourceIdx > 0 && activeSourceIdx < rawSources.length
+    ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
+    : rawSources;
 
-  // Detectar servers "Z" totales (cache DB + scraper API)
-  // Si hay 2+ Z servers o HLS latino → permite cambiar idioma
-  const zServersInCache = (cachedVideo?.sources?.hls?.length || 0) + (cachedVideo?.sources?.embed?.length || 0);
-  const zServersFromScraper = (serverData?.servers || []).filter(
-    (s: ZetServer) => s.name?.toUpperCase().startsWith("Z")
-  ).length;
-  const totalZServers = zServersInCache + zServersFromScraper;
-  const hasMultipleLangs = totalZServers >= 2 || !!latinoEp;
+  // Total de fuentes disponibles (cache + scraper + latino HLS)
+  // Si hay 2+ sources → permite cambiar entre ellos (típicamente JP/LATINO o servidores diferentes)
+  // Si hay HLS latino dedicado → toggle real entre sub/latino
+  const hasLatinoHLS = !!latinoEp;
+  const hasMultipleSources = sortedSources.length >= 2;
+  const hasMultipleLangs = hasLatinoHLS || hasMultipleSources;
   const langButtonLabel = hasMultipleLangs ? "Cambiar idioma" : "Idioma predeterminado";
 
   // Restore progress on episode change
@@ -168,6 +173,7 @@ export default function Watch() {
   // Use replace instead of push for episode navigation (fixes back button)
   const selectEpisode = (epNumber: number) => {
     setSelectedEp(epNumber);
+    setActiveSourceIdx(0);
     navigate(`/watch/${id}?ep=${epNumber}`, { replace: true });
     watchTimeRef.current = 0;
     if (!inWebView) {
@@ -292,17 +298,26 @@ export default function Watch() {
           {inWebView && " • 📱 APK"}
         </p>
 
-        {/* Idioma: solo cambia si hay 2+ Z servers o latino HLS */}
+        {/* Idioma / fuente alternativa */}
         <div className="flex items-center gap-2 mb-4">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
           {hasMultipleLangs ? (
             <button
-              onClick={() => setLang(lang === "sub" ? "latino" : "sub")}
+              onClick={() => {
+                if (hasLatinoHLS) {
+                  setLang(lang === "sub" ? "latino" : "sub");
+                } else {
+                  // Sin HLS latino real → rota entre las fuentes disponibles
+                  setActiveSourceIdx((i) => (i + 1) % Math.max(1, sortedSources.length));
+                }
+              }}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all flex items-center gap-1.5"
             >
               {langButtonLabel}
               <span className="text-[10px] opacity-80">
-                ({lang === "sub" ? "🇯🇵 JP → 🌎 LAT" : "🌎 LAT → 🇯🇵 JP"})
+                {hasLatinoHLS
+                  ? `(${lang === "sub" ? "🇯🇵 JP → 🌎 LAT" : "🌎 LAT → 🇯🇵 JP"})`
+                  : `(${sortedSources[activeSourceIdx]?.name || "—"})`}
               </span>
             </button>
           ) : (
@@ -313,8 +328,8 @@ export default function Watch() {
         </div>
 
         {lang === "latino" && latinoEp && (
-          <div className="flex items-center gap-2 bg-green-600/10 border border-green-600/30 rounded-xl px-4 py-2 mb-4">
-            <span className="text-xs text-green-400 font-medium">✓ HLS Latino disponible</span>
+          <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2 mb-4">
+            <span className="text-xs text-primary font-medium">✓ HLS Latino disponible</span>
           </div>
         )}
 
@@ -363,33 +378,69 @@ export default function Watch() {
         )}
       </div>
 
-      {/* Episodes grid */}
-      <div className="px-4">
-        <h2 className="text-sm font-bold text-foreground mb-3">Episodios</h2>
-        {episodeNumbers.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {episodeNumbers.map((epNum) => {
-              const isActive = epNum === selectedEp;
-              const epSlug = zetSlug ? `${zetSlug}-${epNum}` : "";
-              const watched = epSlug ? isEpisodeWatched(epSlug) : false;
-              return (
-                <div key={epNum} className={`flex rounded-lg overflow-hidden transition-all ${isActive ? "ring-2 ring-primary/50" : ""}`}>
-                  <button onClick={() => selectEpisode(epNum)}
-                    className={`flex-1 py-2.5 px-3 text-sm font-bold transition-all text-left ${isActive ? "bg-primary text-primary-foreground" : watched ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                    EP {epNum}
-                  </button>
-                  <button onClick={() => toggleWatched(epNum)}
-                    className={`w-[30%] flex items-center justify-center transition-all border-l border-background/20 ${watched ? "bg-primary text-primary-foreground" : "bg-secondary/80 text-muted-foreground hover:text-primary"}`}>
-                    {watched ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground text-center py-8">Cargando episodios...</p>
-        )}
+      {/* Navegación de episodios: prev / dropdown / next */}
+      <div className="px-4 mb-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
+            disabled={selectedEp <= 1}
+            className="flex-1 py-2.5 px-3 rounded-lg bg-secondary hover:bg-muted text-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition"
+          >
+            <ChevronLeft className="w-4 h-4" /> Anterior
+          </button>
+          <button
+            onClick={() => setShowEpisodes((v) => !v)}
+            className="px-3 py-2.5 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary text-xs font-bold flex items-center gap-1.5 transition"
+            aria-label="Mostrar lista de episodios"
+          >
+            <List className="w-4 h-4" />
+            EP {selectedEp}
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showEpisodes ? "rotate-180" : ""}`} />
+          </button>
+          <button
+            onClick={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
+            disabled={selectedEp >= totalEpisodes}
+            className="flex-1 py-2.5 px-3 rounded-lg bg-secondary hover:bg-muted text-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition"
+          >
+            Siguiente <ChevronLeft className="w-4 h-4 rotate-180" />
+          </button>
+        </div>
+
+        {/* Ad 300x250 debajo de los botones */}
+        <AdBanner300x250Watch />
       </div>
+
+      {/* Lista colapsable de episodios */}
+      {showEpisodes && (
+        <div className="px-4">
+          <h2 className="text-sm font-bold text-foreground mb-3">
+            Episodios <span className="text-muted-foreground font-normal">({totalEpisodes})</span>
+          </h2>
+          {episodeNumbers.length > 0 ? (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 max-h-[60vh] overflow-y-auto pr-1">
+              {episodeNumbers.map((epNum) => {
+                const isActive = epNum === selectedEp;
+                const epSlug = zetSlug ? `${zetSlug}-${epNum}` : "";
+                const watched = epSlug ? isEpisodeWatched(epSlug) : false;
+                return (
+                  <div key={epNum} className={`flex rounded-lg overflow-hidden transition-all ${isActive ? "ring-2 ring-primary/50" : ""}`}>
+                    <button onClick={() => { selectEpisode(epNum); setShowEpisodes(false); }}
+                      className={`flex-1 py-2 px-2 text-xs font-bold transition-all text-left ${isActive ? "bg-primary text-primary-foreground" : watched ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                      EP {epNum}
+                    </button>
+                    <button onClick={() => toggleWatched(epNum)}
+                      className={`w-7 flex items-center justify-center transition-all border-l border-background/20 ${watched ? "bg-primary text-primary-foreground" : "bg-secondary/80 text-muted-foreground hover:text-primary"}`}>
+                      {watched ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-8">Cargando episodios...</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
