@@ -244,10 +244,7 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
     toast.success("Solicitud enviada. Te notificaremos cuando sea aprobada.");
     onClose();
   };
-    setLoading(false);
-    toast.success("Solicitud enviada. Te notificaremos cuando sea aprobada.");
-    onClose();
-  };
+
 
   const benefits = [
     "Sin anuncios interrumpidos",
