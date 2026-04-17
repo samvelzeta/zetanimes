@@ -1,9 +1,11 @@
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getLatestEpisodes, type ZetLatestEpisode } from "@/lib/zetapi";
 import { searchAnime } from "@/lib/anilist";
 import { AlertCircle, Play, ChevronLeft, ChevronRight, Eye, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getAnimeViewsBatch, formatViews } from "@/lib/anime-views";
+import LazyImage from "@/components/LazyImage";
 
 function EpisodeSkeleton() {
   return (
@@ -18,6 +20,36 @@ export default function LatestEpisodes() {
     staleTime: 1000 * 60 * 3,
     retry: 1,
   });
+
+  // Resolver títulos→anilistId→vistas (en background, no bloquea)
+  const [viewsMap, setViewsMap] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    if (!episodes?.length) return;
+    let cancelled = false;
+    (async () => {
+      // Buscar anilistId por título (limitar concurrencia)
+      const slugToAnilist = new Map<string, number>();
+      for (const ep of episodes.slice(0, 12)) {
+        try {
+          const r = await searchAnime(ep.title, 1, 1);
+          if (r.media[0]?.id) slugToAnilist.set(ep.slug, r.media[0].id);
+        } catch { /* ignore */ }
+        if (cancelled) return;
+      }
+      const ids = Array.from(slugToAnilist.values());
+      if (!ids.length) return;
+      const realViews = await getAnimeViewsBatch(ids);
+      if (cancelled) return;
+      const out = new Map<string, number>();
+      slugToAnilist.forEach((aid, slug) => {
+        out.set(slug, realViews.get(aid) || 0);
+      });
+      setViewsMap(out);
+    })();
+    return () => { cancelled = true; };
+  }, [episodes]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (dir: number) => {
@@ -55,14 +87,15 @@ export default function LatestEpisodes() {
         </div>
       )}
 
-      <div
-        ref={scrollRef}
-        className="flex gap-3 overflow-x-auto px-4 hide-scrollbar"
-      >
+      <div ref={scrollRef} className="flex gap-3 overflow-x-auto px-4 hide-scrollbar">
         {isLoading
           ? Array(6).fill(0).map((_, i) => <EpisodeSkeleton key={i} />)
           : episodes?.map((ep, i) => (
-              <EpisodeCardWide key={`${ep.slug}-${i}`} episode={ep} />
+              <EpisodeCardWide
+                key={`${ep.slug}-${i}`}
+                episode={ep}
+                views={viewsMap.get(ep.slug) || 0}
+              />
             ))}
       </div>
 
@@ -76,22 +109,16 @@ export default function LatestEpisodes() {
 }
 
 /* -------------------------------------------------------------------------
- * Tarjeta horizontal alargada estilo "Crunchyroll/Netflix card"
- * Cover grande izquierda + info derecha (vistas, idioma, duración, título)
+ * Tarjeta horizontal alargada con vistas REALES + lazy load
  * ------------------------------------------------------------------------- */
-function EpisodeCardWide({ episode }: { episode: ZetLatestEpisode }) {
+function EpisodeCardWide({
+  episode,
+  views,
+}: {
+  episode: ZetLatestEpisode;
+  views: number;
+}) {
   const navigate = useNavigate();
-
-  // Generar un número fake-pero-estable de "vistas" basado en el slug
-  // (la API no provee este dato, lo simulamos para look & feel)
-  const fakeViews = (() => {
-    let h = 0;
-    for (let i = 0; i < episode.slug.length; i++) {
-      h = (h * 31 + episode.slug.charCodeAt(i)) | 0;
-    }
-    const n = Math.abs(h) % 900 + 80; // 80-980
-    return n;
-  })();
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -101,9 +128,7 @@ function EpisodeCardWide({ episode }: { episode: ZetLatestEpisode }) {
         navigate(`/anime/${result.media[0].id}`);
         return;
       }
-    } catch {
-      // fallback abajo
-    }
+    } catch { /* fallback */ }
     navigate(`/search?q=${encodeURIComponent(episode.title)}`);
   };
 
@@ -112,13 +137,12 @@ function EpisodeCardWide({ episode }: { episode: ZetLatestEpisode }) {
       onClick={handleClick}
       className="group relative flex-shrink-0 w-[280px] h-[140px] rounded-2xl overflow-hidden bg-secondary text-left ring-1 ring-border hover:ring-primary/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
     >
-      {/* Cover de fondo */}
+      {/* Cover de fondo (lazy + libera al salir del viewport) */}
       {episode.cover ? (
-        <img
+        <LazyImage
           src={episode.cover}
           alt={episode.title}
-          loading="lazy"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full"
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-xs">
@@ -126,27 +150,29 @@ function EpisodeCardWide({ episode }: { episode: ZetLatestEpisode }) {
         </div>
       )}
 
-      {/* Gradiente lateral oscuro (de izquierda a derecha) para legibilidad */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+      {/* Gradientes para legibilidad */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
-      {/* Vistas arriba-izquierda */}
-      <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm">
-        <Eye className="w-3 h-3 text-primary" />
-        <span className="text-[10px] font-bold text-white">
-          {fakeViews} vistas
-        </span>
-      </div>
+      {/* Vistas REALES arriba-izquierda */}
+      {views > 0 && (
+        <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm z-10">
+          <Eye className="w-3 h-3 text-primary" />
+          <span className="text-[10px] font-bold text-white">
+            {formatViews(views)} vistas
+          </span>
+        </div>
+      )}
 
-      {/* Badge JP arriba-derecha */}
-      <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-primary/90 backdrop-blur-sm">
+      {/* Badge "C" (Capítulo / Calidad) arriba-derecha */}
+      <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-primary/90 backdrop-blur-sm z-10">
         <span className="text-[9px] font-black text-primary-foreground tracking-wider">
-          JP
+          C
         </span>
       </div>
 
       {/* Duración derecha-abajo */}
-      <div className="absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">
+      <div className="absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm z-10">
         <Clock className="w-2.5 h-2.5 text-white/80" />
         <span className="text-[9px] font-semibold text-white/90">24 min</span>
       </div>
@@ -164,7 +190,7 @@ function EpisodeCardWide({ episode }: { episode: ZetLatestEpisode }) {
       </div>
 
       {/* Play overlay en hover */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/30">
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/30 z-20">
         <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center shadow-[0_0_20px_hsl(var(--primary))]">
           <Play className="w-5 h-5 text-primary-foreground fill-primary-foreground ml-0.5" />
         </div>
