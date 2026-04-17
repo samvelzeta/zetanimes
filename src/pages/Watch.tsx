@@ -407,7 +407,22 @@ export default function Watch() {
         </div>
 
         {/* Ad 300x250 debajo de los botones */}
-        <AdBanner300x250Watch />
+        <AdsterraBanner
+          adKey="b411f21fa26a4e8427eb13433959b4e8"
+          width={300}
+          height={250}
+          uid="watch-ep-300x250"
+        />
+      </div>
+
+      {/* Ad 320x50 al final de la página, debajo de la lista de episodios */}
+      <div className="px-4 mt-6">
+        <AdsterraBanner
+          adKey="b411f21fa26a4e8427eb13433959b4e8"
+          width={320}
+          height={50}
+          uid="watch-bottom-320x50"
+        />
       </div>
 
       {/* Lista colapsable de episodios */}
