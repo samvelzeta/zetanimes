@@ -196,23 +196,26 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
 
   return (
     <div
-      className={`pointer-events-none ${posClass} transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"}`}
+      className={`pointer-events-none ${posClass} transition-opacity duration-300 ${
+        show && !sacrificeMode ? "opacity-100" : "opacity-0"
+      }`}
+      style={sacrificeMode ? { pointerEvents: "none" } : undefined}
     >
       {/* Chip episodio */}
       <div className="pointer-events-auto absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/80 text-white text-xs font-bold tracking-wide shadow-lg border border-primary/20">
         EP {episode} {totalEpisodes > 0 && <span className="opacity-60">/ {totalEpisodes}</span>}
       </div>
 
-      {/* TUERCA play/pause central */}
+      {/* TUERCA play/pause central — más grande para tapar el botón nativo de abajo */}
       <div className="pointer-events-auto absolute inset-0 flex items-center justify-center">
         <button
           onClick={togglePlayPause}
           className="active:scale-95 hover:scale-110 transition-transform"
           aria-label={isPlaying ? "Pausar" : "Reproducir"}
-          title={hasNativeVideo ? (isPlaying ? "Pausar" : "Reproducir") : "Reproducir (control limitado en este servidor)"}
-          style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.7))" }}
+          title={hasNativeVideo ? (isPlaying ? "Pausar" : "Reproducir") : "Reproducir"}
+          style={{ filter: "drop-shadow(0 4px 14px rgba(0,0,0,0.8))" }}
         >
-          <NutBolt horizontal={!isPlaying} size={isFullscreen ? 96 : 72} />
+          <NutBolt horizontal={!isPlaying} size={isFullscreen ? 160 : 130} />
         </button>
       </div>
 
