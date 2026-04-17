@@ -199,11 +199,16 @@
     hsl(var(--background) / 0.4) 80%,
     transparent 100%
   );
-  border-bottom: 1px solid transparent;
+  border-bottom: none;
 }
 .glass-header.scrolled {
-  background: hsl(var(--background) / 0.92);
-  border-bottom: 1px solid hsl(var(--border));
+  background: linear-gradient(
+    180deg,
+    hsl(var(--background) / 0.98) 0%,
+    hsl(var(--background) / 0.85) 60%,
+    hsl(var(--background) / 0.5) 100%
+  );
+  border-bottom: none;
 }
 
 /* ============ Steampunk: tipografía ============ */
