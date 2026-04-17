@@ -6,6 +6,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsTV } from "@/hooks/useIsTV";
 import { translateText } from "@/lib/translate";
 import { playHeartbeat } from "@/lib/heartbeat-sound";
+import LazyImage from "@/components/LazyImage";
 
 interface Props {
   animes: AniListMedia[];
@@ -189,18 +190,19 @@ function MobileHero({ animes }: { animes: AniListMedia[] }) {
 
   return (
     <div className="relative w-full h-[55vh] min-h-[360px] overflow-hidden bg-background select-none">
-      {top.map((item, i) => {
-        const bg = item.bannerImage || item.coverImage?.extraLarge || item.coverImage?.large;
-        return (
-          <div key={item.id} className="absolute inset-0 transition-opacity duration-700" style={{ opacity: i === current ? 1 : 0, zIndex: 1 }}>
-            <img src={bg} alt="" className="w-full h-full object-cover" />
-          </div>
-        );
-      })}
+      {/* En mobile: solo renderizamos la imagen activa para no componer 6 capas */}
+      <div className="absolute inset-0" style={{ zIndex: 1 }}>
+        <LazyImage
+          key={anime.id}
+          src={(anime.bannerImage || anime.coverImage?.extraLarge || anime.coverImage?.large)!}
+          alt=""
+          className="w-full h-full"
+        />
+      </div>
       <div className="absolute inset-0 z-10 bg-gradient-to-r from-background via-background/70 to-transparent" />
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-background via-transparent to-background/20" />
       <div className="absolute bottom-0 left-0 right-0 z-20 p-5 pb-12" key={`mob-info-${animKey}`}>
-        <div className="flex items-center gap-2 mb-2 animate-[hero-slide-up_0.5s_ease-out_forwards]" style={{ opacity: 0 }}>
+        <div className="flex items-center gap-2 mb-2">
           <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded-md text-primary-foreground ${getStatusColor(anime.status)}`}>{getStatusLabel(anime.status)}</span>
           {anime.averageScore && (
             <div className="flex items-center gap-0.5 bg-black/40 px-1.5 py-0.5 rounded-md">
@@ -209,15 +211,15 @@ function MobileHero({ animes }: { animes: AniListMedia[] }) {
             </div>
           )}
         </div>
-        <h1 className="text-2xl font-black text-white leading-tight mb-1 animate-[hero-slide-up_0.5s_ease-out_0.1s_forwards]" style={{ opacity: 0 }}>{getTitle(anime)}</h1>
+        <h1 className="text-2xl font-black text-white leading-tight mb-1">{getTitle(anime)}</h1>
         {desc && (
-          <p className="text-[11px] text-white/50 line-clamp-2 mb-2 max-w-xs animate-[hero-slide-up_0.5s_ease-out_0.15s_forwards]" style={{ opacity: 0 }}>
+          <p className="text-[11px] text-white/50 line-clamp-2 mb-2 max-w-xs">
             {desc.slice(0, 120)}{desc.length > 120 ? "..." : ""}
           </p>
         )}
-        {anime.genres && <p className="text-[10px] text-white/50 mb-3 animate-[hero-slide-up_0.5s_ease-out_0.2s_forwards]" style={{ opacity: 0 }}>{anime.genres.slice(0, 3).join(" • ")}</p>}
-        <div className="flex gap-3 animate-[hero-slide-up_0.5s_ease-out_0.3s_forwards]" style={{ opacity: 0 }}>
-          <button onClick={() => { playHeartbeat(); navigate(`/watch/${anime.id}?ep=1`); }} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-primary-foreground bg-primary hover:scale-105 transition-transform">
+        {anime.genres && <p className="text-[10px] text-white/50 mb-3">{anime.genres.slice(0, 3).join(" • ")}</p>}
+        <div className="flex gap-3">
+          <button onClick={() => { playHeartbeat(); navigate(`/watch/${anime.id}?ep=1`); }} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-primary-foreground bg-primary active:scale-95 transition-transform">
             <Play className="w-3.5 h-3.5 fill-current" /> Ver Ahora
           </button>
           <Link to={`/anime/${anime.id}`} className="flex items-center gap-1.5 bg-white/10 text-white px-5 py-2.5 rounded-xl text-xs font-semibold">
@@ -227,7 +229,7 @@ function MobileHero({ animes }: { animes: AniListMedia[] }) {
       </div>
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex gap-1.5">
         {top.map((_, i) => (
-          <button key={i} onClick={() => goTo(i)} className={`transition-all duration-300 rounded-full ${i === current ? "w-6 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/30"}`} />
+          <button key={i} onClick={() => goTo(i)} className={`transition-all duration-200 rounded-full ${i === current ? "w-6 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/30"}`} />
         ))}
       </div>
     </div>
