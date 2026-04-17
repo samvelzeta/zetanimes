@@ -253,6 +253,33 @@ export type Database = {
         }
         Relationships: []
       }
+      hidden_home_animes: {
+        Row: {
+          anilist_id: number
+          anime_title: string | null
+          created_at: string
+          hidden_by: string | null
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          anilist_id: number
+          anime_title?: string | null
+          created_at?: string
+          hidden_by?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          anilist_id?: number
+          anime_title?: string | null
+          created_at?: string
+          hidden_by?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       latino_episodes: {
         Row: {
           created_at: string
@@ -429,6 +456,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          last_seen_notification_id: string | null
           updated_at: string
           user_id: string
           username: string
@@ -438,6 +466,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          last_seen_notification_id?: string | null
           updated_at?: string
           user_id: string
           username: string
@@ -447,6 +476,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          last_seen_notification_id?: string | null
           updated_at?: string
           user_id?: string
           username?: string
@@ -477,6 +507,42 @@ export type Database = {
         }
         Relationships: []
       }
+      slug_overrides: {
+        Row: {
+          anilist_id: number
+          anime_title: string | null
+          cover_image: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          manual_slug: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          anime_title?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          manual_slug: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          anime_title?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          manual_slug?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -495,6 +561,45 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      video_cache: {
+        Row: {
+          anilist_id: number | null
+          anime_title: string | null
+          created_at: string
+          episode: number
+          id: string
+          lang: string
+          slug: string
+          sources: Json
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          anilist_id?: number | null
+          anime_title?: string | null
+          created_at?: string
+          episode: number
+          id?: string
+          lang?: string
+          slug: string
+          sources?: Json
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          anilist_id?: number | null
+          anime_title?: string | null
+          created_at?: string
+          episode?: number
+          id?: string
+          lang?: string
+          slug?: string
+          sources?: Json
+          updated_at?: string
+          uploaded_by?: string | null
         }
         Relationships: []
       }
