@@ -266,16 +266,24 @@ export default function Watch() {
           {inWebView && " • 📱 APK"}
         </p>
 
-        {/* Language */}
+        {/* Idioma: solo cambia si hay 2+ Z servers o latino HLS */}
         <div className="flex items-center gap-2 mb-4">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-xs font-medium text-muted-foreground">Idioma:</span>
-          {(["sub", "latino"] as Lang[]).map((l) => (
-            <button key={l} onClick={() => setLang(l)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${lang === l ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}>
-              {l === "sub" ? "🇯🇵 Japonés" : "🌎 Latino"}
+          {hasMultipleLangs ? (
+            <button
+              onClick={() => setLang(lang === "sub" ? "latino" : "sub")}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all flex items-center gap-1.5"
+            >
+              {langButtonLabel}
+              <span className="text-[10px] opacity-80">
+                ({lang === "sub" ? "🇯🇵 JP → 🌎 LAT" : "🌎 LAT → 🇯🇵 JP"})
+              </span>
             </button>
-          ))}
+          ) : (
+            <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary text-muted-foreground">
+              {langButtonLabel}
+            </span>
+          )}
         </div>
 
         {lang === "latino" && latinoEp && (
