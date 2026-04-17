@@ -88,22 +88,14 @@ export default function Directory() {
 
   return (
     <div className="min-h-screen pt-4 px-4 pb-24">
-      <h1 className="text-xl font-black text-foreground mb-4 tracking-tight">Directorio</h1>
-
-      {/* Search */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setSelectedGenre(null); setQuickFilter(null); }}
-          placeholder="Buscar anime..."
-          className="pl-10 pr-10 h-10 bg-secondary border-border text-foreground placeholder:text-muted-foreground rounded-xl focus-visible:ring-primary/40"
-        />
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-black text-foreground tracking-tight">Directorio</h1>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${showFilters ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${showFilters ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
         >
-          <Filter className="w-4 h-4" />
+          <Filter className="w-3.5 h-3.5" />
+          Filtros
         </button>
       </div>
 
