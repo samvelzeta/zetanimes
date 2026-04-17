@@ -17,7 +17,8 @@ export default function Layout() {
   const transparentHeader = location.pathname === "/" || location.pathname.startsWith("/anime/");
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground relative">
+      <SteamGears />
       {isTV ? (
         // TV mode: no header/search bar, use side navigation
         <>
