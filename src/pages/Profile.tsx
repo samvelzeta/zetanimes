@@ -2,42 +2,22 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, Eye, CheckCircle, Clock, HelpCircle, Settings, LogOut, Crown, Shield, MessageSquare, FileText, ExternalLink, Camera, Loader2, Share2, Smartphone } from "lucide-react";
+import { Settings, LogOut, Crown, Shield, MessageSquare, ExternalLink, Camera, Share2, Smartphone, Cog, ChevronRight, Library } from "lucide-react";
 import { toast } from "sonner";
-import AnimeCard from "@/components/anime/AnimeCard";
-import type { AniListMedia } from "@/lib/anilist";
 import { compressAvatar, compressProof } from "@/lib/image-compress";
-
-const LIST_TABS = [
-  { value: "favorite" as const, label: "Favoritos", Icon: Heart },
-  { value: "watching" as const, label: "Viendo", Icon: Eye },
-  { value: "completed" as const, label: "Terminados", Icon: CheckCircle },
-  { value: "plan_to_watch" as const, label: "Ver Después", Icon: Clock },
-  { value: "undecided" as const, label: "Indecisos", Icon: HelpCircle },
-];
+import { Loader2 } from "lucide-react";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<string>("favorite");
-  const [listAnimes, setListAnimes] = useState<any[]>([]);
   const [stats, setStats] = useState({ lists: 0, episodes: 0, hours: 0 });
   const [contacts, setContacts] = useState<any[]>([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      loadList(activeTab);
-      loadStats();
-    }
+    if (user) loadStats();
     loadContacts();
-  }, [user, activeTab]);
-
-  const loadList = async (listType: string) => {
-    if (!user) return;
-    const { data } = await supabase.from("anime_lists").select("*").eq("user_id", user.id).eq("list_type", listType as any);
-    setListAnimes(data || []);
-  };
+  }, [user]);
 
   const loadStats = async () => {
     if (!user) return;
@@ -58,11 +38,12 @@ export default function Profile() {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user || !e.target.files?.[0]) return;
     const file = e.target.files[0];
-    const path = `${user.id}/avatar.${file.name.split(".").pop()}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    const compressed = await compressAvatar(file);
+    const path = `${user.id}/avatar.webp`;
+    const { error } = await supabase.storage.from("avatars").upload(path, compressed, { upsert: true, contentType: "image/webp" });
     if (error) return toast.error("Error al subir imagen");
     const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-    await supabase.from("profiles").update({ avatar_url: urlData.publicUrl }).eq("user_id", user.id);
+    await supabase.from("profiles").update({ avatar_url: `${urlData.publicUrl}?t=${Date.now()}` }).eq("user_id", user.id);
     await refreshProfile();
     toast.success("Foto actualizada");
   };
@@ -73,7 +54,7 @@ export default function Profile() {
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-24 h-24 rounded-full overflow-hidden mb-3 ring-1 ring-border">
             <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-2xl font-black text-white">Z</span>
+              <span className="text-2xl font-black text-primary-foreground">Z</span>
             </div>
           </div>
           <h1 className="text-lg font-black text-foreground">Invitado</h1>
@@ -88,15 +69,19 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen pt-12 px-4 pb-24">
-      {/* Avatar & info */}
-      <div className="flex flex-col items-center text-center mb-6">
+      {/* Avatar steampunk con engranajes orbitales */}
+      <div className="flex flex-col items-center text-center mb-6 relative">
+        {/* Engranajes decorativos */}
+        <Cog className="absolute top-2 left-6 w-5 h-5 text-primary/30 animate-spin" style={{ animationDuration: "14s" }} />
+        <Cog className="absolute top-4 right-8 w-4 h-4 text-primary/40 animate-spin" style={{ animationDuration: "10s", animationDirection: "reverse" }} />
+
         <div className="relative">
-          <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-primary/50">
+          <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-primary/60" style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.5)" }}>
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <span className="text-2xl font-black text-white">{profile?.username?.[0]?.toUpperCase() || "U"}</span>
+                <span className="text-2xl font-black text-primary-foreground">{profile?.username?.[0]?.toUpperCase() || "U"}</span>
               </div>
             )}
           </div>
@@ -108,50 +93,46 @@ export default function Profile() {
         <h1 className="text-lg font-black text-foreground mt-3">{profile?.display_name || profile?.username}</h1>
         <p className="text-xs text-muted-foreground">{user.email}</p>
         {isPremium && (
-          <span className="mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-xs font-bold text-white">
+          <span className="mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-xs font-bold text-primary-foreground">
             <Crown className="w-3 h-3" /> PREMIUM
           </span>
         )}
-        <div className="flex gap-6 mt-5">
-          <div className="text-center"><p className="text-xl font-black text-foreground">{stats.lists}</p><p className="text-[10px] text-muted-foreground font-medium">En Listas</p></div>
-          <div className="w-px bg-border" />
-          <div className="text-center"><p className="text-xl font-black text-foreground">{stats.episodes}</p><p className="text-[10px] text-muted-foreground font-medium">Episodios</p></div>
-          <div className="w-px bg-border" />
-          <div className="text-center"><p className="text-xl font-black text-foreground">{stats.hours}</p><p className="text-[10px] text-muted-foreground font-medium">Horas</p></div>
+
+        {/* Stats con marco steampunk */}
+        <div className="mt-5 grid grid-cols-3 gap-2 w-full max-w-xs">
+          {[
+            { value: stats.lists, label: "En Listas" },
+            { value: stats.episodes, label: "Episodios" },
+            { value: stats.hours, label: "Horas" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl border-2 border-primary/20 bg-secondary/40 py-2 px-1">
+              <p className="text-xl font-black text-foreground">{s.value}</p>
+              <p className="text-[10px] text-muted-foreground font-medium">{s.label}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* List tabs */}
-      <div className="flex gap-0 rounded-2xl overflow-hidden border border-primary/30 mb-4">
-        {LIST_TABS.map(({ value, label, Icon }) => (
-          <button key={value} onClick={() => setActiveTab(value)}
-            className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-all ${activeTab === value ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
-            <Icon className="w-3 h-3" /><span className="hidden sm:inline">{label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* List content */}
-      <div className="mb-6">
-        {listAnimes.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground text-sm">No hay animes en esta lista</p>
+      {/* CTA grande hacia Mis Listas (steampunk) */}
+      <Link
+        to="/mis-listas"
+        className="group relative block mb-4 rounded-2xl overflow-hidden border-2 border-primary/40 bg-gradient-to-r from-primary/15 via-secondary/60 to-primary/15 p-4 hover:border-primary transition-all"
+        style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.25), inset 0 0 20px hsl(var(--primary) / 0.05)" }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="relative w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+            <Library className="w-6 h-6 text-primary" />
+            <Cog className="absolute -top-1 -right-1 w-4 h-4 text-primary animate-spin" style={{ animationDuration: "6s" }} />
           </div>
-        ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {listAnimes.map((item) => (
-              <Link key={item.id} to={`/anime/${item.anime_id}`} className="block">
-                <div className="aspect-[3/4] rounded-xl overflow-hidden bg-secondary">
-                  {item.anime_cover && <img src={item.anime_cover} alt={item.anime_title} className="w-full h-full object-cover" />}
-                </div>
-                <p className="text-[10px] font-medium text-muted-foreground line-clamp-2 mt-1">{item.anime_title}</p>
-              </Link>
-            ))}
+          <div className="flex-1 text-left">
+            <p className="text-sm font-black text-foreground tracking-tight">Mis Listas</p>
+            <p className="text-[11px] text-muted-foreground">Favoritos · Viendo · Terminados · Plan · Indecisos</p>
           </div>
-        )}
-      </div>
+          <ChevronRight className="w-5 h-5 text-primary group-hover:translate-x-1 transition" />
+        </div>
+      </Link>
 
-      {/* Actions */}
+      {/* Acciones */}
       <div className="space-y-2">
         <Link to="/settings" className="flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-muted transition">
           <Settings className="w-4 h-4 text-muted-foreground" /><span className="text-sm text-foreground">Configuración</span>
@@ -167,7 +148,6 @@ export default function Profile() {
           </Link>
         )}
 
-        {/* Contacts */}
         {contacts.length > 0 && (
           <div className="pt-4">
             <h3 className="text-xs font-bold text-muted-foreground mb-2 flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Contáctanos</h3>
@@ -177,7 +157,7 @@ export default function Profile() {
                   {c.icon_url ? (
                     <img src={c.icon_url} alt="" className="w-5 h-5 rounded-full" />
                   ) : (
-                    <div className="w-5 h-5 rounded-full" style={{ backgroundColor: c.color || "#FF4500" }} />
+                    <div className="w-5 h-5 rounded-full" style={{ backgroundColor: c.color || "hsl(var(--primary))" }} />
                   )}
                   <span className="text-xs font-medium text-foreground truncate">{c.name}</span>
                   <ExternalLink className="w-3 h-3 text-muted-foreground ml-auto" />
@@ -187,15 +167,11 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Compartir aplicación */}
         <button
           onClick={async () => {
             const url = `${window.location.origin}/download`;
             if (navigator.share) {
-              try {
-                await navigator.share({ title: "zetAnime APK", text: "Descarga zetAnime y mira anime sin límites", url });
-                return;
-              } catch {}
+              try { await navigator.share({ title: "zetAnime APK", text: "Descarga zetAnime y mira anime sin límites", url }); return; } catch {}
             }
             await navigator.clipboard.writeText(url);
             toast.success("Enlace copiado al portapapeles");
@@ -212,7 +188,6 @@ export default function Profile() {
         </button>
       </div>
 
-      {/* Premium modal */}
       {showPremiumModal && <PremiumModal onClose={() => setShowPremiumModal(false)} />}
     </div>
   );

@@ -21,6 +21,7 @@ const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const AdminPanel = lazy(() => import("@/pages/Admin"));
 const TermsPage = lazy(() => import("@/pages/Terms"));
 const DownloadPage = lazy(() => import("@/pages/Download"));
+const MyLists = lazy(() => import("@/pages/MyLists"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -57,6 +58,7 @@ const App = () => (
                 <Route path="/watch/:id" element={<Watch />} />
                 <Route path="/recent" element={<RecentlyWatched />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/mis-listas" element={<MyLists />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
