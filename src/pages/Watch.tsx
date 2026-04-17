@@ -42,6 +42,8 @@ export default function Watch() {
   const watchTimeRef = useRef(0);
   const [initialTime, setInitialTime] = useState<number | undefined>(undefined);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
+  const [showEpisodes, setShowEpisodes] = useState(false);
+  const [activeSourceIdx, setActiveSourceIdx] = useState(0);
 
   const { data: anilistData } = useQuery({
     queryKey: ["anime-detail", anilistId],
