@@ -4,6 +4,7 @@ import { getLatestEpisodes, type ZetLatestEpisode } from "@/lib/zetapi";
 import { searchAnime } from "@/lib/anilist";
 import { AlertCircle, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import AdCard from "@/components/ads/AdCard";
 
 function EpisodeSkeleton() {
   return (
@@ -53,7 +54,16 @@ export default function LatestEpisodes() {
       <div ref={scrollRef} className="flex gap-3 overflow-x-auto px-4 hide-scrollbar">
         {isLoading
           ? Array(8).fill(0).map((_, i) => <EpisodeSkeleton key={i} />)
-          : episodes?.map((ep, i) => <EpisodeCard key={`${ep.slug}-${i}`} episode={ep} />)}
+          : episodes?.map((ep, i) => (
+              <div key={`${ep.slug}-${i}`} className="contents">
+                <EpisodeCard episode={ep} />
+                {(i + 1) % 3 === 0 && i < (episodes.length - 1) && (
+                  <div className="flex-shrink-0 w-[110px]">
+                    <AdCard size="small" />
+                  </div>
+                )}
+              </div>
+            ))}
       </div>
 
       {!isLoading && !error && episodes?.length === 0 && (

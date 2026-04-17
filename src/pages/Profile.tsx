@@ -6,6 +6,7 @@ import { Heart, Eye, CheckCircle, Clock, HelpCircle, Settings, LogOut, Crown, Sh
 import { toast } from "sonner";
 import AnimeCard from "@/components/anime/AnimeCard";
 import type { AniListMedia } from "@/lib/anilist";
+import { compressAvatar, compressProof } from "@/lib/image-compress";
 
 const LIST_TABS = [
   { value: "favorite" as const, label: "Favoritos", Icon: Heart },
@@ -226,8 +227,9 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
     setLoading(true);
     let proofUrl = "";
     if (proofFile) {
-      const path = `${user.id}/${Date.now()}-${proofFile.name}`;
-      await supabase.storage.from("premium-proofs").upload(path, proofFile);
+      const compressed = await compressProof(proofFile);
+      const path = `${user.id}/${Date.now()}-comprobante.webp`;
+      await supabase.storage.from("premium-proofs").upload(path, compressed, { contentType: "image/webp" });
       proofUrl = path;
     }
     await supabase.from("premium_requests").insert({
@@ -242,6 +244,7 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
     toast.success("Solicitud enviada. Te notificaremos cuando sea aprobada.");
     onClose();
   };
+
 
   const benefits = [
     "Sin anuncios interrumpidos",

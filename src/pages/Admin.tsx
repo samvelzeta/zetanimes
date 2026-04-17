@@ -138,6 +138,13 @@ function PremiumTab() {
     });
   }, []);
 
+  // Borrar comprobante del Storage para liberar espacio (Fase 3 optimización)
+  const cleanupProof = async (proof_url?: string | null) => {
+    if (!proof_url) return;
+    try { await supabase.storage.from("premium-proofs").remove([proof_url]); }
+    catch (err) { console.warn("[admin] no pude borrar comprobante", err); }
+  };
+
   const approve = async (req: any, type: "annual" | "lifetime") => {
     setActionLoading(true);
     try {
@@ -147,15 +154,16 @@ function PremiumTab() {
         user_id: req.user_id, membership_type: type, status: "active" as any,
         activated_at: new Date().toISOString(), expires_at: expires,
       });
-      await supabase.from("premium_requests").update({ status: "active" as any }).eq("id", req.id);
+      await supabase.from("premium_requests").update({ status: "active" as any, proof_url: null }).eq("id", req.id);
       await supabase.from("notifications").insert({
         title: "🎉 ¡Premium Activado!",
         message: `Tu membresía ${type === "annual" ? "Anual" : "Para Siempre"} ha sido aprobada. ¡Disfruta de todos los beneficios!`,
         type: "success",
       });
-      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "active" } : r));
+      await cleanupProof(req.proof_url);
+      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "active", proof_url: null } : r));
       setSelectedReq(null);
-      toast.success("Premium activado y usuario notificado");
+      toast.success("Premium activado y comprobante liberado");
     } catch (e: any) {
       toast.error("Error: " + e.message);
     }
@@ -166,11 +174,12 @@ function PremiumTab() {
     if (!rejectReason.trim()) return toast.error("Escribe un motivo de rechazo");
     setActionLoading(true);
     try {
-      await supabase.from("premium_requests").update({ status: "rejected" as any, notes: rejectReason }).eq("id", req.id);
-      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "rejected" } : r));
+      await supabase.from("premium_requests").update({ status: "rejected" as any, notes: rejectReason, proof_url: null }).eq("id", req.id);
+      await cleanupProof(req.proof_url);
+      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "rejected", proof_url: null } : r));
       setSelectedReq(null);
       setRejectReason("");
-      toast.info("Solicitud rechazada");
+      toast.info("Solicitud rechazada y comprobante liberado");
     } catch (e: any) {
       toast.error("Error: " + e.message);
     }
