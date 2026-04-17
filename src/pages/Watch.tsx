@@ -146,14 +146,12 @@ export default function Watch() {
 
   const sortedSources = buildSources();
 
-  // Detectar servers "Z" totales (cache DB + scraper API)
-  // Si hay 2+ Z servers o HLS latino → permite cambiar idioma
-  const zServersInCache = (cachedVideo?.sources?.hls?.length || 0) + (cachedVideo?.sources?.embed?.length || 0);
-  const zServersFromScraper = (serverData?.servers || []).filter(
-    (s: ZetServer) => s.name?.toUpperCase().startsWith("Z")
-  ).length;
-  const totalZServers = zServersInCache + zServersFromScraper;
-  const hasMultipleLangs = totalZServers >= 2 || !!latinoEp;
+  // Total de fuentes disponibles (cache + scraper + latino HLS)
+  // Si hay 2+ sources → permite cambiar entre ellos (típicamente JP/LATINO o servidores diferentes)
+  // Si hay HLS latino dedicado → toggle real entre sub/latino
+  const hasLatinoHLS = !!latinoEp;
+  const hasMultipleSources = sortedSources.length >= 2;
+  const hasMultipleLangs = hasLatinoHLS || hasMultipleSources;
   const langButtonLabel = hasMultipleLangs ? "Cambiar idioma" : "Idioma predeterminado";
 
   // Restore progress on episode change
