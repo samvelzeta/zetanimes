@@ -321,16 +321,25 @@ export default function Watch() {
               </p>
             </div>
           )}
+          </div>
         </div>
       </div>
 
       {/* Title + controls */}
       <div className="px-4 mb-4">
         <h1 className="text-base font-bold text-foreground mb-1">{displayTitle}</h1>
-        <p className="text-xs text-muted-foreground mb-3">
-          Episodio {selectedEp} {zetSlug && `• ${zetSlug}`}
-          {inWebView && " • 📱 APK"}
-        </p>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <p className="text-xs text-muted-foreground">
+            Episodio {selectedEp} {zetSlug && `• ${zetSlug}`}
+            {inWebView && " • 📱 APK"}
+          </p>
+          <Link
+            to={`/anime/${id}`}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
+          >
+            <ChevronLeft className="w-4 h-4" /> Volver al anime
+          </Link>
+        </div>
 
         {/* Idioma / fuente alternativa */}
         <div className="flex items-center gap-2 mb-4">
