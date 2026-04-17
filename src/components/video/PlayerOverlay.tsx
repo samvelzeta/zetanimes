@@ -172,9 +172,14 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
       try {
         iframe.contentWindow.postMessage({ action: isPlaying ? "pause" : "play" }, "*");
         iframe.contentWindow.postMessage(isPlaying ? "pause" : "play", "*");
-        setIsPlaying(!isPlaying);
       } catch {}
     }
+    // CAPA DE SACRIFICIO: ocultamos brevemente el overlay para que el siguiente
+    // clic del usuario llegue al iframe real (truco recomendado).
+    setIsPlaying((p) => !p);
+    setSacrificeMode(true);
+    if (sacrificeTimer.current) clearTimeout(sacrificeTimer.current);
+    sacrificeTimer.current = setTimeout(() => setSacrificeMode(false), 700);
   };
 
   const skip = (seconds: number) => {
