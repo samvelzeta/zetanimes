@@ -58,6 +58,7 @@ const App = () => (
                 <Route path="/watch/:id" element={<Watch />} />
                 <Route path="/recent" element={<RecentlyWatched />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/mis-listas" element={<MyLists />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
