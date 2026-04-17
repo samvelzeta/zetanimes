@@ -88,9 +88,12 @@ export default function Home() {
     );
   }
 
+  // Splash listo cuando las queries críticas iniciales hayan respondido
+  const initialReady = !!(trending && popular);
+
   return (
     <>
-      {!splashDone && <SplashScreen onComplete={handleSplashComplete} />}
+      {!splashDone && <SplashScreen onComplete={handleSplashComplete} ready={initialReady} />}
       <div className="min-h-screen">
         <HeroBanner animes={filterFn(trending?.media)} />
 

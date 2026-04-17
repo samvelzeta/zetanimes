@@ -17,8 +17,14 @@ export default function HeaderBar() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  // Read-receipt: timestamp ISO de la última notificación que el usuario ya vio (global)
   const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 30);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     const fetchNotifs = async () => {
@@ -86,9 +92,8 @@ export default function HeaderBar() {
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 bg-background/95 backdrop-blur-xl border-b border-border">
-      {/* Left: Avatar */}
-      <Link to={user ? "/profile" : "/auth"} className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-border flex-shrink-0">
+    <div className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 glass-header transition-all duration-300 ${scrolled ? "scrolled" : ""}`}>
+      <Link to={user ? "/profile" : "/auth"} className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/30 flex-shrink-0">
         {profile?.avatar_url ? (
           <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
         ) : (
@@ -98,12 +103,10 @@ export default function HeaderBar() {
         )}
       </Link>
 
-      {/* Center: Brand */}
-      <Link to="/" className="text-sm font-black text-foreground tracking-tight">ZetAnime</Link>
+      <Link to="/" className="text-sm font-black text-foreground tracking-tight drop-shadow-md">ZetAnime</Link>
 
-      {/* Right: Bell */}
       <div className="relative">
-        <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-muted transition relative">
+        <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur flex items-center justify-center hover:bg-muted transition relative">
           <Bell className="w-4 h-4 text-foreground" />
           {hasUnread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
         </button>
