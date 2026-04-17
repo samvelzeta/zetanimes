@@ -13,10 +13,12 @@ interface Notification {
 }
 
 export default function HeaderBar() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  // Read-receipt: timestamp ISO de la última notificación que el usuario ya vio (global)
+  const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchNotifs = async () => {
@@ -25,7 +27,6 @@ export default function HeaderBar() {
     };
     fetchNotifs();
 
-    // Real-time subscription
     const channel = supabase.channel("notifications-realtime").on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "notifications" },
@@ -45,8 +46,30 @@ export default function HeaderBar() {
     }
   }, [user]);
 
-  const unread = notifications.filter((n) => !dismissed.has(n.id));
+  useEffect(() => {
+    if (profile?.last_seen_notification_id) setLastSeenAt(profile.last_seen_notification_id);
+  }, [profile]);
+
+  const unread = notifications.filter((n) => {
+    if (dismissed.has(n.id)) return false;
+    if (lastSeenAt && new Date(n.created_at) <= new Date(lastSeenAt)) return false;
+    return true;
+  });
   const hasUnread = unread.length > 0;
+
+  const markAllSeen = async () => {
+    if (!user || notifications.length === 0) return;
+    const newest = notifications[0].created_at;
+    setLastSeenAt(newest);
+    await supabase.from("profiles").update({ last_seen_notification_id: newest }).eq("user_id", user.id);
+    refreshProfile();
+  };
+
+  const handleToggleNotifs = () => {
+    const opening = !showNotifs;
+    setShowNotifs(opening);
+    if (opening && hasUnread) markAllSeen();
+  };
 
   const dismissNotif = async (notifId: string) => {
     if (user) {
@@ -80,7 +103,7 @@ export default function HeaderBar() {
 
       {/* Right: Bell */}
       <div className="relative">
-        <button onClick={() => setShowNotifs(!showNotifs)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-muted transition relative">
+        <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-muted transition relative">
           <Bell className="w-4 h-4 text-foreground" />
           {hasUnread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
         </button>
