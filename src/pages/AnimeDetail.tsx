@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { translateText } from "@/lib/translate";
 import { trackAnimeView, getAnimeViews, formatViews } from "@/lib/anime-views";
 import AdBannerInline from "@/components/ads/AdBannerInline";
+import SlugOverrideAdmin from "@/components/admin/SlugOverrideAdmin";
 
 type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
 
