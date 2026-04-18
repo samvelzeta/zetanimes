@@ -239,15 +239,24 @@ export default function VideoManager() {
 
   const deleteSaved = async (sv: CachedVideo) => {
     if (!confirm(`¿Eliminar EP ${sv.episode} (${sv.lang}) de la DB?`)) return;
-    const ok = await deleteCachedVideo(sv.slug, sv.episode, sv.lang);
-    if (ok) {
-      toast.success("Eliminado");
-      const refreshed = await listCachedVideosBySlug(selected!.slug);
-      setSavedVideos(refreshed);
+    try {
+      const ok = await deleteCachedVideo(sv.slug, sv.episode, sv.lang);
+      if (!ok) {
+        toast.error("Error al eliminar (revisa permisos owner)");
+        return;
+      }
+      toast.success(`EP ${sv.episode} eliminado`);
+      // Refrescar lista local sin re-fetch (más rápido)
+      setSavedVideos(prev => prev.filter(v => v.id !== sv.id));
       const key = `${sv.episode}-${sv.lang}`;
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: false } }));
-    } else {
-      toast.error("Error al eliminar");
+      // Si era el ep seleccionado, limpiar inputs
+      if (selectedEp === sv.episode && lang === sv.lang) {
+        setPrimaryUrl("");
+        setFallbackUrl("");
+      }
+    } catch (e: any) {
+      toast.error("Error al eliminar: " + (e?.message || "desconocido"));
     }
   };
 
