@@ -93,10 +93,10 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
             const idx = getWrappedIndex(offset);
             const anime = items[idx];
             const isActive = offset === 0;
-            // Activa: extraLarge, laterales: large (más liviano)
-            const img = isActive
-              ? (anime.coverImage?.extraLarge || anime.coverImage?.large)
-              : (anime.coverImage?.large || anime.coverImage?.extraLarge);
+            // SIEMPRE la misma URL (extraLarge) sin importar la posición:
+            // así el navegador cachea la imagen una sola vez y al rotar
+            // (lateral → centro o viceversa) NO se vuelve a descargar.
+            const img = anime.coverImage?.extraLarge || anime.coverImage?.large;
             const score = anime.averageScore;
             const absOffset = Math.abs(offset);
 

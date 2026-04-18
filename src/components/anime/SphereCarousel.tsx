@@ -77,10 +77,11 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
   const activeAnime = getItem(activeIdx);
   const leftAnime = getItem(activeIdx - 1);
   const rightAnime = getItem(activeIdx + 1);
+  // SIEMPRE la misma URL para cada anime, sin importar si está al centro o a un lado.
+  // Así el navegador cachea cada imagen una sola vez y NO se vuelve a descargar al rotar.
   const activeImg = activeAnime?.coverImage?.extraLarge || activeAnime?.coverImage?.large;
-  // Thumbnails laterales: usar versión 'large' (más liviana)
-  const leftImg = leftAnime?.coverImage?.large || leftAnime?.coverImage?.extraLarge;
-  const rightImg = rightAnime?.coverImage?.large || rightAnime?.coverImage?.extraLarge;
+  const leftImg = leftAnime?.coverImage?.extraLarge || leftAnime?.coverImage?.large;
+  const rightImg = rightAnime?.coverImage?.extraLarge || rightAnime?.coverImage?.large;
   const size = 200;
   const sideSize = 120;
 
