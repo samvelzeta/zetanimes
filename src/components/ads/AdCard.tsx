@@ -17,13 +17,13 @@ const NATIVE_KEY = "f22e36f62a5acf07d25a8dd129e84655";
 const NATIVE_SCRIPT = `https://pl29176506.profitablecpmratenetwork.com/${NATIVE_KEY}/invoke.js`;
 
 export default function AdCard({ size = "default" }: Props) {
-  const { isPremium } = useAuth();
+  const { isPremium, loading } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
   const loaded = useRef(false);
   const [adFilled, setAdFilled] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (isPremium || loaded.current || !ref.current) return;
+    if (loading || isPremium || loaded.current || !ref.current) return;
     loaded.current = true;
 
     // HTML aislado dentro de un iframe: cada anuncio se carga de forma
@@ -65,19 +65,23 @@ export default function AdCard({ size = "default" }: Props) {
       /* ignore */
     }
 
-    // Verificar si el iframe recibió contenido tras 3s
-    const t = setTimeout(() => {
+    // Reintentos progresivos: 3s, 6s, 10s. Marca failed solo al último.
+    const timers: number[] = [];
+    const probe = (final: boolean) => {
       try {
         const body = iframe.contentWindow?.document?.body;
         const filled = !!body && body.innerHTML.length > 200;
-        setAdFilled(filled);
+        if (filled) { setAdFilled(true); return; }
+        if (final) setAdFilled(false);
       } catch {
-        // cross-origin tras inyección → asumimos que cargó
         setAdFilled(true);
       }
-    }, 3000);
-    return () => clearTimeout(t);
-  }, [isPremium]);
+    };
+    timers.push(window.setTimeout(() => probe(false), 3000));
+    timers.push(window.setTimeout(() => probe(false), 6000));
+    timers.push(window.setTimeout(() => probe(true), 10000));
+    return () => { timers.forEach(clearTimeout); };
+  }, [isPremium, loading]);
 
   if (isPremium) {
     return <div style={{ width: 0, height: 0, overflow: "hidden" }} aria-hidden />;
