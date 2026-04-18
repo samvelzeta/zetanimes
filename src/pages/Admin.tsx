@@ -18,6 +18,9 @@ import HiddenAnimesManager from "@/components/admin/HiddenAnimesManager";
 import ApkManager from "@/components/admin/ApkManager";
 import EpisodeCountManager from "@/components/admin/EpisodeCountManager";
 
+// Tabs reservados solo para owner (info de pago, premium, API keys)
+const OWNER_ONLY_TABS = new Set(["premium", "payment", "apikeys"]);
+
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
   { key: "downloads", label: "Descargas", icon: Store },
@@ -35,33 +38,45 @@ const TABS = [
 ];
 
 export default function AdminPanel() {
-  const { isOwner, loading: authLoading } = useAuth();
+  const { isOwner, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState("stats");
 
   useEffect(() => {
-    if (!authLoading && !isOwner) {
+    if (!authLoading && !isAdmin) {
       toast.error("Acceso restringido");
       navigate("/");
     }
-  }, [authLoading, isOwner]);
+  }, [authLoading, isAdmin]);
+
+  // Si un admin (no owner) intenta abrir un tab restringido, redirigir a stats
+  useEffect(() => {
+    if (!isOwner && OWNER_ONLY_TABS.has(tab)) setTab("stats");
+  }, [isOwner, tab]);
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-  if (!isOwner) return null;
+  if (!isAdmin) return null;
+
+  // Filtrar tabs visibles según rol
+  const visibleTabs = TABS.filter((t) => isOwner || !OWNER_ONLY_TABS.has(t.key));
 
   return (
     <div className="min-h-screen pb-24">
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center gap-3">
         <Link to="/profile" className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center"><ArrowLeft className="w-5 h-5 text-foreground" /></Link>
         <div>
-          <h1 className="text-base font-black text-foreground flex items-center gap-2"><Shield className="w-4 h-4 text-primary" /> Panel Admin</h1>
-          <p className="text-[10px] text-muted-foreground">zetAnime · Área restringida</p>
+          <h1 className="text-base font-black text-foreground flex items-center gap-2">
+            <Shield className="w-4 h-4 text-primary" /> Panel {isOwner ? "Owner" : "Admin"}
+          </h1>
+          <p className="text-[10px] text-muted-foreground">
+            zetAnime · {isOwner ? "Acceso total" : "Acceso de soporte"}
+          </p>
         </div>
         <div className="ml-auto w-2 h-2 rounded-full bg-green-500" />
       </div>
 
       <div className="flex gap-2 overflow-x-auto px-4 pt-4 hide-scrollbar">
-        {TABS.map((t) => (
+        {visibleTabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${tab === t.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}>
             <t.icon className="w-3.5 h-3.5" /> {t.label}
           </button>
@@ -77,11 +92,11 @@ export default function AdminPanel() {
         {tab === "hidden" && <HiddenAnimesManager />}
         {tab === "apk" && <ApkManager />}
         {tab === "reports" && <BrokenReports />}
-        {tab === "premium" && <PremiumTab />}
-        {tab === "payment" && <PaymentTab />}
+        {isOwner && tab === "premium" && <PremiumTab />}
+        {isOwner && tab === "payment" && <PaymentTab />}
         {tab === "notifs" && <NotifsTab />}
         {tab === "contacts" && <ContactsTab />}
-        {tab === "apikeys" && <ApiKeysTab />}
+        {isOwner && tab === "apikeys" && <ApiKeysTab />}
       </div>
     </div>
   );

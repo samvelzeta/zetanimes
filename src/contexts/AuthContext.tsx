@@ -9,13 +9,14 @@ interface AuthContextType {
   roles: string[];
   isPremium: boolean;
   isOwner: boolean;
+  isAdmin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: null, session: null, profile: null, roles: [], isPremium: false, isOwner: false, loading: true,
+  user: null, session: null, profile: null, roles: [], isPremium: false, isOwner: false, isAdmin: false, loading: true,
   signOut: async () => {}, refreshProfile: async () => {},
 });
 
@@ -69,6 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isPremium = roles.includes("premium") || roles.includes("owner");
   const isOwner = roles.includes("owner");
+  // Owner es siempre admin también; admin explícito tiene acceso al panel pero NO a áreas owner-only.
+  const isAdmin = isOwner || roles.includes("admin");
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -79,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, isPremium, isOwner, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, roles, isPremium, isOwner, isAdmin, loading, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
