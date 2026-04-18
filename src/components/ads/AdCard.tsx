@@ -76,6 +76,7 @@ export default function AdCard({ size = "default" }: Props) {
         setAdFilled(true);
       }
     };
+    timers.push(window.setTimeout(() => probe(false), 1200));
     timers.push(window.setTimeout(() => probe(false), 3000));
     timers.push(window.setTimeout(() => probe(false), 6000));
     timers.push(window.setTimeout(() => probe(true), 10000));

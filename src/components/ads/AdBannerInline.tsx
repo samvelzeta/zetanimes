@@ -2,7 +2,7 @@
 // Inyecta atOptions + invoke.js dentro de un iframe SANDBOX aislado para
 // permitir múltiples instancias en la misma página sin colisión de IDs.
 // Premium = 0×0 sin scripts. Si no carga (adblock / sin inventario) → colapsa SIN dejar hueco.
-import { useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
 
@@ -29,7 +29,7 @@ interface Props {
   hideLabel?: boolean;
 }
 
-export default function AdBannerInline({ size, className = "", hideLabel = false }: Props) {
+function AdBannerInlineImpl({ size, className = "", hideLabel = false }: Props) {
   const { isPremium, loading } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
   const loaded = useRef(false);
@@ -82,6 +82,9 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
         setFilled(true);
       }
     };
+    // Sondeos agresivos: 1.2s / 3s / 6s / 10s. La idea es revelar el ad lo antes posible
+    // (en cuanto Adsterra inserte el iframe interno) y solo darlo por fallido al final.
+    timers.push(window.setTimeout(() => probe(false), 1200));
     timers.push(window.setTimeout(() => probe(false), 3000));
     timers.push(window.setTimeout(() => probe(false), 6000));
     timers.push(window.setTimeout(() => probe(true), 10000));
@@ -107,3 +110,10 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
     </div>
   );
 }
+
+// forwardRef: tolera que padres como Directory pasen ref por error sin emitir warnings.
+const AdBannerInline = forwardRef<HTMLDivElement, Props>((props, _ref) => (
+  <AdBannerInlineImpl {...props} />
+));
+AdBannerInline.displayName = "AdBannerInline";
+export default AdBannerInline;

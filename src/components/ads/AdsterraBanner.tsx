@@ -72,6 +72,7 @@ export default function AdsterraBanner({ adKey, width, height, uid }: Props) {
       }
       return false;
     };
+    timers.push(window.setTimeout(() => check(false), 1200));
     timers.push(window.setTimeout(() => check(false), 3000));
     timers.push(window.setTimeout(() => check(false), 6000));
     timers.push(window.setTimeout(() => check(true), 10000));
