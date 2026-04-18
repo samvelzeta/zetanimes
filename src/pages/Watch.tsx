@@ -58,11 +58,10 @@ export default function Watch() {
   const { data: zetSlug, isLoading: loadingSlug } = useQuery({
     queryKey: ["zet-slug-multi", animeTitle, anilistId],
     queryFn: async () => {
-      // 1. Manual override SIEMPRE gana (admin lo configuró a propósito)
+      // 1. Manual override SIEMPRE gana (global para todos los usuarios)
       const { getSlugOverride } = await import("@/lib/slug-overrides");
       const override = await getSlugOverride(anilistId);
       if (override) {
-        // Sincronizamos slug_cache para que coincida con el override
         await saveCachedSlug(anilistId, override, animeTitle);
         return override;
       }
@@ -83,7 +82,8 @@ export default function Watch() {
       return titleToSlug(animeTitle);
     },
     enabled: !!animeTitle,
-    staleTime: 1000 * 60 * 30,
+    staleTime: 0,
+    refetchOnMount: "always",
     retry: 1,
   });
 

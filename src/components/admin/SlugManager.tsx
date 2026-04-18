@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Loader2, Trash2, Save, Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ interface AnilistResult {
 
 export default function SlugManager() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<AnilistResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -95,6 +97,8 @@ export default function SlugManager() {
       created_by: user?.id,
     });
     if (ok) {
+      await queryClient.invalidateQueries({ queryKey: ["zet-slug-multi"] });
+      await queryClient.invalidateQueries({ queryKey: ["anime-detail", editing.id] });
       toast.success("Slug guardado");
       setEditing(null);
       refresh();
@@ -105,6 +109,7 @@ export default function SlugManager() {
     if (!confirm("¿Eliminar este override?")) return;
     const ok = await deleteSlugOverride(id);
     if (ok) {
+      await queryClient.invalidateQueries({ queryKey: ["zet-slug-multi"] });
       toast.success("Eliminado");
       refresh();
     }
