@@ -11,9 +11,9 @@ interface Props extends React.ImgHTMLAttributes<HTMLImageElement> {
 
 /**
  * <LazyImage /> optimizado:
- * - Descarga la imagen una sola vez al entrar al viewport (rootMargin 300px).
- * - Una vez cargada, se "hiberna" visualmente (visibility:hidden) cuando sale.
- * - Usa forwardRef para evitar warnings cuando va dentro de botones u otros wrappers.
+ * - Descarga la imagen una sola vez cuando entra al viewport (rootMargin 300px).
+ * - Una vez cargada, queda FIJA en el DOM (no se hiberna ni se vuelve a pedir).
+ *   Esto evita el "parpadeo" al hacer scroll de vuelta o al regresar a Home.
  */
 const LazyImage = forwardRef<HTMLDivElement, Props>(function LazyImage(
   { src, alt, keepWhenOffscreen: _ignored, placeholderClassName = "", className = "", ...rest },
@@ -24,9 +24,9 @@ const LazyImage = forwardRef<HTMLDivElement, Props>(function LazyImage(
 
   const [shouldLoad, setShouldLoad] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [inView, setInView] = useState(false);
 
   useEffect(() => {
+    if (shouldLoad) return; // ya cargada → no observar más
     const el = innerRef.current;
     if (!el) return;
 
@@ -35,9 +35,7 @@ const LazyImage = forwardRef<HTMLDivElement, Props>(function LazyImage(
         entries.forEach((e) => {
           if (e.isIntersecting) {
             setShouldLoad(true);
-            setInView(true);
-          } else {
-            setInView(false);
+            obs.disconnect(); // una sola vez — queda fija para siempre
           }
         });
       },
@@ -45,7 +43,7 @@ const LazyImage = forwardRef<HTMLDivElement, Props>(function LazyImage(
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, []);
+  }, [shouldLoad]);
 
   return (
     <div ref={innerRef} className={`relative overflow-hidden ${className}`}>
@@ -61,7 +59,6 @@ const LazyImage = forwardRef<HTMLDivElement, Props>(function LazyImage(
           loading="lazy"
           decoding="async"
           onLoad={() => setLoaded(true)}
-          style={{ visibility: inView ? "visible" : "hidden" }}
           className={`w-full h-full object-cover transition-opacity duration-300 ${
             loaded ? "opacity-100" : "opacity-0"
           }`}
