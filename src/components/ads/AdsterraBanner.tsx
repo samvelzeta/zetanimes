@@ -80,8 +80,9 @@ export default function AdsterraBanner({ adKey, width, height, uid }: Props) {
     return () => { timers.forEach(clearTimeout); };
   }, [adKey, width, height, canBootAds]);
 
-  if (isPremium) return <div aria-hidden className="w-0 h-0 overflow-hidden" />;
-  if (failed) return null;
+  if (isPremium || failed) {
+    return <div aria-hidden style={{ width: 0, height: 0, overflow: "hidden", margin: 0, padding: 0 }} />;
+  }
 
   return (
     <div className="flex flex-col items-center my-4">

@@ -92,8 +92,11 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
   }, [canBootAds, cfg.key, cfg.w, cfg.h]);
 
   // Premium o ad bloqueado/no llenado → 0×0 SIN ocupar espacio (sin márgenes)
-  if (isPremium) return null;
-  if (filled === false) return null;
+  // Devolvemos un nodo 0×0 (no null) para que el wrapper padre no aplique
+  // gap/space-y dejando hueco visible.
+  if (isPremium || filled === false) {
+    return <div aria-hidden style={{ width: 0, height: 0, overflow: "hidden", margin: 0, padding: 0 }} />;
+  }
 
   return (
     <div className={`flex flex-col items-center ${className}`}>
