@@ -7,8 +7,6 @@ import { isTV } from "@/hooks/useIsTV";
 import { isWebView } from "@/lib/webview";
 import logoUrl from "@/assets/zetanime-apk-logo.png";
 
-const APK_SETTING_KEY = "apk_download_url";
-const FALLBACK_APK = "https://github.com/zetanime/app/releases/latest/download/zetanime.apk";
 const BACKGROUND_VIDEO_URL = "https://www.dropbox.com/scl/fi/jjm661r08rfvpgkmqdkrc/videoback-anime-zetanime-1.mp4?rlkey=osecdinr9zos3nni8bgzmiq4e&st=sjzr8ts1&raw=1";
 const LOADING_DOTS = [
   { left: 14, top: 18, size: 6, delay: 0.2, duration: 2.8 },
