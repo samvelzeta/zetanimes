@@ -41,9 +41,11 @@ export default function LazySection({
     return () => obs.disconnect();
   }, [mounted, rootMargin]);
 
+  // Si minHeight=0 → no renderiza placeholder visible (útil para ads que pueden colapsar)
+  const skipPlaceholder = minHeight === 0;
   return (
-    <div ref={ref} style={!mounted ? { minHeight } : undefined}>
-      {mounted ? children : (
+    <div ref={ref} style={!mounted && !skipPlaceholder ? { minHeight } : undefined}>
+      {mounted ? children : skipPlaceholder ? null : (
         <div className={`mx-4 my-4 rounded-xl bg-secondary/40 animate-pulse ${placeholderClassName}`} style={{ height: typeof minHeight === "number" ? minHeight - 32 : minHeight }} />
       )}
     </div>
