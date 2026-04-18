@@ -3,7 +3,7 @@ import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query";
 import {
   getEpisodeServers, sortServersByPriority,
-  isEpisodeWatched, markEpisodeWatched, titleToSlug, getCachedSlug,
+  isEpisodeWatched, markEpisodeWatched, getWatchedEpisodes, titleToSlug, getCachedSlug,
   saveCachedSlug, getLatinoEpisode,
   type ZetServer,
 } from "@/lib/zetapi";
@@ -44,6 +44,8 @@ export default function Watch() {
   const playerWrapperRef = useRef<HTMLDivElement>(null);
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [activeSourceIdx, setActiveSourceIdx] = useState(0);
+  // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
+  const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes()));
 
   const { data: anilistData } = useQuery({
     queryKey: ["anime-detail", anilistId],
@@ -191,6 +193,43 @@ export default function Watch() {
     }
   };
 
+  // Helper: marca el episodio como visto en estado + localStorage (sólo logueado)
+  const markWatchedReactive = useCallback((epSlug: string) => {
+    if (!user) return; // sólo registrados
+    if (watchedSet.has(epSlug)) return;
+    markEpisodeWatched(epSlug);
+    setWatchedSet((prev) => {
+      const next = new Set(prev);
+      next.add(epSlug);
+      return next;
+    });
+  }, [user, watchedSet]);
+
+  // Helper compartido: persiste el progreso a watch_history
+  const persistProgress = useCallback(
+    async (currentTime: number, totalDuration: number, isCompleted: boolean) => {
+      if (!user || !anilistData) return;
+      const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
+      const title = getTitle(anilistData);
+      const progressPct = totalDuration > 0
+        ? Math.min(100, Math.round((currentTime / totalDuration) * 100))
+        : 0;
+      await supabase.from("watch_history").upsert({
+        user_id: user.id,
+        anime_id: anilistId,
+        episode_number: selectedEp,
+        anime_title: title,
+        anime_cover: cover,
+        completed: isCompleted,
+        watch_duration_seconds: Math.round(watchTimeRef.current),
+        current_time_seconds: currentTime,
+        total_duration_seconds: totalDuration,
+        progress_percent: progressPct,
+      } as any, { onConflict: "user_id,anime_id,episode_number" });
+    },
+    [user, anilistData, anilistId, selectedEp]
+  );
+
   const handleProgress = useCallback((pct: number) => {
     watchTimeRef.current += 1;
 
@@ -199,59 +238,74 @@ export default function Watch() {
       const video = document.querySelector("video");
       if (video && video.duration > 0) {
         saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
-
-        // Save to Supabase watch history with progress
-        if (user) {
-          const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
-          const title = anilistData ? getTitle(anilistData) : "";
-          const progressPct = Math.round((video.currentTime / video.duration) * 100);
-          supabase.from("watch_history").upsert({
-            user_id: user.id,
-            anime_id: anilistId,
-            episode_number: selectedEp,
-            anime_title: title,
-            anime_cover: cover,
-            completed: pct >= 0.7,
-            watch_duration_seconds: Math.round(watchTimeRef.current),
-            current_time_seconds: video.currentTime,
-            total_duration_seconds: video.duration,
-            progress_percent: progressPct,
-          } as any, { onConflict: "user_id,anime_id,episode_number" }).then(() => {});
-        }
+        persistProgress(video.currentTime, video.duration, pct >= 0.7);
       }
     }
 
     if (pct >= 0.7 && zetSlug) {
       const epSlug = `${zetSlug}-${selectedEp}`;
-      if (!isEpisodeWatched(epSlug)) {
-        markEpisodeWatched(epSlug);
-      }
+      markWatchedReactive(epSlug);
     }
-  }, [zetSlug, selectedEp, user, anilistId, anilistData]);
+  }, [zetSlug, selectedEp, persistProgress, markWatchedReactive]);
+
+  // ===== Tracking estimado para EMBEDS (iframe sin acceso a timeupdate) =====
+  // Asume duración estándar 24min (1440s). Cada 10s incrementa y guarda.
+  useEffect(() => {
+    if (!zetSlug || !anilistData) return;
+    // Detectar si la fuente activa es un embed
+    const active = sortedSources[0];
+    if (!active) return;
+    const url = active.embed || "";
+    const isEmbed = active.type !== "hls" && !url.includes(".m3u8") && !url.includes(".mp4");
+    if (!isEmbed) return;
+
+    const ESTIMATED_DURATION = 1440; // 24min
+    let elapsed = 0;
+    const tick = 10; // segundos
+    const interval = setInterval(() => {
+      elapsed += tick;
+      watchTimeRef.current += tick;
+      const pct = elapsed / ESTIMATED_DURATION;
+      const isCompleted = pct >= 0.7;
+      persistProgress(elapsed, ESTIMATED_DURATION, isCompleted);
+      if (isCompleted && zetSlug) {
+        markWatchedReactive(`${zetSlug}-${selectedEp}`);
+      }
+      if (elapsed >= ESTIMATED_DURATION) {
+        clearInterval(interval);
+      }
+    }, tick * 1000);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zetSlug, selectedEp, sortedSources[0]?.embed, anilistData, user]);
 
   // Save to Supabase immediately on mount/episode change
   useEffect(() => {
     if (!zetSlug || !anilistData || !user) return;
     const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
     const title = getTitle(anilistData);
+    // No sobrescribir progreso si ya existe → usar insert con ignore
     supabase.from("watch_history").upsert({
       user_id: user.id,
       anime_id: anilistId,
       episode_number: selectedEp,
       anime_title: title,
       anime_cover: cover,
-      completed: false,
-      current_time_seconds: 0,
-      total_duration_seconds: 0,
-      progress_percent: 0,
-    } as any, { onConflict: "user_id,anime_id,episode_number" }).then(() => {});
+    } as any, { onConflict: "user_id,anime_id,episode_number", ignoreDuplicates: true }).then(() => {});
   }, [zetSlug, selectedEp, anilistData, anilistId, user]);
 
   const toggleWatched = (epNum: number) => {
-    if (!zetSlug) return;
+    if (!zetSlug || !user) return; // requerido login
     const epSlug = `${zetSlug}-${epNum}`;
-    if (!isEpisodeWatched(epSlug)) markEpisodeWatched(epSlug);
-    setSelectedEp((p) => p); // force re-render
+    if (watchedSet.has(epSlug)) {
+      // Desmarcar
+      const all = getWatchedEpisodes().filter((s) => s !== epSlug);
+      localStorage.setItem("zet_watched_episodes", JSON.stringify(all));
+      setWatchedSet(new Set(all));
+    } else {
+      markWatchedReactive(epSlug);
+    }
   };
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
@@ -486,15 +540,18 @@ export default function Watch() {
               {episodeNumbers.map((epNum) => {
                 const isActive = epNum === selectedEp;
                 const epSlug = zetSlug ? `${zetSlug}-${epNum}` : "";
-                const watched = epSlug ? isEpisodeWatched(epSlug) : false;
+                const watched = epSlug ? watchedSet.has(epSlug) : false;
                 return (
                   <div key={epNum} className={`flex rounded-lg overflow-hidden transition-all ${isActive ? "ring-2 ring-primary/50" : ""}`}>
                     <button onClick={() => { selectEpisode(epNum); setShowEpisodes(false); }}
                       className={`flex-1 py-2 px-2 text-xs font-bold transition-all text-left ${isActive ? "bg-primary text-primary-foreground" : watched ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                       EP {epNum}
                     </button>
-                    <button onClick={() => toggleWatched(epNum)}
-                      className={`w-7 flex items-center justify-center transition-all border-l border-background/20 ${watched ? "bg-primary text-primary-foreground" : "bg-secondary/80 text-muted-foreground hover:text-primary"}`}>
+                    <button
+                      onClick={() => toggleWatched(epNum)}
+                      disabled={!user}
+                      title={!user ? "Inicia sesión para marcar episodios" : (watched ? "Marcado como visto" : "Marcar como visto")}
+                      className={`w-7 flex items-center justify-center transition-all border-l border-background/20 ${watched ? "bg-primary text-primary-foreground" : "bg-secondary/80 text-muted-foreground hover:text-primary"} disabled:opacity-50 disabled:cursor-not-allowed`}>
                       {watched ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                     </button>
                   </div>

@@ -17,9 +17,10 @@ import SlugManager from "@/components/admin/SlugManager";
 import HiddenAnimesManager from "@/components/admin/HiddenAnimesManager";
 import ApkManager from "@/components/admin/ApkManager";
 import EpisodeCountManager from "@/components/admin/EpisodeCountManager";
+import RoleManager from "@/components/admin/RoleManager";
 
-// Tabs reservados solo para owner (info de pago, premium, API keys)
-const OWNER_ONLY_TABS = new Set(["premium", "payment", "apikeys"]);
+// Tabs reservados solo para owner (info de pago, premium, API keys, gestión de roles)
+const OWNER_ONLY_TABS = new Set(["premium", "payment", "apikeys", "roles"]);
 
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
@@ -35,6 +36,7 @@ const TABS = [
   { key: "notifs", label: "Notifs", icon: Bell },
   { key: "contacts", label: "Contactos", icon: MessageSquare },
   { key: "apikeys", label: "API Keys", icon: Key },
+  { key: "roles", label: "Roles", icon: Users },
 ];
 
 export default function AdminPanel() {
@@ -97,6 +99,7 @@ export default function AdminPanel() {
         {tab === "notifs" && <NotifsTab />}
         {tab === "contacts" && <ContactsTab />}
         {isOwner && tab === "apikeys" && <ApiKeysTab />}
+        {isOwner && tab === "roles" && <RoleManager />}
       </div>
     </div>
   );
