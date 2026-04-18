@@ -33,23 +33,49 @@ export default function AdblockGate() {
     }
   };
 
+  // Detección persistente: chequea al cargar y luego cada 8s mientras siga bloqueado.
+  // Así, si el usuario cierra el modal navegando o desactiva temporalmente el adblock
+  // y lo vuelve a activar, lo detectamos y reabrimos el gate.
   useEffect(() => {
-    if (loading || isPremium) return;
-    const t = window.setTimeout(async () => {
+    if (loading || isPremium) {
+      setBlocked(false);
+      return;
+    }
+    let cancelled = false;
+
+    const check = async () => {
       const isBlocking = await detectAdblock();
-      setBlocked(isBlocking);
-    }, 1500);
-    return () => clearTimeout(t);
+      if (!cancelled) setBlocked(isBlocking);
+    };
+
+    // Primer check con pequeño delay para dejar que la página cargue scripts de ads
+    const initial = window.setTimeout(check, 1500);
+    // Re-chequeo periódico (cada 8s) — barato y persistente
+    const interval = window.setInterval(check, 8000);
+
+    // Re-check cuando la pestaña vuelve al foco (típico al volver del login)
+    const onFocus = () => check();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(initial);
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
   }, [loading, isPremium]);
 
   const goPremium = () => {
-    setBlocked(false); // cerrar el modal para no bloquear navegación
+    // NO cerramos el modal: si el adblock sigue activo al volver, debe seguir bloqueando.
+    // El modal se ocultará automáticamente cuando detectAdblock() devuelva false
+    // o cuando el usuario sea Premium.
     if (!user) {
       toast.info("Primero crea tu cuenta para activar Premium");
       navigate("/auth?redirect=/profile?premium=1");
       return;
     }
-    // Usuario logueado → al perfil con flag para auto-abrir el modal de membresía
     navigate("/profile?premium=1");
   };
 
