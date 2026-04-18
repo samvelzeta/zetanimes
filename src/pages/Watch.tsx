@@ -15,6 +15,7 @@ import {
   Globe, Bug, ChevronDown, List,
 } from "lucide-react";
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
+import AdOverlayGate from "@/components/ads/AdOverlayGate";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
@@ -464,6 +465,12 @@ export default function Watch() {
                 onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
                 onNext={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
                 containerRef={playerWrapperRef}
+              />
+              {/* Ad gate cada 3 episodios — bloquea video hasta cerrar */}
+              <AdOverlayGate
+                episodeKey={`${anilistId}-${selectedEp}`}
+                everyN={3}
+                countdownSecs={5}
               />
             </>
           ) : (

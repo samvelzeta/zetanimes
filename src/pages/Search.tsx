@@ -148,6 +148,14 @@ export default function SearchPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 pt-4">
+        {/* Banner medio: solo cuando NO hay búsqueda activa.
+            Al haber resultados desaparece, y abajo (línea 300) se muestra el de 160x600. */}
+        {!hasQuery && (
+          <div className="mb-6">
+            <AdBannerInline size="300x250" className="mx-auto" />
+          </div>
+        )}
+
         {/* Estado vacío con sugerencias */}
         {!hasQuery && (
           <div className="space-y-7 animate-in fade-in duration-300">
