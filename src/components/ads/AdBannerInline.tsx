@@ -1,7 +1,7 @@
 // Banner Adsterra inline reutilizable (iframe).
 // Inyecta atOptions + invoke.js dentro de un iframe SANDBOX aislado para
 // permitir múltiples instancias en la misma página sin colisión de IDs.
-// Premium = 0×0 sin scripts. Si no carga (adblock / sin inventario) → colapsa.
+// Premium = 0×0 sin scripts. Si no carga (adblock / sin inventario) → colapsa SIN dejar hueco.
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -22,7 +22,7 @@ const KEYS: Record<AdBannerSize, { key: string; w: number; h: number }> = {
 
 interface Props {
   size: AdBannerSize;
-  /** Clases extra para el wrapper (margen, alineación). */
+  /** Clases extra para el wrapper (margen, alineación). Solo se aplican si el ad CARGA. */
   className?: string;
   /** Oculta el label "Patrocinado". */
   hideLabel?: boolean;
@@ -81,7 +81,8 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
     return () => clearTimeout(t);
   }, [isPremium, cfg.key, cfg.w, cfg.h]);
 
-  if (isPremium) return <div aria-hidden style={{ width: 0, height: 0, overflow: "hidden" }} />;
+  // Premium o ad bloqueado/no llenado → 0×0 SIN ocupar espacio (sin márgenes)
+  if (isPremium) return null;
   if (filled === false) return null;
 
   return (
