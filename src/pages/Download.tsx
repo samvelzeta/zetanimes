@@ -330,20 +330,21 @@ export default function DownloadPage() {
           </div>
 
           {/* Download button */}
-          <a
-            href={apkUrl}
-            download="zetanime.apk"
-            className="mt-8 group relative w-full max-w-xs"
-            onClick={() => toast.success("Iniciando descarga…")}
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading || !hasApk}
+            className="mt-8 group relative w-full max-w-xs disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <div
               className="absolute inset-0 rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition"
               style={{ background: "hsl(var(--primary))" }}
             />
             <div className="relative flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-primary text-primary-foreground font-black text-base shadow-2xl hover:scale-[1.02] active:scale-95 transition">
-              <Download className="w-5 h-5" /> Descargar APK
+              <Download className="w-5 h-5" />
+              {downloading ? "Preparando…" : hasApk ? "Descargar APK" : "APK no disponible"}
             </div>
-          </a>
+          </button>
 
           {/* Share controls */}
           <button
