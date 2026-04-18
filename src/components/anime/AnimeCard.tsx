@@ -1,4 +1,3 @@
-import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 import { getTitle, getStatusLabel, getStatusColor, type AniListMedia } from "@/lib/anilist";
 import { Star, Play } from "lucide-react";
@@ -10,7 +9,7 @@ interface AnimeCardProps {
   size?: "small" | "default" | "large" | "grid";
 }
 
-function AnimeCardImpl({ anime, showStatus = false, size = "default" }: AnimeCardProps) {
+export default function AnimeCard({ anime, showStatus = false, size = "default" }: AnimeCardProps) {
   const title = getTitle(anime);
   const image = anime.coverImage?.extraLarge || anime.coverImage?.large;
   const score = anime.averageScore;
@@ -54,9 +53,3 @@ function AnimeCardImpl({ anime, showStatus = false, size = "default" }: AnimeCar
   );
 }
 
-// forwardRef: padres como Directory/HorizontalList intentan asignar refs y antes generaba warnings.
-const AnimeCard = forwardRef<HTMLAnchorElement, AnimeCardProps>((props, _ref) => (
-  <AnimeCardImpl {...props} />
-));
-AnimeCard.displayName = "AnimeCard";
-export default AnimeCard;
