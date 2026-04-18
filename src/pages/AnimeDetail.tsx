@@ -152,6 +152,8 @@ export default function AnimeDetail() {
           <Play className="w-5 h-5 fill-current" /> Ver Ahora
         </Link>
 
+        <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
+
         <div className="flex gap-2 mt-3 overflow-x-auto hide-scrollbar pb-1">
           {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
             const isActive = activeLists.includes(type);
