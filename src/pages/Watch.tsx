@@ -12,7 +12,7 @@ import { getCachedVideo, cachedVideoToSources } from "@/lib/video-cache";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
-  Globe, Bug, ChevronDown, List, Home,
+  Globe, Bug, ChevronDown, List,
 } from "lucide-react";
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
 import AnimePlayer from "@/components/video/AnimePlayer";
