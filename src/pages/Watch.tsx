@@ -540,15 +540,18 @@ export default function Watch() {
               {episodeNumbers.map((epNum) => {
                 const isActive = epNum === selectedEp;
                 const epSlug = zetSlug ? `${zetSlug}-${epNum}` : "";
-                const watched = epSlug ? isEpisodeWatched(epSlug) : false;
+                const watched = epSlug ? watchedSet.has(epSlug) : false;
                 return (
                   <div key={epNum} className={`flex rounded-lg overflow-hidden transition-all ${isActive ? "ring-2 ring-primary/50" : ""}`}>
                     <button onClick={() => { selectEpisode(epNum); setShowEpisodes(false); }}
                       className={`flex-1 py-2 px-2 text-xs font-bold transition-all text-left ${isActive ? "bg-primary text-primary-foreground" : watched ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                       EP {epNum}
                     </button>
-                    <button onClick={() => toggleWatched(epNum)}
-                      className={`w-7 flex items-center justify-center transition-all border-l border-background/20 ${watched ? "bg-primary text-primary-foreground" : "bg-secondary/80 text-muted-foreground hover:text-primary"}`}>
+                    <button
+                      onClick={() => toggleWatched(epNum)}
+                      disabled={!user}
+                      title={!user ? "Inicia sesión para marcar episodios" : (watched ? "Marcado como visto" : "Marcar como visto")}
+                      className={`w-7 flex items-center justify-center transition-all border-l border-background/20 ${watched ? "bg-primary text-primary-foreground" : "bg-secondary/80 text-muted-foreground hover:text-primary"} disabled:opacity-50 disabled:cursor-not-allowed`}>
                       {watched ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                     </button>
                   </div>
