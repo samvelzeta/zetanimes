@@ -68,6 +68,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Realtime: si el owner cambia mis roles (ascenso a admin/premium o degradación),
+  // se refrescan automáticamente sin tener que cerrar sesión.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`user-roles-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_roles", filter: `user_id=eq.${user.id}` },
+        () => { fetchProfile(user.id); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  // Refresca roles cuando la pestaña vuelve a estar visible (cubre TVs/APK que tardan en propagar realtime)
+  useEffect(() => {
+    if (!user) return;
+    const onVisible = () => { if (document.visibilityState === "visible") fetchProfile(user.id); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [user]);
+
   const isPremium = roles.includes("premium") || roles.includes("owner");
   const isOwner = roles.includes("owner");
   // Owner es siempre admin también; admin explícito tiene acceso al panel pero NO a áreas owner-only.
