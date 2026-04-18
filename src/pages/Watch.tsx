@@ -58,10 +58,20 @@ export default function Watch() {
   const { data: zetSlug, isLoading: loadingSlug } = useQuery({
     queryKey: ["zet-slug-multi", animeTitle, anilistId],
     queryFn: async () => {
+      // 1. Manual override SIEMPRE gana (admin lo configuró a propósito)
+      const { getSlugOverride } = await import("@/lib/slug-overrides");
+      const override = await getSlugOverride(anilistId);
+      if (override) {
+        // Sincronizamos slug_cache para que coincida con el override
+        await saveCachedSlug(anilistId, override, animeTitle);
+        return override;
+      }
+
+      // 2. Cache previo
       const cached = await getCachedSlug(anilistId);
       if (cached) return cached;
 
-      // Use multi-API resolver
+      // 3. Resolver multi-API
       if (anilistData?.title) {
         const slug = await resolveSlugMultiAPI(anilistData.title, anilistId);
         if (slug) {
