@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+
 import { useQuery } from "@tanstack/react-query";
 import { getRecentlyUpdated, getTitle, type AniListMedia } from "@/lib/anilist";
 import { Play, Star } from "lucide-react";
@@ -57,16 +57,21 @@ export default function BentoEpisodes() {
   );
 }
 
-const BentoCard = forwardRef<
-  HTMLAnchorElement,
-  { anime: AniListMedia; isHero?: boolean; className?: string }
->(function BentoCard({ anime, isHero = false, className = "" }, ref) {
+function BentoCard({
+  anime,
+  isHero = false,
+  className = "",
+}: {
+  anime: AniListMedia;
+  isHero?: boolean;
+  className?: string;
+}) {
   const title = getTitle(anime);
   const image = anime.bannerImage || anime.coverImage?.extraLarge || anime.coverImage?.large;
   const score = anime.averageScore;
 
   return (
-    <Link ref={ref} to={`/anime/${anime.id}`} className={`group relative overflow-hidden rounded-xl bg-secondary neon-card ${className}`}>
+    <Link to={`/anime/${anime.id}`} className={`group relative overflow-hidden rounded-xl bg-secondary neon-card ${className}`}>
       <LazyImage src={image!} alt={title} className="w-full h-full transition-transform duration-500 group-hover:scale-105" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -96,5 +101,5 @@ const BentoCard = forwardRef<
       </div>
     </Link>
   );
-});
+}
 export { BentoCard };
