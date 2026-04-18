@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import HeaderBar from "@/components/HeaderBar";
 import TVSidebar from "@/components/TVSidebar";
+import AdblockGate from "@/components/AdblockGate";
 import { useIsTV } from "@/hooks/useIsTV";
 import { useTVRemote } from "@/hooks/useTVRemote";
 
@@ -20,6 +21,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <AdblockGate />
       {isTV ? (
         <>
           {!hideNav && <TVSidebar />}
