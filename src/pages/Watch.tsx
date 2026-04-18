@@ -3,7 +3,7 @@ import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query";
 import {
   getEpisodeServers, sortServersByPriority,
-  isEpisodeWatched, markEpisodeWatched, titleToSlug, getCachedSlug,
+  isEpisodeWatched, markEpisodeWatched, getWatchedEpisodes, titleToSlug, getCachedSlug,
   saveCachedSlug, getLatinoEpisode,
   type ZetServer,
 } from "@/lib/zetapi";
