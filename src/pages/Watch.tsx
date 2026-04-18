@@ -40,12 +40,18 @@ export default function Watch() {
   const [lang, setLang] = useState<Lang>("sub");
   const [showDebug, setShowDebug] = useState(false);
   const watchTimeRef = useRef(0);
+  const historyEntryIdRef = useRef<string | null>(null);
   const [initialTime, setInitialTime] = useState<number | undefined>(undefined);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [activeSourceIdx, setActiveSourceIdx] = useState(0);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
   const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes()));
+
+  useEffect(() => {
+    historyEntryIdRef.current = null;
+    watchTimeRef.current = 0;
+  }, [user?.id, anilistId, selectedEp]);
 
   const { data: anilistData } = useQuery({
     queryKey: ["anime-detail", anilistId],
@@ -205,29 +211,102 @@ export default function Watch() {
     });
   }, [user, watchedSet]);
 
+  const getHistoryBase = useCallback(() => {
+    if (!user || !anilistData) return null;
+    const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
+    const title = getTitle(anilistData);
+
+    return {
+      user_id: user.id,
+      anime_id: anilistId,
+      episode_number: selectedEp,
+      anime_title: title,
+      anime_cover: cover,
+    };
+  }, [user, anilistData, anilistId, selectedEp]);
+
+  const ensureHistoryEntry = useCallback(async () => {
+    const base = getHistoryBase();
+    if (!base) return null;
+
+    if (historyEntryIdRef.current) return historyEntryIdRef.current;
+
+    const { data: existing, error: readError } = await supabase
+      .from("watch_history")
+      .select("id")
+      .eq("user_id", base.user_id)
+      .eq("anime_id", base.anime_id)
+      .eq("episode_number", base.episode_number)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (readError) {
+      console.error("[watch_history] no pude consultar historial", readError);
+      return null;
+    }
+
+    if (existing?.id) {
+      historyEntryIdRef.current = existing.id;
+      return existing.id;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("watch_history")
+      .insert({
+        ...base,
+        completed: false,
+        watch_duration_seconds: 0,
+        current_time_seconds: 0,
+        total_duration_seconds: 0,
+        progress_percent: 0,
+        created_at: new Date().toISOString(),
+      } as any)
+      .select("id")
+      .single();
+
+    if (insertError) {
+      console.error("[watch_history] no pude crear historial", insertError);
+      return null;
+    }
+
+    historyEntryIdRef.current = inserted.id;
+    return inserted.id;
+  }, [getHistoryBase]);
+
   // Helper compartido: persiste el progreso a watch_history
   const persistProgress = useCallback(
     async (currentTime: number, totalDuration: number, isCompleted: boolean) => {
-      if (!user || !anilistData) return;
-      const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
-      const title = getTitle(anilistData);
-      const progressPct = totalDuration > 0
-        ? Math.min(100, Math.round((currentTime / totalDuration) * 100))
+      const base = getHistoryBase();
+      if (!base) return;
+
+      const entryId = await ensureHistoryEntry();
+      if (!entryId) return;
+
+      const safeCurrentTime = Math.max(0, Math.round(currentTime));
+      const safeTotalDuration = Math.max(0, Math.round(totalDuration));
+      const progressPct = safeTotalDuration > 0
+        ? Math.min(100, Math.round((safeCurrentTime / safeTotalDuration) * 100))
         : 0;
-      await supabase.from("watch_history").upsert({
-        user_id: user.id,
-        anime_id: anilistId,
-        episode_number: selectedEp,
-        anime_title: title,
-        anime_cover: cover,
-        completed: isCompleted,
-        watch_duration_seconds: Math.round(watchTimeRef.current),
-        current_time_seconds: currentTime,
-        total_duration_seconds: totalDuration,
-        progress_percent: progressPct,
-      } as any, { onConflict: "user_id,anime_id,episode_number" });
+
+      const { error } = await supabase
+        .from("watch_history")
+        .update({
+          ...base,
+          completed: isCompleted,
+          watch_duration_seconds: Math.max(Math.round(watchTimeRef.current), safeCurrentTime),
+          current_time_seconds: safeCurrentTime,
+          total_duration_seconds: safeTotalDuration,
+          progress_percent: progressPct,
+          created_at: new Date().toISOString(),
+        } as any)
+        .eq("id", entryId);
+
+      if (error) {
+        console.error("[watch_history] no pude actualizar progreso", error);
+      }
     },
-    [user, anilistData, anilistId, selectedEp]
+    [ensureHistoryEntry, getHistoryBase]
   );
 
   const handleProgress = useCallback((pct: number) => {
@@ -280,20 +359,26 @@ export default function Watch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zetSlug, selectedEp, sortedSources[0]?.embed, anilistData, user]);
 
-  // Save to Supabase immediately on mount/episode change
+  // Crear / refrescar entrada inmediatamente para que aparezca en Recientes
   useEffect(() => {
-    if (!zetSlug || !anilistData || !user) return;
-    const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
-    const title = getTitle(anilistData);
-    // No sobrescribir progreso si ya existe → usar insert con ignore
-    supabase.from("watch_history").upsert({
-      user_id: user.id,
-      anime_id: anilistId,
-      episode_number: selectedEp,
-      anime_title: title,
-      anime_cover: cover,
-    } as any, { onConflict: "user_id,anime_id,episode_number", ignoreDuplicates: true }).then(() => {});
-  }, [zetSlug, selectedEp, anilistData, anilistId, user]);
+    if (!zetSlug || !user || !anilistData) return;
+
+    const refreshHistoryEntry = async () => {
+      const base = getHistoryBase();
+      const entryId = await ensureHistoryEntry();
+      if (!base || !entryId) return;
+
+      await supabase
+        .from("watch_history")
+        .update({
+          ...base,
+          created_at: new Date().toISOString(),
+        } as any)
+        .eq("id", entryId);
+    };
+
+    refreshHistoryEntry();
+  }, [zetSlug, selectedEp, anilistData, user, getHistoryBase, ensureHistoryEntry]);
 
   const toggleWatched = (epNum: number) => {
     if (!zetSlug || !user) return; // requerido login
