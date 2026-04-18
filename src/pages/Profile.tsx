@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Settings, LogOut, Crown, Shield, MessageSquare, ExternalLink, Camera, Share2, Smartphone, Cog, ChevronRight, Library } from "lucide-react";
@@ -10,9 +10,19 @@ import { Loader2 } from "lucide-react";
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [stats, setStats] = useState({ lists: 0, episodes: 0, hours: 0 });
   const [contacts, setContacts] = useState<any[]>([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+  // Auto-abrir modal premium si viene con ?premium=1 (ej: desde AdblockGate)
+  useEffect(() => {
+    if (searchParams.get("premium") === "1" && user && !isPremium) {
+      setShowPremiumModal(true);
+      searchParams.delete("premium");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, user, isPremium, setSearchParams]);
 
   useEffect(() => {
     if (user) loadStats();
