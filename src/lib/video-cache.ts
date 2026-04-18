@@ -90,9 +90,13 @@ export async function saveCachedVideo(params: {
 }
 
 /**
- * Elimina del cache.
+ * Elimina del cache. Devuelve { success, error } para diagnosticar fallos RLS.
  */
-export async function deleteCachedVideo(slug: string, episode: number, lang: string) {
+export async function deleteCachedVideo(
+  slug: string,
+  episode: number,
+  lang: string
+): Promise<{ success: boolean; error?: string }> {
   const { error } = await supabase
     .from("video_cache")
     .delete()
@@ -100,7 +104,11 @@ export async function deleteCachedVideo(slug: string, episode: number, lang: str
     .eq("episode", episode)
     .eq("lang", lang);
   memCache.delete(cacheKey(slug, episode, lang));
-  return !error;
+  if (error) {
+    console.error("[video-cache] delete error:", error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
 }
 
 /**
