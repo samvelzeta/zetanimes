@@ -44,6 +44,8 @@ export default function Watch() {
   const playerWrapperRef = useRef<HTMLDivElement>(null);
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [activeSourceIdx, setActiveSourceIdx] = useState(0);
+  // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
+  const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes()));
 
   const { data: anilistData } = useQuery({
     queryKey: ["anime-detail", anilistId],
