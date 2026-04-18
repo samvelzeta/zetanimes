@@ -99,6 +99,7 @@ export default function AdminPanel() {
         {tab === "notifs" && <NotifsTab />}
         {tab === "contacts" && <ContactsTab />}
         {isOwner && tab === "apikeys" && <ApiKeysTab />}
+        {isOwner && tab === "roles" && <RoleManager />}
       </div>
     </div>
   );
