@@ -12,7 +12,7 @@ import { getCachedVideo, cachedVideoToSources } from "@/lib/video-cache";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
-  Globe, Bug, ChevronDown, List, Home, Rewind, FastForward,
+  Globe, Bug, ChevronDown, List, Home,
 } from "lucide-react";
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
 import AnimePlayer from "@/components/video/AnimePlayer";
@@ -428,48 +428,6 @@ export default function Watch() {
             <p><span className="text-primary">titles:</span> {[anilistData?.title?.romaji, anilistData?.title?.english].filter(Boolean).join(", ")}</p>
           </div>
         )}
-      </div>
-
-      {/* Skip controls — alargados naranja translúcido (siempre visibles) */}
-      <div className="px-4 mb-3">
-        <div className="grid grid-cols-4 gap-2">
-          <button
-            onClick={() => {
-              const v = playerWrapperRef.current?.querySelector("video") as HTMLVideoElement | null;
-              if (v) v.currentTime = Math.max(0, v.currentTime - 10);
-            }}
-            className="py-2.5 px-2 rounded-lg bg-primary/15 hover:bg-primary/30 border border-primary/40 text-primary text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
-          >
-            <Rewind className="w-3.5 h-3.5" /> -10s
-          </button>
-          <button
-            onClick={() => {
-              const v = playerWrapperRef.current?.querySelector("video") as HTMLVideoElement | null;
-              if (v) v.currentTime = Math.min(v.duration || Infinity, v.currentTime + 90);
-            }}
-            className="py-2.5 px-2 rounded-lg bg-primary/15 hover:bg-primary/30 border border-primary/40 text-primary text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
-          >
-            <FastForward className="w-3.5 h-3.5" /> Intro
-          </button>
-          <button
-            onClick={() => {
-              const v = playerWrapperRef.current?.querySelector("video") as HTMLVideoElement | null;
-              if (v) v.currentTime = Math.min(v.duration || Infinity, v.currentTime + 90);
-            }}
-            className="py-2.5 px-2 rounded-lg bg-primary/15 hover:bg-primary/30 border border-primary/40 text-primary text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
-          >
-            <FastForward className="w-3.5 h-3.5" /> Ending
-          </button>
-          <button
-            onClick={() => {
-              const v = playerWrapperRef.current?.querySelector("video") as HTMLVideoElement | null;
-              if (v) v.currentTime = Math.min(v.duration || Infinity, v.currentTime + 10);
-            }}
-            className="py-2.5 px-2 rounded-lg bg-primary/15 hover:bg-primary/30 border border-primary/40 text-primary text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
-          >
-            +10s <FastForward className="w-3.5 h-3.5" />
-          </button>
-        </div>
       </div>
 
       {/* Navegación de episodios — naranja translúcido alargado */}
