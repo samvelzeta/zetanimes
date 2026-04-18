@@ -29,7 +29,7 @@ interface Props {
 }
 
 export default function AdBannerInline({ size, className = "", hideLabel = false }: Props) {
-  const { isPremium } = useAuth();
+  const { isPremium, loading } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
   const loaded = useRef(false);
   const [filled, setFilled] = useState<boolean | null>(null);
@@ -37,7 +37,7 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
   const cfg = KEYS[size];
 
   useEffect(() => {
-    if (isPremium || loaded.current || !ref.current) return;
+    if (loading || isPremium || loaded.current || !ref.current) return;
     loaded.current = true;
 
     const html = `
@@ -69,17 +69,23 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
       iframe.contentWindow?.document.close();
     } catch { /* ignore */ }
 
-    const t = setTimeout(() => {
+    // Múltiples chequeos: 3s, 6s, 10s para tolerar latencia de CDN en producción.
+    const timers: number[] = [];
+    const probe = (final: boolean) => {
       try {
         const body = iframe.contentWindow?.document?.body;
         const ok = !!body && (body.querySelector("iframe") !== null || body.innerHTML.length > 200);
-        setFilled(ok);
+        if (ok) { setFilled(true); return; }
+        if (final) setFilled(false);
       } catch {
         setFilled(true);
       }
-    }, 4000);
-    return () => clearTimeout(t);
-  }, [isPremium, cfg.key, cfg.w, cfg.h]);
+    };
+    timers.push(window.setTimeout(() => probe(false), 3000));
+    timers.push(window.setTimeout(() => probe(false), 6000));
+    timers.push(window.setTimeout(() => probe(true), 10000));
+    return () => { timers.forEach(clearTimeout); };
+  }, [isPremium, loading, cfg.key, cfg.w, cfg.h]);
 
   // Premium o ad bloqueado/no llenado → 0×0 SIN ocupar espacio (sin márgenes)
   if (isPremium) return null;

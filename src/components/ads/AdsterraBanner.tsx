@@ -16,48 +16,69 @@ interface Props {
 }
 
 export default function AdsterraBanner({ adKey, width, height, uid }: Props) {
-  const { isPremium } = useAuth();
+  const { isPremium, loading } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
   const injected = useRef(false);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (isPremium || injected.current || !ref.current) return;
+    // Esperar a que auth termine de resolver para no inyectar para premium accidentalmente.
+    // Para usuarios sin sesión, `loading` pasa a false casi instantáneo (sin fetch de perfil).
+    if (loading || isPremium || injected.current || !ref.current) return;
     injected.current = true;
 
     const container = ref.current;
     container.innerHTML = ""; // limpia
 
-    // 1) Script de configuración (atOptions)
-    const configScript = document.createElement("script");
-    configScript.type = "text/javascript";
-    configScript.text = `
-      atOptions = {
-        'key': '${adKey}',
-        'format': 'iframe',
-        'height': ${height},
-        'width': ${width},
-        'params': {}
-      };
-    `;
-    container.appendChild(configScript);
+    // Inyectar usando iframe sandbox aislado para evitar bloqueos del navegador y permitir
+    // que el script corra inmediatamente sin esperar a otros recursos del SPA.
+    const html = `<!doctype html><html><head><style>
+      html,body{margin:0;padding:0;background:transparent;width:100%;height:100%;overflow:hidden;}
+      iframe{display:block;margin:0 auto;border:0;}
+    </style></head><body>
+      <script type="text/javascript">
+        atOptions = { 'key':'${adKey}','format':'iframe','height':${height},'width':${width},'params':{} };
+      </script>
+      <script type="text/javascript" src="https://www.highperformanceformat.com/${adKey}/invoke.js"></script>
+    </body></html>`;
 
-    // 2) Script de invocación (genera el iframe del ad)
-    const invokeScript = document.createElement("script");
-    invokeScript.type = "text/javascript";
-    invokeScript.src = `https://www.highperformanceformat.com/${adKey}/invoke.js`;
-    invokeScript.async = true;
-    invokeScript.onerror = () => setFailed(true);
-    container.appendChild(invokeScript);
+    const iframe = document.createElement("iframe");
+    iframe.style.width = `${width}px`;
+    iframe.style.height = `${height}px`;
+    iframe.style.border = "0";
+    iframe.style.display = "block";
+    iframe.scrolling = "no";
+    iframe.setAttribute(
+      "sandbox",
+      "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+    );
+    container.appendChild(iframe);
+    try {
+      iframe.contentWindow?.document.open();
+      iframe.contentWindow?.document.write(html);
+      iframe.contentWindow?.document.close();
+    } catch { /* ignore */ }
 
-    // Verifica tras 5s si el iframe llegó. Si no, lo marca como fallido (probablemente bloqueado por adblock).
-    const checkTimer = setTimeout(() => {
-      const iframe = container.querySelector("iframe");
-      if (!iframe) setFailed(true);
-    }, 5000);
+    // Reintentos: chequear a 3s, 6s y 10s. Solo marca failed si tras 10s no hay nada.
+    const timers: number[] = [];
+    const check = (final: boolean) => {
+      try {
+        const body = iframe.contentWindow?.document?.body;
+        const ok = !!body && (body.querySelector("iframe") !== null || body.innerHTML.length > 200);
+        if (ok) return true;
+        if (final) setFailed(true);
+      } catch {
+        // cross-origin → asumimos cargó
+        return true;
+      }
+      return false;
+    };
+    timers.push(window.setTimeout(() => check(false), 3000));
+    timers.push(window.setTimeout(() => check(false), 6000));
+    timers.push(window.setTimeout(() => check(true), 10000));
 
-    return () => clearTimeout(checkTimer);
-  }, [adKey, width, height, isPremium]);
+    return () => { timers.forEach(clearTimeout); };
+  }, [adKey, width, height, isPremium, loading]);
 
   if (isPremium) return <div aria-hidden className="w-0 h-0 overflow-hidden" />;
   if (failed) return null;
