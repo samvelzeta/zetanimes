@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { translateText } from "@/lib/translate";
 import { trackAnimeView, getAnimeViews, formatViews } from "@/lib/anime-views";
 import AdBannerInline from "@/components/ads/AdBannerInline";
+import SlugOverrideAdmin from "@/components/admin/SlugOverrideAdmin";
 
 type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
 
@@ -150,6 +151,8 @@ export default function AnimeDetail() {
         <Link to={`/watch/${animeId}?ep=1`} className="mt-4 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-all text-sm hover:scale-[1.02] active:scale-[0.98]">
           <Play className="w-5 h-5 fill-current" /> Ver Ahora
         </Link>
+
+        <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
 
         <div className="flex gap-2 mt-3 overflow-x-auto hide-scrollbar pb-1">
           {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
