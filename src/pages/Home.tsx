@@ -62,7 +62,8 @@ export default function Home() {
     queryKey: ["topRated"],
     queryFn: () => getTopRated(1, isTV ? 10 : 15),
     staleTime: 1000 * 60 * 30,
-    enabled: enableTopRated,
+    // En TV se monta directo en el home simplificado; en PC espera al LazySection
+    enabled: isTV || enableTopRated,
   });
 
   const { data: season, isLoading: l5 } = useQuery({
