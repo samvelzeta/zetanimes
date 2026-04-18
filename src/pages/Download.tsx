@@ -7,8 +7,6 @@ import { isTV } from "@/hooks/useIsTV";
 import { isWebView } from "@/lib/webview";
 import logoUrl from "@/assets/zetanime-apk-logo.png";
 
-const APK_SETTING_KEY = "apk_download_url";
-const FALLBACK_APK = "https://github.com/zetanime/app/releases/latest/download/zetanime.apk";
 const BACKGROUND_VIDEO_URL = "https://www.dropbox.com/scl/fi/jjm661r08rfvpgkmqdkrc/videoback-anime-zetanime-1.mp4?rlkey=osecdinr9zos3nni8bgzmiq4e&st=sjzr8ts1&raw=1";
 const LOADING_DOTS = [
   { left: 14, top: 18, size: 6, delay: 0.2, duration: 2.8 },
@@ -28,8 +26,9 @@ const LOADING_DOTS = [
 ];
 
 export default function DownloadPage() {
-  const [apkUrl, setApkUrl] = useState(FALLBACK_APK);
   const [version, setVersion] = useState("1.0.0");
+  const [hasApk, setHasApk] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [audioOn, setAudioOn] = useState(true);
@@ -53,15 +52,41 @@ export default function DownloadPage() {
     supabase
       .from("app_settings")
       .select("key,value")
-      .in("key", [APK_SETTING_KEY, "apk_version"])
+      .in("key", ["apk_download_url_enc", "apk_version"])
       .then(({ data }) => {
         if (!data) return;
-        const url = data.find((r: any) => r.key === APK_SETTING_KEY)?.value;
+        const enc = data.find((r: any) => r.key === "apk_download_url_enc")?.value;
         const ver = data.find((r: any) => r.key === "apk_version")?.value;
-        if (url) setApkUrl(url);
+        setHasApk(!!enc);
         if (ver) setVersion(ver);
       });
   }, []);
+
+  const handleDownload = async () => {
+    if (downloading) return;
+    if (!hasApk) {
+      toast.error("El APK aún no está disponible");
+      return;
+    }
+    setDownloading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apk-token");
+      if (error || !data?.token) throw new Error(error?.message || "No se pudo generar el enlace");
+      const downloadUrl = `https://whrcwifudxqbrwgvhnud.supabase.co/functions/v1/apk-download?t=${encodeURIComponent(data.token)}`;
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.rel = "noopener";
+      a.download = "zetanime.apk";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast.success("Iniciando descarga…");
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo iniciar la descarga");
+    } finally {
+      setTimeout(() => setDownloading(false), 1500);
+    }
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -305,20 +330,21 @@ export default function DownloadPage() {
           </div>
 
           {/* Download button */}
-          <a
-            href={apkUrl}
-            download="zetanime.apk"
-            className="mt-8 group relative w-full max-w-xs"
-            onClick={() => toast.success("Iniciando descarga…")}
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading || !hasApk}
+            className="mt-8 group relative w-full max-w-xs disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <div
               className="absolute inset-0 rounded-2xl blur-xl opacity-70 group-hover:opacity-100 transition"
               style={{ background: "hsl(var(--primary))" }}
             />
             <div className="relative flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-primary text-primary-foreground font-black text-base shadow-2xl hover:scale-[1.02] active:scale-95 transition">
-              <Download className="w-5 h-5" /> Descargar APK
+              <Download className="w-5 h-5" />
+              {downloading ? "Preparando…" : hasApk ? "Descargar APK" : "APK no disponible"}
             </div>
-          </a>
+          </button>
 
           {/* Share controls */}
           <button
