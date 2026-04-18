@@ -8,7 +8,7 @@ import { compressAvatar, compressProof } from "@/lib/image-compress";
 import { Loader2 } from "lucide-react";
 
 export default function Profile() {
-  const { user, profile, isPremium, isOwner, signOut, refreshProfile } = useAuth();
+  const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({ lists: 0, episodes: 0, hours: 0 });
   const [contacts, setContacts] = useState<any[]>([]);
@@ -196,7 +196,7 @@ export default function Profile() {
           </button>
         )}
 
-        {isOwner && (
+        {isAdmin && (
           <Link
             to="/admin"
             className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 border-2 border-primary/40 hover:bg-primary/15 hover:border-primary transition-all"
@@ -205,7 +205,7 @@ export default function Profile() {
             <div className="w-9 h-9 rounded-lg bg-primary/25 flex items-center justify-center">
               <Shield className="w-4 h-4 text-primary" />
             </div>
-            <span className="text-sm text-primary font-bold flex-1">Panel Admin</span>
+            <span className="text-sm text-primary font-bold flex-1">{isOwner ? "Panel Owner" : "Panel Admin"}</span>
             <ChevronRight className="w-4 h-4 text-primary group-hover:translate-x-0.5 transition" />
           </Link>
         )}

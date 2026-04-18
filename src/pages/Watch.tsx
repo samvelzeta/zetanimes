@@ -45,12 +45,14 @@ export default function Watch() {
   const playerWrapperRef = useRef<HTMLDivElement>(null);
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [activeSourceIdx, setActiveSourceIdx] = useState(0);
+  const lastSavedProgressRef = useRef(0);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
   const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes()));
 
   useEffect(() => {
     historyEntryIdRef.current = null;
     watchTimeRef.current = 0;
+    lastSavedProgressRef.current = 0;
   }, [user?.id, anilistId, selectedEp]);
 
   const { data: anilistData } = useQuery({
@@ -311,13 +313,15 @@ export default function Watch() {
 
   const handleProgress = useCallback((pct: number) => {
     watchTimeRef.current += 1;
+    const shouldPersistJump = Math.abs(pct - lastSavedProgressRef.current) >= 0.15;
 
-    // Save progress every ~5 ticks
-    if (zetSlug && watchTimeRef.current % 5 === 0) {
+    // Save progress every ~5 ticks or immediately after large manual seeks
+    if (zetSlug && (watchTimeRef.current % 5 === 0 || shouldPersistJump)) {
       const video = document.querySelector("video");
       if (video && video.duration > 0) {
         saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
         persistProgress(video.currentTime, video.duration, pct >= 0.7);
+        lastSavedProgressRef.current = pct;
       }
     }
 
