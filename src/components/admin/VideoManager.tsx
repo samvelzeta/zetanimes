@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2 } from "lucide-react";
+import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
 import { titleToSlug } from "@/lib/zetapi";
 import { saveCachedVideo, getCachedVideo, deleteCachedVideo, listCachedVideosBySlug, type CachedVideo } from "@/lib/video-cache";
+import { getSlugOverride } from "@/lib/slug-overrides";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -76,7 +77,9 @@ export default function VideoManager() {
   };
 
   const selectAnime = async (anime: AniListMedia) => {
-    const slug = titleToSlug(anime.title?.romaji || anime.title?.english || "");
+    // Prioridad: slug override manual (si existe) > slug calculado del título
+    const override = await getSlugOverride(anime.id);
+    const slug = override || titleToSlug(anime.title?.romaji || anime.title?.english || "");
     setSelected({
       id: anime.id,
       title: getTitle(anime),
@@ -89,8 +92,19 @@ export default function VideoManager() {
     setSelectedEp(null);
     setEpStatuses({});
     setVisibleRange({ start: 0, end: 50 });
+    if (override) toast.success(`Usando slug manual: ${override}`);
     // Cargar videos ya guardados de DB
     const saved = await listCachedVideosBySlug(slug);
+    setSavedVideos(saved);
+  };
+
+  // Permite al admin editar el slug del anime seleccionado (sincroniza con override)
+  const updateSlug = async (newSlug: string) => {
+    if (!selected) return;
+    const clean = newSlug.trim().toLowerCase();
+    setSelected({ ...selected, slug: clean });
+    setEpStatuses({});
+    const saved = await listCachedVideosBySlug(clean);
     setSavedVideos(saved);
   };
 
@@ -225,15 +239,24 @@ export default function VideoManager() {
 
   const deleteSaved = async (sv: CachedVideo) => {
     if (!confirm(`¿Eliminar EP ${sv.episode} (${sv.lang}) de la DB?`)) return;
-    const ok = await deleteCachedVideo(sv.slug, sv.episode, sv.lang);
-    if (ok) {
-      toast.success("Eliminado");
-      const refreshed = await listCachedVideosBySlug(selected!.slug);
-      setSavedVideos(refreshed);
+    try {
+      const ok = await deleteCachedVideo(sv.slug, sv.episode, sv.lang);
+      if (!ok) {
+        toast.error("Error al eliminar (revisa permisos owner)");
+        return;
+      }
+      toast.success(`EP ${sv.episode} eliminado`);
+      // Refrescar lista local sin re-fetch (más rápido)
+      setSavedVideos(prev => prev.filter(v => v.id !== sv.id));
       const key = `${sv.episode}-${sv.lang}`;
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: false } }));
-    } else {
-      toast.error("Error al eliminar");
+      // Si era el ep seleccionado, limpiar inputs
+      if (selectedEp === sv.episode && lang === sv.lang) {
+        setPrimaryUrl("");
+        setFallbackUrl("");
+      }
+    } catch (e: any) {
+      toast.error("Error al eliminar: " + (e?.message || "desconocido"));
     }
   };
 
@@ -319,11 +342,30 @@ export default function VideoManager() {
       {selected && (
         <div className="flex gap-2">
           {(["sub", "latino"] as const).map(l => (
-            <button key={l} onClick={() => { setLang(l); setEpStatuses({}); }}
+            <button key={l} onClick={() => setLang(l)}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition ${lang === l ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
               {l === "sub" ? "🇯🇵 Sub" : "🌎 Latino"}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Slug editable - útil cuando el slug del scraper no coincide con el calculado */}
+      {selected && (
+        <div>
+          <label className="text-[10px] text-primary mb-1 flex items-center gap-1">
+            <Wand2 className="w-3 h-3" /> Slug del scraper (editable)
+          </label>
+          <Input
+            value={selected.slug}
+            onChange={(e) => setSelected({ ...selected, slug: e.target.value })}
+            onBlur={(e) => updateSlug(e.target.value)}
+            placeholder="ej: hunter-x-hunter-2011"
+            className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-xs"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Este slug debe coincidir EXACTAMENTE con el del sitio fuente. Los videos se guardan bajo este slug.
+          </p>
         </div>
       )}
 
