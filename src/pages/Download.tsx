@@ -165,24 +165,33 @@ export default function DownloadPage() {
   };
 
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/download` : "";
-  const shareText = "Descarga zetAnime para Android y mira anime sub y latino sin límites";
-  const inApp = typeof window !== "undefined" && (isWebView() || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || ""));
+  const shareText = "🔥 Ven a vivir una nueva experiencia con zetAnime — anime sub y latino sin límites, gratis en tu Android y Android TV.";
+  const shareMessage = `${shareText}\n\n👉 Descarga la app aquí: ${shareUrl}`;
+  const isMobileDevice =
+    typeof window !== "undefined" &&
+    (isWebView() || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || ""));
 
   const nativeShare = async () => {
     if (!navigator.share) return false;
     try {
-      await navigator.share({ title: "zetAnime APK", text: shareText, url: shareUrl });
+      await navigator.share({
+        title: "zetAnime — Anime sin límites",
+        text: shareText,
+        url: shareUrl,
+      });
       return true;
-    } catch {
+    } catch (err: any) {
+      // El usuario canceló: no mostramos error
+      if (err?.name === "AbortError") return true;
       return false;
     }
   };
 
   const copyShareLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(shareMessage);
       setCopied(true);
-      toast.success("Enlace copiado");
+      toast.success("Mensaje copiado con el enlace");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("No se pudo copiar el enlace");
@@ -190,12 +199,19 @@ export default function DownloadPage() {
   };
 
   const handleShareClick = async () => {
-    if (inApp && (await nativeShare())) return;
+    // En móvil/APK: SIEMPRE abrir el sistema nativo de compartir del celular
+    if (isMobileDevice && navigator.share) {
+      const ok = await nativeShare();
+      if (ok) return;
+      toast.error("No se pudo abrir el menú de compartir");
+      return;
+    }
+    // En PC: mostrar panel con WhatsApp + copiar + abrir
     setShareOpen((s) => !s);
   };
 
   const openWhatsApp = () => {
-    const url = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
