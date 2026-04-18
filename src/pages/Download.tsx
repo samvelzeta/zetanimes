@@ -26,8 +26,9 @@ const LOADING_DOTS = [
 ];
 
 export default function DownloadPage() {
-  const [apkUrl, setApkUrl] = useState(FALLBACK_APK);
   const [version, setVersion] = useState("1.0.0");
+  const [hasApk, setHasApk] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [audioOn, setAudioOn] = useState(true);
@@ -51,15 +52,41 @@ export default function DownloadPage() {
     supabase
       .from("app_settings")
       .select("key,value")
-      .in("key", [APK_SETTING_KEY, "apk_version"])
+      .in("key", ["apk_download_url_enc", "apk_version"])
       .then(({ data }) => {
         if (!data) return;
-        const url = data.find((r: any) => r.key === APK_SETTING_KEY)?.value;
+        const enc = data.find((r: any) => r.key === "apk_download_url_enc")?.value;
         const ver = data.find((r: any) => r.key === "apk_version")?.value;
-        if (url) setApkUrl(url);
+        setHasApk(!!enc);
         if (ver) setVersion(ver);
       });
   }, []);
+
+  const handleDownload = async () => {
+    if (downloading) return;
+    if (!hasApk) {
+      toast.error("El APK aún no está disponible");
+      return;
+    }
+    setDownloading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("apk-token");
+      if (error || !data?.token) throw new Error(error?.message || "No se pudo generar el enlace");
+      const downloadUrl = `https://whrcwifudxqbrwgvhnud.supabase.co/functions/v1/apk-download?t=${encodeURIComponent(data.token)}`;
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.rel = "noopener";
+      a.download = "zetanime.apk";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast.success("Iniciando descarga…");
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo iniciar la descarga");
+    } finally {
+      setTimeout(() => setDownloading(false), 1500);
+    }
+  };
 
   useEffect(() => {
     const video = videoRef.current;
