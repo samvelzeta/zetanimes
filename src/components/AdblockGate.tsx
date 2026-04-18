@@ -43,15 +43,14 @@ export default function AdblockGate() {
   }, [loading, isPremium]);
 
   const goPremium = () => {
-    setBlocked(false); // cerrar modal para no bloquear navegación
-    if (user) {
-      navigate("/profile");
-      // pequeño hint para que el usuario sepa qué hacer al llegar
-      setTimeout(() => toast.info("Pulsa 'Obtener Premium' para activar tu membresía"), 400);
-    } else {
-      navigate("/auth?redirect=/profile");
-      setTimeout(() => toast.info("Inicia sesión para obtener Premium"), 400);
+    setBlocked(false); // cerrar el modal para no bloquear navegación
+    if (!user) {
+      toast.info("Primero crea tu cuenta para activar Premium");
+      navigate("/auth?redirect=/profile?premium=1");
+      return;
     }
+    // Usuario logueado → al perfil con flag para auto-abrir el modal de membresía
+    navigate("/profile?premium=1");
   };
 
   if (isPremium || !blocked) return null;
