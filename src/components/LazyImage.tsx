@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -15,18 +15,20 @@ interface Props extends React.ImgHTMLAttributes<HTMLImageElement> {
  * - Una vez cargada, queda FIJA en el DOM (no se hiberna ni se vuelve a pedir).
  *   Esto evita el "parpadeo" al hacer scroll de vuelta o al regresar a Home.
  */
-const LazyImage = forwardRef<HTMLDivElement, Props>(function LazyImage(
-  { src, alt, keepWhenOffscreen: _ignored, placeholderClassName = "", className = "", ...rest },
-  outerRef
-) {
+export default function LazyImage({
+  src,
+  alt,
+  keepWhenOffscreen: _ignored,
+  placeholderClassName = "",
+  className = "",
+  ...rest
+}: Props) {
   const innerRef = useRef<HTMLDivElement>(null);
-  useImperativeHandle(outerRef, () => innerRef.current as HTMLDivElement);
-
   const [shouldLoad, setShouldLoad] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (shouldLoad) return; // ya cargada → no observar más
+    if (shouldLoad) return;
     const el = innerRef.current;
     if (!el) return;
 
@@ -35,12 +37,13 @@ const LazyImage = forwardRef<HTMLDivElement, Props>(function LazyImage(
         entries.forEach((e) => {
           if (e.isIntersecting) {
             setShouldLoad(true);
-            obs.disconnect(); // una sola vez — queda fija para siempre
+            obs.disconnect();
           }
         });
       },
       { rootMargin: "300px", threshold: 0.01 }
     );
+
     obs.observe(el);
     return () => obs.disconnect();
   }, [shouldLoad]);
@@ -48,9 +51,7 @@ const LazyImage = forwardRef<HTMLDivElement, Props>(function LazyImage(
   return (
     <div ref={innerRef} className={`relative overflow-hidden ${className}`}>
       {(!shouldLoad || !loaded) && (
-        <div
-          className={`absolute inset-0 bg-secondary animate-pulse ${placeholderClassName}`}
-        />
+        <div className={`absolute inset-0 bg-secondary animate-pulse ${placeholderClassName}`} />
       )}
       {shouldLoad && (
         <img
@@ -67,6 +68,4 @@ const LazyImage = forwardRef<HTMLDivElement, Props>(function LazyImage(
       )}
     </div>
   );
-});
-
-export default LazyImage;
+}
