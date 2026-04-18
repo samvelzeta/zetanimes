@@ -12,7 +12,7 @@ import { getCachedVideo, cachedVideoToSources } from "@/lib/video-cache";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
-  Globe, Bug, ChevronDown, List, Home,
+  Globe, Bug, ChevronDown, List,
 } from "lucide-react";
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
 import AnimePlayer from "@/components/video/AnimePlayer";
@@ -346,11 +346,11 @@ export default function Watch() {
             {inWebView && " • 📱 APK"}
           </p>
           <Link
-            to="/"
+            to={`/anime/${id}`}
             className="group inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/40 hover:border-primary text-primary font-steam text-xs font-bold tracking-wide transition-all active:scale-95 shadow-[0_0_12px_hsl(var(--primary)/0.25)] hover:shadow-[0_0_18px_hsl(var(--primary)/0.5)]"
           >
-            <Home className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-            Volver al Inicio
+            <ChevronLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+            Volver al anime
           </Link>
         </div>
 
