@@ -113,9 +113,9 @@ export default function Home() {
           {/* Above-the-fold: montar inmediato */}
           <LatestEpisodes />
 
-          {/* 728x90 leaderboard entre Últimos Episodios y Nuevos Episodios */}
-          <LazySection minHeight={110}>
-            <AdBannerInline size="728x90" className="my-2" />
+          {/* 728x90 leaderboard — sin minHeight para no dejar hueco si falla */}
+          <LazySection minHeight={0}>
+            <AdBannerInline size="728x90" />
           </LazySection>
 
           <LazySection minHeight={400}>
@@ -167,9 +167,9 @@ export default function Home() {
             <HorizontalList title="🌸 Temporada Actual" animes={filterFn(season?.media)} loading={l5} showStatus />
           </LazySection>
 
-          {/* 468x60 banner discreto entre Temporada y Más Populares */}
-          <LazySection minHeight={80}>
-            <AdBannerInline size="468x60" className="my-3" />
+          {/* 468x60 banner discreto — sin minHeight para no dejar hueco si falla */}
+          <LazySection minHeight={0}>
+            <AdBannerInline size="468x60" />
           </LazySection>
 
           <LazySection minHeight={350}>
