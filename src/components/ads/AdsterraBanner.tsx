@@ -4,8 +4,9 @@
 // 1) Crear los <script> con document.createElement
 // 2) Asignarles el atOptions ANTES del invoke.js
 // 3) Appendar al body, y poner un container con el ID que invoke.js usa
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
 
 interface Props {
   adKey: string;
@@ -20,12 +21,12 @@ export default function AdsterraBanner({ adKey, width, height, uid }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const injected = useRef(false);
   const [failed, setFailed] = useState(false);
+  const canBootAds = shouldBootAdsImmediately(loading, isPremium);
 
-  useEffect(() => {
-    // Esperar a que auth termine de resolver para no inyectar para premium accidentalmente.
-    // Para usuarios sin sesión, `loading` pasa a false casi instantáneo (sin fetch de perfil).
-    if (loading || isPremium || injected.current || !ref.current) return;
+  useLayoutEffect(() => {
+    if (!canBootAds || injected.current || !ref.current) return;
     injected.current = true;
+    primeAdDomains();
 
     const container = ref.current;
     container.innerHTML = ""; // limpia
@@ -47,17 +48,15 @@ export default function AdsterraBanner({ adKey, width, height, uid }: Props) {
     iframe.style.height = `${height}px`;
     iframe.style.border = "0";
     iframe.style.display = "block";
+    iframe.loading = "eager";
     iframe.scrolling = "no";
+    iframe.setAttribute("fetchpriority", "high");
     iframe.setAttribute(
       "sandbox",
       "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin"
     );
+    iframe.srcdoc = html;
     container.appendChild(iframe);
-    try {
-      iframe.contentWindow?.document.open();
-      iframe.contentWindow?.document.write(html);
-      iframe.contentWindow?.document.close();
-    } catch { /* ignore */ }
 
     // Reintentos: chequear a 3s, 6s y 10s. Solo marca failed si tras 10s no hay nada.
     const timers: number[] = [];
@@ -78,7 +77,7 @@ export default function AdsterraBanner({ adKey, width, height, uid }: Props) {
     timers.push(window.setTimeout(() => check(true), 10000));
 
     return () => { timers.forEach(clearTimeout); };
-  }, [adKey, width, height, isPremium, loading]);
+  }, [adKey, width, height, canBootAds]);
 
   if (isPremium) return <div aria-hidden className="w-0 h-0 overflow-hidden" />;
   if (failed) return null;

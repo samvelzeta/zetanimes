@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
 
 /**
  * Native banner Adsterra estilo "card" (mismo tamaño que AnimeCard).
@@ -21,10 +22,12 @@ export default function AdCard({ size = "default" }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const loaded = useRef(false);
   const [adFilled, setAdFilled] = useState<boolean | null>(null);
+  const canBootAds = shouldBootAdsImmediately(loading, isPremium);
 
-  useEffect(() => {
-    if (loading || isPremium || loaded.current || !ref.current) return;
+  useLayoutEffect(() => {
+    if (!canBootAds || loaded.current || !ref.current) return;
     loaded.current = true;
+    primeAdDomains();
 
     // HTML aislado dentro de un iframe: cada anuncio se carga de forma
     // independiente con su propio contenedor, evitando colisión de IDs.
@@ -51,19 +54,15 @@ export default function AdCard({ size = "default" }: Props) {
     iframe.style.height = "100%";
     iframe.style.border = "0";
     iframe.style.display = "block";
+    iframe.loading = "eager";
     iframe.scrolling = "no";
+    iframe.setAttribute("fetchpriority", "high");
     iframe.setAttribute(
       "sandbox",
       "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin"
     );
+    iframe.srcdoc = html;
     ref.current.appendChild(iframe);
-    try {
-      iframe.contentWindow?.document.open();
-      iframe.contentWindow?.document.write(html);
-      iframe.contentWindow?.document.close();
-    } catch {
-      /* ignore */
-    }
 
     // Reintentos progresivos: 3s, 6s, 10s. Marca failed solo al último.
     const timers: number[] = [];
@@ -81,7 +80,7 @@ export default function AdCard({ size = "default" }: Props) {
     timers.push(window.setTimeout(() => probe(false), 6000));
     timers.push(window.setTimeout(() => probe(true), 10000));
     return () => { timers.forEach(clearTimeout); };
-  }, [isPremium, loading]);
+  }, [canBootAds]);
 
   if (isPremium) {
     return <div style={{ width: 0, height: 0, overflow: "hidden" }} aria-hidden />;

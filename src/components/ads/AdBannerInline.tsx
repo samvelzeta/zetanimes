@@ -2,8 +2,9 @@
 // Inyecta atOptions + invoke.js dentro de un iframe SANDBOX aislado para
 // permitir múltiples instancias en la misma página sin colisión de IDs.
 // Premium = 0×0 sin scripts. Si no carga (adblock / sin inventario) → colapsa SIN dejar hueco.
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
 
 export type AdBannerSize =
   | "728x90"   // leaderboard
@@ -33,12 +34,14 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
   const ref = useRef<HTMLDivElement>(null);
   const loaded = useRef(false);
   const [filled, setFilled] = useState<boolean | null>(null);
+  const canBootAds = shouldBootAdsImmediately(loading, isPremium);
 
   const cfg = KEYS[size];
 
-  useEffect(() => {
-    if (loading || isPremium || loaded.current || !ref.current) return;
+  useLayoutEffect(() => {
+    if (!canBootAds || loaded.current || !ref.current) return;
     loaded.current = true;
+    primeAdDomains();
 
     const html = `
       <!doctype html><html><head><style>
@@ -57,17 +60,15 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
     iframe.style.height = `${cfg.h}px`;
     iframe.style.border = "0";
     iframe.style.display = "block";
+    iframe.loading = "eager";
     iframe.scrolling = "no";
+    iframe.setAttribute("fetchpriority", "high");
     iframe.setAttribute(
       "sandbox",
       "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin"
     );
+    iframe.srcdoc = html;
     ref.current.appendChild(iframe);
-    try {
-      iframe.contentWindow?.document.open();
-      iframe.contentWindow?.document.write(html);
-      iframe.contentWindow?.document.close();
-    } catch { /* ignore */ }
 
     // Múltiples chequeos: 3s, 6s, 10s para tolerar latencia de CDN en producción.
     const timers: number[] = [];
@@ -85,7 +86,7 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
     timers.push(window.setTimeout(() => probe(false), 6000));
     timers.push(window.setTimeout(() => probe(true), 10000));
     return () => { timers.forEach(clearTimeout); };
-  }, [isPremium, loading, cfg.key, cfg.w, cfg.h]);
+  }, [canBootAds, cfg.key, cfg.w, cfg.h]);
 
   // Premium o ad bloqueado/no llenado → 0×0 SIN ocupar espacio (sin márgenes)
   if (isPremium) return null;
