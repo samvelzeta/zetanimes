@@ -77,7 +77,9 @@ export default function VideoManager() {
   };
 
   const selectAnime = async (anime: AniListMedia) => {
-    const slug = titleToSlug(anime.title?.romaji || anime.title?.english || "");
+    // Prioridad: slug override manual (si existe) > slug calculado del título
+    const override = await getSlugOverride(anime.id);
+    const slug = override || titleToSlug(anime.title?.romaji || anime.title?.english || "");
     setSelected({
       id: anime.id,
       title: getTitle(anime),
@@ -90,8 +92,19 @@ export default function VideoManager() {
     setSelectedEp(null);
     setEpStatuses({});
     setVisibleRange({ start: 0, end: 50 });
+    if (override) toast.success(`Usando slug manual: ${override}`);
     // Cargar videos ya guardados de DB
     const saved = await listCachedVideosBySlug(slug);
+    setSavedVideos(saved);
+  };
+
+  // Permite al admin editar el slug del anime seleccionado (sincroniza con override)
+  const updateSlug = async (newSlug: string) => {
+    if (!selected) return;
+    const clean = newSlug.trim().toLowerCase();
+    setSelected({ ...selected, slug: clean });
+    setEpStatuses({});
+    const saved = await listCachedVideosBySlug(clean);
     setSavedVideos(saved);
   };
 
