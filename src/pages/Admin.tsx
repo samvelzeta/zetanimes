@@ -36,6 +36,7 @@ const TABS = [
   { key: "notifs", label: "Notifs", icon: Bell },
   { key: "contacts", label: "Contactos", icon: MessageSquare },
   { key: "apikeys", label: "API Keys", icon: Key },
+  { key: "roles", label: "Roles", icon: Users },
 ];
 
 export default function AdminPanel() {
