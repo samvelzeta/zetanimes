@@ -107,7 +107,7 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
         )}
         <button
           onClick={() => handleEnter(activeAnime.id)}
-          className={`neon-btn group relative inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black text-primary-foreground bg-primary/90 backdrop-blur-sm shadow-lg ${isTV ? "" : "transition-all duration-300 hover:scale-110 animate-[hero-slide-up_0.6s_ease-out_0.45s_forwards]"} overflow-hidden`}
+          className={`group relative inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black text-primary-foreground bg-primary/90 backdrop-blur-sm shadow-lg ${isTV ? "" : "transition-all duration-300 hover:scale-110 animate-[hero-slide-up_0.6s_ease-out_0.45s_forwards]"} overflow-hidden`}
           style={isTV ? {} : { opacity: 0 }}
         >
           <Play className="w-4 h-4 fill-current relative z-10" />

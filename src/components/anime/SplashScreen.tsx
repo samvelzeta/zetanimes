@@ -12,23 +12,21 @@ export default function SplashScreen({ onComplete, ready }: Props) {
   const [show, setShow] = useState(true);
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
+  // Tiempo mínimo para evitar parpadeo, pero NO hay timeout máximo:
+  // el splash se queda hasta que `ready === true` (UI lista).
   useEffect(() => {
     const minT = setTimeout(() => setMinTimeElapsed(true), 1400);
-    const maxT = setTimeout(() => {
-      setShow(false);
-      setTimeout(onComplete, 500);
-    }, 5000);
-    return () => { clearTimeout(minT); clearTimeout(maxT); };
-  }, [onComplete]);
+    return () => clearTimeout(minT);
+  }, []);
 
   useEffect(() => {
-    if (ready === undefined) {
-      const t = setTimeout(() => {
-        setShow(false);
-        setTimeout(onComplete, 500);
-      }, 2200);
-      return () => clearTimeout(t);
+    // Si el padre no envía `ready`, completamos al pasar el tiempo mínimo.
+    if (ready === undefined && minTimeElapsed && show) {
+      setShow(false);
+      setTimeout(onComplete, 500);
+      return;
     }
+    // Bloquea hasta que el contenido principal esté cargado.
     if (minTimeElapsed && ready && show) {
       setShow(false);
       setTimeout(onComplete, 500);
