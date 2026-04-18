@@ -94,7 +94,7 @@ export default function VideoManager() {
     setVisibleRange({ start: 0, end: 50 });
     if (override) toast.success(`Usando slug manual: ${override}`);
     // Cargar videos ya guardados de DB
-    const saved = await listCachedVideosBySlug(slug);
+    const saved = await listCachedVideosBySlug(slug, anime.id);
     setSavedVideos(saved);
   };
 
@@ -104,14 +104,14 @@ export default function VideoManager() {
     const clean = newSlug.trim().toLowerCase();
     setSelected({ ...selected, slug: clean });
     setEpStatuses({});
-    const saved = await listCachedVideosBySlug(clean);
+    const saved = await listCachedVideosBySlug(clean, selected.id);
     setSavedVideos(saved);
   };
 
   const checkEpisode = useCallback(async (slug: string, ep: number, l: string) => {
     const key = `${ep}-${l}`;
     // Primero check en nuestra DB (más rápido y confiable)
-    const cached = await getCachedVideo(slug, ep, l);
+      const cached = await getCachedVideo(slug, ep, l, selected?.id);
     if (cached) {
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
       return;
@@ -130,7 +130,7 @@ export default function VideoManager() {
   useEffect(() => {
     if (selected && selectedEp !== null) {
       (async () => {
-        const cached = await getCachedVideo(selected.slug, selectedEp, lang);
+        const cached = await getCachedVideo(selected.slug, selectedEp, lang, selected.id);
         if (cached) {
           const all = [
             ...(cached.sources.hls || []),
@@ -223,7 +223,7 @@ export default function VideoManager() {
       toast.success(`EP ${selectedEp} guardado correctamente en DB global`);
       const key = `${selectedEp}-${lang}`;
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
-      const refreshed = await listCachedVideosBySlug(selected.slug);
+      const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
       setSavedVideos(refreshed);
     } catch (e: any) {
       toast.error("Error: " + e.message);
@@ -239,7 +239,7 @@ export default function VideoManager() {
 
   const deleteSaved = async (sv: CachedVideo) => {
     if (!confirm(`¿Eliminar EP ${sv.episode} (${sv.lang}) de la DB?`)) return;
-    const res = await deleteCachedVideo(sv.slug, sv.episode, sv.lang);
+    const res = await deleteCachedVideo(sv.slug, sv.episode, sv.lang, sv.id);
     if (!res.success) {
       toast.error("Error al eliminar: " + (res.error || "desconocido"));
       return;

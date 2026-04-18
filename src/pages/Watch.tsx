@@ -110,8 +110,8 @@ export default function Watch() {
   // 1) Cache global (DB) - PRIORIDAD MÁXIMA: lo guardado en admin manda
   const { data: cachedVideo } = useQuery({
     queryKey: ["video-cache", zetSlug, selectedEp, lang],
-    queryFn: () => getCachedVideo(zetSlug!, selectedEp, lang),
-    enabled: !!zetSlug,
+    queryFn: () => getCachedVideo(zetSlug || animeTitle || String(anilistId), selectedEp, lang, anilistId),
+    enabled: anilistId > 0,
     staleTime: 1000 * 60 * 5,
   });
 
