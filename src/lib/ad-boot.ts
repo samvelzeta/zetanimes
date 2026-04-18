@@ -25,12 +25,12 @@ export function primeAdDomains() {
   if (adDomainsPrimed || typeof document === "undefined") return;
   adDomainsPrimed = true;
 
-  const links = [
+  const links: Array<{ rel: string; href: string; crossOrigin?: string }> = [
     { rel: "dns-prefetch", href: "//www.highperformanceformat.com" },
     { rel: "preconnect", href: "https://www.highperformanceformat.com", crossOrigin: "anonymous" },
     { rel: "dns-prefetch", href: "//pl29176506.profitablecpmratenetwork.com" },
     { rel: "preconnect", href: "https://pl29176506.profitablecpmratenetwork.com", crossOrigin: "anonymous" },
-  ] as const;
+  ];
 
   links.forEach(({ rel, href, crossOrigin }) => {
     const selector = `link[rel="${rel}"][href="${href}"]`;

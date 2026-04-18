@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchAnime } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
+import AdBannerInline from "@/components/ads/AdBannerInline";
 import { Search as SearchIcon, X, Sparkles, TrendingUp, Cog } from "lucide-react";
 
 const SUGGESTIONS = [
@@ -295,6 +296,8 @@ export default function SearchPage() {
                 >
                   Ver todos los resultados en el Directorio →
                 </button>
+
+                <AdBannerInline size="160x600" className="mt-5 mb-2" />
               </>
             )}
           </div>
