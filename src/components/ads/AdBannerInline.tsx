@@ -2,7 +2,7 @@
 // Inyecta atOptions + invoke.js dentro de un iframe SANDBOX aislado para
 // permitir múltiples instancias en la misma página sin colisión de IDs.
 // Premium = 0×0 sin scripts. Si no carga (adblock / sin inventario) → colapsa SIN dejar hueco.
-import { forwardRef, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
 
@@ -29,7 +29,7 @@ interface Props {
   hideLabel?: boolean;
 }
 
-function AdBannerInlineImpl({ size, className = "", hideLabel = false }: Props) {
+export default function AdBannerInline({ size, className = "", hideLabel = false }: Props) {
   const { isPremium, loading } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
   const loaded = useRef(false);
@@ -111,9 +111,3 @@ function AdBannerInlineImpl({ size, className = "", hideLabel = false }: Props) 
   );
 }
 
-// forwardRef: tolera que padres como Directory pasen ref por error sin emitir warnings.
-const AdBannerInline = forwardRef<HTMLDivElement, Props>((props, _ref) => (
-  <AdBannerInlineImpl {...props} />
-));
-AdBannerInline.displayName = "AdBannerInline";
-export default AdBannerInline;
