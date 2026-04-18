@@ -1,7 +1,8 @@
-// Overlay decorativo + navegación de episodios (sin botón central de play).
+// Overlay decorativo del player. Solo navegación de episodios (prev/next) y chip.
+// Los controles de skip y "atrás" están abajo del player, no encima.
 // pointer-events: none en la raíz, auto solo en los controles reales.
 import { useEffect, useState, useRef } from "react";
-import { ChevronsLeft, ChevronsRight, FastForward, Rewind } from "lucide-react";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
 
 interface Props {
   episode: number;
@@ -14,7 +15,6 @@ interface Props {
 export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, containerRef }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [show, setShow] = useState(true);
-  const [hasNativeVideo, setHasNativeVideo] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -34,18 +34,6 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
       document.removeEventListener("webkitfullscreenchange", onChange as any);
     };
   }, [containerRef]);
-
-  // Detectar <video> nativo para habilitar skip controls
-  useEffect(() => {
-    let attempts = 0;
-    const interval = setInterval(() => {
-      attempts++;
-      const v = containerRef.current?.querySelector("video");
-      if (v) setHasNativeVideo(true);
-      if (attempts > 25) clearInterval(interval);
-    }, 400);
-    return () => clearInterval(interval);
-  }, [containerRef, episode]);
 
   // Auto-hide en fullscreen
   useEffect(() => {
@@ -69,14 +57,6 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
     };
   }, [isFullscreen, containerRef]);
 
-  const skip = (seconds: number) => {
-    const v = containerRef.current?.querySelector("video") as HTMLVideoElement | null;
-    if (!v) return;
-    try {
-      v.currentTime = Math.max(0, Math.min(v.duration || Infinity, v.currentTime + seconds));
-    } catch {}
-  };
-
   const hasPrev = episode > 1;
   const hasNext = episode < totalEpisodes;
   const posClass = isFullscreen ? "fixed inset-0 z-[2147483647]" : "absolute inset-0 z-30";
@@ -92,56 +72,30 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
         EP {episode} {totalEpisodes > 0 && <span className="opacity-60">/ {totalEpisodes}</span>}
       </div>
 
-      {/* Prev */}
-      <div className="pointer-events-auto absolute left-2 sm:left-4 top-1/2 -translate-y-1/2">
-        <button
-          onClick={onPrev}
-          disabled={!hasPrev}
-          className="w-11 h-11 sm:w-14 sm:h-14 rounded-md border-2 border-primary/60 bg-black/30 hover:bg-primary/30 hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center"
-          aria-label="Episodio anterior"
-        >
-          <ChevronsLeft className="w-6 h-6 sm:w-7 sm:h-7 text-white" strokeWidth={2.5} />
-        </button>
-      </div>
+      {/* Prev — solo en fullscreen para no estorbar al ver normal */}
+      {isFullscreen && (
+        <div className="pointer-events-auto absolute left-2 sm:left-4 top-1/2 -translate-y-1/2">
+          <button
+            onClick={onPrev}
+            disabled={!hasPrev}
+            className="w-11 h-11 sm:w-14 sm:h-14 rounded-md border-2 border-primary/60 bg-black/30 hover:bg-primary/30 hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center"
+            aria-label="Episodio anterior"
+          >
+            <ChevronsLeft className="w-6 h-6 sm:w-7 sm:h-7 text-white" strokeWidth={2.5} />
+          </button>
+        </div>
+      )}
 
-      {/* Next */}
-      <div className="pointer-events-auto absolute right-2 sm:right-4 top-1/2 -translate-y-1/2">
-        <button
-          onClick={onNext}
-          disabled={!hasNext}
-          className="w-11 h-11 sm:w-14 sm:h-14 rounded-md border-2 border-primary/60 bg-black/30 hover:bg-primary/30 hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center"
-          aria-label="Episodio siguiente"
-        >
-          <ChevronsRight className="w-6 h-6 sm:w-7 sm:h-7 text-white" strokeWidth={2.5} />
-        </button>
-      </div>
-
-      {/* Skip controls — solo si tenemos video nativo y estamos en fullscreen */}
-      {isFullscreen && hasNativeVideo && (
-        <div className="pointer-events-auto absolute bottom-20 left-1/2 -translate-x-1/2 flex items-center gap-2 flex-wrap justify-center">
+      {/* Next — solo en fullscreen */}
+      {isFullscreen && (
+        <div className="pointer-events-auto absolute right-2 sm:right-4 top-1/2 -translate-y-1/2">
           <button
-            onClick={() => skip(-10)}
-            className="px-3 py-2 rounded-lg bg-black/80 hover:bg-primary text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg border border-primary/20"
+            onClick={onNext}
+            disabled={!hasNext}
+            className="w-11 h-11 sm:w-14 sm:h-14 rounded-md border-2 border-primary/60 bg-black/30 hover:bg-primary/30 hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center"
+            aria-label="Episodio siguiente"
           >
-            <Rewind className="w-3.5 h-3.5" /> -10s
-          </button>
-          <button
-            onClick={() => skip(90)}
-            className="px-3 py-2 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground text-xs font-bold flex items-center gap-1.5 transition shadow-lg"
-          >
-            <FastForward className="w-3.5 h-3.5" /> Saltar Intro (+90s)
-          </button>
-          <button
-            onClick={() => skip(90)}
-            className="px-3 py-2 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground text-xs font-bold flex items-center gap-1.5 transition shadow-lg"
-          >
-            <FastForward className="w-3.5 h-3.5" /> Saltar Ending (+90s)
-          </button>
-          <button
-            onClick={() => skip(10)}
-            className="px-3 py-2 rounded-lg bg-black/80 hover:bg-primary text-white text-xs font-bold flex items-center gap-1.5 transition shadow-lg border border-primary/20"
-          >
-            +10s <FastForward className="w-3.5 h-3.5" />
+            <ChevronsRight className="w-6 h-6 sm:w-7 sm:h-7 text-white" strokeWidth={2.5} />
           </button>
         </div>
       )}
