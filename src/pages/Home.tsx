@@ -62,7 +62,8 @@ export default function Home() {
     queryKey: ["topRated"],
     queryFn: () => getTopRated(1, isTV ? 10 : 15),
     staleTime: 1000 * 60 * 30,
-    enabled: enableTopRated,
+    // En TV se monta directo en el home simplificado; en PC espera al LazySection
+    enabled: isTV || enableTopRated,
   });
 
   const { data: season, isLoading: l5 } = useQuery({
@@ -86,16 +87,12 @@ export default function Home() {
     enabled: !isTV && enableFantasy,
   });
 
-  // TV: simplified home with fewer sections, no animations
+  // TV: solo Header (ya en Layout) + Bento + Top Ranking. Sin hero, sin carruseles extra.
   if (isTV) {
     return (
-      <div className="min-h-screen">
-        <HeroBanner animes={filterFn(trending?.media)} />
-        <div className="mt-4 space-y-4 px-2">
-          <HorizontalList title="🔥 En Tendencia" animes={filterFn(trending?.media)} loading={l1} linkTo="/directory" />
-          <HorizontalList title="⭐ Más Populares" animes={filterFn(popular?.media)} loading={l2} linkTo="/directory" />
-          <TopRanking title="🏆 Top Rating" animes={filterFn(topRated?.media)} loading={l4} />
-        </div>
+      <div className="min-h-screen px-2 mt-4 space-y-6">
+        <BentoEpisodes />
+        <TopRanking title="🏆 Top Rating" animes={filterFn(topRated?.media)} loading={l4} />
       </div>
     );
   }
