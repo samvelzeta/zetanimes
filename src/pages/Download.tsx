@@ -247,14 +247,15 @@ export default function DownloadPage() {
   };
 
   const handleShareClick = async () => {
-    // En móvil/APK: SIEMPRE abrir el sistema nativo de compartir del celular
-    if (isMobileDevice && navigator.share) {
+    // Móvil/APK: intenta abrir el sistema nativo de compartir.
+    // Si el WebView del APK no expone navigator.share, mostramos el panel
+    // con WhatsApp/Copiar/Abrir como fallback (en vez de fallar en silencio).
+    if (isMobileDevice && typeof navigator !== "undefined" && typeof navigator.share === "function") {
       const ok = await nativeShare();
       if (ok) return;
-      toast.error("No se pudo abrir el menú de compartir");
-      return;
+      // Si falló (no AbortError), caemos al panel manual
     }
-    // En PC: mostrar panel con WhatsApp + copiar + abrir
+    // PC o WebView sin share API: panel con WhatsApp + copiar + abrir
     setShareOpen((s) => !s);
   };
 
