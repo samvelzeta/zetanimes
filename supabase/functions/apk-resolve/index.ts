@@ -66,21 +66,28 @@ Deno.serve(async (req) => {
 
     const { data, error } = await supabase
       .from("app_settings")
-      .select("value")
-      .eq("key", "apk_download_url_enc")
-      .maybeSingle();
+      .select("key,value")
+      .in("key", ["apk_download_url_enc", "apk_version"]);
 
-    if (error || !data?.value) {
+    if (error || !data?.length) {
       return new Response(JSON.stringify({ error: "no-apk" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const realUrl = await decryptUrl(data.value as string);
-    // Devolvemos la URL fragmentada y codificada para que en DevTools no
-    // sea trivial reconstruir el origen leyendo la respuesta.
-    const payload = shred(realUrl, 4);
+    const encrypted = data.find((item) => item.key === "apk_download_url_enc")?.value;
+    const version = data.find((item) => item.key === "apk_version")?.value ?? null;
+
+    if (!encrypted) {
+      return new Response(JSON.stringify({ error: "no-apk", version }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const realUrl = await decryptUrl(encrypted);
+    const payload = { ...shred(realUrl, 4), version, ok: true };
 
     return new Response(JSON.stringify(payload), {
       headers: {
