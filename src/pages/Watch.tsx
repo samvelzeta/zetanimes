@@ -126,6 +126,17 @@ export default function Watch() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // 1b) Cache global del IDIOMA OPUESTO — para completar el toggle cuando
+  // la API solo trae 1 idioma (típicamente JP). Si el admin guardó manualmente
+  // el otro idioma en DB, lo combinamos para que el botón "Cambiar idioma" funcione.
+  const oppositeLang: Lang = lang === "sub" ? "latino" : "sub";
+  const { data: cachedVideoOpposite } = useQuery({
+    queryKey: ["video-cache-opposite", zetSlug, selectedEp, oppositeLang],
+    queryFn: () => getCachedVideo(zetSlug || animeTitle || String(anilistId), selectedEp, oppositeLang, anilistId),
+    enabled: anilistId > 0 && !!zetSlug,
+    staleTime: 1000 * 60 * 5,
+  });
+
   // 2) Episode servers from scraper API (solo si NO hay cache de DB ni HLS latino)
   const { data: serverData, isLoading: loadingServers, error: serverError } = useQuery({
     queryKey: ["zet-servers", zetSlug, selectedEp, lang],
@@ -140,11 +151,11 @@ export default function Watch() {
     retry: 1,
   });
 
-  // Build sources: cache DB > latino HLS > scraper
+  // Build sources: cache DB > latino HLS > scraper, completando con DB del idioma opuesto
   const buildSources = useCallback(() => {
     const sources: { name: string; embed: string; type?: string }[] = [];
 
-    // 1. Cache global de DB (admin uploads)
+    // 1. Cache global de DB (admin uploads) del idioma actual
     if (cachedVideo) {
       sources.push(...cachedVideoToSources(cachedVideo));
     }
@@ -162,8 +173,19 @@ export default function Watch() {
       if (s.embed) sources.push({ name: s.name, embed: s.embed });
     });
 
+    // 4. Si solo tenemos 1 fuente, intentamos completar con la del IDIOMA OPUESTO
+    //    guardada manualmente en DB (admin). Así el botón "Cambiar idioma" funciona
+    //    incluso cuando la API solo devuelve 1 server (caso típico: Black Clover sólo JP).
+    if (sources.length < 2 && cachedVideoOpposite) {
+      const opp = cachedVideoToSources(cachedVideoOpposite).map((s) => ({
+        ...s,
+        name: `${s.name} • ${oppositeLang === "latino" ? "🌎 LAT" : "🇯🇵 JP"}`,
+      }));
+      sources.push(...opp);
+    }
+
     return sources;
-  }, [lang, latinoEp, serverData, cachedVideo]);
+  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang]);
 
   const rawSources = buildSources();
   // Si el usuario rotó manualmente, mover esa fuente al inicio para que el player la cargue
