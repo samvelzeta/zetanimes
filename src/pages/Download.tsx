@@ -215,6 +215,13 @@ export default function DownloadPage() {
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/download` : "";
   const shareText = "🔥 Ven a vivir una nueva experiencia con zetAnime — anime sub y latino sin límites, gratis en tu Android y Android TV.";
   const shareMessage = `${shareText}\n\n👉 Descarga la app aquí: ${shareUrl}`;
+  
+  // Debug: log actual domain being used
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      console.log("[Download] Share URL:", `${window.location.origin}/download`);
+    }
+  }, []);
   const isMobileDevice =
     typeof window !== "undefined" &&
     (isWebView() || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || ""));
