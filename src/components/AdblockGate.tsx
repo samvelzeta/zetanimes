@@ -8,12 +8,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { detectAdblock } from "@/lib/adblock-detect";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { isTV } from "@/hooks/useIsTV";
 
 export default function AdblockGate() {
   const { isPremium, loading, user } = useAuth();
   const navigate = useNavigate();
   const [blocked, setBlocked] = useState(false);
   const [checking, setChecking] = useState(false);
+  // En Smart TV los anuncios suelen no cargar por la red/firmware,
+  // y nuestro detector lo confunde con un adblock → pantalla negra eterna.
+  // Excluimos TV del gate.
+  const tvMode = typeof window !== "undefined" && isTV();
 
   const runCheck = async () => {
     setChecking(true);
@@ -37,7 +42,7 @@ export default function AdblockGate() {
   // Así, si el usuario cierra el modal navegando o desactiva temporalmente el adblock
   // y lo vuelve a activar, lo detectamos y reabrimos el gate.
   useEffect(() => {
-    if (loading || isPremium) {
+    if (loading || isPremium || tvMode) {
       setBlocked(false);
       return;
     }
@@ -79,7 +84,7 @@ export default function AdblockGate() {
     navigate("/profile?premium=1");
   };
 
-  if (isPremium || !blocked) return null;
+  if (isPremium || tvMode || !blocked) return null;
 
   return (
     <div

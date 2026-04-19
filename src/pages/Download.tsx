@@ -62,6 +62,25 @@ export default function DownloadPage() {
       });
   }, []);
 
+  // Reconstruye la URL real a partir de los fragmentos opacos devueltos por
+  // la edge function. Los nombres de campo no insinúan "url" ni el origen.
+  const reassemble = (fragments: Record<string, string>): string => {
+    const n = Number(fragments?._n || 0);
+    if (!n) return "";
+    const order = ["p", "q", "r", "s", "t", "u"];
+    let acc = "";
+    for (let i = 0; i < n; i++) {
+      const piece = fragments[order[i]];
+      if (!piece) continue;
+      try {
+        acc += decodeURIComponent(escape(atob(piece)));
+      } catch {
+        return "";
+      }
+    }
+    return acc;
+  };
+
   const handleDownload = async () => {
     if (downloading) return;
     if (!hasApk) {
@@ -70,11 +89,15 @@ export default function DownloadPage() {
     }
     setDownloading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("apk-token");
-      if (error || !data?.token) throw new Error(error?.message || "No se pudo generar el enlace");
-      const downloadUrl = `https://whrcwifudxqbrwgvhnud.supabase.co/functions/v1/apk-download?t=${encodeURIComponent(data.token)}`;
+      // Petición interna — funciona para cualquier visitante (anon)
+      // gracias a la anon key incluida por el cliente Supabase.
+      const { data, error } = await supabase.functions.invoke("apk-resolve");
+      if (error || !data) throw new Error(error?.message || "No se pudo preparar la descarga");
+      const realUrl = reassemble(data as Record<string, string>);
+      if (!realUrl) throw new Error("Enlace no disponible");
+
       const a = document.createElement("a");
-      a.href = downloadUrl;
+      a.href = realUrl;
       a.rel = "noopener";
       a.download = "zetanime.apk";
       document.body.appendChild(a);
@@ -224,14 +247,15 @@ export default function DownloadPage() {
   };
 
   const handleShareClick = async () => {
-    // En móvil/APK: SIEMPRE abrir el sistema nativo de compartir del celular
-    if (isMobileDevice && navigator.share) {
+    // Móvil/APK: intenta abrir el sistema nativo de compartir.
+    // Si el WebView del APK no expone navigator.share, mostramos el panel
+    // con WhatsApp/Copiar/Abrir como fallback (en vez de fallar en silencio).
+    if (isMobileDevice && typeof navigator !== "undefined" && typeof navigator.share === "function") {
       const ok = await nativeShare();
       if (ok) return;
-      toast.error("No se pudo abrir el menú de compartir");
-      return;
+      // Si falló (no AbortError), caemos al panel manual
     }
-    // En PC: mostrar panel con WhatsApp + copiar + abrir
+    // PC o WebView sin share API: panel con WhatsApp + copiar + abrir
     setShareOpen((s) => !s);
   };
 
