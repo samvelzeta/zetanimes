@@ -49,17 +49,29 @@ export default function DownloadPage() {
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Descarga la app oficial de zetAnime para Android y Android TV. Mira anime sub y latino desde tu TV o móvil.");
 
-    supabase
-      .from("app_settings")
-      .select("key,value")
-      .in("key", ["apk_download_url_enc", "apk_version"])
-      .then(({ data }) => {
-        if (!data) return;
-        const enc = data.find((r: any) => r.key === "apk_download_url_enc")?.value;
-        const ver = data.find((r: any) => r.key === "apk_version")?.value;
-        setHasApk(!!enc);
-        if (ver) setVersion(ver);
+    let active = true;
+
+    supabase.functions.invoke("apk-resolve")
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error || !data) {
+          setHasApk(false);
+          return;
+        }
+
+        const payload = data as Record<string, string> & { version?: string; ok?: boolean };
+        const realUrl = reassemble(payload);
+        setHasApk(Boolean(realUrl));
+        if (payload.version) setVersion(payload.version);
+      })
+      .catch(() => {
+        if (!active) return;
+        setHasApk(false);
       });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Reconstruye la URL real a partir de los fragmentos opacos devueltos por
@@ -83,19 +95,14 @@ export default function DownloadPage() {
 
   const handleDownload = async () => {
     if (downloading) return;
-    if (!hasApk) {
-      toast.error("El APK aún no está disponible");
-      return;
-    }
     setDownloading(true);
     try {
-      // Petición interna — funciona para cualquier visitante (anon)
-      // gracias a la anon key incluida por el cliente Supabase.
       const { data, error } = await supabase.functions.invoke("apk-resolve");
       if (error || !data) throw new Error(error?.message || "No se pudo preparar la descarga");
       const realUrl = reassemble(data as Record<string, string>);
       if (!realUrl) throw new Error("Enlace no disponible");
 
+      setHasApk(true);
       const a = document.createElement("a");
       a.href = realUrl;
       a.rel = "noopener";
@@ -105,6 +112,7 @@ export default function DownloadPage() {
       a.remove();
       toast.success("Iniciando descarga…");
     } catch (e: any) {
+      setHasApk(false);
       toast.error(e?.message || "No se pudo iniciar la descarga");
     } finally {
       setTimeout(() => setDownloading(false), 1500);
