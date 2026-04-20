@@ -187,15 +187,36 @@ function EpisodeCardWide({
   views: number;
 }) {
   const navigate = useNavigate();
+  const [resolving, setResolving] = useState(false);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
-    // El anilistId ya viene resuelto desde el efecto principal → navegación directa y precisa.
     if (episode.anilistId) {
       navigate(`/anime/${episode.anilistId}`);
       return;
     }
-    navigate(`/search?q=${encodeURIComponent(episode.title)}`);
+    // Resolver en el momento del click para evitar mandar al search
+    if (resolving) return;
+    setResolving(true);
+    try {
+      const r = await searchAnime(episode.title, 1, 1);
+      const aid = r.media[0]?.id;
+      if (aid) {
+        // Guardar en cache local para próximas visitas
+        try {
+          const cache = JSON.parse(localStorage.getItem("zet_latest_anilist_map") || "{}");
+          cache[episode.title] = aid;
+          localStorage.setItem("zet_latest_anilist_map", JSON.stringify(cache));
+        } catch { /* ignore */ }
+        navigate(`/anime/${aid}`);
+      } else {
+        navigate(`/search?q=${encodeURIComponent(episode.title)}`);
+      }
+    } catch {
+      navigate(`/search?q=${encodeURIComponent(episode.title)}`);
+    } finally {
+      setResolving(false);
+    }
   };
 
   return (
