@@ -337,10 +337,9 @@ export default function Watch() {
 
   const handleProgress = useCallback((pct: number) => {
     watchTimeRef.current += 1;
-    const shouldPersistJump = Math.abs(pct - lastSavedProgressRef.current) >= 0.15;
 
-    // Save progress every ~5 ticks or immediately after large manual seeks
-    if (zetSlug && (watchTimeRef.current % 5 === 0 || shouldPersistJump)) {
+    // Save progress every ~5 ticks
+    if (zetSlug && watchTimeRef.current % 5 === 0) {
       const video = document.querySelector("video");
       if (video && video.duration > 0) {
         saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
@@ -354,6 +353,15 @@ export default function Watch() {
       markWatchedReactive(epSlug);
     }
   }, [zetSlug, selectedEp, persistProgress, markWatchedReactive]);
+
+  // Guarda inmediatamente al hacer seek manual (adelantar / retroceder)
+  const handleSeeked = useCallback((currentTime: number, duration: number) => {
+    if (!zetSlug || !duration) return;
+    saveVideoProgress(zetSlug, selectedEp, currentTime, duration);
+    const pct = currentTime / duration;
+    persistProgress(currentTime, duration, pct >= 0.7);
+    lastSavedProgressRef.current = pct;
+  }, [zetSlug, selectedEp, persistProgress]);
 
   // ===== Tracking estimado para EMBEDS (iframe sin acceso a timeupdate) =====
   // Asume duración estándar 24min (1440s). Cada 10s incrementa y guarda.
