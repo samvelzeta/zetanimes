@@ -14,6 +14,8 @@ interface Props {
   sources: PlayerSource[];
   title?: string;
   onProgress?: (progress: number) => void;
+  /** Llamado cuando el usuario hace seek manual (adelanta/retrocede). */
+  onSeeked?: (currentTime: number, duration: number) => void;
   autoplay?: boolean;
   initialTime?: number;
 }
