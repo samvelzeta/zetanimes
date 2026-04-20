@@ -487,6 +487,7 @@ export default function Watch() {
                 sources={sortedSources}
                 title={`${displayTitle} - EP ${selectedEp}`}
                 onProgress={handleProgress}
+                onSeeked={handleSeeked}
                 initialTime={initialTime}
               />
               {/* Overlay only visible in fullscreen — does NOT affect playback */}
