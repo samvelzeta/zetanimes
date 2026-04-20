@@ -151,55 +151,56 @@ export default function Watch() {
     retry: 1,
   });
 
-  // Build sources: cache DB > latino HLS > scraper, completando SIEMPRE con DB del idioma opuesto
+  // Construye sources con UNA fuente por idioma. Prioridad: DB > Latino HLS > primer server API.
+  // El botón "Cambiar idioma" alterna entre las 2 fuentes (idioma actual / idioma opuesto).
   const buildSources = useCallback(() => {
     const sources: { name: string; embed: string; type?: string }[] = [];
 
-    // 1. Cache global de DB (admin uploads) del idioma actual
+    // Idioma ACTUAL
+    let added = false;
     if (cachedVideo) {
-      sources.push(...cachedVideoToSources(cachedVideo));
+      const dbSources = cachedVideoToSources(cachedVideo);
+      if (dbSources.length) {
+        const tag = lang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
+        sources.push({ ...dbSources[0], name: `${dbSources[0].name} • ${tag}` });
+        added = true;
+      }
+    }
+    if (!added && lang === "latino" && latinoEp?.sources?.hls?.length) {
+      sources.push({ name: "HLS Latino • 🌎 LAT", embed: latinoEp.sources.hls[0], type: "hls" });
+      added = true;
+    }
+    if (!added) {
+      const apiServers = serverData?.servers || [];
+      const sorted = sortServersByPriority(apiServers as ZetServer[]);
+      if (sorted[0]?.embed) {
+        const tag = lang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
+        sources.push({ name: `${sorted[0].name} • ${tag}`, embed: sorted[0].embed });
+      }
     }
 
-    // 2. Latino HLS sources
-    if (lang === "latino" && latinoEp?.sources?.hls) {
-      latinoEp.sources.hls.forEach((url: string, i: number) => {
-        sources.push({ name: `HLS Latino ${i + 1}`, embed: url, type: "hls" });
-      });
-    }
-
-    // 3. Scraper servers (fallback)
-    const scraperServers = serverData?.servers || [];
-    scraperServers.forEach((s: ZetServer) => {
-      if (s.embed) sources.push({ name: s.name, embed: s.embed });
-    });
-
-    // 4. SIEMPRE añadimos las fuentes del IDIOMA OPUESTO guardadas manualmente en DB
-    //    para que el botón "Cambiar idioma" funcione aunque la API ya nos haya dado
-    //    1+ servidores en este idioma (caso típico: Black Clover sólo JP en API + LAT en DB).
+    // Idioma OPUESTO desde DB (si admin lo guardó). API del idioma opuesto se carga al pulsar el toggle.
     if (cachedVideoOpposite) {
-      const opp = cachedVideoToSources(cachedVideoOpposite).map((s) => ({
-        ...s,
-        name: `${s.name} • ${oppositeLang === "latino" ? "🌎 LAT" : "🇯🇵 JP"}`,
-      }));
-      sources.push(...opp);
+      const oppDb = cachedVideoToSources(cachedVideoOpposite);
+      if (oppDb.length) {
+        const tag = oppositeLang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
+        sources.push({ ...oppDb[0], name: `${oppDb[0].name} • ${tag}` });
+      }
     }
 
     return sources;
   }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang]);
 
   const rawSources = buildSources();
-  // Si el usuario rotó manualmente, mover esa fuente al inicio para que el player la cargue
   const sortedSources = activeSourceIdx > 0 && activeSourceIdx < rawSources.length
     ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
     : rawSources;
 
-  // El botón "Cambiar idioma" se activa si:
-  // - Hay HLS latino dedicado (toggle real sub/latino)
-  // - O hay 2+ fuentes (rota entre ellas; típicamente JP/LAT mezclado)
+  // Toggle: si hay 2 sources visibles → rotamos. Si no, intentamos fetchear el otro idioma vía API.
   const hasLatinoHLS = !!latinoEp;
   const hasMultipleSources = rawSources.length >= 2;
-  const hasMultipleLangs = hasLatinoHLS || hasMultipleSources;
-  const langButtonLabel = hasMultipleLangs ? "Cambiar idioma" : "Idioma predeterminado";
+  const hasMultipleLangs = hasMultipleSources || hasLatinoHLS;
+  const langButtonLabel = hasMultipleLangs ? "Cambiar idioma" : "Idioma único";
 
   // Restore progress on episode change
   useEffect(() => {
