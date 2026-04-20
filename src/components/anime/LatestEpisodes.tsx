@@ -5,10 +5,12 @@ import { searchAnime } from "@/lib/anilist";
 import { AlertCircle, Play, ChevronLeft, ChevronRight, Eye, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getAnimeViewsBatch, formatViews } from "@/lib/anime-views";
+import { getHiddenAnimeIds } from "@/lib/hidden-animes";
+import { useAuth } from "@/contexts/AuthContext";
 import LazyImage from "@/components/LazyImage";
 import AdCard from "@/components/ads/AdCard";
 
-/** Slot de anuncio del MISMO ALTO que las tarjetas de episodio (140px) — evita huecos. */
+/** Slot de anuncio del MISMO ALTO que las tarjetas (140px). En premium no se renderiza. */
 function EpisodeAdSlot() {
   return (
     <div className="flex-shrink-0 w-[180px] h-[140px] flex items-center justify-center">
@@ -25,7 +27,12 @@ function EpisodeSkeleton() {
   );
 }
 
+interface ResolvedEpisode extends ZetLatestEpisode {
+  anilistId?: number;
+}
+
 export default function LatestEpisodes() {
+  const { isPremium } = useAuth();
   const { data: episodes, isLoading, error } = useQuery({
     queryKey: ["zet-latest-episodes"],
     queryFn: getLatestEpisodes,
@@ -33,40 +40,53 @@ export default function LatestEpisodes() {
     retry: 1,
   });
 
-  // Resolver títulos→anilistId→vistas (en background, no bloquea)
+  // Resuelve TODOS los episodios a anilistId UNA sola vez (cacheado en estado).
+  // Así cada tarjeta navega EXACTAMENTE al anime correcto sin búsqueda al hacer click,
+  // y podemos filtrar los animes ocultos globalmente.
+  const [resolved, setResolved] = useState<ResolvedEpisode[]>([]);
   const [viewsMap, setViewsMap] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!episodes?.length) return;
     let cancelled = false;
     (async () => {
-      // Buscar anilistId por título (limitar concurrencia)
+      const hidden = await getHiddenAnimeIds();
+      const out: ResolvedEpisode[] = [];
       const slugToAnilist = new Map<string, number>();
-      for (const ep of episodes.slice(0, 12)) {
+
+      for (const ep of episodes) {
+        if (cancelled) return;
         try {
           const r = await searchAnime(ep.title, 1, 1);
-          if (r.media[0]?.id) slugToAnilist.set(ep.slug, r.media[0].id);
-        } catch { /* ignore */ }
-        if (cancelled) return;
+          const aid = r.media[0]?.id;
+          if (aid && hidden.has(aid)) continue; // filtrar ocultos
+          if (aid) slugToAnilist.set(ep.slug, aid);
+          out.push({ ...ep, anilistId: aid });
+        } catch {
+          out.push({ ...ep });
+        }
       }
-      const ids = Array.from(slugToAnilist.values());
-      if (!ids.length) return;
-      const realViews = await getAnimeViewsBatch(ids);
       if (cancelled) return;
-      const out = new Map<string, number>();
-      slugToAnilist.forEach((aid, slug) => {
-        out.set(slug, realViews.get(aid) || 0);
-      });
-      setViewsMap(out);
+      setResolved(out);
+
+      const ids = Array.from(slugToAnilist.values());
+      if (ids.length) {
+        const realViews = await getAnimeViewsBatch(ids);
+        if (cancelled) return;
+        const vmap = new Map<string, number>();
+        slugToAnilist.forEach((aid, slug) => vmap.set(slug, realViews.get(aid) || 0));
+        setViewsMap(vmap);
+      }
     })();
     return () => { cancelled = true; };
   }, [episodes]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-
   const scroll = (dir: number) => {
     scrollRef.current?.scrollBy({ left: dir * 320, behavior: "smooth" });
   };
+
+  const list = resolved.length ? resolved : (episodes || []).map((e) => ({ ...e } as ResolvedEpisode));
 
   return (
     <section className="mb-8">
@@ -99,11 +119,10 @@ export default function LatestEpisodes() {
         </div>
       )}
 
-      {/* items-center → centra verticalmente AdCard y EpisodeCardWide en una misma fila */}
       <div ref={scrollRef} className="flex items-center gap-3 overflow-x-auto px-4 hide-scrollbar">
         {isLoading
           ? Array(6).fill(0).map((_, i) => <EpisodeSkeleton key={i} />)
-          : episodes?.flatMap((ep, i) => {
+          : list.flatMap((ep, i) => {
               const card = (
                 <EpisodeCardWide
                   key={`${ep.slug}-${i}`}
@@ -111,16 +130,17 @@ export default function LatestEpisodes() {
                   views={viewsMap.get(ep.slug) || 0}
                 />
               );
-              // Insertar AdCard cada 5 episodios (después del 5°, 10°, …) salvo al final
+              // Anuncio cada 5 SOLO para usuarios free.
+              // Premium: no insertamos el slot vacío para evitar el hueco entre tarjetas.
               const shouldInsertAd =
-                (i + 1) % 5 === 0 && i !== (episodes.length - 1);
+                !isPremium && (i + 1) % 5 === 0 && i !== (list.length - 1);
               return shouldInsertAd
                 ? [card, <EpisodeAdSlot key={`ad-${i}`} />]
                 : [card];
             })}
       </div>
 
-      {!isLoading && !error && episodes?.length === 0 && (
+      {!isLoading && !error && list.length === 0 && (
         <p className="text-center text-muted-foreground text-sm py-8 px-4">
           No hay episodios.
         </p>
@@ -136,20 +156,18 @@ function EpisodeCardWide({
   episode,
   views,
 }: {
-  episode: ZetLatestEpisode;
+  episode: ResolvedEpisode;
   views: number;
 }) {
   const navigate = useNavigate();
 
-  const handleClick = async (e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    try {
-      const result = await searchAnime(episode.title, 1, 1);
-      if (result.media.length > 0) {
-        navigate(`/anime/${result.media[0].id}`);
-        return;
-      }
-    } catch { /* fallback */ }
+    // El anilistId ya viene resuelto desde el efecto principal → navegación directa y precisa.
+    if (episode.anilistId) {
+      navigate(`/anime/${episode.anilistId}`);
+      return;
+    }
     navigate(`/search?q=${encodeURIComponent(episode.title)}`);
   };
 
@@ -158,7 +176,6 @@ function EpisodeCardWide({
       onClick={handleClick}
       className="group relative flex-shrink-0 w-[280px] h-[140px] rounded-2xl overflow-hidden bg-secondary text-left ring-1 ring-border hover:ring-primary/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
     >
-      {/* Cover de fondo (lazy + libera al salir del viewport) */}
       {episode.cover ? (
         <LazyImage
           src={episode.cover}
@@ -171,11 +188,9 @@ function EpisodeCardWide({
         </div>
       )}
 
-      {/* Gradientes para legibilidad */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
-      {/* Vistas REALES arriba-izquierda */}
       {views > 0 && (
         <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm z-10">
           <Eye className="w-3 h-3 text-primary" />
@@ -185,20 +200,15 @@ function EpisodeCardWide({
         </div>
       )}
 
-      {/* Badge "Z" (ZetAnime) arriba-derecha */}
       <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-primary/90 backdrop-blur-sm z-10">
-        <span className="text-[9px] font-black text-primary-foreground tracking-wider">
-          Z
-        </span>
+        <span className="text-[9px] font-black text-primary-foreground tracking-wider">Z</span>
       </div>
 
-      {/* Duración derecha-abajo */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm z-10">
         <Clock className="w-2.5 h-2.5 text-white/80" />
         <span className="text-[9px] font-semibold text-white/90">24 min</span>
       </div>
 
-      {/* Info izquierda-abajo */}
       <div className="absolute bottom-2 left-2 right-20 z-10">
         {episode.number && (
           <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-0.5">
@@ -210,7 +220,6 @@ function EpisodeCardWide({
         </p>
       </div>
 
-      {/* Play overlay en hover */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/30 z-20">
         <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center shadow-[0_0_20px_hsl(var(--primary))]">
           <Play className="w-5 h-5 text-primary-foreground fill-primary-foreground ml-0.5" />
