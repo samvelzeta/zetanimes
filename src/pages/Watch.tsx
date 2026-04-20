@@ -530,28 +530,29 @@ export default function Watch() {
         {/* Idioma / fuente alternativa */}
         <div className="flex items-center gap-2 mb-4">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-          {hasMultipleLangs ? (
+          {hasMultipleSources ? (
             <button
-              onClick={() => {
-                if (hasLatinoHLS) {
-                  setLang(lang === "sub" ? "latino" : "sub");
-                } else {
-                  setActiveSourceIdx((i) => (i + 1) % Math.max(1, sortedSources.length));
-                }
-              }}
+              onClick={() => setActiveSourceIdx((i) => (i + 1) % Math.max(1, sortedSources.length))}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-all flex items-center gap-1.5"
             >
-              {langButtonLabel}
+              Cambiar idioma
               <span className="text-[10px] opacity-80">
-                {hasLatinoHLS
-                  ? `(${lang === "sub" ? "🇯🇵 JP → 🌎 LAT" : "🌎 LAT → 🇯🇵 JP"})`
-                  : `(${sortedSources[activeSourceIdx]?.name || "—"})`}
+                ({sortedSources[0]?.name?.split(" • ")[1] || sortedSources[0]?.name || "—"})
               </span>
             </button>
           ) : (
-            <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary text-muted-foreground">
-              {langButtonLabel}
-            </span>
+            <button
+              onClick={() => {
+                setLang(lang === "sub" ? "latino" : "sub");
+                setActiveSourceIdx(0);
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-all flex items-center gap-1.5"
+            >
+              Cambiar idioma
+              <span className="text-[10px] opacity-80">
+                ({lang === "sub" ? "🇯🇵 → 🌎" : "🌎 → 🇯🇵"})
+              </span>
+            </button>
           )}
         </div>
 
