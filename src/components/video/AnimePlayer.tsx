@@ -14,6 +14,8 @@ interface Props {
   sources: PlayerSource[];
   title?: string;
   onProgress?: (progress: number) => void;
+  /** Llamado cuando el usuario hace seek manual (adelanta/retrocede). */
+  onSeeked?: (currentTime: number, duration: number) => void;
   autoplay?: boolean;
   initialTime?: number;
 }
@@ -49,7 +51,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   return classified;
 }
 
-export default function AnimePlayer({ sources, title, onProgress, autoplay = true, initialTime }: Props) {
+export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -167,16 +169,21 @@ export default function AnimePlayer({ sources, title, onProgress, autoplay = tru
     };
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
+    const onSeek = () => {
+      if (video.duration > 0) onSeeked?.(video.currentTime, video.duration);
+    };
 
     video.addEventListener("timeupdate", onTimeUpdate);
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
+    video.addEventListener("seeked", onSeek);
     return () => {
       video.removeEventListener("timeupdate", onTimeUpdate);
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
+      video.removeEventListener("seeked", onSeek);
     };
-  }, [currentSource, onProgress]);
+  }, [currentSource, onProgress, onSeeked]);
 
   // Fullscreen: lock landscape on mobile/webview
   useEffect(() => {

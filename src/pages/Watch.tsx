@@ -151,55 +151,56 @@ export default function Watch() {
     retry: 1,
   });
 
-  // Build sources: cache DB > latino HLS > scraper, completando SIEMPRE con DB del idioma opuesto
+  // Construye sources con UNA fuente por idioma. Prioridad: DB > Latino HLS > primer server API.
+  // El botón "Cambiar idioma" alterna entre las 2 fuentes (idioma actual / idioma opuesto).
   const buildSources = useCallback(() => {
     const sources: { name: string; embed: string; type?: string }[] = [];
 
-    // 1. Cache global de DB (admin uploads) del idioma actual
+    // Idioma ACTUAL
+    let added = false;
     if (cachedVideo) {
-      sources.push(...cachedVideoToSources(cachedVideo));
+      const dbSources = cachedVideoToSources(cachedVideo);
+      if (dbSources.length) {
+        const tag = lang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
+        sources.push({ ...dbSources[0], name: `${dbSources[0].name} • ${tag}` });
+        added = true;
+      }
+    }
+    if (!added && lang === "latino" && latinoEp?.sources?.hls?.length) {
+      sources.push({ name: "HLS Latino • 🌎 LAT", embed: latinoEp.sources.hls[0], type: "hls" });
+      added = true;
+    }
+    if (!added) {
+      const apiServers = serverData?.servers || [];
+      const sorted = sortServersByPriority(apiServers as ZetServer[]);
+      if (sorted[0]?.embed) {
+        const tag = lang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
+        sources.push({ name: `${sorted[0].name} • ${tag}`, embed: sorted[0].embed });
+      }
     }
 
-    // 2. Latino HLS sources
-    if (lang === "latino" && latinoEp?.sources?.hls) {
-      latinoEp.sources.hls.forEach((url: string, i: number) => {
-        sources.push({ name: `HLS Latino ${i + 1}`, embed: url, type: "hls" });
-      });
-    }
-
-    // 3. Scraper servers (fallback)
-    const scraperServers = serverData?.servers || [];
-    scraperServers.forEach((s: ZetServer) => {
-      if (s.embed) sources.push({ name: s.name, embed: s.embed });
-    });
-
-    // 4. SIEMPRE añadimos las fuentes del IDIOMA OPUESTO guardadas manualmente en DB
-    //    para que el botón "Cambiar idioma" funcione aunque la API ya nos haya dado
-    //    1+ servidores en este idioma (caso típico: Black Clover sólo JP en API + LAT en DB).
+    // Idioma OPUESTO desde DB (si admin lo guardó). API del idioma opuesto se carga al pulsar el toggle.
     if (cachedVideoOpposite) {
-      const opp = cachedVideoToSources(cachedVideoOpposite).map((s) => ({
-        ...s,
-        name: `${s.name} • ${oppositeLang === "latino" ? "🌎 LAT" : "🇯🇵 JP"}`,
-      }));
-      sources.push(...opp);
+      const oppDb = cachedVideoToSources(cachedVideoOpposite);
+      if (oppDb.length) {
+        const tag = oppositeLang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
+        sources.push({ ...oppDb[0], name: `${oppDb[0].name} • ${tag}` });
+      }
     }
 
     return sources;
   }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang]);
 
   const rawSources = buildSources();
-  // Si el usuario rotó manualmente, mover esa fuente al inicio para que el player la cargue
   const sortedSources = activeSourceIdx > 0 && activeSourceIdx < rawSources.length
     ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
     : rawSources;
 
-  // El botón "Cambiar idioma" se activa si:
-  // - Hay HLS latino dedicado (toggle real sub/latino)
-  // - O hay 2+ fuentes (rota entre ellas; típicamente JP/LAT mezclado)
+  // Toggle: si hay 2 sources visibles → rotamos. Si no, intentamos fetchear el otro idioma vía API.
   const hasLatinoHLS = !!latinoEp;
   const hasMultipleSources = rawSources.length >= 2;
-  const hasMultipleLangs = hasLatinoHLS || hasMultipleSources;
-  const langButtonLabel = hasMultipleLangs ? "Cambiar idioma" : "Idioma predeterminado";
+  const hasMultipleLangs = hasMultipleSources || hasLatinoHLS;
+  const langButtonLabel = hasMultipleLangs ? "Cambiar idioma" : "Idioma único";
 
   // Restore progress on episode change
   useEffect(() => {
@@ -336,10 +337,9 @@ export default function Watch() {
 
   const handleProgress = useCallback((pct: number) => {
     watchTimeRef.current += 1;
-    const shouldPersistJump = Math.abs(pct - lastSavedProgressRef.current) >= 0.15;
 
-    // Save progress every ~5 ticks or immediately after large manual seeks
-    if (zetSlug && (watchTimeRef.current % 5 === 0 || shouldPersistJump)) {
+    // Save progress every ~5 ticks
+    if (zetSlug && watchTimeRef.current % 5 === 0) {
       const video = document.querySelector("video");
       if (video && video.duration > 0) {
         saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
@@ -353,6 +353,15 @@ export default function Watch() {
       markWatchedReactive(epSlug);
     }
   }, [zetSlug, selectedEp, persistProgress, markWatchedReactive]);
+
+  // Guarda inmediatamente al hacer seek manual (adelantar / retroceder)
+  const handleSeeked = useCallback((currentTime: number, duration: number) => {
+    if (!zetSlug || !duration) return;
+    saveVideoProgress(zetSlug, selectedEp, currentTime, duration);
+    const pct = currentTime / duration;
+    persistProgress(currentTime, duration, pct >= 0.7);
+    lastSavedProgressRef.current = pct;
+  }, [zetSlug, selectedEp, persistProgress]);
 
   // ===== Tracking estimado para EMBEDS (iframe sin acceso a timeupdate) =====
   // Asume duración estándar 24min (1440s). Cada 10s incrementa y guarda.
@@ -478,6 +487,7 @@ export default function Watch() {
                 sources={sortedSources}
                 title={`${displayTitle} - EP ${selectedEp}`}
                 onProgress={handleProgress}
+                onSeeked={handleSeeked}
                 initialTime={initialTime}
               />
               {/* Overlay only visible in fullscreen — does NOT affect playback */}
@@ -529,28 +539,29 @@ export default function Watch() {
         {/* Idioma / fuente alternativa */}
         <div className="flex items-center gap-2 mb-4">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-          {hasMultipleLangs ? (
+          {hasMultipleSources ? (
             <button
-              onClick={() => {
-                if (hasLatinoHLS) {
-                  setLang(lang === "sub" ? "latino" : "sub");
-                } else {
-                  setActiveSourceIdx((i) => (i + 1) % Math.max(1, sortedSources.length));
-                }
-              }}
+              onClick={() => setActiveSourceIdx((i) => (i + 1) % Math.max(1, sortedSources.length))}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-all flex items-center gap-1.5"
             >
-              {langButtonLabel}
+              Cambiar idioma
               <span className="text-[10px] opacity-80">
-                {hasLatinoHLS
-                  ? `(${lang === "sub" ? "🇯🇵 JP → 🌎 LAT" : "🌎 LAT → 🇯🇵 JP"})`
-                  : `(${sortedSources[activeSourceIdx]?.name || "—"})`}
+                ({sortedSources[0]?.name?.split(" • ")[1] || sortedSources[0]?.name || "—"})
               </span>
             </button>
           ) : (
-            <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary text-muted-foreground">
-              {langButtonLabel}
-            </span>
+            <button
+              onClick={() => {
+                setLang(lang === "sub" ? "latino" : "sub");
+                setActiveSourceIdx(0);
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-all flex items-center gap-1.5"
+            >
+              Cambiar idioma
+              <span className="text-[10px] opacity-80">
+                ({lang === "sub" ? "🇯🇵 → 🌎" : "🌎 → 🇯🇵"})
+              </span>
+            </button>
           )}
         </div>
 
