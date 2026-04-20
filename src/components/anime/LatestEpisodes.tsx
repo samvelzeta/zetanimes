@@ -40,44 +40,71 @@ export default function LatestEpisodes() {
     retry: 1,
   });
 
-  // Resuelve TODOS los episodios a anilistId UNA sola vez (cacheado en estado).
-  // Así cada tarjeta navega EXACTAMENTE al anime correcto sin búsqueda al hacer click,
-  // y podemos filtrar los animes ocultos globalmente.
+  // Mapping título→anilistId cacheado en localStorage para no rebuscar en cada visita.
+  // No bloqueamos render: hacemos batches pequeños con pausa para no saturar AniList.
   const [resolved, setResolved] = useState<ResolvedEpisode[]>([]);
   const [viewsMap, setViewsMap] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!episodes?.length) return;
     let cancelled = false;
+
+    // Lee cache local
+    const readCache = (): Record<string, number> => {
+      try { return JSON.parse(localStorage.getItem("zet_latest_anilist_map") || "{}"); }
+      catch { return {}; }
+    };
+    const writeCache = (map: Record<string, number>) => {
+      try { localStorage.setItem("zet_latest_anilist_map", JSON.stringify(map)); } catch { /* ignore */ }
+    };
+
     (async () => {
       const hidden = await getHiddenAnimeIds();
-      const out: ResolvedEpisode[] = [];
-      const slugToAnilist = new Map<string, number>();
+      const cache = readCache();
 
-      for (const ep of episodes) {
-        if (cancelled) return;
-        try {
-          const r = await searchAnime(ep.title, 1, 1);
-          const aid = r.media[0]?.id;
-          if (aid && hidden.has(aid)) continue; // filtrar ocultos
-          if (aid) slugToAnilist.set(ep.slug, aid);
-          out.push({ ...ep, anilistId: aid });
-        } catch {
-          out.push({ ...ep });
-        }
-      }
-      if (cancelled) return;
-      setResolved(out);
+      // Render inmediato: usa cache + sin filtrar (rápido).
+      const initial: ResolvedEpisode[] = episodes
+        .map((ep) => ({ ...ep, anilistId: cache[ep.title] }))
+        .filter((ep) => !ep.anilistId || !hidden.has(ep.anilistId));
+      if (!cancelled) setResolved(initial);
 
-      const ids = Array.from(slugToAnilist.values());
-      if (ids.length) {
-        const realViews = await getAnimeViewsBatch(ids);
+      // Carga vistas para los que ya tienen anilistId
+      const knownIds = initial.map((e) => e.anilistId).filter(Boolean) as number[];
+      if (knownIds.length) {
+        const realViews = await getAnimeViewsBatch(knownIds);
         if (cancelled) return;
         const vmap = new Map<string, number>();
-        slugToAnilist.forEach((aid, slug) => vmap.set(slug, realViews.get(aid) || 0));
+        initial.forEach((e) => { if (e.anilistId) vmap.set(e.slug, realViews.get(e.anilistId) || 0); });
         setViewsMap(vmap);
       }
+
+      // Resuelve los que faltan en background (batches de 2 + pausa 300ms).
+      const missing = episodes.filter((ep) => !cache[ep.title]);
+      if (!missing.length) return;
+
+      const updated = { ...cache };
+      for (let i = 0; i < missing.length; i += 2) {
+        if (cancelled) return;
+        const batch = missing.slice(i, i + 2);
+        await Promise.all(batch.map(async (ep) => {
+          try {
+            const r = await searchAnime(ep.title, 1, 1);
+            const aid = r.media[0]?.id;
+            if (aid) updated[ep.title] = aid;
+          } catch { /* ignore */ }
+        }));
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      if (cancelled) return;
+      writeCache(updated);
+
+      // Re-render con todos los IDs resueltos
+      const finalList: ResolvedEpisode[] = episodes
+        .map((ep) => ({ ...ep, anilistId: updated[ep.title] }))
+        .filter((ep) => !ep.anilistId || !hidden.has(ep.anilistId));
+      setResolved(finalList);
     })();
+
     return () => { cancelled = true; };
   }, [episodes]);
 
