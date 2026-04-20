@@ -151,7 +151,7 @@ export default function Watch() {
     retry: 1,
   });
 
-  // Build sources: cache DB > latino HLS > scraper, completando con DB del idioma opuesto
+  // Build sources: cache DB > latino HLS > scraper, completando SIEMPRE con DB del idioma opuesto
   const buildSources = useCallback(() => {
     const sources: { name: string; embed: string; type?: string }[] = [];
 
@@ -173,10 +173,10 @@ export default function Watch() {
       if (s.embed) sources.push({ name: s.name, embed: s.embed });
     });
 
-    // 4. Si solo tenemos 1 fuente, intentamos completar con la del IDIOMA OPUESTO
-    //    guardada manualmente en DB (admin). Así el botón "Cambiar idioma" funciona
-    //    incluso cuando la API solo devuelve 1 server (caso típico: Black Clover sólo JP).
-    if (sources.length < 2 && cachedVideoOpposite) {
+    // 4. SIEMPRE añadimos las fuentes del IDIOMA OPUESTO guardadas manualmente en DB
+    //    para que el botón "Cambiar idioma" funcione aunque la API ya nos haya dado
+    //    1+ servidores en este idioma (caso típico: Black Clover sólo JP en API + LAT en DB).
+    if (cachedVideoOpposite) {
       const opp = cachedVideoToSources(cachedVideoOpposite).map((s) => ({
         ...s,
         name: `${s.name} • ${oppositeLang === "latino" ? "🌎 LAT" : "🇯🇵 JP"}`,
@@ -193,11 +193,11 @@ export default function Watch() {
     ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
     : rawSources;
 
-  // Total de fuentes disponibles (cache + scraper + latino HLS)
-  // Si hay 2+ sources → permite cambiar entre ellos (típicamente JP/LATINO o servidores diferentes)
-  // Si hay HLS latino dedicado → toggle real entre sub/latino
+  // El botón "Cambiar idioma" se activa si:
+  // - Hay HLS latino dedicado (toggle real sub/latino)
+  // - O hay 2+ fuentes (rota entre ellas; típicamente JP/LAT mezclado)
   const hasLatinoHLS = !!latinoEp;
-  const hasMultipleSources = sortedSources.length >= 2;
+  const hasMultipleSources = rawSources.length >= 2;
   const hasMultipleLangs = hasLatinoHLS || hasMultipleSources;
   const langButtonLabel = hasMultipleLangs ? "Cambiar idioma" : "Idioma predeterminado";
 

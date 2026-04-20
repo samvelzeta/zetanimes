@@ -164,16 +164,9 @@ export default function VideoManager() {
     setVisibleRange({ start, end });
   };
 
-  useEffect(() => {
-    if (!selected) return;
-    const toCheck: number[] = [];
-    for (let i = visibleRange.start; i < visibleRange.end; i++) {
-      const ep = i + 1;
-      const key = `${ep}-${lang}`;
-      if (!epStatuses[key]) toCheck.push(ep);
-    }
-    toCheck.slice(0, 5).forEach(ep => checkEpisode(selected.slug, ep, lang));
-  }, [visibleRange, selected, lang, epStatuses, checkEpisode]);
+  // Nota: el chequeo de existencia se hace SOLO cuando el admin pulsa un episodio.
+  // No verificamos en background para evitar miles de fetches al hacer scroll.
+  // Los episodios YA guardados se muestran en la lista "Ver guardados".
 
   const buildSourcesObj = (primary: string, fallback: string) => {
     const sources: { hls: string[]; mp4: string[]; embed: string[] } = { hls: [], mp4: [], embed: [] };

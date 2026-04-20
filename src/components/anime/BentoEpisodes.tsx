@@ -4,20 +4,30 @@ import { getRecentlyUpdated, getTitle, type AniListMedia } from "@/lib/anilist";
 import { Play, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import AdCard from "@/components/ads/AdCard";
 import LazyImage from "@/components/LazyImage";
 
 export default function BentoEpisodes() {
   const { isPremium } = useAuth();
-  // Si es free pedimos solo 4 (último cuadro = anuncio). Premium pide 5 normal.
-  const fetchCount = isPremium ? 5 : 4;
+  // Pedimos extras (10) para tener margen tras filtrar ocultos.
   const { data, isLoading } = useQuery({
-    queryKey: ["recentlyUpdated", fetchCount],
-    queryFn: () => getRecentlyUpdated(1, fetchCount),
+    queryKey: ["recentlyUpdated", "bento", 10],
+    queryFn: () => getRecentlyUpdated(1, 10),
     staleTime: 1000 * 60 * 5,
   });
 
-  const items = data?.media || [];
+  // Filtrar animes ocultos globalmente.
+  const { data: hiddenIds } = useQuery({
+    queryKey: ["hidden-anime-ids"],
+    queryFn: async () => Array.from(await getHiddenAnimeIds()),
+    staleTime: 1000 * 60 * 5,
+  });
+  const hidden = new Set(hiddenIds || []);
+
+  const allItems = (data?.media || []).filter((a) => !hidden.has(a.id));
+  // Premium: 5 cuadros. Free: 4 cuadros + 1 anuncio.
+  const items = allItems.slice(0, isPremium ? 5 : 4);
 
   if (isLoading) {
     return (
@@ -39,10 +49,9 @@ export default function BentoEpisodes() {
   return (
     <section className="px-4 mb-8">
       <h2 className="text-base font-bold text-foreground tracking-tight mb-3">🔥 Nuevos Episodios</h2>
-      {/* 4-col grid: hero takes 2x2, then cards fill remaining cells. Free: la última (esquina inferior derecha) es anuncio */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 auto-rows-[180px]">
         <BentoCard anime={hero} isHero className="col-span-2 row-span-2" />
-        {rest.slice(0, isPremium ? 4 : 3).map((anime) => (
+        {rest.map((anime) => (
           <BentoCard key={anime.id} anime={anime} />
         ))}
         {!isPremium && (
