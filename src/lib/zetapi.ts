@@ -39,9 +39,11 @@ const SERVER_PRIORITY = [
 ];
 
 export function sortServersByPriority(servers: ZetServer[]): ZetServer[] {
-  return servers.filter((s) => s.embed).sort((a, b) => {
-    const aIdx = SERVER_PRIORITY.findIndex((p) => a.name.toLowerCase().includes(p));
-    const bIdx = SERVER_PRIORITY.findIndex((p) => b.name.toLowerCase().includes(p));
+  return (servers || []).filter((s) => s && s.embed).sort((a, b) => {
+    const aName = (a?.name || "").toLowerCase();
+    const bName = (b?.name || "").toLowerCase();
+    const aIdx = SERVER_PRIORITY.findIndex((p) => aName.includes(p));
+    const bIdx = SERVER_PRIORITY.findIndex((p) => bName.includes(p));
     return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx);
   });
 }
