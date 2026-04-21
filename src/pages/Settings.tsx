@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Check, User, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, User, Loader2, Lock, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,7 @@ export function initFont() {
 }
 
 export default function SettingsPage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, isPremium } = useAuth();
   const [selectedAccent, setSelectedAccent] = useState<AccentColor>(getAccentColor);
   const [autoPlay, setAutoPlay] = useState(() => localStorage.getItem("zet_autoplay") !== "false");
   const [countdown, setCountdown] = useState(() => localStorage.getItem("zet_countdown") === "true");
@@ -62,6 +62,12 @@ export default function SettingsPage() {
   }, [profile]);
 
   const handleAccentChange = (color: AccentColor) => {
+    if (color.premium && !isPremium) {
+      toast.error("Color exclusivo Premium", {
+        description: "Hazte Premium para desbloquear esta paleta",
+      });
+      return;
+    }
     setSelectedAccent(color);
     setAccentColor(color);
   };
@@ -258,9 +264,12 @@ export default function SettingsPage() {
         {/* Accent color */}
         <div>
           <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">🎨 Color de Acento</h2>
-          <div className="bg-secondary rounded-xl p-4">
-            <div className="flex justify-around">
-              {ACCENT_COLORS.map((c) => {
+
+          {/* Free palette */}
+          <div className="bg-secondary rounded-xl p-4 mb-2">
+            <p className="text-[10px] text-muted-foreground mb-3 font-bold uppercase tracking-wider">Gratis</p>
+            <div className="flex justify-around flex-wrap gap-3">
+              {ACCENT_COLORS.filter((c) => !c.premium).map((c) => {
                 const isSelected = selectedAccent.name === c.name;
                 return (
                   <button
@@ -269,7 +278,7 @@ export default function SettingsPage() {
                     className="flex flex-col items-center gap-2 group"
                   >
                     <div
-                      className={`w-12 h-12 rounded-full transition-all duration-300 flex items-center justify-center ${
+                      className={`w-11 h-11 rounded-full transition-all duration-300 flex items-center justify-center ${
                         isSelected ? "ring-2 ring-offset-2 ring-offset-background scale-110" : "hover:scale-105"
                       }`}
                       style={{
@@ -286,6 +295,57 @@ export default function SettingsPage() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Premium palette */}
+          <div className="rounded-xl p-4 border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 relative overflow-hidden">
+            <div className="flex items-center gap-2 mb-3">
+              <Crown className="w-3.5 h-3.5 text-primary" />
+              <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Premium · Exclusivos</p>
+              {!isPremium && <span className="ml-auto text-[9px] text-muted-foreground">Solo miembros</span>}
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {ACCENT_COLORS.filter((c) => c.premium).map((c) => {
+                const isSelected = selectedAccent.name === c.name;
+                const locked = !isPremium;
+                return (
+                  <button
+                    key={c.name}
+                    onClick={() => handleAccentChange(c)}
+                    className="flex flex-col items-center gap-1.5 group"
+                    title={locked ? "Premium requerido" : c.name}
+                  >
+                    <div
+                      className={`relative w-11 h-11 rounded-full transition-all duration-300 flex items-center justify-center ${
+                        isSelected ? "ring-2 ring-offset-2 ring-offset-background scale-110" : locked ? "opacity-50 grayscale-[40%]" : "hover:scale-105"
+                      }`}
+                      style={{
+                        backgroundColor: c.hex,
+                        boxShadow: isSelected ? `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${c.hex}` : undefined,
+                      }}
+                    >
+                      {isSelected && <Check className="w-5 h-5 text-white drop-shadow-md" />}
+                      {locked && !isSelected && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full">
+                          <Lock className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <span className={`text-[9px] font-medium transition-colors text-center leading-tight ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
+                      {c.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {!isPremium && (
+              <Link
+                to="/profile?premium=1"
+                className="mt-3 block w-full text-center text-[11px] font-bold text-primary hover:underline"
+              >
+                🔓 Desbloquear paleta premium →
+              </Link>
+            )}
           </div>
         </div>
 
