@@ -352,6 +352,19 @@ export default function Watch() {
       const epSlug = `${zetSlug}-${selectedEp}`;
       markWatchedReactive(epSlug);
     }
+
+    // Autoplay siguiente episodio al 85% (si está activado en ajustes y hay episodio siguiente)
+    const autoPlayEnabled = localStorage.getItem("zet_autoplay") !== "false";
+    if (
+      autoPlayEnabled &&
+      pct >= 0.85 &&
+      lastSavedProgressRef.current < 0.85 &&
+      selectedEp < (totalEpisodes || 0)
+    ) {
+      lastSavedProgressRef.current = 0.86; // evita re-disparo
+      // Pequeño delay para no cortar abrupto
+      setTimeout(() => selectEpisode(selectedEp + 1), 800);
+    }
   }, [zetSlug, selectedEp, persistProgress, markWatchedReactive]);
 
   // Guarda inmediatamente al hacer seek manual (adelantar / retroceder)

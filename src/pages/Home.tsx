@@ -87,12 +87,24 @@ export default function Home() {
     enabled: !isTV && enableFantasy,
   });
 
-  // TV: solo Header (ya en Layout) + Bento + Top Ranking. Sin hero, sin carruseles extra.
+  // TV: Header + Bento + Top Ranking. Sin hero, sin carruseles extra (ahorra RAM).
   if (isTV) {
     return (
-      <div className="min-h-screen px-2 mt-4 space-y-6">
-        <BentoEpisodes />
-        <TopRanking title="🏆 Top Rating" animes={filterFn(topRated?.media)} loading={l4} />
+      <div className="min-h-screen px-2 mt-4 space-y-8">
+        <header className="px-2">
+          <h1 className="text-2xl font-black text-foreground tracking-tight">📺 ZetAnime TV</h1>
+          <p className="text-xs text-muted-foreground mt-1">Episodios recientes y top ranking</p>
+        </header>
+
+        <section>
+          <h2 className="text-base font-bold text-foreground mb-2 px-2">📡 Animes Recientes</h2>
+          <BentoEpisodes />
+        </section>
+
+        <section>
+          <h2 className="text-base font-bold text-foreground mb-2 px-2">🏆 Top de Animes</h2>
+          <TopRanking title="" animes={filterFn(topRated?.media)} loading={l4} />
+        </section>
       </div>
     );
   }
