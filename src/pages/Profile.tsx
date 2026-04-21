@@ -227,6 +227,24 @@ export default function Profile() {
           </button>
         )}
 
+        {isPremium && (
+          <button
+            onClick={handleExportPDF}
+            disabled={exportingPdf}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/15 to-accent/15 border border-primary/40 hover:from-primary/25 transition-all disabled:opacity-60"
+            style={{ boxShadow: "0 0 14px hsl(var(--primary) / 0.2)" }}
+          >
+            <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
+              {exportingPdf ? <Loader2 className="w-4 h-4 text-primary animate-spin" /> : <FileDown className="w-4 h-4 text-primary" />}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm text-foreground font-bold">Exportar Historial PDF</p>
+              <p className="text-[10px] text-muted-foreground">Listas + estadísticas con tu color</p>
+            </div>
+            <Crown className="w-3.5 h-3.5 text-primary" />
+          </button>
+        )}
+
         {isAdmin && (
           <Link
             to="/admin"
