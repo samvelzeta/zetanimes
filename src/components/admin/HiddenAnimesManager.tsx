@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function HiddenAnimesManager() {
   const { user } = useAuth();
-  const [section, setSection] = useState<"trending" | "popular" | "recent">("trending");
+  const [section, setSection] = useState<"recent" | "trending" | "popular">("recent");
   const [hiddenList, setHiddenList] = useState<any[]>([]);
   const [reload, setReload] = useState(0);
 
@@ -20,9 +20,10 @@ export default function HiddenAnimesManager() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-hide-section", section],
     queryFn: async () => {
+      // 'recent' = animes que aparecen en Bento + Últimos Episodios (los que ven los usuarios)
+      if (section === "recent") return (await getRecentlyUpdated(1, 30)).media;
       if (section === "trending") return (await getTrending(1, 30)).media;
-      if (section === "popular") return (await getPopular(1, 30)).media;
-      return (await getRecentlyUpdated(1, 30)).media;
+      return (await getPopular(1, 30)).media;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -51,11 +52,11 @@ export default function HiddenAnimesManager() {
           Toca el ojo para ocultar/mostrar. Los ocultos se eliminan automáticamente de los carruseles.
         </p>
 
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-2 mb-3 flex-wrap">
           {[
+            { key: "recent", label: "🕐 Recientes / Bento" },
             { key: "trending", label: "🔥 Tendencia" },
             { key: "popular", label: "⭐ Populares" },
-            { key: "recent", label: "🕐 Recientes" },
           ].map((s) => (
             <button
               key={s.key}

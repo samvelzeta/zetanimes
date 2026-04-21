@@ -227,3 +227,13 @@ h1, h2, h3, .heading-steam {
 /* (Engranajes de fondo eliminados — quedaba muy cargado.
     Mantenemos la tipografía Cinzel y el splash steampunk.) */
 
+/* Reduced motion (configurable desde Ajustes) — desactiva todas las animaciones para ahorrar GPU */
+.zet-reduced-motion *,
+.zet-reduced-motion *::before,
+.zet-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+

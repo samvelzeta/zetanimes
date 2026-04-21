@@ -10,18 +10,19 @@ import LazyImage from "@/components/LazyImage";
 
 export default function BentoEpisodes() {
   const { isPremium } = useAuth();
-  // Pedimos extras (10) para tener margen tras filtrar ocultos.
+  // Pedimos 25 para tener margen real tras filtrar ocultos (admin puede ocultar varios chinos).
   const { data, isLoading } = useQuery({
-    queryKey: ["recentlyUpdated", "bento", 10],
-    queryFn: () => getRecentlyUpdated(1, 10),
+    queryKey: ["recentlyUpdated", "bento", 25],
+    queryFn: () => getRecentlyUpdated(1, 25),
     staleTime: 1000 * 60 * 5,
   });
 
-  // Filtrar animes ocultos globalmente.
+  // Filtrar animes ocultos globalmente. staleTime: 0 para reflejar cambios del admin al instante.
   const { data: hiddenIds } = useQuery({
     queryKey: ["hidden-anime-ids"],
     queryFn: async () => Array.from(await getHiddenAnimeIds()),
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
   const hidden = new Set(hiddenIds || []);
 

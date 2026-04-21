@@ -7,7 +7,7 @@ import { useIsTV } from "@/hooks/useIsTV";
 import { useTVRemote } from "@/hooks/useTVRemote";
 
 const NO_NAV_PAGES = ["/watch", "/auth", "/reset-password", "/download"];
-const NO_HEADER_PAGES = ["/watch", "/auth", "/reset-password", "/settings", "/admin", "/download"];
+const NO_HEADER_PAGES = ["/watch", "/auth", "/reset-password", "/settings", "/admin", "/download", "/profile"];
 
 export default function Layout() {
   const location = useLocation();
