@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, LogOut, Crown, Shield, MessageSquare, ExternalLink, Camera, Share2, Smartphone, Cog, ChevronRight, Library } from "lucide-react";
+import { Settings, LogOut, Crown, Shield, MessageSquare, ExternalLink, Camera, Share2, Smartphone, Cog, ChevronRight, Library, FileDown, Sparkles, Palette, Users, KeyRound, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 import { compressAvatar, compressProof } from "@/lib/image-compress";
 import { Loader2 } from "lucide-react";
+import { exportUserHistoryToPDF } from "@/lib/export-history-pdf";
+import { getAccentColor } from "@/lib/accent";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
@@ -14,6 +16,25 @@ export default function Profile() {
   const [stats, setStats] = useState({ lists: 0, episodes: 0, hours: 0 });
   const [contacts, setContacts] = useState<any[]>([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const handleExportPDF = async () => {
+    if (!user || !profile) return;
+    setExportingPdf(true);
+    try {
+      await exportUserHistoryToPDF(user.id, {
+        username: profile.username,
+        displayName: profile.display_name || profile.username,
+        accentHex: getAccentColor().hex,
+      });
+      toast.success("Historial exportado");
+    } catch (e) {
+      console.error(e);
+      toast.error("Error al generar PDF");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   // Auto-abrir modal premium si viene con ?premium=1 (ej: desde AdblockGate)
   useEffect(() => {
@@ -206,6 +227,24 @@ export default function Profile() {
           </button>
         )}
 
+        {isPremium && (
+          <button
+            onClick={handleExportPDF}
+            disabled={exportingPdf}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/15 to-accent/15 border border-primary/40 hover:from-primary/25 transition-all disabled:opacity-60"
+            style={{ boxShadow: "0 0 14px hsl(var(--primary) / 0.2)" }}
+          >
+            <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
+              {exportingPdf ? <Loader2 className="w-4 h-4 text-primary animate-spin" /> : <FileDown className="w-4 h-4 text-primary" />}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm text-foreground font-bold">Exportar Historial PDF</p>
+              <p className="text-[10px] text-muted-foreground">Listas + estadísticas con tu color</p>
+            </div>
+            <Crown className="w-3.5 h-3.5 text-primary" />
+          </button>
+        )}
+
         {isAdmin && (
           <Link
             to="/admin"
@@ -327,12 +366,12 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
 
 
   const benefits = [
-    "Sin anuncios interrumpidos",
-    "Calidad alta (1080p)",
-    "Descarga de episodios offline",
-    "Acceso prioritario a nuevos episodios",
-    "Exportar historial en PDF",
-    "Badge premium exclusivo",
+    { icon: Sparkles, title: "Sin anuncios", desc: "Experiencia 100% limpia, sin banners ni interrupciones" },
+    { icon: FileDown, title: "Exportar historial PDF", desc: "Tus listas y estadísticas en un PDF elegante con tu color" },
+    { icon: Palette, title: "Paleta de colores exclusiva", desc: "8 colores premium adicionales para personalizar la UI" },
+    { icon: BadgeCheck, title: "Badge premium en tu perfil", desc: "Insignia dorada visible para destacar" },
+    { icon: KeyRound, title: "Contraseña en perfiles", desc: "Protege cada perfil con un PIN privado (próximamente)" },
+    { icon: Users, title: "Hasta 5 dispositivos conectados", desc: "Free: 2 · Premium: 5 simultáneos (próximamente)" },
   ];
 
   return (
@@ -349,13 +388,22 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
 
           {step === "info" ? (
             <>
-              <p className="text-sm text-muted-foreground mb-4">Desbloquea la experiencia completa:</p>
-              <div className="space-y-2 mb-6">
-                {benefits.map((b) => (
-                  <div key={b} className="flex items-center gap-2 text-sm text-foreground">
-                    <span className="text-primary">✓</span> {b}
-                  </div>
-                ))}
+              <p className="text-sm text-muted-foreground mb-4">Beneficios reales, sin promesas vacías:</p>
+              <div className="space-y-2.5 mb-5">
+                {benefits.map((b) => {
+                  const Icon = b.icon;
+                  return (
+                    <div key={b.title} className="flex items-start gap-3 p-2.5 rounded-xl bg-secondary/50 border border-border">
+                      <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-foreground">{b.title}</p>
+                        <p className="text-[10px] text-muted-foreground leading-snug">{b.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <button onClick={() => setStep("form")} className="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition">
                 Solicitar Premium
