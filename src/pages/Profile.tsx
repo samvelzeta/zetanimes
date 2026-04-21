@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, LogOut, Crown, Shield, MessageSquare, ExternalLink, Camera, Share2, Smartphone, Cog, ChevronRight, Library } from "lucide-react";
+import { Settings, LogOut, Crown, Shield, MessageSquare, ExternalLink, Camera, Share2, Smartphone, Cog, ChevronRight, Library, FileDown, Sparkles, Palette, Users, KeyRound, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 import { compressAvatar, compressProof } from "@/lib/image-compress";
 import { Loader2 } from "lucide-react";
+import { exportUserHistoryToPDF } from "@/lib/export-history-pdf";
+import { getAccentColor } from "@/lib/accent";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
@@ -14,6 +16,25 @@ export default function Profile() {
   const [stats, setStats] = useState({ lists: 0, episodes: 0, hours: 0 });
   const [contacts, setContacts] = useState<any[]>([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const handleExportPDF = async () => {
+    if (!user || !profile) return;
+    setExportingPdf(true);
+    try {
+      await exportUserHistoryToPDF(user.id, {
+        username: profile.username,
+        displayName: profile.display_name || profile.username,
+        accentHex: getAccentColor().hex,
+      });
+      toast.success("Historial exportado");
+    } catch (e) {
+      console.error(e);
+      toast.error("Error al generar PDF");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   // Auto-abrir modal premium si viene con ?premium=1 (ej: desde AdblockGate)
   useEffect(() => {
