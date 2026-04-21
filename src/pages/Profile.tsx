@@ -366,12 +366,12 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
 
 
   const benefits = [
-    "Sin anuncios interrumpidos",
-    "Calidad alta (1080p)",
-    "Descarga de episodios offline",
-    "Acceso prioritario a nuevos episodios",
-    "Exportar historial en PDF",
-    "Badge premium exclusivo",
+    { icon: Sparkles, title: "Sin anuncios", desc: "Experiencia 100% limpia, sin banners ni interrupciones" },
+    { icon: FileDown, title: "Exportar historial PDF", desc: "Tus listas y estadísticas en un PDF elegante con tu color" },
+    { icon: Palette, title: "Paleta de colores exclusiva", desc: "8 colores premium adicionales para personalizar la UI" },
+    { icon: BadgeCheck, title: "Badge premium en tu perfil", desc: "Insignia dorada visible para destacar" },
+    { icon: KeyRound, title: "Contraseña en perfiles", desc: "Protege cada perfil con un PIN privado (próximamente)" },
+    { icon: Users, title: "Hasta 5 dispositivos conectados", desc: "Free: 2 · Premium: 5 simultáneos (próximamente)" },
   ];
 
   return (
@@ -388,13 +388,22 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
 
           {step === "info" ? (
             <>
-              <p className="text-sm text-muted-foreground mb-4">Desbloquea la experiencia completa:</p>
-              <div className="space-y-2 mb-6">
-                {benefits.map((b) => (
-                  <div key={b} className="flex items-center gap-2 text-sm text-foreground">
-                    <span className="text-primary">✓</span> {b}
-                  </div>
-                ))}
+              <p className="text-sm text-muted-foreground mb-4">Beneficios reales, sin promesas vacías:</p>
+              <div className="space-y-2.5 mb-5">
+                {benefits.map((b) => {
+                  const Icon = b.icon;
+                  return (
+                    <div key={b.title} className="flex items-start gap-3 p-2.5 rounded-xl bg-secondary/50 border border-border">
+                      <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-foreground">{b.title}</p>
+                        <p className="text-[10px] text-muted-foreground leading-snug">{b.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <button onClick={() => setStep("form")} className="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-accent text-white font-bold text-sm hover:opacity-90 transition">
                 Solicitar Premium
