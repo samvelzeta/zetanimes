@@ -46,11 +46,12 @@ export default function AnimeDetail() {
     })();
   }, [animeId]);
 
-  const { data: anime, isLoading } = useQuery({
+  const { data: anime, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["anime", animeId],
     queryFn: () => getAnimeById(animeId),
     enabled: animeId > 0,
     staleTime: 1000 * 60 * 10,
+    retry: 2,
   });
 
   useQuery({
@@ -111,10 +112,21 @@ export default function AnimeDetail() {
     );
   }
 
-  if (!anime) {
+  if (isError || !anime) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Anime no encontrado</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <p className="text-base font-bold text-foreground">No se pudo cargar este anime</p>
+        <p className="text-xs text-muted-foreground max-w-sm">
+          {(error as Error)?.message || "AniList no respondió. Puede ser un límite temporal de la API."}
+        </p>
+        <div className="flex gap-2">
+          <button onClick={() => refetch()} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition">
+            Reintentar
+          </button>
+          <Link to="/" className="px-4 py-2 rounded-lg bg-secondary text-foreground text-sm font-bold hover:bg-muted transition">
+            Volver al inicio
+          </Link>
+        </div>
       </div>
     );
   }
