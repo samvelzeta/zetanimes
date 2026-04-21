@@ -365,7 +365,7 @@ export default function Watch() {
       // Pequeño delay para no cortar abrupto
       setTimeout(() => selectEpisode(selectedEp + 1), 800);
     }
-  }, [zetSlug, selectedEp, persistProgress, markWatchedReactive]);
+  }, [zetSlug, selectedEp, persistProgress, markWatchedReactive, totalEpisodes]);
 
   // Guarda inmediatamente al hacer seek manual (adelantar / retroceder)
   const handleSeeked = useCallback((currentTime: number, duration: number) => {
