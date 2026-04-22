@@ -9,9 +9,12 @@ import { Loader2 } from "lucide-react";
 import { exportUserHistoryToPDF } from "@/lib/export-history-pdf";
 import { getAccentColor } from "@/lib/accent";
 import ProfileManagementSection from "@/components/profiles/ProfileManagementSection";
+import { useProfiles } from "@/contexts/ProfilesContext";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
+  const { activeProfile } = useProfiles();
+  const profileId = activeProfile?.id ?? null;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [stats, setStats] = useState({ lists: 0, episodes: 0, hours: 0 });
@@ -27,6 +30,8 @@ export default function Profile() {
         username: profile.username,
         displayName: profile.display_name || profile.username,
         accentHex: getAccentColor().hex,
+        profileId,
+        profileName: activeProfile?.name,
       });
       toast.success("Historial exportado");
     } catch (e) {
@@ -49,16 +54,26 @@ export default function Profile() {
   useEffect(() => {
     if (user) loadStats();
     loadContacts();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, profileId]);
 
   const loadStats = async () => {
     if (!user) return;
-    const [{ count: lists }, { count: episodes }, { data: historyData }] = await Promise.all([
-      supabase.from("anime_lists").select("*", { count: "exact", head: true }).eq("user_id", user.id),
-      supabase.from("watch_history").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("completed", true),
-      supabase.from("watch_history").select("watch_duration_seconds").eq("user_id", user.id),
-    ]);
-    const totalSeconds = historyData?.reduce((acc, h) => acc + (h.watch_duration_seconds || 0), 0) || 0;
+    const buildScope = <Q extends { eq: any; is: any }>(q: Q) =>
+      profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
+
+    const listsQ = buildScope(
+      supabase.from("anime_lists").select("*", { count: "exact", head: true }).eq("user_id", user.id) as any
+    );
+    const epsQ = buildScope(
+      supabase.from("watch_history").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("completed", true) as any
+    );
+    const histQ = buildScope(
+      supabase.from("watch_history").select("watch_duration_seconds").eq("user_id", user.id) as any
+    );
+
+    const [{ count: lists }, { count: episodes }, { data: historyData }] = await Promise.all([listsQ, epsQ, histQ]);
+    const totalSeconds = (historyData || []).reduce((acc: number, h: any) => acc + (h.watch_duration_seconds || 0), 0);
     setStats({ lists: lists || 0, episodes: episodes || 0, hours: Math.round((totalSeconds / 3600) * 10) / 10 });
   };
 
