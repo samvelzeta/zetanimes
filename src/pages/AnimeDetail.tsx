@@ -5,6 +5,7 @@ import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, H
 import AnimeCard from "@/components/anime/AnimeCard";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
 import AuthRequiredModal from "@/components/AuthRequiredModal";
 import { toast } from "sonner";
@@ -54,15 +55,20 @@ export default function AnimeDetail() {
     retry: 2,
   });
 
+  const { activeProfile } = useProfiles();
+  const profileId = activeProfile?.id ?? null;
+
   useQuery({
-    queryKey: ["anime-list", animeId, user?.id],
+    queryKey: ["anime-list", animeId, user?.id, profileId],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
+      let q = supabase
         .from("anime_lists")
         .select("list_type")
         .eq("user_id", user.id)
         .eq("anime_id", animeId);
+      q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
+      const { data } = await q;
       const types = (data?.map((d) => d.list_type) || []) as ListType[];
       setActiveLists(types);
       return types;
@@ -88,7 +94,7 @@ export default function AnimeDetail() {
     try {
       const { toggleAnimeListSmart } = await import("@/lib/anime-lists");
       const next = await toggleAnimeListSmart({
-        userId: user.id, animeId, list, currentLists: activeLists,
+        userId: user.id, profileId, animeId, list, currentLists: activeLists,
         animeTitle: title, animeCover: cover,
       });
       setActiveLists(next);

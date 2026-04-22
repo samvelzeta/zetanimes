@@ -16,6 +16,8 @@ interface ExportOptions {
   username: string;
   displayName: string;
   accentHex: string; // e.g. "#FF4500"
+  profileId?: string | null;
+  profileName?: string;
 }
 
 const LIST_LABELS: Record<string, string> = {
@@ -56,18 +58,23 @@ async function loadImageAsBase64(url: string): Promise<string | null> {
 export async function exportUserHistoryToPDF(userId: string, opts: ExportOptions): Promise<void> {
   const [accentR, accentG, accentB] = hexToRgb(opts.accentHex);
 
-  // Fetch all data in parallel
-  const [listsRes, historyRes] = await Promise.all([
-    supabase
-      .from("anime_lists")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false }),
+  // Fetch all data in parallel - filtra por perfil activo (o por NULL si no hay)
+  const profileId = opts.profileId ?? null;
+  const scoped = <Q extends { eq: any; is: any }>(q: Q) =>
+    profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
+
+  const listsQuery = scoped(
+    supabase.from("anime_lists").select("*").eq("user_id", userId) as any
+  ).order("created_at", { ascending: false });
+
+  const historyQuery = scoped(
     supabase
       .from("watch_history")
       .select("anime_id, anime_title, episode_number, watch_duration_seconds, completed, created_at")
-      .eq("user_id", userId),
-  ]);
+      .eq("user_id", userId) as any
+  );
+
+  const [listsRes, historyRes] = await Promise.all([listsQuery, historyQuery]);
 
   const lists = (listsRes.data || []) as AnimeListEntry[];
   const history = historyRes.data || [];

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Play, Trash2, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
 
 interface WatchEntry {
@@ -26,29 +27,34 @@ function formatTime(s: number) {
 
 export default function RecentlyWatched() {
   const { user } = useAuth();
+  const { activeProfile } = useProfiles();
+  const profileId = activeProfile?.id ?? null;
   const [history, setHistory] = useState<WatchEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     loadHistory();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, profileId]);
 
   const loadHistory = async () => {
     if (!user) return;
-    const { data } = await supabase
+    let q = supabase
       .from("watch_history")
       .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(30);
+      .eq("user_id", user.id);
+    q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
+    const { data } = await q.order("created_at", { ascending: false }).limit(30);
     setHistory((data as unknown as WatchEntry[]) || []);
     setLoading(false);
   };
 
   const clearHistory = async () => {
     if (!user) return;
-    await supabase.from("watch_history").delete().eq("user_id", user.id);
+    let q = supabase.from("watch_history").delete().eq("user_id", user.id);
+    q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
+    await q;
     setHistory([]);
   };
 

@@ -20,6 +20,7 @@ import AnimePlayer from "@/components/video/AnimePlayer";
 import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
 import { resolveEpisodeCount } from "@/lib/episode-count";
@@ -35,6 +36,8 @@ export default function Watch() {
   const navigate = useNavigate();
   const epParam = Number(searchParams.get("ep") || 1);
   const { user } = useAuth();
+  const { activeProfile } = useProfiles();
+  const profileId = activeProfile?.id ?? null;
   const inWebView = isWebView();
 
   const [selectedEp, setSelectedEp] = useState(epParam);

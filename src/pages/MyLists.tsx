@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Heart, Eye, CheckCircle, Clock, HelpCircle, Cog, ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +18,8 @@ const TABS: { value: ListType; label: string; Icon: typeof Heart; color: string 
 
 export default function MyLists() {
   const { user } = useAuth();
+  const { activeProfile } = useProfiles();
+  const profileId = activeProfile?.id ?? null;
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ListType>("favorite");
   const [items, setItems] = useState<any[]>([]);
@@ -29,17 +32,17 @@ export default function MyLists() {
     if (!user) return;
     (async () => {
       setLoading(true);
-      const { data } = await supabase.from("anime_lists").select("*").eq("user_id", user.id);
+      let q = supabase.from("anime_lists").select("*").eq("user_id", user.id);
+      q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
+      const { data } = await q;
       const all = data || [];
-      // Calcular conteos
       const c: Record<ListType, number> = { favorite: 0, watching: 0, completed: 0, plan_to_watch: 0, undecided: 0 };
       all.forEach((r: any) => { c[r.list_type as ListType] = (c[r.list_type as ListType] || 0) + 1; });
       setCounts(c);
-      // Filtrar por tab activo
       setItems(all.filter((r: any) => r.list_type === activeTab));
       setLoading(false);
     })();
-  }, [user, activeTab]);
+  }, [user, activeTab, profileId]);
 
   const removeItem = async (id: string) => {
     await supabase.from("anime_lists").delete().eq("id", id);
