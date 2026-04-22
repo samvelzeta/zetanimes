@@ -8,6 +8,7 @@ import { compressAvatar, compressProof } from "@/lib/image-compress";
 import { Loader2 } from "lucide-react";
 import { exportUserHistoryToPDF } from "@/lib/export-history-pdf";
 import { getAccentColor } from "@/lib/accent";
+import ProfileManagementSection from "@/components/profiles/ProfileManagementSection";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
