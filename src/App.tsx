@@ -5,6 +5,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ProfilesProvider } from "@/contexts/ProfilesContext";
+import ProfileGate from "@/components/profiles/ProfileGate";
 import Layout from "@/components/Layout";
 import ScrollToTop from "@/components/ScrollToTop";
 import Home from "@/pages/Home";
@@ -50,8 +52,10 @@ const App = () => (
       <BrowserRouter>
         <ScrollToTop />
         <AuthProvider>
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
+          <ProfilesProvider>
+            <ProfileGate />
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/search" element={<SearchPage />} />
@@ -70,7 +74,8 @@ const App = () => (
               <Route path="/download" element={<DownloadPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </Suspense>
+            </Suspense>
+          </ProfilesProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

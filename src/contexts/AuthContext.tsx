@@ -102,6 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRoles([]);
+    // Limpiar selección de perfil + PIN session
+    try {
+      localStorage.removeItem("zet:active-profile-id");
+      sessionStorage.removeItem("zet:pin-session-ok");
+      window.dispatchEvent(new Event("zet:active-profile-changed"));
+    } catch {}
   };
 
   return (

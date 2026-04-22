@@ -8,6 +8,7 @@ import { compressAvatar, compressProof } from "@/lib/image-compress";
 import { Loader2 } from "lucide-react";
 import { exportUserHistoryToPDF } from "@/lib/export-history-pdf";
 import { getAccentColor } from "@/lib/accent";
+import ProfileManagementSection from "@/components/profiles/ProfileManagementSection";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
@@ -200,6 +201,9 @@ export default function Profile() {
         </div>
       </Link>
 
+      {/* Gestión de perfiles, dispositivos y PIN */}
+      <ProfileManagementSection />
+
       {/* Acciones rediseñadas estilo steampunk */}
       <div className="space-y-2.5">
         <Link
@@ -370,8 +374,8 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
     { icon: FileDown, title: "Exportar historial PDF", desc: "Tus listas y estadísticas en un PDF elegante con tu color" },
     { icon: Palette, title: "Paleta de colores exclusiva", desc: "8 colores premium adicionales para personalizar la UI" },
     { icon: BadgeCheck, title: "Badge premium en tu perfil", desc: "Insignia dorada visible para destacar" },
-    { icon: KeyRound, title: "Contraseña en perfiles", desc: "Protege cada perfil con un PIN privado (próximamente)" },
-    { icon: Users, title: "Hasta 5 dispositivos conectados", desc: "Free: 2 · Premium: 5 simultáneos (próximamente)" },
+    { icon: KeyRound, title: "PIN de cuenta", desc: "Protege tu cuenta con un PIN de 4 dígitos al iniciar sesión" },
+    { icon: Users, title: "Hasta 5 dispositivos conectados", desc: "Free: 2 · Premium: 5 dispositivos simultáneos" },
   ];
 
   return (

@@ -1,8 +1,10 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, X } from "lucide-react";
+import { useProfiles } from "@/contexts/ProfilesContext";
+import { Bell, X, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import ProfileSelector from "@/components/profiles/ProfileSelector";
 
 interface Notification {
   id: string;
@@ -14,8 +16,10 @@ interface Notification {
 
 export default function HeaderBar() {
   const { user, profile, refreshProfile } = useAuth();
+  const { activeProfile, profiles } = useProfiles();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -93,15 +97,27 @@ export default function HeaderBar() {
 
   return (
     <div className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 glass-header transition-all duration-300 ${scrolled ? "scrolled" : ""}`}>
-      <Link to={user ? "/profile" : "/auth"} className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/30 flex-shrink-0">
-        {profile?.avatar_url ? (
-          <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <span className="text-xs font-black text-white">{profile?.username?.[0]?.toUpperCase() || "Z"}</span>
-          </div>
+      <div className="flex items-center gap-2">
+        <Link to={user ? "/profile" : "/auth"} className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/30 flex-shrink-0">
+          {activeProfile?.avatar_url || profile?.avatar_url ? (
+            <img src={activeProfile?.avatar_url || profile?.avatar_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center" style={{ background: activeProfile?.accent_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))" }}>
+              <span className="text-xs font-black text-white">{(activeProfile?.name || profile?.username)?.[0]?.toUpperCase() || "Z"}</span>
+            </div>
+          )}
+        </Link>
+        {user && profiles.length > 0 && (
+          <button
+            onClick={() => setShowProfileSwitcher(true)}
+            className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-secondary/60 hover:bg-secondary text-[10px] font-bold text-foreground transition"
+            title="Cambiar perfil"
+          >
+            <Users className="w-3 h-3" />
+            {activeProfile?.name || "Perfil"}
+          </button>
         )}
-      </Link>
+      </div>
 
       <Link to="/" className="text-sm font-black text-foreground tracking-tight drop-shadow-md">ZetAnime</Link>
 
@@ -144,6 +160,8 @@ export default function HeaderBar() {
           </div>
         )}
       </div>
+
+      {showProfileSwitcher && <ProfileSelector onClose={() => setShowProfileSwitcher(false)} />}
     </div>
   );
 }
