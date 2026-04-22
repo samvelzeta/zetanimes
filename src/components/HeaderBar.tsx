@@ -1,8 +1,10 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, X } from "lucide-react";
+import { useProfiles } from "@/contexts/ProfilesContext";
+import { Bell, X, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import ProfileSelector from "@/components/profiles/ProfileSelector";
 
 interface Notification {
   id: string;
@@ -14,8 +16,10 @@ interface Notification {
 
 export default function HeaderBar() {
   const { user, profile, refreshProfile } = useAuth();
+  const { activeProfile, profiles } = useProfiles();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
