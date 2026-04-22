@@ -201,6 +201,9 @@ export default function Profile() {
         </div>
       </Link>
 
+      {/* Gestión de perfiles, dispositivos y PIN */}
+      <ProfileManagementSection />
+
       {/* Acciones rediseñadas estilo steampunk */}
       <div className="space-y-2.5">
         <Link
