@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Heart, Eye, CheckCircle, Clock, HelpCircle, Cog, ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";

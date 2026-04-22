@@ -5,6 +5,7 @@ import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, H
 import AnimeCard from "@/components/anime/AnimeCard";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
 import AuthRequiredModal from "@/components/AuthRequiredModal";
 import { toast } from "sonner";
