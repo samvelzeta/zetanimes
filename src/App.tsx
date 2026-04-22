@@ -74,7 +74,8 @@ const App = () => (
               <Route path="/download" element={<DownloadPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </Suspense>
+            </Suspense>
+          </ProfilesProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
