@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_profiles: {
+        Row: {
+          accent_color: string | null
+          avatar_url: string | null
+          created_at: string
+          font_family: string | null
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          font_family?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          font_family?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      account_settings: {
+        Row: {
+          created_at: string
+          pin_enabled: boolean
+          pin_hash: string | null
+          trusted_until: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          pin_enabled?: boolean
+          pin_hash?: string | null
+          trusted_until?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          pin_enabled?: boolean
+          pin_hash?: string | null
+          trusted_until?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_payment_info: {
         Row: {
           account_holder: string | null
@@ -126,6 +189,7 @@ export type Database = {
           created_at: string
           id: string
           list_type: Database["public"]["Enums"]["anime_list_type"]
+          profile_id: string | null
           user_id: string
         }
         Insert: {
@@ -135,6 +199,7 @@ export type Database = {
           created_at?: string
           id?: string
           list_type: Database["public"]["Enums"]["anime_list_type"]
+          profile_id?: string | null
           user_id: string
         }
         Update: {
@@ -144,6 +209,7 @@ export type Database = {
           created_at?: string
           id?: string
           list_type?: Database["public"]["Enums"]["anime_list_type"]
+          profile_id?: string | null
           user_id?: string
         }
         Relationships: []
@@ -271,6 +337,39 @@ export type Database = {
           name?: string
           sort_order?: number | null
           url?: string
+        }
+        Relationships: []
+      }
+      device_sessions: {
+        Row: {
+          created_at: string
+          device_id: string
+          device_name: string | null
+          id: string
+          last_active_at: string
+          platform: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          device_name?: string | null
+          id?: string
+          last_active_at?: string
+          platform?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          device_name?: string | null
+          id?: string
+          last_active_at?: string
+          platform?: string | null
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -667,6 +766,7 @@ export type Database = {
           current_time_seconds: number | null
           episode_number: number
           id: string
+          profile_id: string | null
           progress_percent: number | null
           total_duration_seconds: number | null
           user_id: string
@@ -681,6 +781,7 @@ export type Database = {
           current_time_seconds?: number | null
           episode_number: number
           id?: string
+          profile_id?: string | null
           progress_percent?: number | null
           total_duration_seconds?: number | null
           user_id: string
@@ -695,6 +796,7 @@ export type Database = {
           current_time_seconds?: number | null
           episode_number?: number
           id?: string
+          profile_id?: string | null
           progress_percent?: number | null
           total_duration_seconds?: number | null
           user_id?: string
