@@ -42,10 +42,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        // En cada login fresco (o token refrescado tras re-login), forzar selector de perfil:
+        // limpiamos el perfil activo guardado y los PINs de sesión para que el gate muestre
+        // siempre la pantalla "¿Quién está viendo?" (estilo Netflix).
+        if (event === "SIGNED_IN") {
+          try {
+            localStorage.removeItem("zet:active-profile-id");
+            Object.keys(sessionStorage)
+              .filter((k) => k.startsWith("zet:pin-ok:"))
+              .forEach((k) => sessionStorage.removeItem(k));
+            window.dispatchEvent(new Event("zet:active-profile-changed"));
+          } catch {}
+        }
         // Use setTimeout to avoid potential deadlocks with Supabase client
         setTimeout(() => fetchProfile(session.user.id), 0);
       } else {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
@@ -7,6 +7,7 @@ import PinPrompt from "./PinPrompt";
 import DeviceLimitModal from "./DeviceLimitModal";
 import {
   isProfilePinValid, getActiveProfileId, setActiveProfileId,
+  createProfile,
   type AccountProfile,
 } from "@/lib/account-profiles";
 import { registerCurrentDevice } from "@/lib/devices";
@@ -20,6 +21,7 @@ export default function ProfileGate() {
 
   const [pendingProfile, setPendingProfile] = useState<AccountProfile | null>(null);
   const [deviceCheck, setDeviceCheck] = useState<{ allowed: boolean; current: number; limit: number } | null>(null);
+  const autoCreatingRef = useRef(false);
 
   const skip = SKIP_PATHS.some((p) => location.pathname.startsWith(p));
 
@@ -34,6 +36,21 @@ export default function ProfileGate() {
 
   // Refrescar perfiles cuando cambia el usuario
   useEffect(() => { if (user) refresh(); }, [user, refresh]);
+
+  // Auto-crear el primer perfil "Principal" si la cuenta no tiene ninguno todavía.
+  // (Sucede cuando el usuario recién se registra: entra y ve directamente el selector
+  //  con su perfil por defecto, sin tener que rellenar nada.)
+  useEffect(() => {
+    if (!user || profilesLoading || autoCreatingRef.current) return;
+    if (profiles.length === 0) {
+      autoCreatingRef.current = true;
+      const baseName = (user.user_metadata?.username as string) || (user.email?.split("@")[0]) || "Principal";
+      createProfile(user.id, { name: baseName.slice(0, 20), accent_color: null, avatar_url: null, pin: null })
+        .then(() => refresh())
+        .catch(() => { /* el trigger devolverá error si supera límite */ })
+        .finally(() => { autoCreatingRef.current = false; });
+    }
+  }, [user, profiles.length, profilesLoading, refresh]);
 
   if (skip || !user || authLoading) return null;
 
@@ -63,13 +80,15 @@ export default function ProfileGate() {
     return (
       <PinPrompt
         profile={activeProfile}
-        onSuccess={() => { /* validado, dejar continuar */ setPendingProfile(null); }}
+        onSuccess={() => { setPendingProfile(null); }}
         onCancel={() => { setActiveProfileId(null); }}
       />
     );
   }
 
-  // 4) Selector tras login si no hay activo y ya hay perfiles creados
+  // 4) Selector tras login si no hay activo y ya hay perfiles creados.
+  //    AuthContext limpia "zet:active-profile-id" en cada SIGNED_IN, así que
+  //    siempre que entren con email+contraseña verán "¿Quién está viendo?"
   if (!profilesLoading && profiles.length > 0 && !activeId) {
     return (
       <ProfileSelector
@@ -82,11 +101,6 @@ export default function ProfileGate() {
         }}
       />
     );
-  }
-
-  // 5) Si no tiene perfiles aún, mostrar selector para crear el primero
-  if (!profilesLoading && profiles.length === 0) {
-    return <ProfileSelector manageMode />;
   }
 
   return null;

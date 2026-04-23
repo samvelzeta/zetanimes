@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   createProfile, deleteProfile, updateProfile, setProfilePin,
-  MAX_PROFILES, type AccountProfile,
+  getMaxProfiles, type AccountProfile,
 } from "@/lib/account-profiles";
 import { fetchAvatarOptions, searchAvatars, type AvatarOption } from "@/lib/anilist-avatars";
 import { toast } from "sonner";
@@ -32,7 +32,8 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
   const [creating, setCreating] = useState(false);
   const [manage, setManage] = useState(manageMode);
 
-  const canCreate = profiles.length < MAX_PROFILES;
+  const maxProfiles = getMaxProfiles(isPremium);
+  const canCreate = profiles.length < maxProfiles;
 
   useEffect(() => { refresh(); }, [refresh]);
 
