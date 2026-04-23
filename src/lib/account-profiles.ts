@@ -14,7 +14,14 @@ export interface AccountProfile {
   updated_at: string;
 }
 
-export const MAX_PROFILES = 3;
+export const MAX_PROFILES_FREE = 2;
+export const MAX_PROFILES_PREMIUM = 3;
+/** @deprecated usar getMaxProfiles(isPremium) */
+export const MAX_PROFILES = MAX_PROFILES_PREMIUM;
+
+export function getMaxProfiles(isPremium: boolean): number {
+  return isPremium ? MAX_PROFILES_PREMIUM : MAX_PROFILES_FREE;
+}
 
 const ACTIVE_KEY = "zet:active-profile-id";
 const PIN_OK_PREFIX = "zet:pin-ok:";
