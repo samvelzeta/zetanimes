@@ -1,22 +1,25 @@
 ---
 name: Sistema de perfiles, dispositivos y PIN
-description: Hasta 5 perfiles con datos aislados por profile_id (historial/listas/stats/PDF), 2/5 dispositivos, PIN cuenta premium
+description: Hasta 3 perfiles con avatares de AniList y PIN individual; 2/5 dispositivos; datos aislados por profile_id
 type: feature
 ---
 
-## Sistema completo de perfiles + dispositivos + PIN (Fase 3 completa)
+## Sistema completo de perfiles + dispositivos + PIN
 
 **Tablas:**
-- `account_profiles` (máx 5 vía trigger `enforce_max_profiles`): name, avatar_url, accent_color, font_family, is_default. RLS por user_id.
+- `account_profiles` (máx 3 vía trigger `enforce_max_profiles`): name, avatar_url (URL string a imagen de AniList, no se guarda blob), accent_color, font_family, is_default, **`pin_enabled`** + **`pin_hash`** (PIN INDIVIDUAL por perfil, SHA-256 con sal `zet-profile:{profileId}:{pin}`).
 - `device_sessions` (UNIQUE user_id+device_id): device_name, platform, last_active_at. "Activo" = últimos 7 días.
-- `account_settings`: pin_enabled + pin_hash (SHA-256 de `zet:{userId}:{pin}`).
-- `watch_history.profile_id` y `anime_lists.profile_id` añadidas (NULL = pre-perfiles / cuenta sin perfil activo).
+- `account_settings`: queda en BD pero ya NO se usa para PIN (el PIN ahora es por perfil). 
+- `watch_history.profile_id` y `anime_lists.profile_id` (NULL = pre-perfiles).
 
-**Reglas:**
-- Perfiles arrancan vacíos. Premium NO se hereda al perfil, es de cuenta.
-- Selector aparece tras login (`ProfileGate`) + botón en HeaderBar.
+**Reglas clave:**
+- Máximo **3 perfiles** por cuenta (trigger DB).
+- PIN es **por perfil**, no de cuenta. Cualquier perfil (free o premium) puede activarlo al crearlo o editarlo.
+- `sessionStorage["zet:pin-ok:{profileId}"]` evita re-pedirlo en la misma sesión.
+- Avatares vienen de **AniList** (`Character.image.large`). Solo guardamos la URL como string. NO se sube imagen al storage. `src/lib/anilist-avatars.ts` expone `fetchAvatarOptions(page, perPage)` (top favoritos, cache IndexedDB 24h) y `searchAvatars(term)` para búsqueda en vivo.
 - Dispositivos: Free 2, Premium 5. Tercer dispositivo free → `DeviceLimitModal` con CTA premium (no desconecta otros).
-- PIN: solo premium. `sessionStorage["zet:pin-session-ok"]` evita re-pedir. signOut limpia `zet:active-profile-id` y la flag de PIN.
+- Selector estilo Netflix a pantalla completa con vignette, animaciones `animate-fade-in` escalonadas, hover scale + glow primary, badge `KeyRound` en perfiles con PIN.
+- `signOut` limpia `zet:active-profile-id` + todos los `zet:pin-ok:*`.
 
 ## Aislamiento de datos por perfil
 **Regla de query:** todo acceso a `watch_history` y `anime_lists` filtra por scope:
@@ -24,17 +27,17 @@ type: feature
 const scoped = (q) => profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
 ```
 
-Wireado en:
-- `src/lib/anime-lists.ts` → `toggleAnimeListSmart({ profileId, ... })` inserta y borra con scope.
-- `src/pages/AnimeDetail.tsx` → query `["anime-list", animeId, userId, profileId]`.
-- `src/pages/MyLists.tsx` → carga listas filtradas por perfil.
-- `src/pages/Watch.tsx` → `getHistoryBase` incluye `profile_id`; `ensureHistoryEntry` filtra por scope.
-- `src/pages/RecentlyWatched.tsx` → load + clearHistory por scope.
-- `src/pages/Profile.tsx` → stats (lists/episodes/hours) por scope.
-- `src/lib/export-history-pdf.ts` → recibe `profileId` opcional y exporta solo datos del perfil activo.
+Wireado en: `src/lib/anime-lists.ts`, `src/pages/AnimeDetail.tsx`, `src/pages/MyLists.tsx`, `src/pages/Watch.tsx`, `src/pages/RecentlyWatched.tsx`, `src/pages/Profile.tsx`, `src/lib/export-history-pdf.ts`.
 
-**Archivos clave:**
-- Libs: `src/lib/device-id.ts`, `src/lib/devices.ts`, `src/lib/account-pin.ts`, `src/lib/account-profiles.ts`
-- Contexto: `src/contexts/ProfilesContext.tsx` (envuelto dentro de AuthProvider)
-- UI: `ProfileSelector`, `PinPrompt`, `DeviceLimitModal`, `ProfileManagementSection`, `ProfileGate` (orquesta)
-- Integración: App.tsx envuelve con ProfilesProvider + ProfileGate; HeaderBar muestra avatar del perfil activo + switcher.
+## Flujo de selección
+`ProfileGate` orquesta:
+1. Bloqueo dispositivos → `DeviceLimitModal`.
+2. Selector tras login si no hay activo. `onPick`: si el perfil tiene `pin_enabled`, se pasa a `PinPrompt` (muestra avatar + nombre + 4 inputs). Si no, se selecciona directo.
+3. Si la sesión expira (recarga) y el perfil activo tiene PIN, también pide PIN.
+4. Si no hay perfiles, abre `ProfileSelector manageMode` que automáticamente muestra el editor.
+
+## Archivos clave
+- Libs: `src/lib/account-profiles.ts` (CRUD + PIN por perfil + helpers session), `src/lib/anilist-avatars.ts` (galería AniList), `src/lib/devices.ts`, `src/lib/device-id.ts`.
+- Contexto: `src/contexts/ProfilesContext.tsx`.
+- UI: `ProfileSelector` (rediseño Netflix con editor inline `ProfileEditor` que incluye galería AniList con búsqueda + toggle PIN), `PinPrompt` (acepta `profile: AccountProfile`, muestra avatar y shake en error), `DeviceLimitModal`, `ProfileManagementSection`, `ProfileGate`.
+- `account-pin.ts` queda como helper legacy de cuenta — ya no se usa en la UI.
