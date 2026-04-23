@@ -1,24 +1,26 @@
 ---
 name: Sistema de perfiles, dispositivos y PIN
-description: Hasta 3 perfiles con avatares de AniList y PIN individual; 2/5 dispositivos; datos aislados por profile_id
+description: Free 2 perfiles / Premium 3, primer perfil auto-creado, selector forzado tras login, PIN individual SHA-256
 type: feature
 ---
 
 ## Sistema completo de perfiles + dispositivos + PIN
 
 **Tablas:**
-- `account_profiles` (máx 3 vía trigger `enforce_max_profiles`): name, avatar_url (URL string a imagen de AniList, no se guarda blob), accent_color, font_family, is_default, **`pin_enabled`** + **`pin_hash`** (PIN INDIVIDUAL por perfil, SHA-256 con sal `zet-profile:{profileId}:{pin}`).
+- `account_profiles` (cap DB 3 vía trigger `enforce_max_profiles`): name, avatar_url (URL string a imagen de AniList, no se guarda blob), accent_color, font_family, is_default, **`pin_enabled`** + **`pin_hash`** (PIN INDIVIDUAL por perfil, SHA-256 con sal `zet-profile:{profileId}:{pin}`).
 - `device_sessions` (UNIQUE user_id+device_id): device_name, platform, last_active_at. "Activo" = últimos 7 días.
-- `account_settings`: queda en BD pero ya NO se usa para PIN (el PIN ahora es por perfil). 
+- `account_settings`: queda en BD pero ya NO se usa para PIN (el PIN ahora es por perfil).
 - `watch_history.profile_id` y `anime_lists.profile_id` (NULL = pre-perfiles).
 
 **Reglas clave:**
-- Máximo **3 perfiles** por cuenta (trigger DB).
+- Límite por plan: **Free 2 perfiles, Premium 3** (cliente vía `getMaxProfiles(isPremium)`; trigger DB tope a 3).
+- **Auto-creación**: si la cuenta tiene 0 perfiles, `ProfileGate` crea automáticamente "Principal" (usa `username` o email) sin personalización para que el usuario nuevo entre directo.
+- **Selector forzado tras login**: `AuthContext` borra `zet:active-profile-id` y todos `zet:pin-ok:*` en cada evento `SIGNED_IN`. Así, entrar desde otro dispositivo o tras logout siempre muestra "¿Quién está viendo?" (Netflix-style).
 - PIN es **por perfil**, no de cuenta. Cualquier perfil (free o premium) puede activarlo al crearlo o editarlo.
 - `sessionStorage["zet:pin-ok:{profileId}"]` evita re-pedirlo en la misma sesión.
 - Avatares vienen de **AniList** (`Character.image.large`). Solo guardamos la URL como string. NO se sube imagen al storage. `src/lib/anilist-avatars.ts` expone `fetchAvatarOptions(page, perPage)` (top favoritos, cache IndexedDB 24h) y `searchAvatars(term)` para búsqueda en vivo.
 - Dispositivos: Free 2, Premium 5. Tercer dispositivo free → `DeviceLimitModal` con CTA premium (no desconecta otros).
-- Selector estilo Netflix a pantalla completa con vignette, animaciones `animate-fade-in` escalonadas, hover scale + glow primary, badge `KeyRound` en perfiles con PIN.
+- Selector estilo Netflix a pantalla completa con vignette, animaciones `animate-fade-in` escalonadas, hover scale + glow primary, badge `KeyRound` en perfiles con PIN. Layout `pt-10 md:pt-16` con `my-auto` interno (sin hueco vacío arriba).
 - `signOut` limpia `zet:active-profile-id` + todos los `zet:pin-ok:*`.
 
 ## Aislamiento de datos por perfil
