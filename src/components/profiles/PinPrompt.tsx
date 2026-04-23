@@ -1,29 +1,31 @@
-import { useState } from "react";
-import { Loader2, KeyRound } from "lucide-react";
-import { verifyPin } from "@/lib/account-pin";
-import { markPinSession } from "@/lib/account-profiles";
+import { useEffect, useState } from "react";
+import { Loader2, KeyRound, ArrowLeft } from "lucide-react";
+import { verifyProfilePin, markProfilePin, type AccountProfile } from "@/lib/account-profiles";
 import { toast } from "sonner";
 
 interface Props {
-  userId: string;
+  profile: AccountProfile;
   onSuccess: () => void;
   onCancel?: () => void;
 }
 
-export default function PinPrompt({ userId, onSuccess, onCancel }: Props) {
+export default function PinPrompt({ profile, onSuccess, onCancel }: Props) {
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
+  const [shake, setShake] = useState(false);
 
   const handleVerify = async (value: string) => {
     if (value.length !== 4) return;
     setBusy(true);
     try {
-      const ok = await verifyPin(userId, value);
+      const ok = await verifyProfilePin(profile, value);
       if (ok) {
-        markPinSession();
+        markProfilePin(profile.id);
         onSuccess();
       } else {
         toast.error("PIN incorrecto");
+        setShake(true);
+        setTimeout(() => setShake(false), 400);
         setPin("");
       }
     } finally {
@@ -32,13 +34,28 @@ export default function PinPrompt({ userId, onSuccess, onCancel }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[110] bg-background/95 backdrop-blur-xl flex items-center justify-center p-4">
-      <div className="max-w-sm w-full bg-card border border-border rounded-2xl p-6 shadow-xl text-center">
-        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-          <KeyRound className="w-7 h-7 text-primary" />
+    <div className="fixed inset-0 z-[110] bg-background/95 backdrop-blur-2xl flex items-center justify-center p-4 animate-fade-in">
+      <div className="max-w-sm w-full text-center">
+        {/* Avatar del perfil */}
+        <div
+          className="w-28 h-28 mx-auto mb-5 rounded-3xl overflow-hidden ring-4 ring-primary/40 shadow-2xl"
+          style={{ background: profile.accent_color || "hsl(var(--muted))" }}
+        >
+          {profile.avatar_url ? (
+            <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-5xl font-black text-white">
+              {profile.name[0]?.toUpperCase()}
+            </div>
+          )}
         </div>
-        <h2 className="text-xl font-black mb-1">Introduce tu PIN</h2>
-        <p className="text-xs text-muted-foreground mb-5">PIN de 4 dígitos de la cuenta</p>
+
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-2">
+          <KeyRound className="w-3 h-3 text-primary" />
+          <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Perfil protegido</span>
+        </div>
+        <h2 className="text-2xl font-black mb-1">{profile.name}</h2>
+        <p className="text-xs text-muted-foreground mb-6">Introduce el PIN de 4 dígitos</p>
 
         <input
           type="password"
@@ -52,18 +69,31 @@ export default function PinPrompt({ userId, onSuccess, onCancel }: Props) {
             setPin(v);
             if (v.length === 4) handleVerify(v);
           }}
-          className="w-full text-center text-3xl tracking-[1em] font-black px-4 py-3 rounded-lg bg-background border-2 border-input focus:border-primary outline-none"
+          className={`w-full text-center text-3xl tracking-[1em] font-black px-4 py-4 rounded-xl bg-background border-2 border-input focus:border-primary outline-none transition-all ${
+            shake ? "animate-[wiggle_0.4s] border-destructive" : ""
+          }`}
           placeholder="••••"
         />
 
         {busy && <Loader2 className="w-5 h-5 text-primary animate-spin mx-auto mt-4" />}
 
         {onCancel && (
-          <button onClick={onCancel} className="mt-4 text-xs text-muted-foreground hover:text-foreground">
-            Cancelar
+          <button
+            onClick={onCancel}
+            className="mt-6 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition"
+          >
+            <ArrowLeft className="w-3 h-3" /> Elegir otro perfil
           </button>
         )}
       </div>
+
+      <style>{`
+        @keyframes wiggle {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-8px); }
+          75% { transform: translateX(8px); }
+        }
+      `}</style>
     </div>
   );
 }
