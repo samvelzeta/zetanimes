@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   createProfile, deleteProfile, updateProfile, setProfilePin,
-  MAX_PROFILES, type AccountProfile,
+  getMaxProfiles, type AccountProfile,
 } from "@/lib/account-profiles";
 import { fetchAvatarOptions, searchAvatars, type AvatarOption } from "@/lib/anilist-avatars";
 import { toast } from "sonner";
@@ -32,7 +32,8 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
   const [creating, setCreating] = useState(false);
   const [manage, setManage] = useState(manageMode);
 
-  const canCreate = profiles.length < MAX_PROFILES;
+  const maxProfiles = getMaxProfiles(isPremium);
+  const canCreate = profiles.length < maxProfiles;
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -80,13 +81,13 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-4 overflow-y-auto animate-fade-in">
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center p-4 pt-10 md:pt-16 overflow-y-auto animate-fade-in">
       {/* Vignette de fondo */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_70%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent pointer-events-none" />
 
-      <div className="relative max-w-5xl w-full">
-        <div className="text-center mb-12">
+      <div className="relative max-w-5xl w-full my-auto">
+        <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-4">
             <Sparkles className="w-3 h-3 text-primary" />
             <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
@@ -97,7 +98,7 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
             {manage ? "Gestionar perfiles" : "¿Quién está viendo?"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {profiles.length} de {MAX_PROFILES} perfiles
+            {profiles.length} de {maxProfiles} perfiles {isPremium ? "(Premium)" : "(Gratis)"}
           </p>
         </div>
 

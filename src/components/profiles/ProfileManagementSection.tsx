@@ -5,7 +5,7 @@ import { Users, Smartphone, Loader2, Trash2, Crown, Plus, KeyRound } from "lucid
 import { toast } from "sonner";
 import { listMyDevices, revokeDevice, type DeviceSession } from "@/lib/devices";
 import { getDeviceId } from "@/lib/device-id";
-import { MAX_PROFILES } from "@/lib/account-profiles";
+import { getMaxProfiles } from "@/lib/account-profiles";
 import ProfileSelector from "./ProfileSelector";
 
 export default function ProfileManagementSection() {
@@ -17,6 +17,7 @@ export default function ProfileManagementSection() {
 
   const currentDeviceId = getDeviceId();
   const deviceLimit = isPremium ? 5 : 2;
+  const maxProfiles = getMaxProfiles(isPremium);
   const profilesWithPin = profiles.filter((p) => p.pin_enabled).length;
 
   useEffect(() => { if (user) loadDevices(); }, [user]);
@@ -53,7 +54,7 @@ export default function ProfileManagementSection() {
         </div>
         <div className="flex-1 text-left">
           <p className="text-sm font-bold text-foreground flex items-center gap-2">
-            Perfiles ({profiles.length}/{MAX_PROFILES})
+            Perfiles ({profiles.length}/{maxProfiles})
             {profilesWithPin > 0 && (
               <span className="inline-flex items-center gap-1 text-[9px] text-primary font-black uppercase">
                 <KeyRound className="w-2.5 h-2.5" /> {profilesWithPin} con PIN
@@ -61,7 +62,7 @@ export default function ProfileManagementSection() {
             )}
           </p>
           <p className="text-[10px] text-muted-foreground">
-            Hasta {MAX_PROFILES} perfiles · avatares de AniList · PIN individual
+            Hasta {maxProfiles} perfiles {isPremium ? "(Premium)" : "(Gratis · sube a Premium para 3)"} · avatares AniList · PIN individual
           </p>
         </div>
         <Plus className="w-4 h-4 text-primary" />
