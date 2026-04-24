@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import { Users, Smartphone, Loader2, Trash2, Crown, Plus, KeyRound } from "lucide-react";
 import { toast } from "sonner";
-import { listMyDevices, revokeDevice, type DeviceSession } from "@/lib/devices";
+import { listMyDevices, revokeAllDevices, revokeDevice, type DeviceSession } from "@/lib/devices";
 import { getDeviceId } from "@/lib/device-id";
 import { getMaxProfiles } from "@/lib/account-profiles";
 import ProfileSelector from "./ProfileSelector";
@@ -16,7 +16,7 @@ export default function ProfileManagementSection() {
   const [loadingDevices, setLoadingDevices] = useState(false);
 
   const currentDeviceId = getDeviceId();
-  const deviceLimit = isPremium ? 5 : 2;
+  const deviceLimit = isPremium ? 3 : 2;
   const maxProfiles = getMaxProfiles(isPremium);
   const profilesWithPin = profiles.filter((p) => p.pin_enabled).length;
 
@@ -32,11 +32,15 @@ export default function ProfileManagementSection() {
 
   const handleRevoke = async (deviceId: string) => {
     if (!user) return;
-    if (deviceId === currentDeviceId) {
-      if (!confirm("¿Cerrar sesión en este dispositivo?")) return;
-    }
     await revokeDevice(user.id, deviceId);
     toast.success(deviceId === currentDeviceId ? "Sesión cerrada en este dispositivo" : "Dispositivo desconectado");
+    loadDevices();
+  };
+
+  const handleRevokeAll = async () => {
+    if (!user || devices.length === 0) return;
+    await revokeAllDevices(user.id);
+    toast.success("Todas las sesiones fueron cerradas");
     loadDevices();
   };
 
@@ -76,8 +80,16 @@ export default function ProfileManagementSection() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-foreground">Dispositivos conectados ({devices.length}/{deviceLimit})</p>
-            <p className="text-[10px] text-muted-foreground">{isPremium ? "Premium · 5 dispositivos" : "Gratis · 2 dispositivos"}</p>
+            <p className="text-[10px] text-muted-foreground">{isPremium ? "Premium · 3 dispositivos" : "Gratis · 2 dispositivos"}</p>
           </div>
+          {devices.length > 0 && (
+            <button
+              onClick={handleRevokeAll}
+              className="px-2.5 py-1.5 rounded-md border border-border text-[10px] font-bold text-foreground hover:border-primary hover:text-primary transition"
+            >
+              Cerrar todas
+            </button>
+          )}
         </div>
 
         {loadingDevices ? (
@@ -113,7 +125,7 @@ export default function ProfileManagementSection() {
         {!isPremium && devices.length >= deviceLimit && (
           <div className="mt-3 p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-[10px] text-yellow-300 flex items-center gap-2">
             <Crown className="w-3.5 h-3.5" />
-            Hazte Premium para conectar hasta 5 dispositivos
+            Hazte Premium para conectar hasta 3 dispositivos
           </div>
         )}
       </div>
