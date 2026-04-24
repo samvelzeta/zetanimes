@@ -20,7 +20,7 @@ export default function DeviceLimitModal({ current, limit, onClose }: Props) {
           Tienes <strong className="text-foreground">{current}/{limit}</strong> dispositivos conectados.
         </p>
         <p className="text-sm text-muted-foreground mb-6">
-          Cierra sesión en otro dispositivo desde tu perfil o hazte Premium para tener hasta <strong className="text-foreground">5 dispositivos</strong> simultáneos.
+          Cierra sesión en otro dispositivo desde tu perfil o hazte Premium para tener hasta <strong className="text-foreground">3 dispositivos</strong> simultáneos.
         </p>
 
         <div className="flex flex-col gap-2">

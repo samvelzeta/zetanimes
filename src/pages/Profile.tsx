@@ -390,7 +390,7 @@ function PremiumModal({ onClose }: { onClose: () => void }) {
     { icon: Palette, title: "Paleta de colores exclusiva", desc: "8 colores premium adicionales para personalizar la UI" },
     { icon: BadgeCheck, title: "Badge premium en tu perfil", desc: "Insignia dorada visible para destacar" },
     { icon: KeyRound, title: "PIN de cuenta", desc: "Protege tu cuenta con un PIN de 4 dígitos al iniciar sesión" },
-    { icon: Users, title: "Hasta 5 dispositivos conectados", desc: "Free: 2 · Premium: 5 dispositivos simultáneos" },
+    { icon: Users, title: "Hasta 3 dispositivos conectados", desc: "Free: 2 · Premium: 3 dispositivos simultáneos" },
   ];
 
   return (

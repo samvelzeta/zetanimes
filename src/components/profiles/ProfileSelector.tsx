@@ -87,7 +87,7 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_70%)] pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent pointer-events-none" />
 
-      <div className={`relative max-w-5xl w-full ${isSelectionMode ? "min-h-screen flex flex-col justify-center px-4 py-8 md:py-12" : "px-4 pt-10 md:pt-16 pb-8"}`}>
+      <div className={`relative max-w-5xl w-full ${isSelectionMode ? "min-h-screen flex flex-col justify-center px-4 py-8 md:py-12" : "min-h-screen flex flex-col justify-center px-4 py-8 md:py-12"}`}>
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-4">
             <Sparkles className="w-3 h-3 text-primary" />
@@ -103,11 +103,11 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
           </p>
         </div>
 
-        <div className={`grid gap-6 md:gap-8 max-w-3xl mx-auto ${isSelectionMode ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 justify-items-center" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"}`}>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 max-w-3xl mx-auto justify-items-center place-content-center">
           {profiles.map((p, idx) => (
             <div
               key={p.id}
-              className="flex flex-col items-center gap-3 animate-fade-in"
+              className={`flex flex-col items-center gap-3 animate-fade-in ${profiles.length === 3 && idx === 2 ? "col-span-2 md:col-span-1" : ""}`}
               style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "backwards" }}
             >
               <button
@@ -153,7 +153,7 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
 
           {canCreate && (
             <div
-              className="flex flex-col items-center gap-3 animate-fade-in"
+              className={`flex flex-col items-center gap-3 animate-fade-in ${(profiles.length + 1) % 2 === 1 ? "col-span-2 md:col-span-1" : ""}`}
               style={{ animationDelay: `${profiles.length * 80}ms`, animationFillMode: "backwards" }}
             >
               <button

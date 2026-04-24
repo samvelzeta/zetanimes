@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { getDeviceId } from "@/lib/device-id";
@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<any | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const revokedByRemoteRef = useRef(false);
 
   const fetchProfile = async (userId: string) => {
     const { data: prof } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
@@ -115,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         async (payload) => {
           const deleted = payload.old as { device_id?: string } | null;
           if (deleted?.device_id === currentDeviceId) {
+            revokedByRemoteRef.current = true;
             await supabase.auth.signOut();
             setUser(null);
             setSession(null);
@@ -146,7 +148,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .forEach((k) => sessionStorage.removeItem(k));
       window.dispatchEvent(new Event("zet:active-profile-changed"));
     } catch {}
+    revokedByRemoteRef.current = false;
   };
+
+  useEffect(() => {
+    if (!revokedByRemoteRef.current) return;
+    revokedByRemoteRef.current = false;
+    try {
+      localStorage.removeItem("zet:active-profile-id");
+      Object.keys(sessionStorage)
+        .filter((k) => k.startsWith("zet:pin-ok:") || k === "zet:pin-session-ok")
+        .forEach((k) => sessionStorage.removeItem(k));
+      window.dispatchEvent(new Event("zet:active-profile-changed"));
+    } catch {}
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, session, profile, roles, isPremium, isOwner, isAdmin, loading, signOut, refreshProfile }}>
