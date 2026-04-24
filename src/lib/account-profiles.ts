@@ -25,14 +25,20 @@ export function getMaxProfiles(isPremium: boolean): number {
 
 const ACTIVE_KEY = "zet:active-profile-id";
 const PIN_OK_PREFIX = "zet:pin-ok:";
+let activeProfileId: string | null = null;
 
 export function getActiveProfileId(): string | null {
-  return localStorage.getItem(ACTIVE_KEY);
+  try {
+    localStorage.removeItem(ACTIVE_KEY);
+  } catch {}
+  return activeProfileId;
 }
 
 export function setActiveProfileId(id: string | null): void {
-  if (id) localStorage.setItem(ACTIVE_KEY, id);
-  else localStorage.removeItem(ACTIVE_KEY);
+  activeProfileId = id;
+  try {
+    localStorage.removeItem(ACTIVE_KEY);
+  } catch {}
   window.dispatchEvent(new Event("zet:active-profile-changed"));
 }
 
