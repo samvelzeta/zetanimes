@@ -23,7 +23,7 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean):
   current: number;
   isCurrent?: boolean;
 }> {
-  const limit = isPremium ? 5 : 2;
+  const limit = isPremium ? 3 : 2;
   const info = getDeviceInfo();
 
   // 1) Listar sesiones activas (últimas N horas)
@@ -77,6 +77,10 @@ export async function listMyDevices(userId: string): Promise<DeviceSession[]> {
 
 export async function revokeDevice(userId: string, deviceId: string): Promise<void> {
   await supabase.from("device_sessions").delete().eq("user_id", userId).eq("device_id", deviceId);
+}
+
+export async function revokeAllDevices(userId: string): Promise<void> {
+  await supabase.from("device_sessions").delete().eq("user_id", userId);
 }
 
 export async function touchCurrentDevice(userId: string): Promise<void> {
