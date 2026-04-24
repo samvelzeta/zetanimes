@@ -21,7 +21,7 @@ export default function HeaderBar() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
+  const [lastSeenId, setLastSeenId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -53,24 +53,23 @@ export default function HeaderBar() {
       supabase.from("notification_dismissals").select("notification_id").eq("user_id", user.id).then(({ data }) => {
         if (data) setDismissed(new Set(data.map((d) => d.notification_id)));
       });
+    } else {
+      setDismissed(new Set());
     }
   }, [user]);
 
   useEffect(() => {
-    if (profile?.last_seen_notification_id) setLastSeenAt(profile.last_seen_notification_id);
+    setLastSeenId(profile?.last_seen_notification_id || null);
   }, [profile]);
 
-  const unread = notifications.filter((n) => {
-    if (dismissed.has(n.id)) return false;
-    if (lastSeenAt && new Date(n.created_at) <= new Date(lastSeenAt)) return false;
-    return true;
-  });
+  const lastSeenIndex = lastSeenId ? notifications.findIndex((n) => n.id === lastSeenId) : -1;
+  const unread = notifications.filter((n, index) => !dismissed.has(n.id) && (lastSeenIndex === -1 || index < lastSeenIndex));
   const hasUnread = unread.length > 0;
 
   const markAllSeen = async () => {
     if (!user || notifications.length === 0) return;
-    const newest = notifications[0].created_at;
-    setLastSeenAt(newest);
+    const newest = notifications[0].id;
+    setLastSeenId(newest);
     await supabase.from("profiles").update({ last_seen_notification_id: newest }).eq("user_id", user.id);
     refreshProfile();
   };
@@ -133,28 +132,23 @@ export default function HeaderBar() {
               <span className="text-sm font-bold text-foreground">Notificaciones</span>
               <button onClick={() => setShowNotifs(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
             </div>
-            {unread.length === 0 ? (
+            {notifications.length === 0 ? (
               <div className="p-6 text-center">
-                {!user ? (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Inicia sesión para ver notificaciones</p>
-                    <Link to="/auth" className="text-xs text-primary font-bold hover:underline" onClick={() => setShowNotifs(false)}>Iniciar sesión →</Link>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No hay notificaciones nuevas</p>
-                )}
+                <p className="text-sm text-muted-foreground">No hay notificaciones</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {unread.map((n) => (
-                  <div key={n.id} className={`p-3 flex items-start gap-2 ${typeColors[n.type] || typeColors.info} border-l-2`}>
+                {notifications.filter((n) => !dismissed.has(n.id)).map((n) => {
+                  const isUnread = unread.some((item) => item.id === n.id);
+                  return (
+                  <div key={n.id} className={`p-3 flex items-start gap-2 ${typeColors[n.type] || typeColors.info} border-l-2 ${isUnread ? "" : "opacity-70"}`}>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold">{n.title}</p>
+                      <p className="text-xs font-bold flex items-center gap-2">{n.title}{isUnread && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}</p>
                       <p className="text-[10px] opacity-80 mt-0.5">{n.message}</p>
                     </div>
                     <button onClick={() => dismissNotif(n.id)} className="flex-shrink-0 hover:opacity-70"><X className="w-3 h-3" /></button>
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </div>
