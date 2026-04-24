@@ -54,6 +54,8 @@ export default function VideoManager() {
   const [lang, setLang] = useState<"sub" | "latino">("sub");
   const [primaryUrl, setPrimaryUrl] = useState("");
   const [fallbackUrl, setFallbackUrl] = useState("");
+  const [pcUrl, setPcUrl] = useState("");
+  const [mobileUrl, setMobileUrl] = useState("");
   const [epStatuses, setEpStatuses] = useState<Record<string, EpisodeStatus>>({});
   const [sending, setSending] = useState(false);
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
@@ -133,16 +135,22 @@ export default function VideoManager() {
         const cached = await getCachedVideo(selected.slug, selectedEp, lang, selected.id);
         if (cached) {
           const all = [
+            ...(cached.sources.pc || []),
+            ...(cached.sources.mobile || []),
             ...(cached.sources.hls || []),
             ...(cached.sources.mp4 || []),
             ...(cached.sources.embed || []),
           ];
           setPrimaryUrl(all[0] || "");
           setFallbackUrl(all[1] || "");
+          setPcUrl(cached.sources.pc?.[0] || "");
+          setMobileUrl(cached.sources.mobile?.[0] || "");
         } else {
           const saved = getProgress(selected.slug, lang, selectedEp);
           setPrimaryUrl(saved);
           setFallbackUrl("");
+          setPcUrl("");
+          setMobileUrl("");
         }
         checkEpisode(selected.slug, selectedEp, lang);
       })();
@@ -168,8 +176,8 @@ export default function VideoManager() {
   // No verificamos en background para evitar miles de fetches al hacer scroll.
   // Los episodios YA guardados se muestran en la lista "Ver guardados".
 
-  const buildSourcesObj = (primary: string, fallback: string) => {
-    const sources: { hls: string[]; mp4: string[]; embed: string[] } = { hls: [], mp4: [], embed: [] };
+  const buildSourcesObj = (primary: string, fallback: string, pc: string, mobile: string) => {
+    const sources: { hls: string[]; mp4: string[]; embed: string[]; pc: string[]; mobile: string[] } = { hls: [], mp4: [], embed: [], pc: [], mobile: [] };
     const classify = (url: string) => {
       if (url.includes(".m3u8")) sources.hls.push(url);
       else if (url.includes(".mp4")) sources.mp4.push(url);
@@ -177,13 +185,15 @@ export default function VideoManager() {
     };
     if (primary.trim()) classify(primary.trim());
     if (fallback.trim()) classify(fallback.trim());
+    if (pc.trim()) sources.pc.push(pc.trim());
+    if (mobile.trim()) sources.mobile.push(mobile.trim());
     return sources;
   };
 
   const sendVideo = async () => {
     if (!selected || selectedEp === null || !primaryUrl.trim()) return toast.error("Falta la URL del video");
     setSending(true);
-    const sources = buildSourcesObj(primaryUrl, fallbackUrl);
+    const sources = buildSourcesObj(primaryUrl, fallbackUrl, pcUrl, mobileUrl);
 
     try {
       // 1. Guardar en Lovable Cloud (DB) — fuente confiable
@@ -408,6 +418,18 @@ export default function VideoManager() {
                 <div>
                   <label className="text-[10px] text-primary mb-1 block">Fallback (opcional)</label>
                   <Input value={fallbackUrl} onChange={(e) => setFallbackUrl(e.target.value)}
+                    placeholder="https://..." className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-xs" />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-primary mb-1 block">Enlace solo PC (opcional)</label>
+                  <Input value={pcUrl} onChange={(e) => setPcUrl(e.target.value)}
+                    placeholder="https://..." className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-xs" />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-primary mb-1 block">Enlace solo móvil (opcional)</label>
+                  <Input value={mobileUrl} onChange={(e) => setMobileUrl(e.target.value)}
                     placeholder="https://..." className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-xs" />
                 </div>
 
