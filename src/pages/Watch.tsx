@@ -154,6 +154,20 @@ export default function Watch() {
     retry: 1,
   });
 
+  const { data: oppositeServerData } = useQuery({
+    queryKey: ["zet-servers-opposite", zetSlug, selectedEp, oppositeLang],
+    queryFn: async () => {
+      const oppositeKey = `${zetSlug}-${selectedEp}-${oppositeLang}`;
+      if (episodeCache.has(oppositeKey)) return episodeCache.get(oppositeKey);
+      const res = await getEpisodeServers(zetSlug!, selectedEp, oppositeLang);
+      episodeCache.set(oppositeKey, res);
+      return res;
+    },
+    enabled: !!zetSlug && !cachedVideoOpposite,
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  });
+
   // Construye sources con UNA fuente por idioma. Prioridad: DB > Latino HLS > primer server API.
   // El botón "Cambiar idioma" alterna entre las 2 fuentes (idioma actual / idioma opuesto).
   const buildSources = useCallback(() => {
@@ -182,17 +196,25 @@ export default function Watch() {
       }
     }
 
-    // Idioma OPUESTO desde DB (si admin lo guardó). API del idioma opuesto se carga al pulsar el toggle.
+    // Idioma OPUESTO desde DB, HLS o API para que el switch sea realmente híbrido.
     if (cachedVideoOpposite) {
       const oppDb = cachedVideoToSources(cachedVideoOpposite);
       if (oppDb.length) {
         const tag = oppositeLang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
         sources.push({ ...oppDb[0], name: `${oppDb[0].name} • ${tag}` });
       }
+    } else if (oppositeLang === "latino" && latinoEp?.sources?.hls?.length) {
+      sources.push({ name: "HLS Latino • 🌎 LAT", embed: latinoEp.sources.hls[0], type: "hls" });
+    } else {
+      const oppositeServers = sortServersByPriority((oppositeServerData?.servers || []) as ZetServer[]);
+      if (oppositeServers[0]?.embed) {
+        const tag = oppositeLang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
+        sources.push({ name: `${oppositeServers[0].name} • ${tag}`, embed: oppositeServers[0].embed });
+      }
     }
 
     return sources;
-  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang]);
+  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData]);
 
   const rawSources = buildSources();
   const sortedSources = activeSourceIdx > 0 && activeSourceIdx < rawSources.length
