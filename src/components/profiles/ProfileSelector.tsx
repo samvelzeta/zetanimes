@@ -31,11 +31,12 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
   const [editing, setEditing] = useState<AccountProfile | null>(null);
   const [creating, setCreating] = useState(false);
   const [manage, setManage] = useState(manageMode);
+  const isSelectionMode = !manage && !manageMode;
 
   const maxProfiles = getMaxProfiles(isPremium);
   const canCreate = profiles.length < maxProfiles;
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { if (manageMode) refresh(); }, [refresh, manageMode]);
 
   // Si es la primera vez (sin perfiles), abrir creación automáticamente
   useEffect(() => {
@@ -81,12 +82,12 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center p-4 pt-10 md:pt-16 overflow-y-auto animate-fade-in">
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center overflow-y-auto animate-fade-in">
       {/* Vignette de fondo */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_70%)] pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent pointer-events-none" />
 
-      <div className="relative max-w-5xl w-full my-auto">
+      <div className={`relative max-w-5xl w-full ${isSelectionMode ? "min-h-screen flex flex-col justify-center px-4 py-8 md:py-12" : "px-4 pt-10 md:pt-16 pb-8"}`}>
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-4">
             <Sparkles className="w-3 h-3 text-primary" />
@@ -102,7 +103,7 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 md:gap-8 max-w-3xl mx-auto">
+        <div className={`grid gap-6 md:gap-8 max-w-3xl mx-auto ${isSelectionMode ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 justify-items-center" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"}`}>
           {profiles.map((p, idx) => (
             <div
               key={p.id}
@@ -111,7 +112,7 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
             >
               <button
                 onClick={() => handlePick(p)}
-                className="group relative w-32 h-32 sm:w-36 sm:h-36 rounded-3xl overflow-hidden ring-2 ring-border hover:ring-4 hover:ring-primary transition-all duration-300 hover:scale-110 hover:shadow-[0_0_40px_hsl(var(--primary)/0.5)]"
+                className="group relative w-32 h-32 sm:w-36 sm:h-36 rounded-lg overflow-hidden ring-2 ring-border hover:ring-4 hover:ring-primary transition-all duration-300 hover:scale-110 hover:shadow-[0_0_40px_hsl(var(--primary)/0.5)]"
                 style={{ background: p.accent_color || "hsl(var(--muted))" }}
               >
                 {p.avatar_url ? (
@@ -157,7 +158,7 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
             >
               <button
                 onClick={() => setCreating(true)}
-                className="w-32 h-32 sm:w-36 sm:h-36 rounded-3xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all hover:scale-110 flex items-center justify-center group"
+                className="w-32 h-32 sm:w-36 sm:h-36 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all hover:scale-110 flex items-center justify-center group"
               >
                 <Plus className="w-12 h-12 text-muted-foreground group-hover:text-primary transition" />
               </button>
