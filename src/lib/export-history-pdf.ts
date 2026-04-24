@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import logoUrl from "@/assets/zetanime-apk-logo.png";
+import { isWebView } from "@/lib/webview";
 
 interface AnimeListEntry {
   anime_id: number;
@@ -304,7 +305,23 @@ export async function exportUserHistoryToPDF(userId: string, opts: ExportOptions
     );
   }
 
-  // Download
   const safeName = opts.username.replace(/[^a-z0-9]/gi, "_");
-  doc.save(`zetanime-historial-${safeName}.pdf`);
+  const fileName = `zetanime-historial-${safeName}.pdf`;
+
+  if (isWebView()) {
+    const blob = doc.output("blob");
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.target = "_blank";
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return;
+  }
+
+  doc.save(fileName);
 }
