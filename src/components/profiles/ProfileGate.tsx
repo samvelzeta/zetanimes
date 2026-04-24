@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
@@ -22,6 +22,7 @@ export default function ProfileGate() {
   const [pendingProfile, setPendingProfile] = useState<AccountProfile | null>(null);
   const [deviceCheck, setDeviceCheck] = useState<{ allowed: boolean; current: number; limit: number } | null>(null);
   const autoCreatingRef = useRef(false);
+  const [deviceChecked, setDeviceChecked] = useState(false);
 
   const skip = SKIP_PATHS.some((p) => location.pathname.startsWith(p));
 
@@ -31,8 +32,16 @@ export default function ProfileGate() {
     (async () => {
       const result = await registerCurrentDevice(user.id, isPremium);
       setDeviceCheck(result);
+      setDeviceChecked(true);
     })();
   }, [user, isPremium, authLoading, skip]);
+
+  useEffect(() => {
+    if (!user || skip) {
+      setDeviceCheck(null);
+      setDeviceChecked(false);
+    }
+  }, [user, skip]);
 
   // Refrescar perfiles cuando cambia el usuario
   useEffect(() => { if (user) refresh(); }, [user, refresh]);
@@ -52,7 +61,13 @@ export default function ProfileGate() {
     }
   }, [user, profiles.length, profilesLoading, refresh]);
 
-  if (skip || !user || authLoading) return null;
+  const activeId = getActiveProfileId();
+  const activeProfile = useMemo(
+    () => (activeId ? profiles.find((p) => p.id === activeId) || null : null),
+    [activeId, profiles]
+  );
+
+  if (skip || !user || authLoading || profilesLoading || !deviceChecked) return null;
 
   // 1) Bloqueo por dispositivos
   if (deviceCheck && !deviceCheck.allowed) {
@@ -74,8 +89,6 @@ export default function ProfileGate() {
   }
 
   // 3) Si hay un perfil activo y tiene PIN, validarlo si la sesión expiró
-  const activeId = getActiveProfileId();
-  const activeProfile = activeId ? profiles.find((p) => p.id === activeId) : null;
   if (activeProfile && activeProfile.pin_enabled && !isProfilePinValid(activeProfile.id)) {
     return (
       <PinPrompt
@@ -89,7 +102,7 @@ export default function ProfileGate() {
   // 4) Selector tras login si no hay activo y ya hay perfiles creados.
   //    AuthContext limpia "zet:active-profile-id" en cada SIGNED_IN, así que
   //    siempre que entren con email+contraseña verán "¿Quién está viendo?"
-  if (!profilesLoading && profiles.length > 0 && !activeId) {
+  if (profiles.length > 0 && !activeId) {
     return (
       <ProfileSelector
         onPick={(p) => {
