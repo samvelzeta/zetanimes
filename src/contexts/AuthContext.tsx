@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { getDeviceId } from "@/lib/device-id";
 
 interface AuthContextType {
   user: User | null;
@@ -101,6 +102,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const onVisible = () => { if (document.visibilityState === "visible") fetchProfile(user.id); };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const currentDeviceId = getDeviceId();
+    const channel = supabase
+      .channel(`device-session-${user.id}-${currentDeviceId}`)
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "device_sessions", filter: `user_id=eq.${user.id}` },
+        async (payload) => {
+          const deleted = payload.old as { device_id?: string } | null;
+          if (deleted?.device_id === currentDeviceId) {
+            await supabase.auth.signOut();
+            setUser(null);
+            setSession(null);
+            setProfile(null);
+            setRoles([]);
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const isPremium = roles.includes("premium") || roles.includes("owner");

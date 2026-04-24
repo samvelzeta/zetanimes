@@ -36,7 +36,7 @@ export default function ProfileManagementSection() {
       if (!confirm("¿Cerrar sesión en este dispositivo?")) return;
     }
     await revokeDevice(user.id, deviceId);
-    toast.success("Dispositivo desconectado");
+    toast.success(deviceId === currentDeviceId ? "Sesión cerrada en este dispositivo" : "Dispositivo desconectado");
     loadDevices();
   };
 
