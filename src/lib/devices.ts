@@ -11,6 +11,16 @@ export interface DeviceSession {
   user_agent: string | null;
   last_active_at: string;
   created_at: string;
+  session_fingerprint?: string | null;
+  revoked_at?: string | null;
+}
+
+async function sessionFingerprint(): Promise<string | null> {
+  const token = (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) return null;
+  const data = new TextEncoder().encode(token);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /**
@@ -22,9 +32,24 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean):
   limit: number;
   current: number;
   isCurrent?: boolean;
+  revoked?: boolean;
 }> {
   const limit = isPremium ? 3 : 2;
   const info = getDeviceInfo();
+  const fingerprint = await sessionFingerprint();
+
+  const { data: currentRows } = await supabase
+    .from("device_sessions")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("device_id", info.deviceId)
+    .order("last_active_at", { ascending: false })
+    .limit(1);
+
+  const currentRecord = currentRows?.[0] as DeviceSession | undefined;
+  if (currentRecord?.revoked_at && (!currentRecord.session_fingerprint || currentRecord.session_fingerprint === fingerprint)) {
+    return { allowed: false, limit, current: 0, isCurrent: true, revoked: true };
+  }
 
   // 1) Listar sesiones activas (últimas N horas)
   const cutoff = new Date(Date.now() - INACTIVE_HOURS * 60 * 60 * 1000).toISOString();
@@ -32,6 +57,7 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean):
     .from("device_sessions")
     .select("*")
     .eq("user_id", userId)
+    .is("revoked_at", null)
     .gte("last_active_at", cutoff);
 
   const list = active || [];
@@ -39,11 +65,14 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean):
 
   if (exists) {
     // Update timestamp
-    await supabase
-      .from("device_sessions")
-      .update({ last_active_at: new Date().toISOString() })
-      .eq("user_id", userId)
-      .eq("device_id", info.deviceId);
+    await supabase.rpc("touch_device_session", {
+      _user_id: userId,
+      _device_id: info.deviceId,
+      _session_fingerprint: fingerprint,
+      _device_name: info.deviceName,
+      _platform: info.platform,
+      _user_agent: info.userAgent,
+    });
     return { allowed: true, limit, current: list.length, isCurrent: true };
   }
 
@@ -52,17 +81,14 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean):
   }
 
   // 2) Insertar nuevo
-  await supabase.from("device_sessions").upsert(
-    {
-      user_id: userId,
-      device_id: info.deviceId,
-      device_name: info.deviceName,
-      platform: info.platform,
-      user_agent: info.userAgent,
-      last_active_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,device_id" },
-  );
+  await supabase.rpc("touch_device_session", {
+    _user_id: userId,
+    _device_id: info.deviceId,
+    _session_fingerprint: fingerprint,
+    _device_name: info.deviceName,
+    _platform: info.platform,
+    _user_agent: info.userAgent,
+  });
   return { allowed: true, limit, current: list.length + 1, isCurrent: true };
 }
 
@@ -71,23 +97,37 @@ export async function listMyDevices(userId: string): Promise<DeviceSession[]> {
     .from("device_sessions")
     .select("*")
     .eq("user_id", userId)
+    .is("revoked_at", null)
     .order("last_active_at", { ascending: false });
   return (data as DeviceSession[]) || [];
 }
 
 export async function revokeDevice(userId: string, deviceId: string): Promise<void> {
-  await supabase.from("device_sessions").delete().eq("user_id", userId).eq("device_id", deviceId);
+  await supabase.rpc("revoke_device_session", { _user_id: userId, _device_id: deviceId });
 }
 
 export async function revokeAllDevices(userId: string): Promise<void> {
-  await supabase.from("device_sessions").delete().eq("user_id", userId);
+  await supabase.rpc("revoke_all_device_sessions", { _user_id: userId });
 }
 
 export async function touchCurrentDevice(userId: string): Promise<void> {
   const info = getDeviceInfo();
-  await supabase
-    .from("device_sessions")
-    .update({ last_active_at: new Date().toISOString() })
-    .eq("user_id", userId)
-    .eq("device_id", info.deviceId);
+  await supabase.rpc("touch_device_session", {
+    _user_id: userId,
+    _device_id: info.deviceId,
+    _session_fingerprint: await sessionFingerprint(),
+    _device_name: info.deviceName,
+    _platform: info.platform,
+    _user_agent: info.userAgent,
+  });
+}
+
+export async function isCurrentDeviceSessionValid(userId: string): Promise<boolean> {
+  const info = getDeviceInfo();
+  const { data } = await supabase.rpc("is_device_session_valid", {
+    _user_id: userId,
+    _device_id: info.deviceId,
+    _session_fingerprint: await sessionFingerprint(),
+  });
+  return data === true;
 }
