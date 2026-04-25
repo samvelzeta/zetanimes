@@ -354,6 +354,8 @@ export type Database = {
           id: string
           last_active_at: string
           platform: string | null
+          revoked_at: string | null
+          session_fingerprint: string | null
           user_agent: string | null
           user_id: string
         }
@@ -364,6 +366,8 @@ export type Database = {
           id?: string
           last_active_at?: string
           platform?: string | null
+          revoked_at?: string | null
+          session_fingerprint?: string | null
           user_agent?: string | null
           user_id: string
         }
@@ -374,6 +378,8 @@ export type Database = {
           id?: string
           last_active_at?: string
           platform?: string | null
+          revoked_at?: string | null
+          session_fingerprint?: string | null
           user_agent?: string | null
           user_id?: string
         }
@@ -823,6 +829,50 @@ export type Database = {
         Returns: boolean
       }
       increment_anime_view: { Args: { _anilist_id: number }; Returns: number }
+      is_device_session_valid: {
+        Args: {
+          _device_id: string
+          _session_fingerprint: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      revoke_all_device_sessions: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
+      revoke_device_session: {
+        Args: { _device_id: string; _user_id: string }
+        Returns: undefined
+      }
+      touch_device_session: {
+        Args: {
+          _device_id: string
+          _device_name: string
+          _platform: string
+          _session_fingerprint: string
+          _user_agent: string
+          _user_id: string
+        }
+        Returns: {
+          created_at: string
+          device_id: string
+          device_name: string | null
+          id: string
+          last_active_at: string
+          platform: string | null
+          revoked_at: string | null
+          session_fingerprint: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "device_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       anime_list_type:
