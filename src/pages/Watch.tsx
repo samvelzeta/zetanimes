@@ -126,7 +126,7 @@ export default function Watch() {
   const { data: latinoEp } = useQuery({
     queryKey: ["latino-ep", zetSlug, selectedEp],
     queryFn: () => getLatinoEpisode(zetSlug!, selectedEp),
-    enabled: !!zetSlug && lang === "latino",
+    enabled: !!zetSlug,
     staleTime: 1000 * 60 * 5,
   });
 
