@@ -8,7 +8,7 @@ import {
   type ZetServer,
 } from "@/lib/zetapi";
 import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
-import { getCachedVideo, cachedVideoToSources } from "@/lib/video-cache";
+import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform } from "@/lib/video-cache";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
@@ -27,7 +27,14 @@ import { resolveEpisodeCount } from "@/lib/episode-count";
 
 type Lang = "sub" | "latino";
 
+type PlayerSourceItem = { name: string; embed: string; type?: string; lang: Lang; origin: "db" | "api" | "hls" };
+
 const episodeCache = new Map<string, any>();
+
+function appendUniqueSource(list: PlayerSourceItem[], source: PlayerSourceItem) {
+  if (!source.embed || list.some((item) => item.embed === source.embed)) return;
+  list.push(source);
+}
 
 export default function Watch() {
   const { id } = useParams<{ id: string }>();
