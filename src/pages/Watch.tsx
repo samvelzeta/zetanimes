@@ -588,32 +588,39 @@ export default function Watch() {
         </div>
 
         {/* Idioma / fuente alternativa */}
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-          {hasMultipleSources ? (
+          {(["sub", "latino"] as const).map((targetLang) => {
+            const firstIdx = rawSources.findIndex((source) => source.lang === targetLang);
+            const enabled = firstIdx >= 0;
+            const selected = activeLang === targetLang;
+            return (
+              <button
+                key={targetLang}
+                disabled={!enabled}
+                onClick={() => {
+                  if (!enabled) return;
+                  setLang(targetLang);
+                  setActiveSourceIdx(firstIdx);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 disabled:opacity-35 disabled:cursor-not-allowed ${
+                  selected ? "bg-primary text-primary-foreground border-primary" : "bg-primary/15 border-primary/40 text-primary hover:bg-primary/25"
+                }`}
+              >
+                {targetLang === "sub" ? "🇯🇵 Japonés" : "🌎 Latino"}
+                <span className="text-[10px] opacity-80">{langAvailability[targetLang]}</span>
+              </button>
+            );
+          })}
+          {hasMultipleSources && (
             <button
-              onClick={() => setActiveSourceIdx((i) => (i + 1) % Math.max(1, sortedSources.length))}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-all flex items-center gap-1.5"
+              onClick={() => setActiveSourceIdx((i) => (i + 1) % Math.max(1, rawSources.length))}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary border border-border text-foreground hover:border-primary hover:text-primary transition-all"
             >
-              Cambiar idioma
-              <span className="text-[10px] opacity-80">
-                ({sortedSources[0]?.name?.split(" • ")[1] || sortedSources[0]?.name || "—"})
-              </span>
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                setLang(lang === "sub" ? "latino" : "sub");
-                setActiveSourceIdx(0);
-              }}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-all flex items-center gap-1.5"
-            >
-              Cambiar idioma
-              <span className="text-[10px] opacity-80">
-                ({lang === "sub" ? "🇯🇵 → 🌎" : "🌎 → 🇯🇵"})
-              </span>
+              Servidor: {Math.min(activeSourceIdx + 1, rawSources.length)}/{rawSources.length}
             </button>
           )}
+          {!hasMultipleLangs && <span className="text-[10px] text-muted-foreground">Idioma único disponible</span>}
         </div>
 
         {lang === "latino" && latinoEp && (
