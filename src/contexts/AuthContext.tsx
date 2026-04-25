@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { getDeviceId } from "@/lib/device-id";
+import { isCurrentDeviceSessionValid, touchCurrentDevice } from "@/lib/devices";
 
 interface AuthContextType {
   user: User | null;
@@ -40,6 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
+  };
+
+  const clearLocalAuthState = () => {
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    setRoles([]);
+    try {
+      localStorage.removeItem("zet:active-profile-id");
+      Object.keys(sessionStorage)
+        .filter((k) => k.startsWith("zet:pin-ok:") || k === "zet:pin-session-ok")
+        .forEach((k) => sessionStorage.removeItem(k));
+      window.dispatchEvent(new Event("zet:active-profile-changed"));
+    } catch {}
   };
 
   useEffect(() => {
@@ -112,21 +127,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .channel(`device-session-${user.id}-${currentDeviceId}`)
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "device_sessions", filter: `user_id=eq.${user.id}` },
+        { event: "UPDATE", schema: "public", table: "device_sessions", filter: `user_id=eq.${user.id}` },
         async (payload) => {
-          const deleted = payload.old as { device_id?: string } | null;
-          if (deleted?.device_id === currentDeviceId) {
+          const updated = payload.new as { device_id?: string; revoked_at?: string | null } | null;
+          if (updated?.device_id === currentDeviceId && updated.revoked_at) {
             revokedByRemoteRef.current = true;
             await supabase.auth.signOut();
-            setUser(null);
-            setSession(null);
-            setProfile(null);
-            setRoles([]);
+            clearLocalAuthState();
           }
         }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const check = async () => {
+      const valid = await isCurrentDeviceSessionValid(user.id);
+      if (!valid) {
+        revokedByRemoteRef.current = true;
+        await supabase.auth.signOut();
+        clearLocalAuthState();
+      } else {
+        await touchCurrentDevice(user.id);
+      }
+    };
+    const interval = window.setInterval(check, 15000);
+    const onVisible = () => { if (document.visibilityState === "visible") check(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [user]);
 
   const isPremium = roles.includes("premium") || roles.includes("owner");
@@ -136,18 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
-    setRoles([]);
-    // Limpiar selección de perfil + todos los PINs por perfil
-    try {
-      localStorage.removeItem("zet:active-profile-id");
-      Object.keys(sessionStorage)
-        .filter((k) => k.startsWith("zet:pin-ok:") || k === "zet:pin-session-ok")
-        .forEach((k) => sessionStorage.removeItem(k));
-      window.dispatchEvent(new Event("zet:active-profile-changed"));
-    } catch {}
+    clearLocalAuthState();
     revokedByRemoteRef.current = false;
   };
 
