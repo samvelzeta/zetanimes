@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, BarChart3, Crown, Image, Store, CreditCard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search,
-  Trash2, Pencil, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered,
+  Trash2, Pencil, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered, Bug,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
