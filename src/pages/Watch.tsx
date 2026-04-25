@@ -664,6 +664,8 @@ export default function Watch() {
             <p><span className="text-primary">episode:</span> {selectedEp}</p>
             <p><span className="text-primary">lang:</span> {lang}</p>
             <p><span className="text-primary">servers:</span> {sortedSources.length}</p>
+            <p><span className="text-primary">idiomas:</span> JP {langAvailability.sub} · LAT {langAvailability.latino}</p>
+            <p><span className="text-primary">plataforma:</span> {playbackPlatform === "mobile" ? "APK/Móvil" : "PC"}</p>
             <p><span className="text-primary">latino_hls:</span> {latinoEp ? "✓" : "✗"}</p>
             <p><span className="text-primary">webview:</span> {inWebView ? "✓" : "✗"}</p>
             <p><span className="text-primary">titles:</span> {[anilistData?.title?.romaji, anilistData?.title?.english].filter(Boolean).join(", ")}</p>
