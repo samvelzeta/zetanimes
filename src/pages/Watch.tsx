@@ -120,6 +120,8 @@ export default function Watch() {
 
   const cacheKey = `${zetSlug}-${selectedEp}-${lang}`;
 
+  const playbackPlatform = getPlaybackPlatform();
+
   // Latino HLS check
   const { data: latinoEp } = useQuery({
     queryKey: ["latino-ep", zetSlug, selectedEp],
@@ -156,7 +158,7 @@ export default function Watch() {
       episodeCache.set(cacheKey, res);
       return res;
     },
-    enabled: !!zetSlug && !cachedVideo && !(lang === "latino" && latinoEp),
+    enabled: !!zetSlug,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
@@ -170,7 +172,7 @@ export default function Watch() {
       episodeCache.set(oppositeKey, res);
       return res;
     },
-    enabled: !!zetSlug && !cachedVideoOpposite,
+    enabled: !!zetSlug,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
