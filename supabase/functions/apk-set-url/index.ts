@@ -9,6 +9,10 @@ const corsHeaders = {
 
 const enc = new TextEncoder();
 
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 async function getKey(): Promise<CryptoKey> {
   const raw = Deno.env.get("APK_ENCRYPTION_KEY") || "";
   const hash = await crypto.subtle.digest("SHA-256", enc.encode(raw));
@@ -115,7 +119,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e?.message || e) }), {
+    return new Response(JSON.stringify({ error: errorMessage(e) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

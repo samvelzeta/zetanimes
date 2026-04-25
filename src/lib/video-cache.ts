@@ -21,6 +21,8 @@ export interface CachedVideo {
   updated_at: string;
 }
 
+export type PlaybackPlatform = "pc" | "mobile";
+
 const memCache = new Map<string, CachedVideo | null>();
 
 function normalizeSlug(slug: string) {
@@ -283,13 +285,24 @@ export async function listCachedVideosBySlug(slug: string, anilistId?: number): 
 export function cachedVideoToSources(cached: CachedVideo): { name: string; embed: string; type?: string }[] {
   const out: { name: string; embed: string; type?: string }[] = [];
   const { hls = [], mp4 = [], embed = [], pc = [], mobile = [] } = cached.sources || {};
-  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const platform = getPlaybackPlatform();
 
-  (isMobile ? mobile : pc).forEach((url, i) => out.push({ name: `${isMobile ? "Mobile" : "PC"} Cache ${i + 1}`, embed: url }));
-
+  // Primero van las fuentes universales: principal y fallback deben probarse antes
+  // de caer en enlaces específicos de PC/APK.
   hls.forEach((url, i) => out.push({ name: `HLS Cache ${i + 1}`, embed: url, type: "hls" }));
   mp4.forEach((url, i) => out.push({ name: `MP4 Cache ${i + 1}`, embed: url, type: "mp4" }));
   embed.forEach((url, i) => out.push({ name: `Embed Cache ${i + 1}`, embed: url }));
 
+  const preferred = platform === "mobile" ? mobile : pc;
+  const secondary = platform === "mobile" ? pc : mobile;
+  preferred.forEach((url, i) => out.push({ name: `${platform === "mobile" ? "APK/Móvil" : "PC"} Cache ${i + 1}`, embed: url }));
+  secondary.forEach((url, i) => out.push({ name: `${platform === "mobile" ? "PC" : "APK/Móvil"} Cache ${i + 1}`, embed: url }));
+
   return out;
+}
+
+export function getPlaybackPlatform(): PlaybackPlatform {
+  const ua = navigator.userAgent;
+  const isWebView = /wv|; wv\)/i.test(ua) || (window as any).AndroidWebView !== undefined;
+  return isWebView || /Android|iPhone|iPad|iPod|Mobile/i.test(ua) ? "mobile" : "pc";
 }

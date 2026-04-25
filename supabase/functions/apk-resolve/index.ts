@@ -19,6 +19,14 @@ function b64Decode(s: string): Uint8Array {
   return out;
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 async function aesKey(): Promise<CryptoKey> {
   const raw = Deno.env.get("APK_ENCRYPTION_KEY") || "";
   const hash = await crypto.subtle.digest("SHA-256", enc.encode(raw));
@@ -35,7 +43,7 @@ async function decryptUrl(encrypted: string): Promise<string> {
   const iv = b64Decode(ivB64);
   const ct = b64Decode(ctB64);
   const key = await aesKey();
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: toArrayBuffer(iv) }, key, toArrayBuffer(ct));
   return dec.decode(plain);
 }
 
@@ -97,7 +105,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e?.message || e) }), {
+    return new Response(JSON.stringify({ error: errorMessage(e) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

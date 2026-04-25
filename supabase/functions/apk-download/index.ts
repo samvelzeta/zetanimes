@@ -27,6 +27,14 @@ function b64Decode(s: string): Uint8Array {
   return out;
 }
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 async function hmacKey(): Promise<CryptoKey> {
   const raw = Deno.env.get("APK_ENCRYPTION_KEY") || "";
   return crypto.subtle.importKey(
@@ -54,7 +62,7 @@ async function verifyToken(token: string): Promise<boolean> {
   const ok = await crypto.subtle.verify(
     "HMAC",
     key,
-    b64urlDecode(sigB64),
+    toArrayBuffer(b64urlDecode(sigB64)),
     enc.encode(payloadB64),
   );
   if (!ok) return false;
@@ -76,7 +84,7 @@ async function decryptUrl(encrypted: string): Promise<string> {
   const iv = b64Decode(ivB64);
   const ct = b64Decode(ctB64);
   const key = await aesKey();
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: toArrayBuffer(iv) }, key, toArrayBuffer(ct));
   return dec.decode(plain);
 }
 
@@ -133,7 +141,7 @@ Deno.serve(async (req) => {
 
     return new Response(upstream.body, { status: 200, headers });
   } catch (e) {
-    return new Response(`Error: ${String(e?.message || e)}`, {
+    return new Response(`Error: ${errorMessage(e)}`, {
       status: 500,
       headers: corsHeaders,
     });
