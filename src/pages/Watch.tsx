@@ -177,50 +177,52 @@ export default function Watch() {
     retry: 1,
   });
 
-  // Construye sources con UNA fuente por idioma. Prioridad: DB > Latino HLS > primer server API.
-  // El botón "Cambiar idioma" alterna entre las 2 fuentes (idioma actual / idioma opuesto).
-  const buildSources = useCallback(() => {
-    const sources: { name: string; embed: string; type?: string }[] = [];
+  // Construye fuentes híbridas por idioma: primero DB/manual, luego HLS Latino,
+  // luego API. Dentro de cada fuente manual se respeta universal → PC/APK.
+  const buildSources = useCallback((): PlayerSourceItem[] => {
+    const sources: PlayerSourceItem[] = [];
 
-    // Idioma ACTUAL
-    let added = false;
-    if (cachedVideo) {
-      const dbSources = cachedVideoToSources(cachedVideo);
-      if (dbSources.length) {
-        const tag = lang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
-        sources.push({ ...dbSources[0], name: `${dbSources[0].name} • ${tag}` });
-        added = true;
-      }
-    }
-    if (!added && lang === "latino" && latinoEp?.sources?.hls?.length) {
-      sources.push({ name: "HLS Latino • 🌎 LAT", embed: latinoEp.sources.hls[0], type: "hls" });
-      added = true;
-    }
-    if (!added) {
-      const apiServers = serverData?.servers || [];
-      const sorted = sortServersByPriority(apiServers as ZetServer[]);
-      if (sorted[0]?.embed) {
-        const tag = lang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
-        sources.push({ name: `${sorted[0].name} • ${tag}`, embed: sorted[0].embed });
-      }
-    }
+    const addDb = (cached: typeof cachedVideo, sourceLang: Lang) => {
+      if (!cached) return;
+      const tag = sourceLang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
+      cachedVideoToSources(cached).forEach((item) => {
+        appendUniqueSource(sources, {
+          ...item,
+          name: `${item.name} • ${tag}`,
+          lang: sourceLang,
+          origin: "db",
+        });
+      });
+    };
 
-    // Idioma OPUESTO desde DB, HLS o API para que el switch sea realmente híbrido.
-    if (cachedVideoOpposite) {
-      const oppDb = cachedVideoToSources(cachedVideoOpposite);
-      if (oppDb.length) {
-        const tag = oppositeLang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
-        sources.push({ ...oppDb[0], name: `${oppDb[0].name} • ${tag}` });
-      }
-    } else if (oppositeLang === "latino" && latinoEp?.sources?.hls?.length) {
-      sources.push({ name: "HLS Latino • 🌎 LAT", embed: latinoEp.sources.hls[0], type: "hls" });
-    } else {
-      const oppositeServers = sortServersByPriority((oppositeServerData?.servers || []) as ZetServer[]);
-      if (oppositeServers[0]?.embed) {
-        const tag = oppositeLang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
-        sources.push({ name: `${oppositeServers[0].name} • ${tag}`, embed: oppositeServers[0].embed });
-      }
+    const addApi = (data: typeof serverData, sourceLang: Lang) => {
+      const tag = sourceLang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
+      sortServersByPriority((data?.servers || []) as ZetServer[]).forEach((server, index) => {
+        if (!server.embed) return;
+        appendUniqueSource(sources, {
+          name: `${server.name || `Servidor ${index + 1}`} • ${tag}`,
+          embed: server.embed,
+          lang: sourceLang,
+          origin: "api",
+        });
+      });
+    };
+
+    addDb(cachedVideo, lang);
+    if (lang === "latino") {
+      (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
+        name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
+      }));
     }
+    addApi(serverData, lang);
+
+    addDb(cachedVideoOpposite, oppositeLang);
+    if (oppositeLang === "latino") {
+      (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
+        name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
+      }));
+    }
+    addApi(oppositeServerData, oppositeLang);
 
     return sources;
   }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData]);
@@ -230,11 +232,13 @@ export default function Watch() {
     ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
     : rawSources;
 
-  // Toggle: si hay 2 sources visibles → rotamos. Si no, intentamos fetchear el otro idioma vía API.
-  const hasLatinoHLS = !!latinoEp;
+  const langAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
+    acc[source.lang] += 1;
+    return acc;
+  }, { sub: 0, latino: 0 });
   const hasMultipleSources = rawSources.length >= 2;
-  const hasMultipleLangs = hasMultipleSources || hasLatinoHLS;
-  const langButtonLabel = hasMultipleLangs ? "Cambiar idioma" : "Idioma único";
+  const hasMultipleLangs = langAvailability.sub > 0 && langAvailability.latino > 0;
+  const activeLang = sortedSources[0]?.lang || lang;
 
   // Restore progress on episode change
   useEffect(() => {
