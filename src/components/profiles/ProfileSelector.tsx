@@ -17,13 +17,14 @@ interface Props {
   onClose?: () => void;
   /** Cuando se activa solo crea/edita (sin selección) */
   onPick?: (profile: AccountProfile) => void;
+  allowManageToggle?: boolean;
 }
 
 const PRESET_COLORS = [
   "#FF4500", "#3B82F6", "#10B981", "#F59E0B", "#EC4899", "#8B5CF6", "#EF4444", "#06B6D4",
 ];
 
-export default function ProfileSelector({ manageMode = false, onClose, onPick }: Props) {
+export default function ProfileSelector({ manageMode = false, onClose, onPick, allowManageToggle = false }: Props) {
   const navigate = useNavigate();
   const { user, isPremium } = useAuth();
   const { profiles, refresh, selectProfile } = useProfiles();
@@ -168,7 +169,7 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick }:
         </div>
 
         <div className="mt-12 flex justify-center gap-3">
-          {profiles.length > 0 && (
+          {profiles.length > 0 && (manageMode || allowManageToggle) && (
             <button
               onClick={() => setManage(!manage)}
               className="px-5 py-2.5 rounded-lg border border-border hover:border-primary text-sm font-bold transition"

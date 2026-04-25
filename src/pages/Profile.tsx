@@ -15,6 +15,9 @@ export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
   const { activeProfile } = useProfiles();
   const profileId = activeProfile?.id ?? null;
+  const isMainProfile = !activeProfile || activeProfile.is_default;
+  const displayName = activeProfile?.name || profile?.display_name || profile?.username || "Usuario";
+  const displayAvatar = activeProfile?.avatar_url || (isMainProfile ? profile?.avatar_url : null);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [stats, setStats] = useState({ lists: 0, episodes: 0, hours: 0 });
@@ -161,22 +164,24 @@ export default function Profile() {
           )}
 
           <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-primary/60 relative" style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.5)" }}>
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+            {displayAvatar ? (
+              <img src={displayAvatar} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <span className="text-2xl font-black text-primary-foreground">{profile?.username?.[0]?.toUpperCase() || "U"}</span>
+                <span className="text-2xl font-black text-primary-foreground">{displayName[0]?.toUpperCase() || "U"}</span>
               </div>
             )}
           </div>
-          <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/80 transition z-10">
-            <Camera className="w-3.5 h-3.5 text-primary-foreground" />
-            <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-          </label>
+          {isMainProfile && (
+            <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/80 transition z-10">
+              <Camera className="w-3.5 h-3.5 text-primary-foreground" />
+              <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+            </label>
+          )}
         </div>
-        <h1 className="text-lg font-black text-foreground mt-4">{profile?.display_name || profile?.username}</h1>
-        <p className="text-xs text-muted-foreground">{user.email}</p>
-        {isPremium && (
+        <h1 className="text-lg font-black text-foreground mt-4">{displayName}</h1>
+        {isMainProfile && <p className="text-xs text-muted-foreground">{user.email}</p>}
+        {isPremium && isMainProfile && (
           <span className="mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-xs font-bold text-primary-foreground">
             <Crown className="w-3 h-3" /> PREMIUM
           </span>
@@ -217,20 +222,22 @@ export default function Profile() {
       </Link>
 
       {/* Gestión de perfiles, dispositivos y PIN */}
-      <ProfileManagementSection />
+      {isMainProfile && <ProfileManagementSection />}
 
       {/* Acciones rediseñadas estilo steampunk */}
       <div className="space-y-2.5">
-        <Link
-          to="/settings"
-          className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary/60 border border-border hover:border-primary/50 hover:bg-secondary transition-all"
-        >
-          <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 transition">
-            <Settings className="w-4 h-4 text-primary" />
-          </div>
-          <span className="text-sm text-foreground font-medium flex-1">Configuración</span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition" />
-        </Link>
+        {isMainProfile && (
+          <Link
+            to="/settings"
+            className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary/60 border border-border hover:border-primary/50 hover:bg-secondary transition-all"
+          >
+            <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 transition">
+              <Settings className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-sm text-foreground font-medium flex-1">Configuración</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition" />
+          </Link>
+        )}
 
         {!isPremium && (
           <button
