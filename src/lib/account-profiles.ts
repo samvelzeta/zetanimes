@@ -81,6 +81,7 @@ export async function createProfile(
     name: string;
     avatar_url?: string | null;
     accent_color?: string | null;
+    is_default?: boolean;
     pin?: string | null;
   },
 ): Promise<AccountProfile | null> {
@@ -89,6 +90,7 @@ export async function createProfile(
     name: payload.name,
     avatar_url: payload.avatar_url ?? null,
     accent_color: payload.accent_color ?? null,
+    is_default: payload.is_default ?? false,
   };
   // Insert sin PIN primero para tener el id y poder saltarlo
   const { data, error } = await supabase
