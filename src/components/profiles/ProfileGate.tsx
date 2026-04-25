@@ -54,7 +54,7 @@ export default function ProfileGate() {
     if (profiles.length === 0) {
       autoCreatingRef.current = true;
       const baseName = (user.user_metadata?.username as string) || (user.email?.split("@")[0]) || "Principal";
-      createProfile(user.id, { name: baseName.slice(0, 20), accent_color: null, avatar_url: null, pin: null })
+      createProfile(user.id, { name: baseName.slice(0, 20), accent_color: null, avatar_url: null, is_default: true, pin: null })
         .then(() => refresh())
         .catch(() => { /* el trigger devolverá error si supera límite */ })
         .finally(() => { autoCreatingRef.current = false; });
