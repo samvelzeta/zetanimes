@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import DownloadTracker from "@/components/admin/DownloadTracker";
 import VideoManager from "@/components/admin/VideoManager";
+import ApiDebugPanel from "@/components/admin/ApiDebugPanel";
 import BrokenReports from "@/components/admin/BrokenReports";
 import SlugManager from "@/components/admin/SlugManager";
 import HiddenAnimesManager from "@/components/admin/HiddenAnimesManager";
@@ -26,6 +27,7 @@ const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
   { key: "downloads", label: "Descargas", icon: Store },
   { key: "videos", label: "Videos", icon: Film },
+  { key: "apidebug", label: "API JSON", icon: Bug },
   { key: "epcount", label: "Episodios", icon: ListOrdered },
   { key: "slugs", label: "Slugs", icon: Link2 },
   { key: "hidden", label: "Ocultar", icon: X },
@@ -89,6 +91,7 @@ export default function AdminPanel() {
         {tab === "stats" && <StatsTab />}
         {tab === "downloads" && <DownloadTracker />}
         {tab === "videos" && <VideoManager />}
+        {tab === "apidebug" && <ApiDebugPanel />}
         {tab === "epcount" && <EpisodeCountManager />}
         {tab === "slugs" && <SlugManager />}
         {tab === "hidden" && <HiddenAnimesManager />}
