@@ -148,7 +148,7 @@ export default function DownloadTracker() {
     setSearchResults([]);
     setSearchQuery("");
     setShowSearch(false);
-    loadTrackers();
+    if (activeStatus === "downloading") loadTrackers();
   };
 
   const toggleEpisodeDownloaded = async (trackerId: string, epId: string, current: boolean) => {
