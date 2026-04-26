@@ -16,7 +16,7 @@ const SKIP_PATHS = ["/auth", "/reset-password", "/download"];
 
 export default function ProfileGate() {
   const location = useLocation();
-  const { user, isPremium, loading: authLoading } = useAuth();
+  const { user, isPremium, isOwner, loading: authLoading } = useAuth();
   const { profiles, loading: profilesLoading, refresh, selectProfile } = useProfiles();
 
   const [pendingProfile, setPendingProfile] = useState<AccountProfile | null>(null);
@@ -28,13 +28,13 @@ export default function ProfileGate() {
 
   // Registrar dispositivo y verificar límite
   useEffect(() => {
-    if (!user || authLoading || skip) return;
+    if (!user || authLoading || skip || isOwner) return;
     (async () => {
       const result = await registerCurrentDevice(user.id, isPremium);
       setDeviceCheck(result);
       setDeviceChecked(true);
     })();
-  }, [user, isPremium, authLoading, skip]);
+  }, [user, isPremium, isOwner, authLoading, skip]);
 
   useEffect(() => {
     if (!user || skip) {
@@ -67,7 +67,8 @@ export default function ProfileGate() {
     [activeId, profiles]
   );
 
-  if (skip || !user || authLoading || profilesLoading || !deviceChecked) return null;
+  if (skip || !user || authLoading || isOwner) return null;
+  if (profilesLoading || !deviceChecked) return null;
 
   // 1) Bloqueo por dispositivos
   if (deviceCheck && !deviceCheck.allowed) {
