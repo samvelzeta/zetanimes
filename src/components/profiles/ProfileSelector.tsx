@@ -38,7 +38,7 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
   const maxProfiles = getMaxProfiles(isPremium || isOwner);
   const selfEditOnly = Boolean(editableProfileId);
   const visibleProfiles = selfEditOnly ? profiles.filter((p) => p.id === editableProfileId) : profiles;
-  const canCreate = !selfEditOnly && profiles.length < maxProfiles;
+  const canCreate = manage && !selfEditOnly && profiles.length < maxProfiles;
   const emptySlots = canCreate ? Array.from({ length: maxProfiles - profiles.length }) : [];
   const totalCards = visibleProfiles.length + emptySlots.length;
 
