@@ -296,16 +296,16 @@ export default function Watch() {
 
     if (historyEntryIdRef.current) return historyEntryIdRef.current;
 
-    const { data: existing, error: readError } = await supabase
+    let historyQuery = supabase
       .from("watch_history")
       .select("id")
       .eq("user_id", base.user_id)
-      .eq("profile_id", base.profile_id)
       .eq("anime_id", base.anime_id)
       .eq("episode_number", base.episode_number)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    historyQuery = base.profile_id ? historyQuery.eq("profile_id", base.profile_id) : historyQuery.is("profile_id", null);
+    const { data: existing, error: readError } = await historyQuery.maybeSingle();
 
     if (readError) {
       console.error("[watch_history] no pude consultar historial", readError);
