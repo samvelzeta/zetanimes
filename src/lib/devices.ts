@@ -27,14 +27,14 @@ async function sessionFingerprint(): Promise<string | null> {
  * Registra/actualiza el dispositivo actual.
  * Devuelve { allowed: true } si entra, { allowed: false, limit, current } si supera el cupo.
  */
-export async function registerCurrentDevice(userId: string, isPremium: boolean): Promise<{
+export async function registerCurrentDevice(userId: string, isPremium: boolean, unlimited = false): Promise<{
   allowed: boolean;
   limit: number;
   current: number;
   isCurrent?: boolean;
   revoked?: boolean;
 }> {
-  const limit = isPremium ? 3 : 2;
+  const limit = unlimited ? 999 : isPremium ? 3 : 1;
   const info = getDeviceInfo();
   const fingerprint = await sessionFingerprint();
 
@@ -76,7 +76,7 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean):
     return { allowed: true, limit, current: list.length, isCurrent: true };
   }
 
-  if (list.length >= limit) {
+  if (!unlimited && list.length >= limit) {
     return { allowed: false, limit, current: list.length };
   }
 
