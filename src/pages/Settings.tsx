@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import AdBanner300x250 from "@/components/ads/AdBanner300x250";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfiles } from "@/contexts/ProfilesContext";
+import { updateProfile } from "@/lib/account-profiles";
 
 const FONT_OPTIONS = [
   { id: "default", name: "Predeterminada", css: "" },
@@ -44,6 +46,7 @@ export function initFont() {
 
 export default function SettingsPage() {
   const { user, profile, refreshProfile, isPremium } = useAuth();
+  const { activeProfile, refresh: refreshProfiles } = useProfiles();
   const [selectedAccent, setSelectedAccent] = useState<AccentColor>(getAccentColor);
   const [autoPlay, setAutoPlay] = useState(() => localStorage.getItem("zet_autoplay") !== "false");
   const [countdown, setCountdown] = useState(() => localStorage.getItem("zet_countdown") === "true");
@@ -58,8 +61,9 @@ export default function SettingsPage() {
   const [savingName, setSavingName] = useState(false);
 
   useEffect(() => {
-    setDisplayName(profile?.display_name || profile?.username || "");
-  }, [profile]);
+    setDisplayName(activeProfile?.name || profile?.display_name || profile?.username || "");
+    setSelectedFont(activeProfile?.font_family || localStorage.getItem("zet_font") || "default");
+  }, [profile, activeProfile]);
 
   const handleAccentChange = (color: AccentColor) => {
     if (color.premium && !isPremium) {
@@ -72,10 +76,14 @@ export default function SettingsPage() {
     setAccentColor(color);
   };
 
-  const handleFontChange = (id: string) => {
+  const handleFontChange = async (id: string) => {
     setSelectedFont(id);
     localStorage.setItem("zet_font", id);
     applyFont(id);
+    if (activeProfile) {
+      await updateProfile(activeProfile.id, { font_family: id === "default" ? null : id });
+      await refreshProfiles();
+    }
   };
 
   const handleSave = () => {
@@ -102,6 +110,13 @@ export default function SettingsPage() {
     if (!trimmed) return toast.error("El nombre no puede estar vacío");
     if (trimmed.length > 30) return toast.error("Máximo 30 caracteres");
     setSavingName(true);
+    if (activeProfile) {
+      await updateProfile(activeProfile.id, { name: trimmed.slice(0, 20) });
+      await refreshProfiles();
+      setSavingName(false);
+      toast.success("Nombre actualizado");
+      return;
+    }
     const { error } = await supabase
       .from("profiles")
       .update({ display_name: trimmed })

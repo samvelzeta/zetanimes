@@ -39,7 +39,7 @@ const STATUS_TABS: { key: TrackerStatus; label: string; icon: typeof Clock; colo
 export default function DownloadTracker() {
   const [trackers, setTrackers] = useState<TrackerItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeStatus, setActiveStatus] = useState<TrackerStatus>("waiting");
+  const [activeStatus, setActiveStatus] = useState<TrackerStatus>("downloading");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<AniListMedia[]>([]);
   const [searching, setSearching] = useState(false);
@@ -123,7 +123,7 @@ export default function DownloadTracker() {
       title: getTitle(anime),
       cover_image: anime.coverImage?.large || anime.coverImage?.extraLarge,
       total_episodes: totalEps,
-      status: "waiting" as any,
+      status: "downloading" as any,
       airing_status: anime.status,
       genres: anime.genres,
     }).select().single();
@@ -143,11 +143,12 @@ export default function DownloadTracker() {
       await supabase.from("anime_episode_downloads").insert(episodes as any);
     }
 
-    toast.success(`${getTitle(anime)} agregado al tracker`);
+    toast.success(`${getTitle(anime)} agregado a Descargando`);
+    setActiveStatus("downloading");
     setSearchResults([]);
     setSearchQuery("");
     setShowSearch(false);
-    loadTrackers();
+    if (activeStatus === "downloading") loadTrackers();
   };
 
   const toggleEpisodeDownloaded = async (trackerId: string, epId: string, current: boolean) => {
@@ -221,7 +222,7 @@ export default function DownloadTracker() {
             title: getTitle(anime),
             cover_image: anime.coverImage?.large,
             total_episodes: totalEps,
-            status: "waiting" as any,
+            status: "downloading" as any,
             airing_status: anime.status,
             genres: anime.genres,
           }).select().single();

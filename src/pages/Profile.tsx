@@ -13,11 +13,11 @@ import { useProfiles } from "@/contexts/ProfilesContext";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
-  const { activeProfile } = useProfiles();
+  const { activeProfile, refresh: refreshProfiles } = useProfiles();
   const profileId = activeProfile?.id ?? null;
-  const isMainProfile = !activeProfile || activeProfile.is_default;
+  const isMainProfile = isOwner || !activeProfile || activeProfile.is_default;
   const displayName = activeProfile?.name || profile?.display_name || profile?.username || "Usuario";
-  const displayAvatar = activeProfile?.avatar_url || (isMainProfile ? profile?.avatar_url : null);
+  const displayAvatar = activeProfile?.avatar_url || profile?.avatar_url;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [stats, setStats] = useState({ lists: 0, episodes: 0, hours: 0 });
@@ -93,7 +93,12 @@ export default function Profile() {
     const { error } = await supabase.storage.from("avatars").upload(path, compressed, { upsert: true, contentType: "image/webp" });
     if (error) return toast.error("Error al subir imagen");
     const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-    await supabase.from("profiles").update({ avatar_url: `${urlData.publicUrl}?t=${Date.now()}` }).eq("user_id", user.id);
+    const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+    await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("user_id", user.id);
+    if (activeProfile) {
+      await supabase.from("account_profiles").update({ avatar_url: avatarUrl }).eq("id", activeProfile.id);
+      await refreshProfiles();
+    }
     await refreshProfile();
     toast.success("Foto actualizada");
   };
@@ -172,7 +177,7 @@ export default function Profile() {
               </div>
             )}
           </div>
-          {isMainProfile && (
+          {user && (
             <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/80 transition z-10">
               <Camera className="w-3.5 h-3.5 text-primary-foreground" />
               <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
@@ -226,7 +231,7 @@ export default function Profile() {
 
       {/* Acciones rediseñadas estilo steampunk */}
       <div className="space-y-2.5">
-        {isMainProfile && (
+        {(isMainProfile || activeProfile) && (
           <Link
             to="/settings"
             className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary/60 border border-border hover:border-primary/50 hover:bg-secondary transition-all"
@@ -333,9 +338,11 @@ export default function Profile() {
           <Share2 className="w-4 h-4 text-primary" />
         </button>
 
-        <button onClick={() => { signOut(); navigate("/"); }} className="w-full flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-destructive/10 transition mt-2">
-          <LogOut className="w-4 h-4 text-destructive" /><span className="text-sm text-destructive">Cerrar Sesión</span>
-        </button>
+        {isMainProfile && (
+          <button onClick={() => { signOut(); navigate("/"); }} className="w-full flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-destructive/10 transition mt-2">
+            <LogOut className="w-4 h-4 text-destructive" /><span className="text-sm text-destructive">Cerrar Sesión</span>
+          </button>
+        )}
       </div>
 
       {showPremiumModal && <PremiumModal onClose={() => setShowPremiumModal(false)} />}

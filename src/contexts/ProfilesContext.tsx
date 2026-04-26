@@ -26,14 +26,16 @@ const ProfilesContext = createContext<ProfilesContextType>({
 export const useProfiles = () => useContext(ProfilesContext);
 
 export function ProfilesProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isOwner } = useAuth();
   const [profiles, setProfiles] = useState<AccountProfile[]>([]);
   const [activeId, setActiveId] = useState<string | null>(getActiveProfileId());
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!user) {
+    if (!user || isOwner) {
       setProfiles([]);
+      persistActive(null);
+      setActiveId(null);
       setLoading(false);
       return;
     }
@@ -47,7 +49,7 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
       setActiveId(null);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, isOwner]);
 
   useEffect(() => {
     refresh();
