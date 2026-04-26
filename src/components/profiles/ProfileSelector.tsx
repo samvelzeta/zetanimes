@@ -18,13 +18,14 @@ interface Props {
   /** Cuando se activa solo crea/edita (sin selección) */
   onPick?: (profile: AccountProfile) => void;
   allowManageToggle?: boolean;
+  editableProfileId?: string | null;
 }
 
 const PRESET_COLORS = [
   "#FF4500", "#3B82F6", "#10B981", "#F59E0B", "#EC4899", "#8B5CF6", "#EF4444", "#06B6D4",
 ];
 
-export default function ProfileSelector({ manageMode = false, onClose, onPick, allowManageToggle = false }: Props) {
+export default function ProfileSelector({ manageMode = false, onClose, onPick, allowManageToggle = false, editableProfileId = null }: Props) {
   const navigate = useNavigate();
   const { user, isPremium, isOwner } = useAuth();
   const { profiles, refresh, selectProfile } = useProfiles();
@@ -35,7 +36,11 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
   const isSelectionMode = !manage && !manageMode;
 
   const maxProfiles = getMaxProfiles(isPremium || isOwner);
-  const canCreate = profiles.length < maxProfiles;
+  const selfEditOnly = Boolean(editableProfileId);
+  const visibleProfiles = selfEditOnly ? profiles.filter((p) => p.id === editableProfileId) : profiles;
+  const canCreate = !selfEditOnly && profiles.length < maxProfiles;
+  const emptySlots = canCreate ? Array.from({ length: maxProfiles - profiles.length }) : [];
+  const totalCards = visibleProfiles.length + emptySlots.length;
 
   useEffect(() => { if (manageMode) refresh(); }, [refresh, manageMode]);
 
@@ -105,10 +110,10 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 max-w-3xl mx-auto justify-items-center place-content-center">
-          {profiles.map((p, idx) => (
+          {visibleProfiles.map((p, idx) => (
             <div
               key={p.id}
-              className={`flex flex-col items-center gap-3 animate-fade-in ${profiles.length === 3 && idx === 2 ? "col-span-2 md:col-span-1" : ""}`}
+              className={`flex flex-col items-center gap-3 animate-fade-in ${totalCards === 3 && idx === 2 ? "col-span-2 md:col-span-1" : ""}`}
               style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "backwards" }}
             >
               <button
@@ -140,22 +145,27 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    onClick={() => handleDelete(p.id)}
-                    className="p-2 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {!selfEditOnly && !p.is_default && (
+                    <button
+                      onClick={() => handleDelete(p.id)}
+                      className="p-2 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           ))}
 
-          {canCreate && (
+          {emptySlots.map((_, slotIdx) => {
+            const idx = visibleProfiles.length + slotIdx;
+            return (
             <div
-              className={`flex flex-col items-center gap-3 animate-fade-in ${(profiles.length + 1) % 2 === 1 ? "col-span-2 md:col-span-1" : ""}`}
-              style={{ animationDelay: `${profiles.length * 80}ms`, animationFillMode: "backwards" }}
+              key={`empty-${slotIdx}`}
+              className={`flex flex-col items-center gap-3 animate-fade-in ${totalCards === 3 && idx === 2 ? "col-span-2 md:col-span-1" : ""}`}
+              style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "backwards" }}
             >
               <button
                 onClick={() => setCreating(true)}
@@ -165,7 +175,8 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
               </button>
               <span className="text-base font-bold text-muted-foreground">Añadir perfil</span>
             </div>
-          )}
+            );
+          })}
         </div>
 
         <div className="mt-12 flex justify-center gap-3">
