@@ -13,7 +13,7 @@ import { useProfiles } from "@/contexts/ProfilesContext";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
-  const { activeProfile } = useProfiles();
+  const { activeProfile, refresh: refreshProfiles } = useProfiles();
   const profileId = activeProfile?.id ?? null;
   const isMainProfile = isOwner || !activeProfile || activeProfile.is_default;
   const displayName = activeProfile?.name || profile?.display_name || profile?.username || "Usuario";
@@ -97,6 +97,7 @@ export default function Profile() {
     await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("user_id", user.id);
     if (activeProfile) {
       await supabase.from("account_profiles").update({ avatar_url: avatarUrl }).eq("id", activeProfile.id);
+      await refreshProfiles();
     }
     await refreshProfile();
     toast.success("Foto actualizada");
