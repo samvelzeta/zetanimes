@@ -10,12 +10,13 @@ import { exportUserHistoryToPDF } from "@/lib/export-history-pdf";
 import { getAccentColor } from "@/lib/accent";
 import ProfileManagementSection from "@/components/profiles/ProfileManagementSection";
 import { useProfiles } from "@/contexts/ProfilesContext";
+import ProfileSelector from "@/components/profiles/ProfileSelector";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
   const { activeProfile, refresh: refreshProfiles } = useProfiles();
   const profileId = activeProfile?.id ?? null;
-  const isMainProfile = isOwner || !activeProfile || activeProfile.is_default;
+  const isMainProfile = !activeProfile || activeProfile.is_default;
   const displayName = activeProfile?.name || profile?.display_name || profile?.username || "Usuario";
   const displayAvatar = activeProfile?.avatar_url || profile?.avatar_url;
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function Profile() {
   const [stats, setStats] = useState({ lists: 0, episodes: 0, hours: 0 });
   const [contacts, setContacts] = useState<any[]>([]);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showOwnProfileEditor, setShowOwnProfileEditor] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
 
   const handleExportPDF = async () => {
@@ -86,6 +88,7 @@ export default function Profile() {
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isMainProfile) return toast.error("Solo el perfil principal puede subir foto desde el dispositivo");
     if (!user || !e.target.files?.[0]) return;
     const file = e.target.files[0];
     const compressed = await compressAvatar(file);
@@ -177,7 +180,7 @@ export default function Profile() {
               </div>
             )}
           </div>
-          {user && (
+          {user && isMainProfile && (
             <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/80 transition z-10">
               <Camera className="w-3.5 h-3.5 text-primary-foreground" />
               <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
@@ -229,6 +232,19 @@ export default function Profile() {
       {/* Gestión de perfiles, dispositivos y PIN */}
       {isMainProfile && <ProfileManagementSection />}
 
+      {!isMainProfile && activeProfile && (
+        <button
+          onClick={() => setShowOwnProfileEditor(true)}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary/60 border border-border hover:border-primary/50 hover:bg-secondary transition-all mb-2.5"
+        >
+          <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <Users className="w-4 h-4 text-primary" />
+          </div>
+          <span className="text-sm text-foreground font-medium flex-1 text-left">Editar este perfil</span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </button>
+      )}
+
       {/* Acciones rediseñadas estilo steampunk */}
       <div className="space-y-2.5">
         {(isMainProfile || activeProfile) && (
@@ -244,7 +260,7 @@ export default function Profile() {
           </Link>
         )}
 
-        {!isPremium && (
+        {!isPremium && isMainProfile && (
           <button
             onClick={() => setShowPremiumModal(true)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/40 hover:from-primary/30 transition-all"
@@ -258,7 +274,7 @@ export default function Profile() {
           </button>
         )}
 
-        {isPremium && (
+        {isPremium && isMainProfile && (
           <button
             onClick={handleExportPDF}
             disabled={exportingPdf}
@@ -346,6 +362,13 @@ export default function Profile() {
       </div>
 
       {showPremiumModal && <PremiumModal onClose={() => setShowPremiumModal(false)} />}
+      {showOwnProfileEditor && activeProfile && (
+        <ProfileSelector
+          manageMode
+          editableProfileId={activeProfile.id}
+          onClose={() => { setShowOwnProfileEditor(false); refreshProfiles(); }}
+        />
+      )}
     </div>
   );
 }
