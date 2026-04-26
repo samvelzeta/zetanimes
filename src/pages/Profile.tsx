@@ -93,7 +93,11 @@ export default function Profile() {
     const { error } = await supabase.storage.from("avatars").upload(path, compressed, { upsert: true, contentType: "image/webp" });
     if (error) return toast.error("Error al subir imagen");
     const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-    await supabase.from("profiles").update({ avatar_url: `${urlData.publicUrl}?t=${Date.now()}` }).eq("user_id", user.id);
+    const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+    await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("user_id", user.id);
+    if (activeProfile) {
+      await supabase.from("account_profiles").update({ avatar_url: avatarUrl }).eq("id", activeProfile.id);
+    }
     await refreshProfile();
     toast.success("Foto actualizada");
   };
