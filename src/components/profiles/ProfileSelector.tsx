@@ -26,7 +26,7 @@ const PRESET_COLORS = [
 
 export default function ProfileSelector({ manageMode = false, onClose, onPick, allowManageToggle = false }: Props) {
   const navigate = useNavigate();
-  const { user, isPremium } = useAuth();
+  const { user, isPremium, isOwner } = useAuth();
   const { profiles, refresh, selectProfile } = useProfiles();
 
   const [editing, setEditing] = useState<AccountProfile | null>(null);
@@ -34,7 +34,7 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
   const [manage, setManage] = useState(manageMode);
   const isSelectionMode = !manage && !manageMode;
 
-  const maxProfiles = getMaxProfiles(isPremium);
+  const maxProfiles = getMaxProfiles(isPremium || isOwner);
   const canCreate = profiles.length < maxProfiles;
 
   useEffect(() => { if (manageMode) refresh(); }, [refresh, manageMode]);
@@ -93,14 +93,14 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-4">
             <Sparkles className="w-3 h-3 text-primary" />
             <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
-              {isPremium ? <><Crown className="w-3 h-3 inline mr-1" />Premium</> : "Gratis"}
+              {isPremium || isOwner ? <><Crown className="w-3 h-3 inline mr-1" />Premium</> : "Gratis"}
             </span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-3">
             {manage ? "Gestionar perfiles" : "¿Quién está viendo?"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {profiles.length} de {maxProfiles} perfiles {isPremium ? "(Premium)" : "(Gratis)"}
+            {profiles.length} de {maxProfiles} perfiles {isPremium || isOwner ? "(Premium)" : "(Gratis)"}
           </p>
         </div>
 
