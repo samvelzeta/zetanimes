@@ -28,7 +28,7 @@ export default function ProfileGate() {
 
   // Registrar dispositivo y verificar límite
   useEffect(() => {
-    if (!user || authLoading || skip || isOwner) return;
+    if (!user || authLoading || skip) return;
     (async () => {
       const result = await registerCurrentDevice(user.id, isPremium, isOwner);
       setDeviceCheck(result);
@@ -67,7 +67,7 @@ export default function ProfileGate() {
     [activeId, profiles]
   );
 
-  if (skip || !user || authLoading || isOwner) return null;
+  if (skip || !user || authLoading) return null;
   if (profilesLoading || !deviceChecked) return null;
 
   // 1) Bloqueo por dispositivos

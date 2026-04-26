@@ -9,15 +9,16 @@ import { getMaxProfiles } from "@/lib/account-profiles";
 import ProfileSelector from "./ProfileSelector";
 
 export default function ProfileManagementSection() {
-  const { user, isPremium } = useAuth();
+  const { user, isPremium, isOwner } = useAuth();
   const { profiles, refresh } = useProfiles();
   const [showProfileMgmt, setShowProfileMgmt] = useState(false);
   const [devices, setDevices] = useState<DeviceSession[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(false);
 
   const currentDeviceId = getDeviceId();
-  const deviceLimit = isPremium ? 3 : 2;
-  const maxProfiles = getMaxProfiles(isPremium);
+  const premiumAccess = isPremium || isOwner;
+  const deviceLimit = premiumAccess ? 3 : 2;
+  const maxProfiles = getMaxProfiles(premiumAccess);
   const profilesWithPin = profiles.filter((p) => p.pin_enabled).length;
 
   useEffect(() => { if (user) loadDevices(); }, [user]);
@@ -66,7 +67,7 @@ export default function ProfileManagementSection() {
             )}
           </p>
           <p className="text-[10px] text-muted-foreground">
-            Hasta {maxProfiles} perfiles {isPremium ? "(Premium)" : "(Gratis · sube a Premium para 3)"} · avatares AniList · PIN individual
+            Hasta {maxProfiles} perfiles {premiumAccess ? "(Premium)" : "(Gratis · sube a Premium para 3)"} · avatares AniList · PIN individual
           </p>
         </div>
         <Plus className="w-4 h-4 text-primary" />
@@ -80,7 +81,7 @@ export default function ProfileManagementSection() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-foreground">Dispositivos conectados ({devices.length}/{deviceLimit})</p>
-            <p className="text-[10px] text-muted-foreground">{isPremium ? "Premium · 3 dispositivos" : "Gratis · 2 dispositivos"}</p>
+            <p className="text-[10px] text-muted-foreground">{premiumAccess ? "Premium · 3 dispositivos" : "Gratis · 2 dispositivos"}</p>
           </div>
           {devices.length > 0 && (
             <button
@@ -122,7 +123,7 @@ export default function ProfileManagementSection() {
           </div>
         )}
 
-        {!isPremium && devices.length >= deviceLimit && (
+        {!premiumAccess && devices.length >= deviceLimit && (
           <div className="mt-3 p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-[10px] text-yellow-300 flex items-center gap-2">
             <Crown className="w-3.5 h-3.5" />
             Hazte Premium para conectar hasta 3 dispositivos
