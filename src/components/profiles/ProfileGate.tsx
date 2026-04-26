@@ -30,7 +30,7 @@ export default function ProfileGate() {
   useEffect(() => {
     if (!user || authLoading || skip || isOwner) return;
     (async () => {
-      const result = await registerCurrentDevice(user.id, isPremium);
+      const result = await registerCurrentDevice(user.id, isPremium, isOwner);
       setDeviceCheck(result);
       setDeviceChecked(true);
     })();
