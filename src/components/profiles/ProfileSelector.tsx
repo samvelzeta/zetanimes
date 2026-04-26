@@ -102,10 +102,10 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
             </span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-3">
-            {manage ? "Gestionar perfiles" : "¿Quién está viendo?"}
+            {selfEditOnly ? "Editar perfil" : manage ? "Gestionar perfiles" : "¿Quién está viendo?"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {profiles.length} de {maxProfiles} perfiles {isPremium || isOwner ? "(Premium)" : "(Gratis)"}
+            {selfEditOnly ? "Solo puedes personalizar este perfil" : `${profiles.length} de ${maxProfiles} perfiles ${isPremium || isOwner ? "(Premium)" : "(Gratis)"}`}
           </p>
         </div>
 
