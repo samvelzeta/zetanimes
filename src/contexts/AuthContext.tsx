@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const revokedByRemoteRef = useRef(false);
+  const lastAuthUserIdRef = useRef<string | null>(null);
 
   const fetchProfile = async (userId: string) => {
     const { data: prof } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
@@ -63,10 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        // En cada login fresco (o token refrescado tras re-login), forzar selector de perfil:
-        // limpiamos el perfil activo guardado y los PINs de sesión para que el gate muestre
-        // siempre la pantalla "¿Quién está viendo?" (estilo Netflix).
-        if (event === "SIGNED_IN") {
+        // Solo resetear perfil activo en un login realmente nuevo (cambio de usuario),
+        // no en eventos SIGNED_IN repetidos de recuperación de sesión.
+        if (event === "SIGNED_IN" && lastAuthUserIdRef.current !== session.user.id) {
           try {
             localStorage.removeItem("zet:active-profile-id");
             Object.keys(sessionStorage)
@@ -75,9 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             window.dispatchEvent(new Event("zet:active-profile-changed"));
           } catch {}
         }
+        lastAuthUserIdRef.current = session.user.id;
         // Use setTimeout to avoid potential deadlocks with Supabase client
         setTimeout(() => fetchProfile(session.user.id), 0);
       } else {
+        lastAuthUserIdRef.current = null;
         setProfile(null);
         setRoles([]);
       }
@@ -144,7 +146,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) return;
     const check = async () => {
-      const valid = await isCurrentDeviceSessionValid(user.id);
+      let valid = await isCurrentDeviceSessionValid(user.id);
+      // Evita cierres falsos por carrera al iniciar sesión:
+      // si todavía no existe la fila del dispositivo actual o el fingerprint cambió
+      // durante el refresh de token, intentamos "tocar" y revalidar antes de cerrar sesión.
+      if (!valid) {
+        await touchCurrentDevice(user.id);
+        valid = await isCurrentDeviceSessionValid(user.id);
+      }
       if (!valid) {
         revokedByRemoteRef.current = true;
         await supabase.auth.signOut();
