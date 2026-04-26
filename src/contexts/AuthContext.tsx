@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Realtime: si el owner cambia mis roles (ascenso a admin/premium o degradación),
   // se refrescan automáticamente sin tener que cerrar sesión.
   useEffect(() => {
-    if (!user) return;
+    if (!user || roles.includes("owner")) return;
     const channel = supabase
       .channel(`user-roles-${user.id}`)
       .on(
@@ -110,15 +110,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, roles]);
 
   // Refresca roles cuando la pestaña vuelve a estar visible (cubre TVs/APK que tardan en propagar realtime)
   useEffect(() => {
-    if (!user) return;
+    if (!user || roles.includes("owner")) return;
     const onVisible = () => { if (document.visibilityState === "visible") fetchProfile(user.id); };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [user]);
+  }, [user, roles]);
 
   useEffect(() => {
     if (!user) return;
