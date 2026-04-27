@@ -3,6 +3,7 @@ import { useAuth } from "./AuthContext";
 import {
   type AccountProfile,
   listProfiles,
+  getMainProfile,
   getActiveProfileId,
   setActiveProfileId as persistActive,
 } from "@/lib/account-profiles";
@@ -42,7 +43,7 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     const list = await listProfiles(user.id);
     setProfiles(list);
-    // Si el activo ya no existe, limpiar
+    // Si el activo ya no existe, limpiar. El selector vuelve a abrirse.
     const stored = getActiveProfileId();
     if (stored && !list.find((p) => p.id === stored)) {
       persistActive(null);
@@ -67,9 +68,10 @@ export function ProfilesProvider({ children }: { children: ReactNode }) {
   };
 
   const activeProfile = profiles.find((p) => p.id === activeId) || null;
+  const mainProfile = getMainProfile(profiles);
 
   return (
-    <ProfilesContext.Provider value={{ profiles, activeProfile, loading, refresh, selectProfile }}>
+    <ProfilesContext.Provider value={{ profiles: mainProfile ? profiles : [], activeProfile, loading, refresh, selectProfile }}>
       {children}
     </ProfilesContext.Provider>
   );
