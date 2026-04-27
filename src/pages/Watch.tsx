@@ -3,7 +3,7 @@ import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query";
 import {
   getEpisodeServers, sortServersByPriority,
-  isEpisodeWatched, markEpisodeWatched, getWatchedEpisodes, titleToSlug, getCachedSlug,
+  markEpisodeWatched, getWatchedEpisodes, setWatchedEpisodes, titleToSlug, getCachedSlug,
   saveCachedSlug, getLatinoEpisode,
   type ZetServer,
 } from "@/lib/zetapi";
@@ -45,6 +45,7 @@ export default function Watch() {
   const { user } = useAuth();
   const { activeProfile } = useProfiles();
   const profileId = activeProfile?.id ?? null;
+  const watchedScope = user?.id && profileId ? `${user.id}:${profileId}` : null;
   const inWebView = isWebView();
 
   const [selectedEp, setSelectedEp] = useState(epParam);
@@ -58,7 +59,11 @@ export default function Watch() {
   const [activeSourceIdx, setActiveSourceIdx] = useState(0);
   const lastSavedProgressRef = useRef(0);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
-  const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes()));
+  const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes(watchedScope)));
+
+  useEffect(() => {
+    setWatchedSet(new Set(getWatchedEpisodes(watchedScope)));
+  }, [watchedScope]);
 
   useEffect(() => {
     historyEntryIdRef.current = null;
@@ -267,13 +272,13 @@ export default function Watch() {
   const markWatchedReactive = useCallback((epSlug: string) => {
     if (!user) return; // sólo registrados
     if (watchedSet.has(epSlug)) return;
-    markEpisodeWatched(epSlug);
+    markEpisodeWatched(epSlug, watchedScope);
     setWatchedSet((prev) => {
       const next = new Set(prev);
       next.add(epSlug);
       return next;
     });
-  }, [user, watchedSet]);
+  }, [user, watchedSet, watchedScope]);
 
   const getHistoryBase = useCallback(() => {
     if (!user || !anilistData) return null;
@@ -474,8 +479,8 @@ export default function Watch() {
     const epSlug = `${zetSlug}-${epNum}`;
     if (watchedSet.has(epSlug)) {
       // Desmarcar
-      const all = getWatchedEpisodes().filter((s) => s !== epSlug);
-      localStorage.setItem("zet_watched_episodes", JSON.stringify(all));
+      const all = getWatchedEpisodes(watchedScope).filter((s) => s !== epSlug);
+      setWatchedEpisodes(all, watchedScope);
       setWatchedSet(new Set(all));
     } else {
       markWatchedReactive(epSlug);
