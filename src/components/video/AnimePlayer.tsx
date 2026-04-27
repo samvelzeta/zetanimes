@@ -18,6 +18,7 @@ interface Props {
   onSeeked?: (currentTime: number, duration: number) => void;
   autoplay?: boolean;
   initialTime?: number;
+  showServerPicker?: boolean;
 }
 
 type SourceType = "hls" | "mp4" | "embed";
@@ -51,7 +52,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   return classified;
 }
 
-export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime }: Props) {
+export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -283,7 +284,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           title={title}
         />
-        {classified.length > 1 && <ServerPicker />}
+        {showServerPickerEnabled && classified.length > 1 && <ServerPicker />}
       </div>
     );
   }
@@ -323,7 +324,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         {/* Top bar with server picker */}
         <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between">
           <p className="text-xs text-white font-medium truncate flex-1 mr-2">{title}</p>
-          {classified.length > 1 && (
+          {showServerPickerEnabled && classified.length > 1 && (
             <div className="relative">
               <button onClick={() => setShowServerPicker(!showServerPicker)}
                 className="px-2 py-1 rounded bg-black/50 text-white text-[10px] flex items-center gap-1 hover:bg-black/80 transition">

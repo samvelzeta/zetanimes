@@ -289,20 +289,28 @@ export function saveWatchProgress(entry: WatchHistoryEntry): void {
 
 const WATCHED_KEY = "zet_watched_episodes";
 
-export function getWatchedEpisodes(): string[] {
-  try { return JSON.parse(localStorage.getItem(WATCHED_KEY) || "[]"); } catch { return []; }
+function watchedKey(scope?: string | null): string {
+  return scope ? `${WATCHED_KEY}:${scope}` : WATCHED_KEY;
 }
 
-export function markEpisodeWatched(episodeSlug: string): void {
-  const watched = getWatchedEpisodes();
+export function getWatchedEpisodes(scope?: string | null): string[] {
+  try { return JSON.parse(localStorage.getItem(watchedKey(scope)) || "[]"); } catch { return []; }
+}
+
+export function setWatchedEpisodes(episodes: string[], scope?: string | null): void {
+  localStorage.setItem(watchedKey(scope), JSON.stringify(episodes));
+}
+
+export function markEpisodeWatched(episodeSlug: string, scope?: string | null): void {
+  const watched = getWatchedEpisodes(scope);
   if (!watched.includes(episodeSlug)) {
     watched.push(episodeSlug);
-    localStorage.setItem(WATCHED_KEY, JSON.stringify(watched));
+    setWatchedEpisodes(watched, scope);
   }
 }
 
-export function isEpisodeWatched(episodeSlug: string): boolean {
-  return getWatchedEpisodes().includes(episodeSlug);
+export function isEpisodeWatched(episodeSlug: string, scope?: string | null): boolean {
+  return getWatchedEpisodes(scope).includes(episodeSlug);
 }
 
 export function detectAdblock(): Promise<boolean> {

@@ -47,17 +47,18 @@ export default function DownloadTracker() {
   const [expandedTracker, setExpandedTracker] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
 
-  const loadTrackers = useCallback(async () => {
+  const loadTrackers = useCallback(async (statusOverride?: TrackerStatus) => {
+    const status = statusOverride || activeStatus;
     setLoading(true);
-    const { data, count } = await supabase
+    const { data } = await supabase
       .from("anime_download_tracker")
       .select("*", { count: "exact" })
-      .eq("status", activeStatus)
+      .eq("status", status)
       .order("updated_at", { ascending: false });
 
     if (data) {
       // For "waiting" status, rotate/shuffle to avoid infinite scroll
-      if (activeStatus === "waiting" && data.length > 20) {
+      if (status === "waiting" && data.length > 20) {
         // Show a random subset of 20, rotated by current hour
         const seed = new Date().getHours();
         const shuffled = [...data].sort((a, b) => {
@@ -113,7 +114,12 @@ export default function DownloadTracker() {
       .limit(1);
 
     if (existing && existing.length > 0) {
-      toast.info("Este anime ya está en el tracker");
+      const trackerId = existing[0].id;
+      await supabase.from("anime_download_tracker").update({ status: "downloading" as any }).eq("id", trackerId);
+      toast.success("Ya existía: movido a Descargando");
+      setActiveStatus("downloading");
+      setShowSearch(false);
+      await loadTrackers("downloading");
       return;
     }
 
@@ -188,11 +194,16 @@ export default function DownloadTracker() {
   const changeStatus = async (trackerId: string, newStatus: TrackerStatus) => {
     await supabase.from("anime_download_tracker").update({ status: newStatus as any }).eq("id", trackerId);
     toast.success(`Movido a ${STATUS_TABS.find((s) => s.key === newStatus)?.label}`);
-    loadTrackers();
+    setActiveStatus(newStatus);
+    loadTrackers(newStatus);
   };
 
   const removeTracker = async (trackerId: string) => {
-    await supabase.from("anime_download_tracker").delete().eq("id", trackerId);
+    const { error } = await (supabase.rpc as any)("delete_download_tracker", { _tracker_id: trackerId });
+    if (error) {
+      toast.error("No se pudo eliminar del tracker");
+      return;
+    }
     toast.info("Anime eliminado del tracker");
     loadTrackers();
   };
@@ -392,18 +403,6 @@ export default function DownloadTracker() {
                 {/* Expanded episodes */}
                 {isExpanded && tracker.episodes && (
                   <div className="border-t border-border p-3">
-                    <div className="flex gap-2 mb-3">
-                      {STATUS_TABS.filter((s) => s.key !== activeStatus).map((s) => (
-                        <button
-                          key={s.key}
-                          onClick={() => changeStatus(tracker.id, s.key)}
-                          className="flex-1 py-1.5 rounded-lg bg-muted text-[10px] font-bold text-muted-foreground hover:bg-primary/20 transition flex items-center justify-center gap-1"
-                        >
-                          <s.icon className={`w-3 h-3 ${s.color}`} /> {s.label}
-                        </button>
-                      ))}
-                    </div>
-
                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
                       {tracker.episodes.map((ep) => (
                         <button

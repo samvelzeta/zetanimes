@@ -3,7 +3,7 @@ import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query";
 import {
   getEpisodeServers, sortServersByPriority,
-  isEpisodeWatched, markEpisodeWatched, getWatchedEpisodes, titleToSlug, getCachedSlug,
+  markEpisodeWatched, getWatchedEpisodes, setWatchedEpisodes, titleToSlug, getCachedSlug,
   saveCachedSlug, getLatinoEpisode,
   type ZetServer,
 } from "@/lib/zetapi";
@@ -45,6 +45,7 @@ export default function Watch() {
   const { user } = useAuth();
   const { activeProfile } = useProfiles();
   const profileId = activeProfile?.id ?? null;
+  const watchedScope = user?.id && profileId ? `${user.id}:${profileId}` : null;
   const inWebView = isWebView();
 
   const [selectedEp, setSelectedEp] = useState(epParam);
@@ -58,7 +59,11 @@ export default function Watch() {
   const [activeSourceIdx, setActiveSourceIdx] = useState(0);
   const lastSavedProgressRef = useRef(0);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
-  const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes()));
+  const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes(watchedScope)));
+
+  useEffect(() => {
+    setWatchedSet(new Set(getWatchedEpisodes(watchedScope)));
+  }, [watchedScope]);
 
   useEffect(() => {
     historyEntryIdRef.current = null;
@@ -239,6 +244,13 @@ export default function Watch() {
   const hasMultipleSources = rawSources.length >= 2;
   const hasMultipleLangs = langAvailability.sub > 0 && langAvailability.latino > 0;
   const activeLang = sortedSources[0]?.lang || lang;
+  const sourceOrigins = new Set(rawSources.map((source) => source.origin === "hls" ? "db" : source.origin));
+  const dbLikeCount = rawSources.filter((source) => source.origin === "db" || source.origin === "hls").length;
+  const apiCount = rawSources.filter((source) => source.origin === "api").length;
+  const isDbOnly = dbLikeCount > 0 && apiCount === 0;
+  const isHybridSources = dbLikeCount > 0 && apiCount > 0;
+  const shouldShowServerControl = hasMultipleSources && !isDbOnly;
+  const shouldShowLanguageControls = hasMultipleLangs && !isDbOnly && !isHybridSources;
 
   // Restore progress on episode change
   useEffect(() => {
@@ -267,13 +279,13 @@ export default function Watch() {
   const markWatchedReactive = useCallback((epSlug: string) => {
     if (!user) return; // sólo registrados
     if (watchedSet.has(epSlug)) return;
-    markEpisodeWatched(epSlug);
+    markEpisodeWatched(epSlug, watchedScope);
     setWatchedSet((prev) => {
       const next = new Set(prev);
       next.add(epSlug);
       return next;
     });
-  }, [user, watchedSet]);
+  }, [user, watchedSet, watchedScope]);
 
   const getHistoryBase = useCallback(() => {
     if (!user || !anilistData) return null;
@@ -474,8 +486,8 @@ export default function Watch() {
     const epSlug = `${zetSlug}-${epNum}`;
     if (watchedSet.has(epSlug)) {
       // Desmarcar
-      const all = getWatchedEpisodes().filter((s) => s !== epSlug);
-      localStorage.setItem("zet_watched_episodes", JSON.stringify(all));
+      const all = getWatchedEpisodes(watchedScope).filter((s) => s !== epSlug);
+      setWatchedEpisodes(all, watchedScope);
       setWatchedSet(new Set(all));
     } else {
       markWatchedReactive(epSlug);
@@ -542,6 +554,7 @@ export default function Watch() {
                 onProgress={handleProgress}
                 onSeeked={handleSeeked}
                 initialTime={initialTime}
+                showServerPicker={shouldShowServerControl}
               />
               {/* Overlay only visible in fullscreen — does NOT affect playback */}
               <PlayerOverlay
@@ -592,7 +605,7 @@ export default function Watch() {
         {/* Idioma / fuente alternativa */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-          {(["sub", "latino"] as const).map((targetLang) => {
+          {shouldShowLanguageControls && (["sub", "latino"] as const).map((targetLang) => {
             const firstIdx = rawSources.findIndex((source) => source.lang === targetLang);
             const enabled = firstIdx >= 0;
             const selected = activeLang === targetLang;
@@ -614,7 +627,7 @@ export default function Watch() {
               </button>
             );
           })}
-          {hasMultipleSources && (
+          {shouldShowServerControl && (
             <button
               onClick={() => setActiveSourceIdx((i) => (i + 1) % Math.max(1, rawSources.length))}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary border border-border text-foreground hover:border-primary hover:text-primary transition-all"
@@ -622,7 +635,7 @@ export default function Watch() {
               Servidor: {Math.min(activeSourceIdx + 1, rawSources.length)}/{rawSources.length}
             </button>
           )}
-          {!hasMultipleLangs && <span className="text-[10px] text-muted-foreground">Idioma único disponible</span>}
+          {!shouldShowServerControl && !shouldShowLanguageControls && <span className="text-[10px] text-muted-foreground">Fuente directa disponible</span>}
         </div>
 
         {lang === "latino" && latinoEp && (

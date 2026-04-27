@@ -23,6 +23,10 @@ export function getMaxProfiles(isPremium: boolean): number {
   return isPremium ? MAX_PROFILES_PREMIUM : MAX_PROFILES_FREE;
 }
 
+export function getMainProfile(profiles: AccountProfile[]): AccountProfile | null {
+  return profiles.find((profile) => profile.is_default) || profiles[0] || null;
+}
+
 const ACTIVE_KEY = "zet:active-profile-id";
 const PIN_OK_PREFIX = "zet:pin-ok:";
 let activeProfileId: string | null = null;
@@ -71,8 +75,31 @@ export async function listProfiles(userId: string): Promise<AccountProfile[]> {
     .from("account_profiles")
     .select("*")
     .eq("user_id", userId)
+    .order("is_default", { ascending: false })
     .order("created_at", { ascending: true });
   return (data as AccountProfile[]) || [];
+}
+
+export async function ensureMainProfile(
+  userId: string,
+  payload: { name: string; avatar_url?: string | null },
+): Promise<AccountProfile | null> {
+  const existing = await listProfiles(userId);
+  const main = getMainProfile(existing);
+  if (main) {
+    if (!main.is_default) {
+      await supabase.from("account_profiles").update({ is_default: true }).eq("id", main.id);
+      main.is_default = true;
+    }
+    return main;
+  }
+  return createProfile(userId, {
+    name: payload.name,
+    avatar_url: payload.avatar_url ?? null,
+    accent_color: null,
+    is_default: true,
+    pin: null,
+  });
 }
 
 export async function createProfile(
