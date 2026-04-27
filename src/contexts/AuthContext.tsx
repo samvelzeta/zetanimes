@@ -62,15 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        // En cada login fresco (o token refrescado tras re-login), forzar selector de perfil:
-        // limpiamos el perfil activo guardado y los PINs de sesión para que el gate muestre
-        // siempre la pantalla "¿Quién está viendo?" (estilo Netflix).
-        if (event === "SIGNED_IN") {
-          try {
-            setActiveProfileId(null);
-            clearAllProfilePins();
-          } catch {}
-        }
+        // El perfil elegido vive en sessionStorage: se mantiene al cambiar de app/pestaña,
+        // pero se limpia solo cuando se cierra por completo el navegador/WebView.
         // Use setTimeout to avoid potential deadlocks with Supabase client
         setTimeout(() => fetchProfile(session.user.id), 0);
       } else {

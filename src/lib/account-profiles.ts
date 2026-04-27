@@ -31,10 +31,16 @@ const ACTIVE_KEY = "zet:active-profile-id";
 const PIN_OK_PREFIX = "zet:pin-ok:";
 let activeProfileId: string | null = null;
 
-export function getActiveProfileId(): string | null {
+function readSessionActiveProfile(): string | null {
   try {
-    localStorage.removeItem(ACTIVE_KEY);
-  } catch {}
+    return sessionStorage.getItem(ACTIVE_KEY);
+  } catch {
+    return activeProfileId;
+  }
+}
+
+export function getActiveProfileId(): string | null {
+  activeProfileId = readSessionActiveProfile();
   return activeProfileId;
 }
 
@@ -42,6 +48,8 @@ export function setActiveProfileId(id: string | null): void {
   activeProfileId = id;
   try {
     localStorage.removeItem(ACTIVE_KEY);
+    if (id) sessionStorage.setItem(ACTIVE_KEY, id);
+    else sessionStorage.removeItem(ACTIVE_KEY);
   } catch {}
   window.dispatchEvent(new Event("zet:active-profile-changed"));
 }
