@@ -7,7 +7,7 @@ import PinPrompt from "./PinPrompt";
 import DeviceLimitModal from "./DeviceLimitModal";
 import {
   isProfilePinValid, getActiveProfileId, setActiveProfileId,
-  createProfile,
+  ensureMainProfile,
   type AccountProfile,
 } from "@/lib/account-profiles";
 import { registerCurrentDevice } from "@/lib/devices";
@@ -22,6 +22,7 @@ export default function ProfileGate() {
   const [pendingProfile, setPendingProfile] = useState<AccountProfile | null>(null);
   const [deviceCheck, setDeviceCheck] = useState<{ allowed: boolean; current: number; limit: number } | null>(null);
   const autoCreatingRef = useRef(false);
+  const [ensuringMainProfile, setEnsuringMainProfile] = useState(false);
   const [deviceChecked, setDeviceChecked] = useState(false);
 
   const skip = SKIP_PATHS.some((p) => location.pathname.startsWith(p));
@@ -46,18 +47,17 @@ export default function ProfileGate() {
   // Refrescar perfiles cuando cambia el usuario
   useEffect(() => { if (user) refresh(); }, [user, refresh]);
 
-  // Auto-crear el primer perfil "Principal" si la cuenta no tiene ninguno todavía.
-  // (Sucede cuando el usuario recién se registra: entra y ve directamente el selector
-  //  con su perfil por defecto, sin tener que rellenar nada.)
+  // Auto-crear SOLO el perfil madre. Los perfiles hijos quedan como espacios vacíos.
   useEffect(() => {
     if (!user || profilesLoading || autoCreatingRef.current) return;
     if (profiles.length === 0) {
       autoCreatingRef.current = true;
+      setEnsuringMainProfile(true);
       const baseName = (user.user_metadata?.username as string) || (user.email?.split("@")[0]) || "Principal";
-      createProfile(user.id, { name: baseName.slice(0, 20), accent_color: null, avatar_url: null, is_default: true, pin: null })
+      ensureMainProfile(user.id, { name: baseName.slice(0, 20), avatar_url: null })
         .then(() => refresh())
-        .catch(() => { /* el trigger devolverá error si supera límite */ })
-        .finally(() => { autoCreatingRef.current = false; });
+        .catch(() => {})
+        .finally(() => { autoCreatingRef.current = false; setEnsuringMainProfile(false); });
     }
   }, [user, profiles.length, profilesLoading, refresh]);
 
@@ -68,7 +68,7 @@ export default function ProfileGate() {
   );
 
   if (skip || !user || authLoading) return null;
-  if (profilesLoading || !deviceChecked) return null;
+  if (profilesLoading || ensuringMainProfile || profiles.length === 0 || !deviceChecked) return null;
 
   // 1) Bloqueo por dispositivos
   if (deviceCheck && !deviceCheck.allowed) {
