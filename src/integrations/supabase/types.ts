@@ -821,6 +821,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_download_tracker: {
+        Args: { _tracker_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
