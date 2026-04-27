@@ -47,17 +47,18 @@ export default function DownloadTracker() {
   const [expandedTracker, setExpandedTracker] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
 
-  const loadTrackers = useCallback(async () => {
+  const loadTrackers = useCallback(async (statusOverride?: TrackerStatus) => {
+    const status = statusOverride || activeStatus;
     setLoading(true);
-    const { data, count } = await supabase
+    const { data } = await supabase
       .from("anime_download_tracker")
       .select("*", { count: "exact" })
-      .eq("status", activeStatus)
+      .eq("status", status)
       .order("updated_at", { ascending: false });
 
     if (data) {
       // For "waiting" status, rotate/shuffle to avoid infinite scroll
-      if (activeStatus === "waiting" && data.length > 20) {
+      if (status === "waiting" && data.length > 20) {
         // Show a random subset of 20, rotated by current hour
         const seed = new Date().getHours();
         const shuffled = [...data].sort((a, b) => {
@@ -113,7 +114,12 @@ export default function DownloadTracker() {
       .limit(1);
 
     if (existing && existing.length > 0) {
-      toast.info("Este anime ya está en el tracker");
+      const trackerId = existing[0].id;
+      await supabase.from("anime_download_tracker").update({ status: "downloading" as any }).eq("id", trackerId);
+      toast.success("Ya existía: movido a Descargando");
+      setActiveStatus("downloading");
+      setShowSearch(false);
+      await loadTrackers("downloading");
       return;
     }
 
@@ -188,11 +194,16 @@ export default function DownloadTracker() {
   const changeStatus = async (trackerId: string, newStatus: TrackerStatus) => {
     await supabase.from("anime_download_tracker").update({ status: newStatus as any }).eq("id", trackerId);
     toast.success(`Movido a ${STATUS_TABS.find((s) => s.key === newStatus)?.label}`);
-    loadTrackers();
+    setActiveStatus(newStatus);
+    loadTrackers(newStatus);
   };
 
   const removeTracker = async (trackerId: string) => {
-    await supabase.from("anime_download_tracker").delete().eq("id", trackerId);
+    const { error } = await (supabase.rpc as any)("delete_download_tracker", { _tracker_id: trackerId });
+    if (error) {
+      toast.error("No se pudo eliminar del tracker");
+      return;
+    }
     toast.info("Anime eliminado del tracker");
     loadTrackers();
   };
