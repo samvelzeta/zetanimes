@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -232,25 +232,28 @@ export default function Watch() {
     return sources;
   }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData]);
 
-  const rawSources = buildSources();
-  const sortedSources = activeSourceIdx > 0 && activeSourceIdx < rawSources.length
-    ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
-    : rawSources;
+  const rawSources = useMemo(() => buildSources(), [buildSources]);
+  const sortedSources = useMemo(() => (
+    activeSourceIdx > 0 && activeSourceIdx < rawSources.length
+      ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
+      : rawSources
+  ), [activeSourceIdx, rawSources]);
 
   const langAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
     acc[source.lang] += 1;
     return acc;
   }, { sub: 0, latino: 0 });
+  const dbLangAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
+    if (source.origin === "db" || source.origin === "hls") acc[source.lang] += 1;
+    return acc;
+  }, { sub: 0, latino: 0 });
   const hasMultipleSources = rawSources.length >= 2;
-  const hasMultipleLangs = langAvailability.sub > 0 && langAvailability.latino > 0;
   const activeLang = sortedSources[0]?.lang || lang;
-  const sourceOrigins = new Set(rawSources.map((source) => source.origin === "hls" ? "db" : source.origin));
   const dbLikeCount = rawSources.filter((source) => source.origin === "db" || source.origin === "hls").length;
   const apiCount = rawSources.filter((source) => source.origin === "api").length;
-  const isDbOnly = dbLikeCount > 0 && apiCount === 0;
-  const isHybridSources = dbLikeCount > 0 && apiCount > 0;
-  const shouldShowServerControl = hasMultipleSources && !isDbOnly;
-  const shouldShowLanguageControls = hasMultipleLangs && !isDbOnly && !isHybridSources;
+  const hasDbBothLanguages = dbLangAvailability.sub > 0 && dbLangAvailability.latino > 0;
+  const shouldShowLanguageControls = hasDbBothLanguages && dbLikeCount > 0 && apiCount === 0;
+  const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls;
 
   // Restore progress on episode change
   useEffect(() => {
