@@ -244,6 +244,13 @@ export default function Watch() {
   const hasMultipleSources = rawSources.length >= 2;
   const hasMultipleLangs = langAvailability.sub > 0 && langAvailability.latino > 0;
   const activeLang = sortedSources[0]?.lang || lang;
+  const sourceOrigins = new Set(rawSources.map((source) => source.origin === "hls" ? "db" : source.origin));
+  const dbLikeCount = rawSources.filter((source) => source.origin === "db" || source.origin === "hls").length;
+  const apiCount = rawSources.filter((source) => source.origin === "api").length;
+  const isDbOnly = dbLikeCount > 0 && apiCount === 0;
+  const isHybridSources = dbLikeCount > 0 && apiCount > 0;
+  const shouldShowServerControl = hasMultipleSources && !isDbOnly;
+  const shouldShowLanguageControls = hasMultipleLangs && !isDbOnly && !isHybridSources;
 
   // Restore progress on episode change
   useEffect(() => {
@@ -547,6 +554,7 @@ export default function Watch() {
                 onProgress={handleProgress}
                 onSeeked={handleSeeked}
                 initialTime={initialTime}
+                showServerPicker={shouldShowServerControl}
               />
               {/* Overlay only visible in fullscreen — does NOT affect playback */}
               <PlayerOverlay
@@ -597,7 +605,7 @@ export default function Watch() {
         {/* Idioma / fuente alternativa */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-          {(["sub", "latino"] as const).map((targetLang) => {
+          {shouldShowLanguageControls && (["sub", "latino"] as const).map((targetLang) => {
             const firstIdx = rawSources.findIndex((source) => source.lang === targetLang);
             const enabled = firstIdx >= 0;
             const selected = activeLang === targetLang;
@@ -619,7 +627,7 @@ export default function Watch() {
               </button>
             );
           })}
-          {hasMultipleSources && (
+          {shouldShowServerControl && (
             <button
               onClick={() => setActiveSourceIdx((i) => (i + 1) % Math.max(1, rawSources.length))}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary border border-border text-foreground hover:border-primary hover:text-primary transition-all"
@@ -627,7 +635,7 @@ export default function Watch() {
               Servidor: {Math.min(activeSourceIdx + 1, rawSources.length)}/{rawSources.length}
             </button>
           )}
-          {!hasMultipleLangs && <span className="text-[10px] text-muted-foreground">Idioma único disponible</span>}
+          {!shouldShowServerControl && !shouldShowLanguageControls && <span className="text-[10px] text-muted-foreground">Fuente directa disponible</span>}
         </div>
 
         {lang === "latino" && latinoEp && (
