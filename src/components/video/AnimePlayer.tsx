@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle } from "lucide-react";
 import { isWebView } from "@/lib/webview";
@@ -56,7 +56,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [classified, setClassified] = useState<ClassifiedSource[]>([]);
+  const classified = useMemo(() => classifySources(sources), [sources]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -72,13 +72,11 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const inWebView = isWebView();
 
   useEffect(() => {
-    const c = classifySources(sources);
-    setClassified(c);
     setCurrentIdx(0);
     setError(false);
     setLoading(true);
     hasRestoredTime.current = false;
-  }, [sources]);
+  }, [classified]);
 
   const currentSource = classified[currentIdx];
 
