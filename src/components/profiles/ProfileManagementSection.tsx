@@ -4,6 +4,7 @@ import { useProfiles } from "@/contexts/ProfilesContext";
 import { Users, Smartphone, Loader2, Trash2, Crown, Plus, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { listMyDevices, revokeAllDevices, revokeDevice, type DeviceSession } from "@/lib/devices";
+import { getDeviceLimit } from "@/lib/devices";
 import { getDeviceId } from "@/lib/device-id";
 import { getMaxProfiles } from "@/lib/account-profiles";
 import ProfileSelector from "./ProfileSelector";
@@ -17,7 +18,7 @@ export default function ProfileManagementSection() {
 
   const currentDeviceId = getDeviceId();
   const premiumAccess = isPremium || isOwner;
-  const deviceLimit = premiumAccess ? 3 : 2;
+  const deviceLimit = getDeviceLimit(isPremium, isOwner);
   const maxProfiles = getMaxProfiles(premiumAccess);
   const profilesWithPin = profiles.filter((p) => p.pin_enabled).length;
 
@@ -67,7 +68,7 @@ export default function ProfileManagementSection() {
             )}
           </p>
           <p className="text-[10px] text-muted-foreground">
-            Hasta {maxProfiles} perfiles {premiumAccess ? "(Premium)" : "(Gratis · sube a Premium para 3)"} · avatares AniList · PIN individual
+            Hasta {maxProfiles} perfiles {premiumAccess ? "(Premium)" : "(Gratis · sube a Premium para 3)"} · PIN individual
           </p>
         </div>
         <Plus className="w-4 h-4 text-primary" />
@@ -81,7 +82,7 @@ export default function ProfileManagementSection() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-foreground">Dispositivos conectados ({devices.length}/{deviceLimit})</p>
-            <p className="text-[10px] text-muted-foreground">{premiumAccess ? "Premium · 3 dispositivos" : "Gratis · 2 dispositivos"}</p>
+            <p className="text-[10px] text-muted-foreground">{isOwner ? "Owner · sin límite" : premiumAccess ? "Premium · 3 dispositivos" : "Gratis · 1 dispositivo"}</p>
           </div>
           {devices.length > 0 && (
             <button
