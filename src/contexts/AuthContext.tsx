@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { getDeviceId } from "@/lib/device-id";
 import { isCurrentDeviceSessionValid, touchCurrentDevice } from "@/lib/devices";
+import { clearAllProfilePins, setActiveProfileId } from "@/lib/account-profiles";
 
 interface AuthContextType {
   user: User | null;
@@ -49,11 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setRoles([]);
     try {
-      localStorage.removeItem("zet:active-profile-id");
-      Object.keys(sessionStorage)
-        .filter((k) => k.startsWith("zet:pin-ok:") || k === "zet:pin-session-ok")
-        .forEach((k) => sessionStorage.removeItem(k));
-      window.dispatchEvent(new Event("zet:active-profile-changed"));
+      setActiveProfileId(null);
+      clearAllProfilePins();
+      sessionStorage.removeItem("zet:pin-session-ok");
     } catch {}
   };
 
@@ -68,11 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // siempre la pantalla "¿Quién está viendo?" (estilo Netflix).
         if (event === "SIGNED_IN") {
           try {
-            localStorage.removeItem("zet:active-profile-id");
-            Object.keys(sessionStorage)
-              .filter((k) => k.startsWith("zet:pin-ok:"))
-              .forEach((k) => sessionStorage.removeItem(k));
-            window.dispatchEvent(new Event("zet:active-profile-changed"));
+            setActiveProfileId(null);
+            clearAllProfilePins();
           } catch {}
         }
         // Use setTimeout to avoid potential deadlocks with Supabase client
@@ -178,10 +174,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     revokedByRemoteRef.current = false;
     try {
       localStorage.removeItem("zet:active-profile-id");
-      Object.keys(sessionStorage)
-        .filter((k) => k.startsWith("zet:pin-ok:") || k === "zet:pin-session-ok")
-        .forEach((k) => sessionStorage.removeItem(k));
-      window.dispatchEvent(new Event("zet:active-profile-changed"));
+      setActiveProfileId(null);
+      clearAllProfilePins();
+      sessionStorage.removeItem("zet:pin-session-ok");
     } catch {}
   }, [user]);
 
