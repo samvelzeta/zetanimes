@@ -403,18 +403,6 @@ export default function DownloadTracker() {
                 {/* Expanded episodes */}
                 {isExpanded && tracker.episodes && (
                   <div className="border-t border-border p-3">
-                    <div className="flex gap-2 mb-3">
-                      {STATUS_TABS.filter((s) => s.key !== activeStatus).map((s) => (
-                        <button
-                          key={s.key}
-                          onClick={() => changeStatus(tracker.id, s.key)}
-                          className="flex-1 py-1.5 rounded-lg bg-muted text-[10px] font-bold text-muted-foreground hover:bg-primary/20 transition flex items-center justify-center gap-1"
-                        >
-                          <s.icon className={`w-3 h-3 ${s.color}`} /> {s.label}
-                        </button>
-                      ))}
-                    </div>
-
                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
                       {tracker.episodes.map((ep) => (
                         <button
