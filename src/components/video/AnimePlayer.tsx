@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle } from "lucide-react";
 import { isWebView } from "@/lib/webview";
+import { getSeekeEpisode } from "@/lib/zetapi";
 
 export interface PlayerSource {
   name: string;
   embed?: string;
   url?: string;
   type?: string; // "hls" | "embed" | etc from API
+  episode?: number;
 }
 
 interface Props {
@@ -21,12 +23,13 @@ interface Props {
   showServerPicker?: boolean;
 }
 
-type SourceType = "hls" | "mp4" | "embed";
+type SourceType = "hls" | "mp4" | "embed" | "seeke";
 
 interface ClassifiedSource {
   type: SourceType;
   url: string;
   name: string;
+  episode?: number;
 }
 
 function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
@@ -36,7 +39,9 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
     if (!url) continue;
 
     // Use API-provided type if available
-    if (s.type === "hls" || url.includes(".m3u8")) {
+    if (s.type === "seeke") {
+      classified.push({ type: "seeke", url, name: s.name, episode: s.episode });
+    } else if (s.type === "hls" || url.includes(".m3u8")) {
       classified.push({ type: "hls", url, name: s.name });
     } else if (url.includes(".mp4")) {
       classified.push({ type: "mp4", url, name: s.name });
@@ -46,7 +51,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   }
   // Sort: HLS first, then mp4, then embed
   classified.sort((a, b) => {
-    const order: Record<SourceType, number> = { hls: 0, mp4: 1, embed: 2 };
+    const order: Record<SourceType, number> = { seeke: 0, hls: 1, mp4: 2, embed: 3 };
     return order[a.type] - order[b.type];
   });
   return classified;
