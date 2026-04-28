@@ -88,6 +88,18 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
   return res.data;
 }
 
+export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promise<{ embed: string; episode: number; cached?: boolean }> {
+  const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; error?: string }>(
+    `/anime/episode-seeke?url=${encodeURIComponent(baseUrl)}&ep=${epNumber}`
+  );
+
+  if (!res.ok || !res.embed) {
+    throw new Error(res.error || "No se pudo obtener el episodio");
+  }
+
+  return { embed: res.embed, episode: res.episode || epNumber, cached: res.cached };
+}
+
 // ===== IMPROVED SLUG RESOLUTION =====
 
 // In-memory slug cache for the session
