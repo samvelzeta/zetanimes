@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Bug, Check, Loader2, Search, Send, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, getTitle, type AniListMedia } from "@/lib/anilist";
-import { titleToSlug } from "@/lib/zetapi";
+import { getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
 import { getSlugOverride } from "@/lib/slug-overrides";
 import { toast } from "sonner";
 
@@ -24,8 +24,11 @@ export default function ApiDebugPanel() {
   const [episode, setEpisode] = useState(1);
   const [lang, setLang] = useState<"sub" | "latino">("sub");
   const [loading, setLoading] = useState(false);
+  const [seekeLoading, setSeekeLoading] = useState(false);
   const [rawJson, setRawJson] = useState<any>(null);
+  const [seekeJson, setSeekeJson] = useState<any>(null);
   const [requestUrl, setRequestUrl] = useState("");
+  const [seekeUrl, setSeekeUrl] = useState("https://flixlat.com/es/detail/drama/Q7KLWpsDuwCBm24xji2Bf-Erased");
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -82,6 +85,23 @@ export default function ApiDebugPanel() {
       toast.error("No se pudo consultar la API");
     }
     setLoading(false);
+  };
+
+  const requestSeeke = async () => {
+    if (!seekeUrl.trim()) return toast.error("Pega la URL base de Seeke/Flixlat");
+    const baseUrl = seekeUrl.trim().replace(/\/\d+\/?(?:[?#].*)?$/, "");
+    setSeekeLoading(true);
+    setSeekeJson(null);
+    try {
+      const data = await getSeekeEpisode(baseUrl, episode);
+      setSeekeUrl(baseUrl);
+      setSeekeJson({ ok: true, request: { url: baseUrl, ep: episode }, response: data });
+      toast.success("Seeke respondió correctamente");
+    } catch (error: any) {
+      setSeekeJson({ ok: false, request: { url: baseUrl, ep: episode }, error: String(error?.message || error) });
+      toast.error("Seeke no devolvió video");
+    }
+    setSeekeLoading(false);
   };
 
   const episodes = Array.from({ length: Math.max(1, selected?.totalEpisodes || 0) }, (_, i) => i + 1);
@@ -145,6 +165,30 @@ export default function ApiDebugPanel() {
           </div>
 
           <div className="space-y-3 min-w-0">
+            <div className="rounded-xl border border-primary/30 bg-secondary/40 p-3 space-y-3">
+              <div>
+                <p className="text-xs font-bold text-foreground">Prueba Seeke / Flixlat</p>
+                <p className="text-[10px] text-muted-foreground">Envía siempre URL base + capítulo. No construye m3u8 ni usa slug.</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Input
+                  value={seekeUrl}
+                  onChange={(e) => setSeekeUrl(e.target.value)}
+                  placeholder="https://flixlat.com/es/detail/..."
+                  className="min-w-[260px] flex-1 h-9 bg-background border-primary/30 rounded-xl font-mono text-xs"
+                />
+                <button onClick={requestSeeke} disabled={seekeLoading} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center gap-2 disabled:opacity-50">
+                  {seekeLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Probar Seeke EP {episode}
+                </button>
+              </div>
+              {seekeJson && (
+                <pre className="max-h-60 overflow-auto rounded-lg border border-border bg-background/60 p-3 text-[10px] text-foreground whitespace-pre-wrap break-words font-mono">
+                  {JSON.stringify(seekeJson, null, 2)}
+                </pre>
+              )}
+            </div>
+
             <div className="flex gap-2 flex-wrap">
               {(["sub", "latino"] as const).map((l) => (
                 <button key={l} onClick={() => setLang(l)} className={`px-4 py-2 rounded-xl text-xs font-bold transition ${lang === l ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
