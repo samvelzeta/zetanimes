@@ -36,6 +36,11 @@ function appendUniqueSource(list: PlayerSourceItem[], source: PlayerSourceItem) 
   list.push(source);
 }
 
+function sourcePriority(source: PlayerSourceItem) {
+  const originOrder: Record<PlayerSourceItem["origin"], number> = { seeke: 0, db: 1, hls: 2, api: 3 };
+  return originOrder[source.origin] ?? 9;
+}
+
 export default function Watch() {
   const { id } = useParams<{ id: string }>();
   const anilistId = Number(id);
@@ -232,7 +237,7 @@ export default function Watch() {
     }
     addApi(oppositeServerData, oppositeLang);
 
-    return sources;
+    return sources.sort((a, b) => sourcePriority(a) - sourcePriority(b));
   }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
