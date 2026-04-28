@@ -177,9 +177,10 @@ export default function VideoManager() {
   // Los episodios YA guardados se muestran en la lista "Ver guardados".
 
   const buildSourcesObj = (primary: string, fallback: string, pc: string, mobile: string) => {
-    const sources: { hls: string[]; mp4: string[]; embed: string[]; pc: string[]; mobile: string[] } = { hls: [], mp4: [], embed: [], pc: [], mobile: [] };
+    const sources: { hls: string[]; mp4: string[]; embed: string[]; pc: string[]; mobile: string[]; seeke: string[] } = { hls: [], mp4: [], embed: [], pc: [], mobile: [], seeke: [] };
     const classify = (url: string) => {
-      if (url.includes(".m3u8")) sources.hls.push(url);
+      if (url.includes("/detail/") || url.includes("123flmsfree.com")) sources.seeke.push(url);
+      else if (url.includes(".m3u8")) sources.hls.push(url);
       else if (url.includes(".mp4")) sources.mp4.push(url);
       else sources.embed.push(url);
     };
@@ -410,9 +411,12 @@ export default function VideoManager() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-primary mb-1 block">Video principal (URL)</label>
+                  <label className="text-[10px] text-primary mb-1 block">URL base Seeke o video principal</label>
                   <Input value={primaryUrl} onChange={(e) => setPrimaryUrl(e.target.value)}
-                    placeholder="https://..." className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-xs" />
+                    placeholder="https://site.com/anime-sub o https://...m3u8" className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-xs" />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Para Seeke pega la URL base sin /1, /2, etc. Se usará esta misma URL + el capítulo al reproducir.
+                  </p>
                 </div>
 
                 <div>
