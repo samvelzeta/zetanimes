@@ -25,6 +25,13 @@ interface EpisodeStatus {
 
 const STORAGE_KEY = "upload-progress";
 
+function normalizeSeekeBaseUrl(url: string) {
+  const clean = url.trim();
+  if (!clean) return "";
+  if (!clean.includes("flixlat.com") && !clean.includes("/detail/") && !clean.includes("123flmsfree.com")) return clean;
+  return clean.replace(/\/\d+\/?(?:[?#].*)?$/, "");
+}
+
 function getStoredProgress(): Record<string, Record<string, Record<string, string>>> {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -180,10 +187,11 @@ export default function VideoManager() {
   const buildSourcesObj = (primary: string, fallback: string, pc: string, mobile: string) => {
     const sources: { hls: string[]; mp4: string[]; embed: string[]; pc: string[]; mobile: string[]; seeke: string[] } = { hls: [], mp4: [], embed: [], pc: [], mobile: [], seeke: [] };
     const classify = (url: string) => {
-      if (url.includes("/detail/") || url.includes("123flmsfree.com")) sources.seeke.push(url);
-      else if (url.includes(".m3u8")) sources.hls.push(url);
-      else if (url.includes(".mp4")) sources.mp4.push(url);
-      else sources.embed.push(url);
+      const normalized = normalizeSeekeBaseUrl(url);
+      if (normalized.includes("flixlat.com") || normalized.includes("/detail/") || normalized.includes("123flmsfree.com")) sources.seeke.push(normalized);
+      else if (normalized.includes(".m3u8")) sources.hls.push(normalized);
+      else if (normalized.includes(".mp4")) sources.mp4.push(normalized);
+      else sources.embed.push(normalized);
     };
     if (primary.trim()) classify(primary.trim());
     if (fallback.trim()) classify(fallback.trim());
