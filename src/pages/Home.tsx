@@ -38,7 +38,7 @@ export default function Home() {
   const filterFn = (list: any[] | undefined) => (list || []).filter((a) => !hiddenSet.has(a.id));
 
   // Above-the-fold: cargar inmediato (HeroBanner + Trending)
-  const { data: trending, isLoading: l1 } = useQuery({
+  const { data: trending, isLoading: l1, isError: trendingError } = useQuery({
     queryKey: ["trending"],
     queryFn: () => getTrending(1, 15),
     staleTime: 1000 * 60 * 30,
@@ -109,8 +109,8 @@ export default function Home() {
     );
   }
 
-  // Splash listo cuando la query crítica (trending) haya respondido
-  const initialReady = !!trending;
+  // Splash listo cuando la query crítica respondió o falló; nunca debe bloquear la app.
+  const initialReady = !!trending || trendingError || !l1;
 
   return (
     <>
