@@ -135,6 +135,7 @@ export default function VideoManager() {
         const cached = await getCachedVideo(selected.slug, selectedEp, lang, selected.id);
         if (cached) {
           const all = [
+            ...(cached.sources.seeke || []),
             ...(cached.sources.pc || []),
             ...(cached.sources.mobile || []),
             ...(cached.sources.hls || []),
@@ -317,7 +318,8 @@ export default function VideoManager() {
               const total =
                 (sv.sources?.hls?.length || 0) +
                 (sv.sources?.mp4?.length || 0) +
-                (sv.sources?.embed?.length || 0);
+                (sv.sources?.embed?.length || 0) +
+                (sv.sources?.seeke?.length || 0);
               return (
                 <div key={sv.id} className="flex items-center justify-between bg-background/50 rounded-lg p-2 border border-border">
                   <div className="flex-1 min-w-0">
