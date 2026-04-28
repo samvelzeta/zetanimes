@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle } from "lucide-react";
 import { isWebView } from "@/lib/webview";
+import { getSeekeEpisode } from "@/lib/zetapi";
 
 export interface PlayerSource {
   name: string;
   embed?: string;
   url?: string;
   type?: string; // "hls" | "embed" | etc from API
+  episode?: number;
 }
 
 interface Props {
@@ -21,12 +23,13 @@ interface Props {
   showServerPicker?: boolean;
 }
 
-type SourceType = "hls" | "mp4" | "embed";
+type SourceType = "hls" | "mp4" | "embed" | "seeke";
 
 interface ClassifiedSource {
   type: SourceType;
   url: string;
   name: string;
+  episode?: number;
 }
 
 function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
@@ -36,7 +39,9 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
     if (!url) continue;
 
     // Use API-provided type if available
-    if (s.type === "hls" || url.includes(".m3u8")) {
+    if (s.type === "seeke") {
+      classified.push({ type: "seeke", url, name: s.name, episode: s.episode });
+    } else if (s.type === "hls" || url.includes(".m3u8")) {
       classified.push({ type: "hls", url, name: s.name });
     } else if (url.includes(".mp4")) {
       classified.push({ type: "mp4", url, name: s.name });
@@ -46,7 +51,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   }
   // Sort: HLS first, then mp4, then embed
   classified.sort((a, b) => {
-    const order: Record<SourceType, number> = { hls: 0, mp4: 1, embed: 2 };
+    const order: Record<SourceType, number> = { seeke: 0, hls: 1, mp4: 2, embed: 3 };
     return order[a.type] - order[b.type];
   });
   return classified;
@@ -100,22 +105,23 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     video.currentTime = initialTime;
   }, [initialTime]);
 
-  // HLS / MP4 setup
+  // Seeke / HLS / MP4 setup
   useEffect(() => {
     if (!currentSource || currentSource.type === "embed") return;
     const video = videoRef.current;
     if (!video) return;
+    let cancelled = false;
 
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
-    if (currentSource.type === "hls") {
+    const attachHls = (videoUrl: string) => {
       if (Hls.isSupported()) {
         const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
         hlsRef.current = hls;
-        hls.loadSource(currentSource.url);
+        hls.loadSource(videoUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setLoading(false);
@@ -126,7 +132,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           if (data.fatal) tryNext();
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = currentSource.url;
+        video.src = videoUrl;
         video.addEventListener("loadedmetadata", () => {
           setLoading(false);
           restoreTime();
@@ -136,6 +142,19 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       } else {
         tryNext();
       }
+    };
+
+    if (currentSource.type === "seeke") {
+      setLoading(true);
+      getSeekeEpisode(currentSource.url, currentSource.episode || 1)
+        .then((data) => {
+          if (!cancelled) attachHls(data.embed);
+        })
+        .catch(() => {
+          if (!cancelled) tryNext();
+        });
+    } else if (currentSource.type === "hls") {
+      attachHls(currentSource.url);
     } else {
       video.src = currentSource.url;
       video.addEventListener("loadeddata", () => {
@@ -147,6 +166,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     }
 
     return () => {
+      cancelled = true;
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;

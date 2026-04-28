@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getEpisodeServers, sortServersByPriority,
   markEpisodeWatched, getWatchedEpisodes, setWatchedEpisodes, titleToSlug, getCachedSlug,
-  saveCachedSlug, getLatinoEpisode,
+  saveCachedSlug, getLatinoEpisode, getSeekeEpisode,
   type ZetServer,
 } from "@/lib/zetapi";
 import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
@@ -27,7 +27,7 @@ import { resolveEpisodeCount } from "@/lib/episode-count";
 
 type Lang = "sub" | "latino";
 
-type PlayerSourceItem = { name: string; embed: string; type?: string; lang: Lang; origin: "db" | "api" | "hls" };
+type PlayerSourceItem = { name: string; embed: string; type?: string; episode?: number; lang: Lang; origin: "db" | "api" | "hls" | "seeke" };
 
 const episodeCache = new Map<string, any>();
 
@@ -193,9 +193,10 @@ export default function Watch() {
       cachedVideoToSources(cached).forEach((item) => {
         appendUniqueSource(sources, {
           ...item,
+          episode: selectedEp,
           name: `${item.name} • ${tag}`,
           lang: sourceLang,
-          origin: "db",
+          origin: item.type === "seeke" ? "seeke" : "db",
         });
       });
     };
@@ -230,7 +231,7 @@ export default function Watch() {
     addApi(oppositeServerData, oppositeLang);
 
     return sources;
-  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData]);
+  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
   const sortedSources = useMemo(() => (
@@ -244,12 +245,12 @@ export default function Watch() {
     return acc;
   }, { sub: 0, latino: 0 });
   const dbLangAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
-    if (source.origin === "db" || source.origin === "hls") acc[source.lang] += 1;
+    if (source.origin === "db" || source.origin === "hls" || source.origin === "seeke") acc[source.lang] += 1;
     return acc;
   }, { sub: 0, latino: 0 });
   const hasMultipleSources = rawSources.length >= 2;
   const activeLang = sortedSources[0]?.lang || lang;
-  const dbLikeCount = rawSources.filter((source) => source.origin === "db" || source.origin === "hls").length;
+  const dbLikeCount = rawSources.filter((source) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke").length;
   const apiCount = rawSources.filter((source) => source.origin === "api").length;
   const hasDbBothLanguages = dbLangAvailability.sub > 0 && dbLangAvailability.latino > 0;
   const shouldShowLanguageControls = hasDbBothLanguages && dbLikeCount > 0 && apiCount === 0;
@@ -609,7 +610,7 @@ export default function Watch() {
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
           {shouldShowLanguageControls && (["sub", "latino"] as const).map((targetLang) => {
-            const firstIdx = rawSources.findIndex((source) => source.lang === targetLang && (source.origin === "db" || source.origin === "hls"));
+            const firstIdx = rawSources.findIndex((source) => source.lang === targetLang && (source.origin === "db" || source.origin === "hls" || source.origin === "seeke"));
             const enabled = firstIdx >= 0;
             const selected = activeLang === targetLang;
             return (
