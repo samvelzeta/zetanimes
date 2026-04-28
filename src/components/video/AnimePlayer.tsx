@@ -105,22 +105,23 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     video.currentTime = initialTime;
   }, [initialTime]);
 
-  // HLS / MP4 setup
+  // Seeke / HLS / MP4 setup
   useEffect(() => {
     if (!currentSource || currentSource.type === "embed") return;
     const video = videoRef.current;
     if (!video) return;
+    let cancelled = false;
 
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
 
-    if (currentSource.type === "hls") {
+    const attachHls = (videoUrl: string) => {
       if (Hls.isSupported()) {
         const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
         hlsRef.current = hls;
-        hls.loadSource(currentSource.url);
+        hls.loadSource(videoUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setLoading(false);
@@ -131,7 +132,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           if (data.fatal) tryNext();
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = currentSource.url;
+        video.src = videoUrl;
         video.addEventListener("loadedmetadata", () => {
           setLoading(false);
           restoreTime();
@@ -141,6 +142,19 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       } else {
         tryNext();
       }
+    };
+
+    if (currentSource.type === "seeke") {
+      setLoading(true);
+      getSeekeEpisode(currentSource.url, currentSource.episode || 1)
+        .then((data) => {
+          if (!cancelled) attachHls(data.embed);
+        })
+        .catch(() => {
+          if (!cancelled) tryNext();
+        });
+    } else if (currentSource.type === "hls") {
+      attachHls(currentSource.url);
     } else {
       video.src = currentSource.url;
       video.addEventListener("loadeddata", () => {
@@ -152,6 +166,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     }
 
     return () => {
+      cancelled = true;
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
