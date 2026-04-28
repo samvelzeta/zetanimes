@@ -58,6 +58,7 @@ export default function Watch() {
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [activeSourceIdx, setActiveSourceIdx] = useState(0);
   const lastSavedProgressRef = useRef(0);
+  const autoNextTriggeredRef = useRef(false);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
   const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes(watchedScope)));
 
@@ -69,6 +70,7 @@ export default function Watch() {
     historyEntryIdRef.current = null;
     watchTimeRef.current = 0;
     lastSavedProgressRef.current = 0;
+    autoNextTriggeredRef.current = false;
   }, [user?.id, anilistId, selectedEp]);
 
   const { data: anilistData } = useQuery({
@@ -409,16 +411,20 @@ export default function Watch() {
       markWatchedReactive(epSlug);
     }
 
-    // Autoplay siguiente episodio al 85% (si está activado en ajustes y hay episodio siguiente)
+    // Autoplay siguiente episodio una sola vez, cuando falten 30s reales del video.
     const autoPlayEnabled = localStorage.getItem("zet_autoplay") !== "false";
+    const video = document.querySelector("video");
+    const remainingSeconds = video?.duration && Number.isFinite(video.duration)
+      ? video.duration - video.currentTime
+      : Number.POSITIVE_INFINITY;
     if (
       autoPlayEnabled &&
-      pct >= 0.85 &&
-      lastSavedProgressRef.current < 0.85 &&
+      !autoNextTriggeredRef.current &&
+      remainingSeconds <= 30 &&
+      remainingSeconds > 0 &&
       selectedEp < (totalEpisodes || 0)
     ) {
-      lastSavedProgressRef.current = 0.86; // evita re-disparo
-      // Pequeño delay para no cortar abrupto
+      autoNextTriggeredRef.current = true;
       setTimeout(() => selectEpisode(selectedEp + 1), 800);
     }
   }, [zetSlug, selectedEp, persistProgress, markWatchedReactive, totalEpisodes]);

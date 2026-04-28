@@ -88,7 +88,29 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
   return res.data;
 }
 
+const seekeMemoryCache = new Map<string, { embed: string; episode: number; cached?: boolean; expiresAt: number }>();
+const SEEKE_CACHE_TTL = 1000 * 60 * 60 * 6;
+
+function getSeekeCacheKey(baseUrl: string, epNumber: number) {
+  return `zet:seeke:${baseUrl.trim()}:${epNumber}`;
+}
+
 export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promise<{ embed: string; episode: number; cached?: boolean }> {
+  const key = getSeekeCacheKey(baseUrl, epNumber);
+  const now = Date.now();
+  const memory = seekeMemoryCache.get(key);
+  if (memory && memory.expiresAt > now) {
+    return { embed: memory.embed, episode: memory.episode, cached: true };
+  }
+
+  try {
+    const stored = JSON.parse(localStorage.getItem(key) || "null") as typeof memory | null;
+    if (stored?.embed && stored.expiresAt > now) {
+      seekeMemoryCache.set(key, stored);
+      return { embed: stored.embed, episode: stored.episode, cached: true };
+    }
+  } catch {}
+
   const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; error?: string }>(
     `/anime/episode-seeke?url=${encodeURIComponent(baseUrl)}&ep=${epNumber}`
   );
@@ -97,7 +119,11 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
     throw new Error(res.error || "No se pudo obtener el episodio");
   }
 
-  return { embed: res.embed, episode: res.episode || epNumber, cached: res.cached };
+  const resolved = { embed: res.embed, episode: res.episode || epNumber, cached: res.cached };
+  const cacheValue = { ...resolved, expiresAt: now + SEEKE_CACHE_TTL };
+  seekeMemoryCache.set(key, cacheValue);
+  try { localStorage.setItem(key, JSON.stringify(cacheValue)); } catch {}
+  return resolved;
 }
 
 // ===== IMPROVED SLUG RESOLUTION =====
