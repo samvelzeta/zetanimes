@@ -38,7 +38,7 @@ export default function Home() {
   const filterFn = (list: any[] | undefined) => (list || []).filter((a) => !hiddenSet.has(a.id));
 
   // Above-the-fold: cargar inmediato (HeroBanner + Trending)
-  const { data: trending, isLoading: l1 } = useQuery({
+  const { data: trending, isLoading: l1, isError: trendingError } = useQuery({
     queryKey: ["trending"],
     queryFn: () => getTrending(1, 15),
     staleTime: 1000 * 60 * 30,
@@ -50,6 +50,7 @@ export default function Home() {
   const [enableSeason, setEnableSeason] = useState(false);
   const [enableAction, setEnableAction] = useState(false);
   const [enableFantasy, setEnableFantasy] = useState(false);
+  const [splashFallbackReady, setSplashFallbackReady] = useState(false);
 
   const { data: popular, isLoading: l2 } = useQuery({
     queryKey: ["popular"],
@@ -87,6 +88,12 @@ export default function Home() {
     enabled: !isTV && enableFantasy,
   });
 
+  useEffect(() => {
+    if (trending || trendingError || !l1) return;
+    const timeout = window.setTimeout(() => setSplashFallbackReady(true), 7000);
+    return () => window.clearTimeout(timeout);
+  }, [trending, trendingError, l1]);
+
   // TV: Header + Bento + Top Ranking. Sin hero, sin carruseles extra (ahorra RAM).
   if (isTV) {
     return (
@@ -109,8 +116,8 @@ export default function Home() {
     );
   }
 
-  // Splash listo cuando la query crítica (trending) haya respondido
-  const initialReady = !!trending;
+  // Splash listo cuando la query crítica respondió o falló; nunca debe bloquear la app.
+  const initialReady = !!trending || trendingError || !l1 || splashFallbackReady;
 
   return (
     <>
