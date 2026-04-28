@@ -8,6 +8,7 @@ export interface VideoSources {
   embed?: string[];
   pc?: string[];
   mobile?: string[];
+  seeke?: string[];
 }
 
 export interface CachedVideo {
@@ -284,11 +285,12 @@ export async function listCachedVideosBySlug(slug: string, anilistId?: number): 
  */
 export function cachedVideoToSources(cached: CachedVideo): { name: string; embed: string; type?: string }[] {
   const out: { name: string; embed: string; type?: string }[] = [];
-  const { hls = [], mp4 = [], embed = [], pc = [], mobile = [] } = cached.sources || {};
+  const { hls = [], mp4 = [], embed = [], pc = [], mobile = [], seeke = [] } = cached.sources || {};
   const platform = getPlaybackPlatform();
 
   // Primero van las fuentes universales: principal y fallback deben probarse antes
   // de caer en enlaces específicos de PC/APK.
+  seeke.forEach((url, i) => out.push({ name: `Seeke Base ${i + 1}`, embed: url, type: "seeke" }));
   hls.forEach((url, i) => out.push({ name: `HLS Cache ${i + 1}`, embed: url, type: "hls" }));
   mp4.forEach((url, i) => out.push({ name: `MP4 Cache ${i + 1}`, embed: url, type: "mp4" }));
   embed.forEach((url, i) => out.push({ name: `Embed Cache ${i + 1}`, embed: url }));
