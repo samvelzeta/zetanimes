@@ -26,10 +26,7 @@ interface EpisodeStatus {
 const STORAGE_KEY = "upload-progress";
 
 function normalizeSeekeBaseUrl(url: string) {
-  const clean = url.trim();
-  if (!clean) return "";
-  if (!clean.includes("flixlat.com") && !clean.includes("/detail/") && !clean.includes("123flmsfree.com")) return clean;
-  return clean.replace(/\/\d+\/?(?:[?#].*)?$/, "");
+  return url.trim();
 }
 
 function hasSeekeSource(sources?: CachedVideo["sources"]) {
