@@ -572,6 +572,13 @@ export default function Watch() {
                 onSeeked={handleSeeked}
                 initialTime={initialTime}
                 showServerPicker={shouldShowServerControl}
+                episodeKey={autoNextKey}
+                canPrev={selectedEp > 1}
+                canNext={selectedEp < totalEpisodes}
+                onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
+                onNext={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
+                onAutoNext={handleAutoNext}
+                autoNextAlreadyTriggered={autoNextDone.has(autoNextKey)}
               />
               {/* Overlay only visible in fullscreen — does NOT affect playback */}
               <PlayerOverlay
@@ -633,7 +640,7 @@ export default function Watch() {
                 onClick={() => {
                   if (!enabled) return;
                   setLang(targetLang);
-                  setActiveSourceIdx(firstIdx);
+                  setActiveSourceIdx(0);
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 disabled:opacity-35 disabled:cursor-not-allowed ${
                   selected ? "bg-primary text-primary-foreground border-primary" : "bg-primary/15 border-primary/40 text-primary hover:bg-primary/25"
