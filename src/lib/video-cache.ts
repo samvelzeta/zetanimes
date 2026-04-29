@@ -70,8 +70,14 @@ export async function getCachedVideo(
   const slugKey = cacheKey(normalizedSlug, episode, lang);
   const byAnimeKey = anilistId ? animeCacheKey(anilistId, episode, lang) : null;
 
-  if (byAnimeKey && memCache.has(byAnimeKey)) return memCache.get(byAnimeKey)!;
-  if (memCache.has(slugKey)) return memCache.get(slugKey)!;
+  if (byAnimeKey && memCache.has(byAnimeKey)) {
+    const cached = memCache.get(byAnimeKey)!;
+    if (cached || episode === 0) return cached;
+  }
+  if (memCache.has(slugKey)) {
+    const cached = memCache.get(slugKey)!;
+    if (cached || episode === 0) return cached;
+  }
 
   let rows: CachedVideo[] = [];
 
