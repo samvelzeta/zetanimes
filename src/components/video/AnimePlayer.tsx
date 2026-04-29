@@ -217,7 +217,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   // Progress tracking
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !currentSource || currentSource.type === "embed") return;
+    if (!video || !currentSource || currentSource.type === "embed" || currentSource.type === "html") return;
 
     const onTimeUpdate = () => {
       setProgress(video.currentTime);
@@ -292,7 +292,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
-    video.paused ? video.play() : video.pause();
+    if (video.paused) {
+      setPlayPulse(true);
+      window.setTimeout(() => setPlayPulse(false), 650);
+      video.play();
+    } else {
+      video.pause();
+    }
   };
 
   const toggleMute = () => {
@@ -360,18 +366,22 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     </div>
   );
 
-  // Embed mode
-  if (currentSource?.type === "embed") {
+  // Embed mode: usar el player externo si viene como iframe/video embebido o URL de reproductor.
+  if (currentSource?.type === "embed" || currentSource?.type === "html") {
     return (
       <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
-        <iframe
-          src={currentSource.url}
-          className="w-full h-full border-0"
-          allowFullScreen
-          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
-          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          title={title}
-        />
+        {currentSource.type === "html" ? (
+          <div className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_video]:w-full [&_video]:h-full" dangerouslySetInnerHTML={{ __html: currentSource.url }} />
+        ) : (
+          <iframe
+            src={currentSource.url}
+            className="w-full h-full border-0"
+            allowFullScreen
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            title={title}
+          />
+        )}
         {showServerPickerEnabled && classified.length > 1 && <ServerPicker />}
       </div>
     );
