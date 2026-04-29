@@ -62,8 +62,8 @@ export default function Watch() {
   const playerWrapperRef = useRef<HTMLDivElement>(null);
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [activeSourceIdx, setActiveSourceIdx] = useState(0);
+  const [autoNextDone, setAutoNextDone] = useState<Set<string>>(() => new Set());
   const lastSavedProgressRef = useRef(0);
-  const autoNextTriggeredRef = useRef(false);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
   const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes(watchedScope)));
 
@@ -75,7 +75,6 @@ export default function Watch() {
     historyEntryIdRef.current = null;
     watchTimeRef.current = 0;
     lastSavedProgressRef.current = 0;
-    autoNextTriggeredRef.current = false;
   }, [user?.id, anilistId, selectedEp]);
 
   const { data: anilistData } = useQuery({
