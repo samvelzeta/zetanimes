@@ -32,6 +32,10 @@ function normalizeSeekeBaseUrl(url: string) {
   return clean.replace(/\/\d+\/?(?:[?#].*)?$/, "");
 }
 
+function hasSeekeSource(sources?: CachedVideo["sources"]) {
+  return (sources?.seeke?.length || 0) > 0;
+}
+
 function getStoredProgress(): Record<string, Record<string, Record<string, string>>> {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -120,7 +124,7 @@ export default function VideoManager() {
   const checkEpisode = useCallback(async (slug: string, ep: number, l: string) => {
     const key = `${ep}-${l}`;
     // Primero check en nuestra DB (más rápido y confiable)
-      const cached = await getCachedVideo(slug, ep, l, selected?.id);
+    const cached = await getCachedVideo(slug, ep, l, selected?.id);
     if (cached) {
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
       return;
@@ -204,12 +208,13 @@ export default function VideoManager() {
     if (!selected || selectedEp === null || !primaryUrl.trim()) return toast.error("Falta la URL del video");
     setSending(true);
     const sources = buildSourcesObj(primaryUrl, fallbackUrl, pcUrl, mobileUrl);
+    const saveEpisode = hasSeekeSource(sources) ? 0 : selectedEp;
 
     try {
       // 1. Guardar en Lovable Cloud (DB) — fuente confiable
       const dbRes = await saveCachedVideo({
         slug: selected.slug,
-        episode: selectedEp,
+        episode: saveEpisode,
         lang,
         sources,
         anilist_id: selected.id,
@@ -233,7 +238,7 @@ export default function VideoManager() {
         console.warn("API externa falló pero DB guardó OK:", e);
       }
 
-      toast.success(`EP ${selectedEp} guardado correctamente en DB global`);
+      toast.success(hasSeekeSource(sources) ? `URL base Seeke ${lang} guardada para todos los episodios` : `EP ${selectedEp} guardado correctamente en DB global`);
       const key = `${selectedEp}-${lang}`;
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
       const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
