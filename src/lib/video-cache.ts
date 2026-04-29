@@ -70,38 +70,44 @@ export async function getCachedVideo(
   const slugKey = cacheKey(normalizedSlug, episode, lang);
   const byAnimeKey = anilistId ? animeCacheKey(anilistId, episode, lang) : null;
 
-  if (byAnimeKey && memCache.has(byAnimeKey)) return memCache.get(byAnimeKey)!;
-  if (memCache.has(slugKey)) return memCache.get(slugKey)!;
+  if (byAnimeKey && memCache.has(byAnimeKey)) {
+    const cached = memCache.get(byAnimeKey)!;
+    if (cached || episode === 0) return cached;
+  }
+  if (memCache.has(slugKey)) {
+    const cached = memCache.get(slugKey)!;
+    if (cached || episode === 0) return cached;
+  }
 
   let rows: CachedVideo[] = [];
 
-  if (anilistId) {
-    const { data, error } = await supabase
-      .from("video_cache")
-      .select("*")
-      .eq("anilist_id", anilistId)
-      .eq("episode", episode)
-      .eq("lang", lang)
-      .order("updated_at", { ascending: false });
+  const readRows = async (targetEpisode: number): Promise<CachedVideo[]> => {
+    if (anilistId) {
+      const { data, error } = await supabase
+        .from("video_cache")
+        .select("*")
+        .eq("anilist_id", anilistId)
+        .eq("episode", targetEpisode)
+        .eq("lang", lang)
+        .order("updated_at", { ascending: false });
 
-    if (!error && data?.length) {
-      rows = data as unknown as CachedVideo[];
+      if (!error && data?.length) return data as unknown as CachedVideo[];
     }
-  }
 
-  if (!rows.length) {
     const { data, error } = await supabase
       .from("video_cache")
       .select("*")
       .eq("slug", normalizedSlug)
-      .eq("episode", episode)
+      .eq("episode", targetEpisode)
       .eq("lang", lang)
       .order("updated_at", { ascending: false });
 
-    if (!error && data?.length) {
-      rows = data as unknown as CachedVideo[];
-    }
-  }
+    return !error && data?.length ? data as unknown as CachedVideo[] : [];
+  };
+
+  rows = await readRows(episode);
+  // Seeke usa una URL base por anime/idioma; se guarda como episodio 0 y sirve para cualquier capítulo.
+  if (!rows.length && episode !== 0) rows = await readRows(0);
 
   const result = pickBestVideo(rows, normalizedSlug);
   if (!result) {

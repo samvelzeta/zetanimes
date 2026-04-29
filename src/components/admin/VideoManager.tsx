@@ -26,10 +26,11 @@ interface EpisodeStatus {
 const STORAGE_KEY = "upload-progress";
 
 function normalizeSeekeBaseUrl(url: string) {
-  const clean = url.trim();
-  if (!clean) return "";
-  if (!clean.includes("flixlat.com") && !clean.includes("/detail/") && !clean.includes("123flmsfree.com")) return clean;
-  return clean.replace(/\/\d+\/?(?:[?#].*)?$/, "");
+  return url.trim();
+}
+
+function hasSeekeSource(sources?: CachedVideo["sources"]) {
+  return (sources?.seeke?.length || 0) > 0;
 }
 
 function getStoredProgress(): Record<string, Record<string, Record<string, string>>> {
@@ -120,7 +121,7 @@ export default function VideoManager() {
   const checkEpisode = useCallback(async (slug: string, ep: number, l: string) => {
     const key = `${ep}-${l}`;
     // Primero check en nuestra DB (más rápido y confiable)
-      const cached = await getCachedVideo(slug, ep, l, selected?.id);
+    const cached = await getCachedVideo(slug, ep, l, selected?.id);
     if (cached) {
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
       return;
@@ -204,12 +205,13 @@ export default function VideoManager() {
     if (!selected || selectedEp === null || !primaryUrl.trim()) return toast.error("Falta la URL del video");
     setSending(true);
     const sources = buildSourcesObj(primaryUrl, fallbackUrl, pcUrl, mobileUrl);
+    const saveEpisode = hasSeekeSource(sources) ? 0 : selectedEp;
 
     try {
       // 1. Guardar en Lovable Cloud (DB) — fuente confiable
       const dbRes = await saveCachedVideo({
         slug: selected.slug,
-        episode: selectedEp,
+        episode: saveEpisode,
         lang,
         sources,
         anilist_id: selected.id,
@@ -233,7 +235,7 @@ export default function VideoManager() {
         console.warn("API externa falló pero DB guardó OK:", e);
       }
 
-      toast.success(`EP ${selectedEp} guardado correctamente en DB global`);
+      toast.success(hasSeekeSource(sources) ? `URL base Seeke ${lang} guardada para todos los episodios` : `EP ${selectedEp} guardado correctamente en DB global`);
       const key = `${selectedEp}-${lang}`;
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
       const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
@@ -245,7 +247,7 @@ export default function VideoManager() {
   };
 
   const editSaved = (sv: CachedVideo) => {
-    setSelectedEp(sv.episode);
+    setSelectedEp(sv.episode === 0 ? 1 : sv.episode);
     setLang(sv.lang as "sub" | "latino");
     setShowSaved(false);
   };
@@ -331,7 +333,7 @@ export default function VideoManager() {
               return (
                 <div key={sv.id} className="flex items-center justify-between bg-background/50 rounded-lg p-2 border border-border">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-foreground">EP {sv.episode} · {sv.lang}</p>
+                    <p className="text-xs font-bold text-foreground">{sv.episode === 0 ? "Base Seeke" : `EP ${sv.episode}`} · {sv.lang}</p>
                     <p className="text-[10px] text-muted-foreground font-mono">{total} fuente{total !== 1 ? "s" : ""}</p>
                   </div>
                   <button onClick={() => editSaved(sv)} className="text-primary hover:bg-primary/10 p-1.5 rounded">
@@ -411,7 +413,7 @@ export default function VideoManager() {
             {selectedEp !== null ? (
               <>
                 <div className="bg-secondary rounded-xl p-3 border border-border">
-                  <p className="text-sm font-bold text-foreground">Capítulo {selectedEp}</p>
+                   <p className="text-sm font-bold text-foreground">Capítulo {selectedEp}</p>
                   <p className="text-[10px] text-muted-foreground">{selected.slug} · {lang}</p>
                   {epStatuses[`${selectedEp}-${lang}`]?.checked && (
                     <p className={`text-[10px] font-bold mt-1 ${epStatuses[`${selectedEp}-${lang}`].exists ? "text-primary" : "text-destructive"}`}>
@@ -421,11 +423,11 @@ export default function VideoManager() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-primary mb-1 block">URL base Seeke o video principal</label>
+                   <label className="text-[10px] text-primary mb-1 block">URL base Seeke ({lang === "latino" ? "Latino/DUB" : "Japonés/SUB"}) o video principal</label>
                   <Input value={primaryUrl} onChange={(e) => setPrimaryUrl(e.target.value)}
                     placeholder="https://site.com/anime-sub o https://...m3u8" className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-xs" />
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Para Seeke pega la URL base sin /1, /2, etc. Se usará esta misma URL + el capítulo al reproducir.
+                    Para Seeke pega la URL base del anime/idioma sin /1, /2, etc. Se guarda una sola vez para todos los capítulos.
                   </p>
                 </div>
 

@@ -89,12 +89,11 @@ export default function ApiDebugPanel() {
 
   const requestSeeke = async () => {
     if (!seekeUrl.trim()) return toast.error("Pega la URL base de Seeke/Flixlat");
-    const baseUrl = seekeUrl.trim().replace(/\/\d+\/?(?:[?#].*)?$/, "");
+    const baseUrl = seekeUrl.trim();
     setSeekeLoading(true);
     setSeekeJson(null);
     try {
       const data = await getSeekeEpisode(baseUrl, episode);
-      setSeekeUrl(baseUrl);
       setSeekeJson({ ok: true, request: { url: baseUrl, ep: episode }, response: data });
       toast.success("Seeke respondió correctamente");
     } catch (error: any) {
@@ -168,7 +167,7 @@ export default function ApiDebugPanel() {
             <div className="rounded-xl border border-primary/30 bg-secondary/40 p-3 space-y-3">
               <div>
                 <p className="text-xs font-bold text-foreground">Prueba Seeke / Flixlat</p>
-                <p className="text-[10px] text-muted-foreground">Envía siempre URL base + capítulo. No construye m3u8 ni usa slug.</p>
+                <p className="text-[10px] text-muted-foreground">Envía la URL base exacta + capítulo a la API. No usa slug ni modifica la URL.</p>
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Input
