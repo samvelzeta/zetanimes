@@ -82,7 +82,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [showControls, setShowControls] = useState(true);
   const [showServerPicker, setShowServerPicker] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [autoNextVisible, setAutoNextVisible] = useState(false);
+  const [autoNextSeconds, setAutoNextSeconds] = useState(15);
+  const [playPulse, setPlayPulse] = useState(false);
   const controlsTimer = useRef<ReturnType<typeof setTimeout>>();
+  const autoNextTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoNextCountdownStarted = useRef(false);
+  const autoNextCancelled = useRef(false);
   const hasRestoredTime = useRef(false);
   const inWebView = isWebView();
 
@@ -91,7 +97,20 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setError(false);
     setLoading(true);
     hasRestoredTime.current = false;
+    autoNextCountdownStarted.current = false;
+    autoNextCancelled.current = false;
+    setAutoNextVisible(false);
+    setAutoNextSeconds(15);
+    if (autoNextTimer.current) clearInterval(autoNextTimer.current);
   }, [classified]);
+
+  useEffect(() => {
+    autoNextCountdownStarted.current = false;
+    autoNextCancelled.current = false;
+    setAutoNextVisible(false);
+    setAutoNextSeconds(15);
+    if (autoNextTimer.current) clearInterval(autoNextTimer.current);
+  }, [episodeKey]);
 
   const currentSource = classified[currentIdx];
 
@@ -184,6 +203,17 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     };
   }, [currentSource, autoplay, tryNext, restoreTime]);
 
+  const cancelAutoNext = useCallback(() => {
+    autoNextCancelled.current = true;
+    autoNextCountdownStarted.current = false;
+    setAutoNextVisible(false);
+    setAutoNextSeconds(15);
+    if (autoNextTimer.current) {
+      clearInterval(autoNextTimer.current);
+      autoNextTimer.current = null;
+    }
+  }, []);
+
   // Progress tracking
   useEffect(() => {
     const video = videoRef.current;
@@ -194,6 +224,32 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       setDuration(video.duration || 0);
       if (video.duration > 0) {
         onProgress?.(video.currentTime / video.duration);
+        const remaining = video.duration - video.currentTime;
+        if (
+          onAutoNext &&
+          canNext &&
+          !autoNextAlreadyTriggered &&
+          !autoNextCancelled.current &&
+          !autoNextCountdownStarted.current &&
+          remaining <= 30 &&
+          remaining > 15
+        ) {
+          autoNextCountdownStarted.current = true;
+          setAutoNextVisible(true);
+          setAutoNextSeconds(15);
+          autoNextTimer.current = setInterval(() => {
+            setAutoNextSeconds((seconds) => {
+              if (seconds <= 1) {
+                if (autoNextTimer.current) clearInterval(autoNextTimer.current);
+                autoNextTimer.current = null;
+                setAutoNextVisible(false);
+                onAutoNext();
+                return 0;
+              }
+              return seconds - 1;
+            });
+          }, 1000);
+        }
       }
     };
     const onPlay = () => setPlaying(true);
@@ -211,8 +267,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("seeked", onSeek);
+      if (autoNextTimer.current) {
+        clearInterval(autoNextTimer.current);
+        autoNextTimer.current = null;
+      }
     };
-  }, [currentSource, onProgress, onSeeked]);
+  }, [currentSource, onProgress, onSeeked, onAutoNext, canNext, autoNextAlreadyTriggered]);
 
   // Fullscreen: lock landscape on mobile/webview
   useEffect(() => {
