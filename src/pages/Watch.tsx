@@ -268,6 +268,18 @@ export default function Watch() {
       : rawSources;
   }, [activeSourceIdx, rawSources, shouldShowLanguageControls, lang]);
   const activeLang = sortedSources[0]?.lang || lang;
+  const autoNextKey = `${anilistId}-${selectedEp}`;
+
+  const handleAutoNext = useCallback(() => {
+    const autoPlayEnabled = localStorage.getItem("zet_autoplay") !== "false";
+    if (!autoPlayEnabled || selectedEp >= (totalEpisodes || 0) || autoNextDone.has(autoNextKey)) return;
+    setAutoNextDone((prev) => {
+      const next = new Set(prev);
+      next.add(autoNextKey);
+      return next;
+    });
+    selectEpisode(selectedEp + 1);
+  }, [autoNextDone, autoNextKey, selectedEp, totalEpisodes]);
 
   // Restore progress on episode change
   useEffect(() => {
