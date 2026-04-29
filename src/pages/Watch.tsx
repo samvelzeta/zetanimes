@@ -62,8 +62,8 @@ export default function Watch() {
   const playerWrapperRef = useRef<HTMLDivElement>(null);
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [activeSourceIdx, setActiveSourceIdx] = useState(0);
+  const [autoNextDone, setAutoNextDone] = useState<Set<string>>(() => new Set());
   const lastSavedProgressRef = useRef(0);
-  const autoNextTriggeredRef = useRef(false);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
   const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes(watchedScope)));
 
@@ -75,7 +75,6 @@ export default function Watch() {
     historyEntryIdRef.current = null;
     watchTimeRef.current = 0;
     lastSavedProgressRef.current = 0;
-    autoNextTriggeredRef.current = false;
   }, [user?.id, anilistId, selectedEp]);
 
   const { data: anilistData } = useQuery({
@@ -241,12 +240,6 @@ export default function Watch() {
   }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
-  const sortedSources = useMemo(() => (
-    activeSourceIdx > 0 && activeSourceIdx < rawSources.length
-      ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
-      : rawSources
-  ), [activeSourceIdx, rawSources]);
-
   const langAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
     acc[source.lang] += 1;
     return acc;
@@ -256,12 +249,26 @@ export default function Watch() {
     return acc;
   }, { sub: 0, latino: 0 });
   const hasMultipleSources = rawSources.length >= 2;
-  const activeLang = sortedSources[0]?.lang || lang;
   const dbLikeCount = rawSources.filter((source) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke").length;
   const apiCount = rawSources.filter((source) => source.origin === "api").length;
   const hasDbBothLanguages = dbLangAvailability.sub > 0 && dbLangAvailability.latino > 0;
   const shouldShowLanguageControls = hasDbBothLanguages && dbLikeCount > 0 && apiCount === 0;
   const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls;
+  const sortedSources = useMemo(() => {
+    if (shouldShowLanguageControls) {
+      const isDbLike = (source: PlayerSourceItem) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke";
+      return [...rawSources].sort((a, b) => {
+        const aRank = a.lang === lang && isDbLike(a) ? 0 : 1;
+        const bRank = b.lang === lang && isDbLike(b) ? 0 : 1;
+        return aRank - bRank || sourcePriority(a) - sourcePriority(b);
+      });
+    }
+    return activeSourceIdx > 0 && activeSourceIdx < rawSources.length
+      ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
+      : rawSources;
+  }, [activeSourceIdx, rawSources, shouldShowLanguageControls, lang]);
+  const activeLang = sortedSources[0]?.lang || lang;
+  const autoNextKey = `${anilistId}-${selectedEp}`;
 
   // Restore progress on episode change
   useEffect(() => {
@@ -285,6 +292,17 @@ export default function Watch() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
+  const handleAutoNext = useCallback(() => {
+    const autoPlayEnabled = localStorage.getItem("zet_autoplay") !== "false";
+    if (!autoPlayEnabled || selectedEp >= (totalEpisodes || 0) || autoNextDone.has(autoNextKey)) return;
+    setAutoNextDone((prev) => {
+      const next = new Set(prev);
+      next.add(autoNextKey);
+      return next;
+    });
+    selectEpisode(selectedEp + 1);
+  }, [autoNextDone, autoNextKey, selectedEp, totalEpisodes]);
 
   // Helper: marca el episodio como visto en estado + localStorage (sólo logueado)
   const markWatchedReactive = useCallback((epSlug: string) => {
@@ -416,23 +434,7 @@ export default function Watch() {
       markWatchedReactive(epSlug);
     }
 
-    // Autoplay siguiente episodio una sola vez, cuando falten 30s reales del video.
-    const autoPlayEnabled = localStorage.getItem("zet_autoplay") !== "false";
-    const video = document.querySelector("video");
-    const remainingSeconds = video?.duration && Number.isFinite(video.duration)
-      ? video.duration - video.currentTime
-      : Number.POSITIVE_INFINITY;
-    if (
-      autoPlayEnabled &&
-      !autoNextTriggeredRef.current &&
-      remainingSeconds <= 30 &&
-      remainingSeconds > 0 &&
-      selectedEp < (totalEpisodes || 0)
-    ) {
-      autoNextTriggeredRef.current = true;
-      setTimeout(() => selectEpisode(selectedEp + 1), 800);
-    }
-  }, [zetSlug, selectedEp, persistProgress, markWatchedReactive, totalEpisodes]);
+  }, [zetSlug, selectedEp, persistProgress, markWatchedReactive]);
 
   // Guarda inmediatamente al hacer seek manual (adelantar / retroceder)
   const handleSeeked = useCallback((currentTime: number, duration: number) => {
@@ -570,6 +572,13 @@ export default function Watch() {
                 onSeeked={handleSeeked}
                 initialTime={initialTime}
                 showServerPicker={shouldShowServerControl}
+                episodeKey={autoNextKey}
+                canPrev={selectedEp > 1}
+                canNext={selectedEp < totalEpisodes}
+                onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
+                onNext={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
+                onAutoNext={handleAutoNext}
+                autoNextAlreadyTriggered={autoNextDone.has(autoNextKey)}
               />
               {/* Overlay only visible in fullscreen — does NOT affect playback */}
               <PlayerOverlay
@@ -631,7 +640,7 @@ export default function Watch() {
                 onClick={() => {
                   if (!enabled) return;
                   setLang(targetLang);
-                  setActiveSourceIdx(firstIdx);
+                  setActiveSourceIdx(0);
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 disabled:opacity-35 disabled:cursor-not-allowed ${
                   selected ? "bg-primary text-primary-foreground border-primary" : "bg-primary/15 border-primary/40 text-primary hover:bg-primary/25"

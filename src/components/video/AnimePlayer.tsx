@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle } from "lucide-react";
+import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 
@@ -21,9 +21,16 @@ interface Props {
   autoplay?: boolean;
   initialTime?: number;
   showServerPicker?: boolean;
+  episodeKey?: string;
+  canPrev?: boolean;
+  canNext?: boolean;
+  onPrev?: () => void;
+  onNext?: () => void;
+  onAutoNext?: () => void;
+  autoNextAlreadyTriggered?: boolean;
 }
 
-type SourceType = "hls" | "mp4" | "embed" | "seeke";
+type SourceType = "hls" | "mp4" | "embed" | "html" | "seeke";
 
 interface ClassifiedSource {
   type: SourceType;
@@ -35,11 +42,14 @@ interface ClassifiedSource {
 function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   const classified: ClassifiedSource[] = [];
   for (const s of sources) {
-    const url = s.embed || s.url || "";
+    const rawUrl = s.embed || s.url || "";
+    const url = rawUrl.trim();
     if (!url) continue;
 
     // Use API-provided type if available
-    if (s.type === "seeke") {
+    if (/<iframe|<video/i.test(url)) {
+      classified.push({ type: "html", url, name: s.name, episode: s.episode });
+    } else if (s.type === "seeke") {
       classified.push({ type: "seeke", url, name: s.name, episode: s.episode });
     } else if (s.type === "hls" || url.includes(".m3u8")) {
       classified.push({ type: "hls", url, name: s.name });
@@ -51,13 +61,13 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   }
   // Sort: HLS first, then mp4, then embed
   classified.sort((a, b) => {
-    const order: Record<SourceType, number> = { seeke: 0, hls: 1, mp4: 2, embed: 3 };
+    const order: Record<SourceType, number> = { seeke: 0, hls: 1, mp4: 2, embed: 3, html: 3 };
     return order[a.type] - order[b.type];
   });
   return classified;
 }
 
-export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true }: Props) {
+export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,7 +82,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [showControls, setShowControls] = useState(true);
   const [showServerPicker, setShowServerPicker] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [autoNextVisible, setAutoNextVisible] = useState(false);
+  const [autoNextSeconds, setAutoNextSeconds] = useState(15);
+  const [playPulse, setPlayPulse] = useState(false);
   const controlsTimer = useRef<ReturnType<typeof setTimeout>>();
+  const autoNextTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoNextCountdownStarted = useRef(false);
+  const autoNextCancelled = useRef(false);
   const hasRestoredTime = useRef(false);
   const inWebView = isWebView();
 
@@ -81,7 +97,20 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setError(false);
     setLoading(true);
     hasRestoredTime.current = false;
+    autoNextCountdownStarted.current = false;
+    autoNextCancelled.current = false;
+    setAutoNextVisible(false);
+    setAutoNextSeconds(15);
+    if (autoNextTimer.current) clearInterval(autoNextTimer.current);
   }, [classified]);
+
+  useEffect(() => {
+    autoNextCountdownStarted.current = false;
+    autoNextCancelled.current = false;
+    setAutoNextVisible(false);
+    setAutoNextSeconds(15);
+    if (autoNextTimer.current) clearInterval(autoNextTimer.current);
+  }, [episodeKey]);
 
   const currentSource = classified[currentIdx];
 
@@ -107,7 +136,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
   // Seeke / HLS / MP4 setup
   useEffect(() => {
-    if (!currentSource || currentSource.type === "embed") return;
+    if (!currentSource || currentSource.type === "embed" || currentSource.type === "html") return;
     const video = videoRef.current;
     if (!video) return;
     let cancelled = false;
@@ -174,16 +203,53 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     };
   }, [currentSource, autoplay, tryNext, restoreTime]);
 
+  const cancelAutoNext = useCallback(() => {
+    autoNextCancelled.current = true;
+    autoNextCountdownStarted.current = false;
+    setAutoNextVisible(false);
+    setAutoNextSeconds(15);
+    if (autoNextTimer.current) {
+      clearInterval(autoNextTimer.current);
+      autoNextTimer.current = null;
+    }
+  }, []);
+
   // Progress tracking
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !currentSource || currentSource.type === "embed") return;
+    if (!video || !currentSource || currentSource.type === "embed" || currentSource.type === "html") return;
 
     const onTimeUpdate = () => {
       setProgress(video.currentTime);
       setDuration(video.duration || 0);
       if (video.duration > 0) {
         onProgress?.(video.currentTime / video.duration);
+        const remaining = video.duration - video.currentTime;
+        if (
+          onAutoNext &&
+          canNext &&
+          !autoNextAlreadyTriggered &&
+          !autoNextCancelled.current &&
+          !autoNextCountdownStarted.current &&
+          remaining <= 30 &&
+          remaining > 15
+        ) {
+          autoNextCountdownStarted.current = true;
+          setAutoNextVisible(true);
+          setAutoNextSeconds(15);
+          autoNextTimer.current = setInterval(() => {
+            setAutoNextSeconds((seconds) => {
+              if (seconds <= 1) {
+                if (autoNextTimer.current) clearInterval(autoNextTimer.current);
+                autoNextTimer.current = null;
+                setAutoNextVisible(false);
+                onAutoNext();
+                return 0;
+              }
+              return seconds - 1;
+            });
+          }, 1000);
+        }
       }
     };
     const onPlay = () => setPlaying(true);
@@ -201,8 +267,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("seeked", onSeek);
+      if (autoNextTimer.current) {
+        clearInterval(autoNextTimer.current);
+        autoNextTimer.current = null;
+      }
     };
-  }, [currentSource, onProgress, onSeeked]);
+  }, [currentSource, onProgress, onSeeked, onAutoNext, canNext, autoNextAlreadyTriggered]);
 
   // Fullscreen: lock landscape on mobile/webview
   useEffect(() => {
@@ -222,7 +292,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
-    video.paused ? video.play() : video.pause();
+    if (video.paused) {
+      setPlayPulse(true);
+      window.setTimeout(() => setPlayPulse(false), 650);
+      video.play();
+    } else {
+      video.pause();
+    }
   };
 
   const toggleMute = () => {
@@ -290,18 +366,22 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     </div>
   );
 
-  // Embed mode
-  if (currentSource?.type === "embed") {
+  // Embed mode: usar el player externo si viene como iframe/video embebido o URL de reproductor.
+  if (currentSource?.type === "embed" || currentSource?.type === "html") {
     return (
       <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
-        <iframe
-          src={currentSource.url}
-          className="w-full h-full border-0"
-          allowFullScreen
-          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
-          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          title={title}
-        />
+        {currentSource.type === "html" ? (
+          <div className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_video]:w-full [&_video]:h-full" dangerouslySetInnerHTML={{ __html: currentSource.url }} />
+        ) : (
+          <iframe
+            src={currentSource.url}
+            className="w-full h-full border-0"
+            allowFullScreen
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            title={title}
+          />
+        )}
         {showServerPickerEnabled && classified.length > 1 && <ServerPicker />}
       </div>
     );
@@ -333,6 +413,30 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       )}
 
       <video ref={videoRef} className="w-full h-full object-contain" playsInline muted={muted} />
+
+      {playPulse && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
+          <Zap className="w-20 h-20 text-primary fill-current animate-[scale-out_0.65s_ease-out_forwards] drop-shadow-[0_0_22px_hsl(var(--primary))]" />
+        </div>
+      )}
+
+      {autoNextVisible && (
+        <div className="absolute right-3 bottom-20 z-30 w-[min(92vw,320px)] rounded-xl border border-primary/50 bg-background/92 backdrop-blur px-4 py-3 shadow-[0_0_24px_hsl(var(--primary)/0.35)]" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-3">
+            <div className="relative h-11 w-11 flex-shrink-0 rounded-full border border-primary/40 flex items-center justify-center">
+              <Loader2 className="absolute h-10 w-10 text-primary animate-spin" />
+              <Zap className="h-5 w-5 text-primary fill-current" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-foreground">Salto automático</p>
+              <p className="text-[11px] text-muted-foreground">Siguiente episodio en {autoNextSeconds}s</p>
+            </div>
+            <button onClick={cancelAutoNext} className="h-8 w-8 rounded-md bg-secondary text-foreground hover:text-primary border border-border flex items-center justify-center transition" aria-label="Cancelar salto automático">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Controls overlay */}
       <div
@@ -367,8 +471,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
         {/* Center play button */}
         {!playing && !loading && !error && (
-          <button onClick={togglePlay} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center hover:scale-110 transition-transform">
-            <Play className="w-7 h-7 text-primary-foreground fill-current ml-1" />
+          <button onClick={togglePlay} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-background/80 border-2 border-primary/70 flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_28px_hsl(var(--primary)/0.55)] before:absolute before:inset-2 before:rounded-full before:border before:border-primary/35">
+            <Zap className="absolute w-10 h-10 text-primary fill-current drop-shadow-[0_0_14px_hsl(var(--primary))]" />
+            <Play className="relative w-7 h-7 text-primary-foreground fill-current ml-1 opacity-70" />
           </button>
         )}
 
@@ -381,8 +486,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              <button onClick={() => onPrev?.()} disabled={!canPrev} className="text-white hover:text-primary transition disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Episodio anterior">
+                <SkipBack className="w-5 h-5" />
+              </button>
               <button onClick={togglePlay} className="text-white hover:text-primary transition">
-                {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current" />}
+                {playing ? <Pause className="w-5 h-5" /> : <Zap className="w-5 h-5 fill-current" />}
+              </button>
+              <button onClick={() => onNext?.()} disabled={!canNext} className="text-white hover:text-primary transition disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Episodio siguiente">
+                <SkipForward className="w-5 h-5" />
               </button>
               <button onClick={toggleMute} className="text-white hover:text-primary transition">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
