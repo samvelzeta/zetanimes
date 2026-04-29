@@ -414,6 +414,30 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
       <video ref={videoRef} className="w-full h-full object-contain" playsInline muted={muted} />
 
+      {playPulse && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
+          <Zap className="w-20 h-20 text-primary fill-current animate-[scale-out_0.65s_ease-out_forwards] drop-shadow-[0_0_22px_hsl(var(--primary))]" />
+        </div>
+      )}
+
+      {autoNextVisible && (
+        <div className="absolute right-3 bottom-20 z-30 w-[min(92vw,320px)] rounded-xl border border-primary/50 bg-background/92 backdrop-blur px-4 py-3 shadow-[0_0_24px_hsl(var(--primary)/0.35)]" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-3">
+            <div className="relative h-11 w-11 flex-shrink-0 rounded-full border border-primary/40 flex items-center justify-center">
+              <Loader2 className="absolute h-10 w-10 text-primary animate-spin" />
+              <Zap className="h-5 w-5 text-primary fill-current" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-foreground">Salto automático</p>
+              <p className="text-[11px] text-muted-foreground">Siguiente episodio en {autoNextSeconds}s</p>
+            </div>
+            <button onClick={cancelAutoNext} className="h-8 w-8 rounded-md bg-secondary text-foreground hover:text-primary border border-border flex items-center justify-center transition" aria-label="Cancelar salto automático">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Controls overlay */}
       <div
         className={`absolute inset-0 z-10 transition-opacity duration-300 ${showControls || !playing ? "opacity-100" : "opacity-0 pointer-events-none"}`}
@@ -447,8 +471,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
         {/* Center play button */}
         {!playing && !loading && !error && (
-          <button onClick={togglePlay} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center hover:scale-110 transition-transform">
-            <Play className="w-7 h-7 text-primary-foreground fill-current ml-1" />
+          <button onClick={togglePlay} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-background/80 border-2 border-primary/70 flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_28px_hsl(var(--primary)/0.55)] before:absolute before:inset-2 before:rounded-full before:border before:border-primary/35">
+            <Zap className="absolute w-10 h-10 text-primary fill-current drop-shadow-[0_0_14px_hsl(var(--primary))]" />
+            <Play className="relative w-7 h-7 text-primary-foreground fill-current ml-1 opacity-70" />
           </button>
         )}
 
@@ -461,8 +486,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              <button onClick={() => onPrev?.()} disabled={!canPrev} className="text-white hover:text-primary transition disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Episodio anterior">
+                <SkipBack className="w-5 h-5" />
+              </button>
               <button onClick={togglePlay} className="text-white hover:text-primary transition">
-                {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current" />}
+                {playing ? <Pause className="w-5 h-5" /> : <Zap className="w-5 h-5 fill-current" />}
+              </button>
+              <button onClick={() => onNext?.()} disabled={!canNext} className="text-white hover:text-primary transition disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Episodio siguiente">
+                <SkipForward className="w-5 h-5" />
               </button>
               <button onClick={toggleMute} className="text-white hover:text-primary transition">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
