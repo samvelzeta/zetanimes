@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X } from "lucide-react";
+import { Pause, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 
@@ -440,11 +440,10 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
       {/* Controls overlay */}
       <div
-        className={`absolute inset-0 z-10 transition-opacity duration-300 ${showControls || !playing ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-        onClick={(e) => e.stopPropagation()}
+        className={`pointer-events-none absolute inset-0 z-10 transition-opacity duration-300 ${showControls || !playing ? "opacity-100" : "opacity-0"}`}
       >
         {/* Top bar with server picker */}
-        <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between">
+        <div className="pointer-events-auto absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
           <p className="text-xs text-white font-medium truncate flex-1 mr-2">{title}</p>
           {showServerPickerEnabled && classified.length > 1 && (
             <div className="relative">
@@ -469,16 +468,27 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           )}
         </div>
 
-        {/* Center play button */}
-        {!playing && !loading && !error && (
-          <button onClick={togglePlay} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-background/80 border-2 border-primary/70 flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_28px_hsl(var(--primary)/0.55)] before:absolute before:inset-2 before:rounded-full before:border before:border-primary/35">
-            <Zap className="absolute w-10 h-10 text-primary fill-current drop-shadow-[0_0_14px_hsl(var(--primary))]" />
-            <Play className="relative w-7 h-7 text-primary-foreground fill-current ml-1 opacity-70" />
-          </button>
+        {/* Center episode controls */}
+        {!loading && !error && (
+          <div className="pointer-events-auto absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-5 sm:gap-7" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => onPrev?.()} disabled={!canPrev} className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-background/70 border border-primary/45 flex items-center justify-center text-foreground hover:text-primary hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95" aria-label="Episodio anterior">
+              <SkipBack className="h-6 w-6 sm:h-7 sm:w-7" />
+            </button>
+            <button onClick={togglePlay} className="relative h-20 w-20 rounded-full bg-background/80 border-2 border-primary/70 flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_28px_hsl(var(--primary)/0.55)] before:absolute before:inset-2 before:rounded-full before:border before:border-primary/35" aria-label={playing ? "Pausar" : "Reproducir"}>
+              {playing ? (
+                <Pause className="relative h-9 w-9 text-primary drop-shadow-[0_0_14px_hsl(var(--primary))]" />
+              ) : (
+                <Zap className="relative h-11 w-11 text-primary fill-current drop-shadow-[0_0_14px_hsl(var(--primary))]" />
+              )}
+            </button>
+            <button onClick={() => onNext?.()} disabled={!canNext} className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-background/70 border border-primary/45 flex items-center justify-center text-foreground hover:text-primary hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95" aria-label="Episodio siguiente">
+              <SkipForward className="h-6 w-6 sm:h-7 sm:w-7" />
+            </button>
+          </div>
         )}
 
         {/* Bottom controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+        <div className="pointer-events-auto absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent" onClick={(e) => e.stopPropagation()}>
           <div onClick={seekTo} className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer mb-2 group/bar">
             <div className="h-full bg-primary rounded-full relative transition-all" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : "0%" }}>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
@@ -486,14 +496,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => onPrev?.()} disabled={!canPrev} className="text-white hover:text-primary transition disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Episodio anterior">
-                <SkipBack className="w-5 h-5" />
-              </button>
               <button onClick={togglePlay} className="text-white hover:text-primary transition">
                 {playing ? <Pause className="w-5 h-5" /> : <Zap className="w-5 h-5 fill-current" />}
-              </button>
-              <button onClick={() => onNext?.()} disabled={!canNext} className="text-white hover:text-primary transition disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Episodio siguiente">
-                <SkipForward className="w-5 h-5" />
               </button>
               <button onClick={toggleMute} className="text-white hover:text-primary transition">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
