@@ -249,7 +249,6 @@ export default function Watch() {
     return acc;
   }, { sub: 0, latino: 0 });
   const hasMultipleSources = rawSources.length >= 2;
-  const activeLang = sortedSources[0]?.lang || lang;
   const dbLikeCount = rawSources.filter((source) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke").length;
   const apiCount = rawSources.filter((source) => source.origin === "api").length;
   const hasDbBothLanguages = dbLangAvailability.sub > 0 && dbLangAvailability.latino > 0;
@@ -423,23 +422,7 @@ export default function Watch() {
       markWatchedReactive(epSlug);
     }
 
-    // Autoplay siguiente episodio una sola vez, cuando falten 30s reales del video.
-    const autoPlayEnabled = localStorage.getItem("zet_autoplay") !== "false";
-    const video = document.querySelector("video");
-    const remainingSeconds = video?.duration && Number.isFinite(video.duration)
-      ? video.duration - video.currentTime
-      : Number.POSITIVE_INFINITY;
-    if (
-      autoPlayEnabled &&
-      !autoNextTriggeredRef.current &&
-      remainingSeconds <= 30 &&
-      remainingSeconds > 0 &&
-      selectedEp < (totalEpisodes || 0)
-    ) {
-      autoNextTriggeredRef.current = true;
-      setTimeout(() => selectEpisode(selectedEp + 1), 800);
-    }
-  }, [zetSlug, selectedEp, persistProgress, markWatchedReactive, totalEpisodes]);
+  }, [zetSlug, selectedEp, persistProgress, markWatchedReactive]);
 
   // Guarda inmediatamente al hacer seek manual (adelantar / retroceder)
   const handleSeeked = useCallback((currentTime: number, duration: number) => {
