@@ -136,7 +136,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
   // Seeke / HLS / MP4 setup
   useEffect(() => {
-    if (!currentSource || currentSource.type === "embed") return;
+    if (!currentSource || currentSource.type === "embed" || currentSource.type === "html") return;
     const video = videoRef.current;
     if (!video) return;
     let cancelled = false;
