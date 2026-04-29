@@ -240,12 +240,6 @@ export default function Watch() {
   }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
-  const sortedSources = useMemo(() => (
-    activeSourceIdx > 0 && activeSourceIdx < rawSources.length
-      ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
-      : rawSources
-  ), [activeSourceIdx, rawSources]);
-
   const langAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
     acc[source.lang] += 1;
     return acc;
@@ -261,6 +255,20 @@ export default function Watch() {
   const hasDbBothLanguages = dbLangAvailability.sub > 0 && dbLangAvailability.latino > 0;
   const shouldShowLanguageControls = hasDbBothLanguages && dbLikeCount > 0 && apiCount === 0;
   const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls;
+  const sortedSources = useMemo(() => {
+    if (shouldShowLanguageControls) {
+      const isDbLike = (source: PlayerSourceItem) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke";
+      return [...rawSources].sort((a, b) => {
+        const aRank = a.lang === lang && isDbLike(a) ? 0 : 1;
+        const bRank = b.lang === lang && isDbLike(b) ? 0 : 1;
+        return aRank - bRank || sourcePriority(a) - sourcePriority(b);
+      });
+    }
+    return activeSourceIdx > 0 && activeSourceIdx < rawSources.length
+      ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
+      : rawSources;
+  }, [activeSourceIdx, rawSources, shouldShowLanguageControls, lang]);
+  const activeLang = sortedSources[0]?.lang || lang;
 
   // Restore progress on episode change
   useEffect(() => {
