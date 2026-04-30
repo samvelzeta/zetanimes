@@ -249,6 +249,69 @@ export default function VideoManager() {
     setSending(false);
   };
 
+  const runSeekeAutoFetch = async () => {
+    if (!selected || !primaryUrl.trim()) return toast.error("Falta el link madre de Seeke");
+    const sources = buildSourcesObj(primaryUrl, fallbackUrl, pcUrl, mobileUrl);
+    if (!hasSeekeSource(sources)) return toast.error("La petición automática solo funciona con URL base Seeke");
+
+    stopAutoFetchRef.current = false;
+    setAutoFetching(true);
+    setAutoLog([`Iniciando ${selected.title} · ${lang} desde cap 1`]);
+
+    const baseUrl = normalizeSeekeBaseUrl(primaryUrl);
+    const saveBase = await saveCachedVideo({
+      slug: selected.slug,
+      episode: 0,
+      lang,
+      sources,
+      anilist_id: selected.id,
+      anime_title: selected.title,
+      uploaded_by: user?.id,
+    });
+
+    if (!saveBase.success) {
+      setAutoLog((prev) => [`Error guardando base: ${saveBase.error || "desconocido"}`, ...prev]);
+      setAutoFetching(false);
+      return;
+    }
+
+    for (let ep = 1; ep <= totalEps; ep++) {
+      if (stopAutoFetchRef.current) {
+        setAutoLog((prev) => [`Detenido por admin en cap ${ep}`, ...prev]);
+        break;
+      }
+
+      setAutoLog((prev) => [`Pidiendo cap ${ep}...`, ...prev].slice(0, 12));
+      try {
+        const result = await getSeekeEpisode(baseUrl, ep);
+        const hlsSources = result.embed.includes(".m3u8") ? [result.embed] : [];
+        const embedSources = result.embed.includes(".m3u8") ? [] : [result.embed];
+
+        const saved = await saveCachedVideo({
+          slug: selected.slug,
+          episode: ep,
+          lang,
+          sources: { hls: hlsSources, mp4: [], embed: embedSources, pc: [], mobile: [], seeke: [] },
+          anilist_id: selected.id,
+          anime_title: selected.title,
+          uploaded_by: user?.id,
+        });
+
+        if (!saved.success) throw new Error(saved.error || "no se pudo guardar");
+        setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: true } }));
+        setAutoLog((prev) => [`✔ Cap ${ep} listo${result.cached ? " (cache)" : ""}`, ...prev].slice(0, 12));
+      } catch (e: any) {
+        setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: false } }));
+        setAutoLog((prev) => [`✘ Cap ${ep}: ${e?.message || "error"}`, ...prev].slice(0, 12));
+        break;
+      }
+    }
+
+    const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
+    setSavedVideos(refreshed);
+    setAutoFetching(false);
+  };
+
   const editSaved = (sv: CachedVideo) => {
     setSelectedEp(sv.episode === 0 ? 1 : sv.episode);
     setLang(sv.lang as "sub" | "latino");
