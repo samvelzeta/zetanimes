@@ -65,6 +65,8 @@ export default function Watch() {
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [activeSourceIdx, setActiveSourceIdx] = useState(0);
   const [autoNextDone, setAutoNextDone] = useState<Set<string>>(() => new Set());
+  const [playerSources, setPlayerSources] = useState<PlayerSourceItem[]>([]);
+  const [playerEpisode, setPlayerEpisode] = useState(epParam);
   const lastSavedProgressRef = useRef(0);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
   const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes(watchedScope)));
@@ -527,6 +529,16 @@ export default function Watch() {
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
   const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || loadingServers;
+  const displayedSources = !isLoading && sortedSources.length > 0 ? sortedSources : playerSources;
+  const displayedEpisode = !isLoading && sortedSources.length > 0 ? selectedEp : playerEpisode;
+  const displayedAutoNextKey = `${anilistId}-${displayedEpisode}`;
+  const isEpisodeSwitching = isLoading && playerSources.length > 0;
+
+  useEffect(() => {
+    if (sortedSources.length === 0 || isLoading) return;
+    setPlayerSources(sortedSources);
+    setPlayerEpisode(selectedEp);
+  }, [sortedSources, isLoading, selectedEp]);
 
   // Tuerca decorativa SVG (estática, mitad visible en esquina)
   const CornerNut = ({ className }: { className: string }) => (
@@ -573,30 +585,38 @@ export default function Watch() {
                 "0 0 0 1px hsl(var(--primary) / 0.15), 0 0 22px hsl(var(--primary) / 0.45), 0 0 50px hsl(var(--primary) / 0.25)",
             }}
           >
-          {isLoading ? (
+          {isLoading && playerSources.length === 0 ? (
             <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
-          ) : sortedSources.length > 0 ? (
+          ) : displayedSources.length > 0 ? (
             <>
               <AnimePlayer
-                sources={sortedSources}
-                title={`${displayTitle} - EP ${selectedEp}`}
-                onProgress={handleProgress}
-                onSeeked={handleSeeked}
+                sources={displayedSources}
+                title={`${displayTitle} - EP ${displayedEpisode}`}
+                onProgress={isEpisodeSwitching ? undefined : handleProgress}
+                onSeeked={isEpisodeSwitching ? undefined : handleSeeked}
                 initialTime={initialTime}
                 showServerPicker={shouldShowServerControl}
-                episodeKey={autoNextKey}
-                canPrev={selectedEp > 1}
-                canNext={selectedEp < totalEpisodes}
+                episodeKey={displayedAutoNextKey}
+                canPrev={displayedEpisode > 1}
+                canNext={displayedEpisode < totalEpisodes}
                 onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
                 onNext={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
-                onAutoNext={handleAutoNext}
-                autoNextAlreadyTriggered={autoNextDone.has(autoNextKey)}
+                onAutoNext={isEpisodeSwitching ? undefined : handleAutoNext}
+                autoNextAlreadyTriggered={autoNextDone.has(displayedAutoNextKey)}
               />
+              {isEpisodeSwitching && (
+                <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-background/45 backdrop-blur-[2px]">
+                  <div className="flex items-center gap-3 rounded-lg border border-primary/35 bg-background/90 px-4 py-3 shadow-[0_0_28px_hsl(var(--primary)/0.35)]">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="text-sm font-bold text-foreground">Cargando EP {selectedEp}</span>
+                  </div>
+                </div>
+              )}
               {/* Overlay only visible in fullscreen — does NOT affect playback */}
               <PlayerOverlay
-                episode={selectedEp}
+                episode={displayedEpisode}
                 totalEpisodes={totalEpisodes}
                 onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
                 onNext={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
