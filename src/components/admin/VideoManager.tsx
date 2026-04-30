@@ -137,7 +137,7 @@ export default function VideoManager() {
     } catch {
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: false } }));
     }
-  }, []);
+  }, [selected?.id]);
 
   // Cargar saved al cambiar de ep o lang (auto-rellenar URLs)
   useEffect(() => {
@@ -243,8 +243,8 @@ export default function VideoManager() {
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
       const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
       setSavedVideos(refreshed);
-    } catch (e: any) {
-      toast.error("Error: " + e.message);
+    } catch (e: unknown) {
+      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
     }
     setSending(false);
   };
@@ -300,9 +300,9 @@ export default function VideoManager() {
         if (!saved.success) throw new Error(saved.error || "no se pudo guardar");
         setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: true } }));
         setAutoLog((prev) => [`✔ Cap ${ep} listo${result.cached ? " (cache)" : ""}`, ...prev].slice(0, 12));
-      } catch (e: any) {
+      } catch (e: unknown) {
         setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: false } }));
-        setAutoLog((prev) => [`✘ Cap ${ep}: ${e?.message || "error"}`, ...prev].slice(0, 12));
+        setAutoLog((prev) => [`✘ Cap ${ep}: ${e instanceof Error ? e.message : "error"}`, ...prev].slice(0, 12));
         break;
       }
     }
