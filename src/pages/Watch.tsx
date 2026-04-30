@@ -9,7 +9,7 @@ import {
   type ZetServer,
 } from "@/lib/zetapi";
 import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
-import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform } from "@/lib/video-cache";
+import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform, clearRuntimeVideoCache } from "@/lib/video-cache";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
@@ -73,6 +73,7 @@ export default function Watch() {
     if (didResetSeekeRuntimeCache) return;
     didResetSeekeRuntimeCache = true;
     episodeCache.clear();
+    clearRuntimeVideoCache();
     clearSeekeEpisodeCache();
   }, []);
 
