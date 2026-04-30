@@ -5,6 +5,7 @@ import {
   getEpisodeServers, sortServersByPriority,
   markEpisodeWatched, getWatchedEpisodes, setWatchedEpisodes, titleToSlug, getCachedSlug,
   saveCachedSlug, getLatinoEpisode, getSeekeEpisode,
+  clearSeekeEpisodeCache,
   type ZetServer,
 } from "@/lib/zetapi";
 import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
@@ -30,6 +31,7 @@ type Lang = "sub" | "latino";
 type PlayerSourceItem = { name: string; embed: string; type?: string; episode?: number; lang: Lang; origin: "db" | "api" | "hls" | "seeke" };
 
 const episodeCache = new Map<string, any>();
+let didResetSeekeRuntimeCache = false;
 
 function appendUniqueSource(list: PlayerSourceItem[], source: PlayerSourceItem) {
   if (!source.embed || list.some((item) => item.embed === source.embed)) return;
@@ -66,6 +68,13 @@ export default function Watch() {
   const lastSavedProgressRef = useRef(0);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
   const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes(watchedScope)));
+
+  useEffect(() => {
+    if (didResetSeekeRuntimeCache) return;
+    didResetSeekeRuntimeCache = true;
+    episodeCache.clear();
+    clearSeekeEpisodeCache();
+  }, []);
 
   useEffect(() => {
     setWatchedSet(new Set(getWatchedEpisodes(watchedScope)));
