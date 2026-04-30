@@ -401,7 +401,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       ref={containerRef}
       className="relative aspect-video bg-black rounded-xl overflow-hidden group cursor-pointer"
       onMouseMove={showControlsTemp}
-      onClick={togglePlay}
+      onClick={toggleControls}
     >
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
@@ -424,7 +424,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
       {playPulse && (
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
-          <Zap className="w-20 h-20 text-primary fill-current animate-[scale-out_0.65s_ease-out_forwards] drop-shadow-[0_0_22px_hsl(var(--primary))]" />
+          <Zap className="w-16 h-16 text-primary fill-current animate-[zet-pop-fade_0.85s_cubic-bezier(0.16,1,0.3,1)_forwards] drop-shadow-[0_0_26px_hsl(var(--primary))]" />
         </div>
       )}
 
