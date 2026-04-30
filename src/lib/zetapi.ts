@@ -88,11 +88,21 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
   return res.data;
 }
 
+const SEEKE_CACHE_VERSION = "v2";
 const seekeMemoryCache = new Map<string, { embed: string; episode: number; cached?: boolean; expiresAt: number }>();
-const SEEKE_CACHE_TTL = 1000 * 60 * 60 * 6;
+const SEEKE_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
 
 function getSeekeCacheKey(baseUrl: string, epNumber: number) {
-  return `zet:seeke:${baseUrl.trim()}:${epNumber}`;
+  return `zet:seeke:${SEEKE_CACHE_VERSION}:${baseUrl.trim()}:${epNumber}`;
+}
+
+export function clearSeekeEpisodeCache() {
+  seekeMemoryCache.clear();
+  try {
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith("zet:seeke:"))
+      .forEach((key) => localStorage.removeItem(key));
+  } catch {}
 }
 
 export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promise<{ embed: string; episode: number; cached?: boolean }> {
