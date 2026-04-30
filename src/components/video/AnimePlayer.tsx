@@ -294,7 +294,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     if (!video) return;
     if (video.paused) {
       setPlayPulse(true);
-      window.setTimeout(() => setPlayPulse(false), 650);
+      window.setTimeout(() => setPlayPulse(false), 850);
       video.play();
     } else {
       video.pause();
@@ -327,6 +327,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setShowControls(true);
     if (controlsTimer.current) clearTimeout(controlsTimer.current);
     controlsTimer.current = setTimeout(() => setShowControls(false), 3000);
+  };
+
+  const toggleControls = () => {
+    setShowControls((visible) => {
+      const next = !visible;
+      if (controlsTimer.current) clearTimeout(controlsTimer.current);
+      return next;
+    });
   };
 
   const selectServer = (idx: number) => {
