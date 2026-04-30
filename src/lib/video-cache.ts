@@ -24,6 +24,7 @@ export interface CachedVideo {
 
 export type PlaybackPlatform = "pc" | "mobile";
 
+const VIDEO_CACHE_VERSION = "v2";
 const memCache = new Map<string, CachedVideo | null>();
 
 function normalizeSlug(slug: string) {
@@ -31,11 +32,11 @@ function normalizeSlug(slug: string) {
 }
 
 function cacheKey(slug: string, ep: number, lang: string) {
-  return `${normalizeSlug(slug)}::${ep}::${lang}`;
+  return `${VIDEO_CACHE_VERSION}::${normalizeSlug(slug)}::${ep}::${lang}`;
 }
 
 function animeCacheKey(anilistId: number, ep: number, lang: string) {
-  return `anilist:${anilistId}::${ep}::${lang}`;
+  return `${VIDEO_CACHE_VERSION}::anilist:${anilistId}::${ep}::${lang}`;
 }
 
 function writeCache(video: CachedVideo | null, slug: string, ep: number, lang: string, anilistId?: number | null) {

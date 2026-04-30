@@ -167,6 +167,13 @@ body { overflow-x: clip; }
   to { transform: rotate(360deg); }
 }
 
+@keyframes zet-pop-fade {
+  0% { opacity: 0; transform: scale(0.42); filter: blur(8px); }
+  18% { opacity: 1; transform: scale(1); filter: blur(0); }
+  58% { opacity: 0.78; transform: scale(1.34); filter: blur(1px); }
+  100% { opacity: 0; transform: scale(2.15); filter: blur(10px); }
+}
+
 /* ============ Skeleton con rayo naranja pulsante ============ */
 .skeleton-zet {
   position: relative;
