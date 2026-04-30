@@ -525,7 +525,7 @@ export default function Watch() {
   };
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
-  const isLoading = loadingServers || loadingSlug;
+  const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || loadingServers;
 
   // Tuerca decorativa SVG (estática, mitad visible en esquina)
   const CornerNut = ({ className }: { className: string }) => (
