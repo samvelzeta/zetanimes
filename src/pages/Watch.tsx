@@ -529,8 +529,9 @@ export default function Watch() {
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
   const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || loadingServers;
-  const displayedSources = sortedSources.length > 0 ? sortedSources : playerSources;
-  const displayedEpisode = sortedSources.length > 0 ? selectedEp : playerEpisode;
+  const displayedSources = !isLoading && sortedSources.length > 0 ? sortedSources : playerSources;
+  const displayedEpisode = !isLoading && sortedSources.length > 0 ? selectedEp : playerEpisode;
+  const displayedAutoNextKey = `${anilistId}-${displayedEpisode}`;
   const isEpisodeSwitching = isLoading && playerSources.length > 0;
 
   useEffect(() => {
@@ -593,17 +594,17 @@ export default function Watch() {
               <AnimePlayer
                 sources={displayedSources}
                 title={`${displayTitle} - EP ${displayedEpisode}`}
-                onProgress={handleProgress}
-                onSeeked={handleSeeked}
+                onProgress={isEpisodeSwitching ? undefined : handleProgress}
+                onSeeked={isEpisodeSwitching ? undefined : handleSeeked}
                 initialTime={initialTime}
                 showServerPicker={shouldShowServerControl}
-                episodeKey={autoNextKey}
+                episodeKey={displayedAutoNextKey}
                 canPrev={displayedEpisode > 1}
                 canNext={displayedEpisode < totalEpisodes}
                 onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
                 onNext={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
-                onAutoNext={handleAutoNext}
-                autoNextAlreadyTriggered={autoNextDone.has(autoNextKey)}
+                onAutoNext={isEpisodeSwitching ? undefined : handleAutoNext}
+                autoNextAlreadyTriggered={autoNextDone.has(displayedAutoNextKey)}
               />
               {isEpisodeSwitching && (
                 <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-background/45 backdrop-blur-[2px]">
