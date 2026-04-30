@@ -497,6 +497,23 @@ export default function VideoManager() {
                   </p>
                 </div>
 
+                <div className="grid grid-cols-[auto_auto_1fr] gap-2 items-start bg-secondary/60 rounded-xl border border-primary/30 p-2">
+                  <button onClick={runSeekeAutoFetch} disabled={autoFetching || !primaryUrl.trim()}
+                    className="px-3 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-[10px] hover:bg-primary/90 transition flex items-center gap-1.5 disabled:opacity-50">
+                    {autoFetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                    Petición automática
+                  </button>
+                  <button onClick={() => { stopAutoFetchRef.current = true; setAutoLog((prev) => ["Stop solicitado...", ...prev].slice(0, 12)); }} disabled={!autoFetching}
+                    className="px-3 py-2 rounded-lg bg-destructive text-destructive-foreground font-bold text-[10px] hover:bg-destructive/90 transition disabled:opacity-50">
+                    Stop
+                  </button>
+                  <div className="min-h-9 max-h-24 overflow-y-auto rounded-lg bg-background/50 border border-border px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    {autoLog.length === 0 ? "Registro automático..." : autoLog.map((line, idx) => (
+                      <p key={`${line}-${idx}`} className={line.startsWith("✔") ? "text-primary" : line.startsWith("✘") ? "text-destructive" : ""}>{line}</p>
+                    ))}
+                  </div>
+                </div>
+
                 <div>
                   <label className="text-[10px] text-primary mb-1 block">Fallback (opcional)</label>
                   <Input value={fallbackUrl} onChange={(e) => setFallbackUrl(e.target.value)}
