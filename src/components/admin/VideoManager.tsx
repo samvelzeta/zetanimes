@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
-import { titleToSlug } from "@/lib/zetapi";
+import { getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
 import { saveCachedVideo, getCachedVideo, deleteCachedVideo, listCachedVideosBySlug, type CachedVideo } from "@/lib/video-cache";
 import { getSlugOverride } from "@/lib/slug-overrides";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,8 +69,11 @@ export default function VideoManager() {
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
   const [savedVideos, setSavedVideos] = useState<CachedVideo[]>([]);
   const [showSaved, setShowSaved] = useState(false);
+  const [autoFetching, setAutoFetching] = useState(false);
+  const [autoLog, setAutoLog] = useState<string[]>([]);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const listRef = useRef<HTMLDivElement>(null);
+  const stopAutoFetchRef = useRef(false);
 
   const handleSearch = (val: string) => {
     setSearchQuery(val);
@@ -134,7 +137,7 @@ export default function VideoManager() {
     } catch {
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: false } }));
     }
-  }, []);
+  }, [selected?.id]);
 
   // Cargar saved al cambiar de ep o lang (auto-rellenar URLs)
   useEffect(() => {
@@ -240,10 +243,73 @@ export default function VideoManager() {
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
       const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
       setSavedVideos(refreshed);
-    } catch (e: any) {
-      toast.error("Error: " + e.message);
+    } catch (e: unknown) {
+      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
     }
     setSending(false);
+  };
+
+  const runSeekeAutoFetch = async () => {
+    if (!selected || !primaryUrl.trim()) return toast.error("Falta el link madre de Seeke");
+    const sources = buildSourcesObj(primaryUrl, fallbackUrl, pcUrl, mobileUrl);
+    if (!hasSeekeSource(sources)) return toast.error("La petición automática solo funciona con URL base Seeke");
+
+    stopAutoFetchRef.current = false;
+    setAutoFetching(true);
+    setAutoLog([`Iniciando ${selected.title} · ${lang} desde cap 1`]);
+
+    const baseUrl = normalizeSeekeBaseUrl(primaryUrl);
+    const saveBase = await saveCachedVideo({
+      slug: selected.slug,
+      episode: 0,
+      lang,
+      sources,
+      anilist_id: selected.id,
+      anime_title: selected.title,
+      uploaded_by: user?.id,
+    });
+
+    if (!saveBase.success) {
+      setAutoLog((prev) => [`Error guardando base: ${saveBase.error || "desconocido"}`, ...prev]);
+      setAutoFetching(false);
+      return;
+    }
+
+    for (let ep = 1; ep <= totalEps; ep++) {
+      if (stopAutoFetchRef.current) {
+        setAutoLog((prev) => [`Detenido por admin en cap ${ep}`, ...prev]);
+        break;
+      }
+
+      setAutoLog((prev) => [`Pidiendo cap ${ep}...`, ...prev].slice(0, 12));
+      try {
+        const result = await getSeekeEpisode(baseUrl, ep);
+        const hlsSources = result.embed.includes(".m3u8") ? [result.embed] : [];
+        const embedSources = result.embed.includes(".m3u8") ? [] : [result.embed];
+
+        const saved = await saveCachedVideo({
+          slug: selected.slug,
+          episode: ep,
+          lang,
+          sources: { hls: hlsSources, mp4: [], embed: embedSources, pc: [], mobile: [], seeke: [] },
+          anilist_id: selected.id,
+          anime_title: selected.title,
+          uploaded_by: user?.id,
+        });
+
+        if (!saved.success) throw new Error(saved.error || "no se pudo guardar");
+        setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: true } }));
+        setAutoLog((prev) => [`✔ Cap ${ep} listo${result.cached ? " (cache)" : ""}`, ...prev].slice(0, 12));
+      } catch (e: unknown) {
+        setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: false } }));
+        setAutoLog((prev) => [`✘ Cap ${ep}: ${e instanceof Error ? e.message : "error"}`, ...prev].slice(0, 12));
+        break;
+      }
+    }
+
+    const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
+    setSavedVideos(refreshed);
+    setAutoFetching(false);
   };
 
   const editSaved = (sv: CachedVideo) => {
@@ -429,6 +495,23 @@ export default function VideoManager() {
                   <p className="text-[10px] text-muted-foreground mt-1">
                     Para Seeke pega la URL base del anime/idioma sin /1, /2, etc. Se guarda una sola vez para todos los capítulos.
                   </p>
+                </div>
+
+                <div className="grid grid-cols-[auto_auto_1fr] gap-2 items-start bg-secondary/60 rounded-xl border border-primary/30 p-2">
+                  <button onClick={runSeekeAutoFetch} disabled={autoFetching || !primaryUrl.trim()}
+                    className="px-3 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-[10px] hover:bg-primary/90 transition flex items-center gap-1.5 disabled:opacity-50">
+                    {autoFetching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                    Petición automática
+                  </button>
+                  <button onClick={() => { stopAutoFetchRef.current = true; setAutoLog((prev) => ["Stop solicitado...", ...prev].slice(0, 12)); }} disabled={!autoFetching}
+                    className="px-3 py-2 rounded-lg bg-destructive text-destructive-foreground font-bold text-[10px] hover:bg-destructive/90 transition disabled:opacity-50">
+                    Stop
+                  </button>
+                  <div className="min-h-9 max-h-24 overflow-y-auto rounded-lg bg-background/50 border border-border px-2 py-1 font-mono text-[10px] text-muted-foreground">
+                    {autoLog.length === 0 ? "Registro automático..." : autoLog.map((line, idx) => (
+                      <p key={`${line}-${idx}`} className={line.startsWith("✔") ? "text-primary" : line.startsWith("✘") ? "text-destructive" : ""}>{line}</p>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
