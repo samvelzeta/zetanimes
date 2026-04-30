@@ -169,7 +169,7 @@ export default function Watch() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // 2) Episode servers from scraper API (solo si NO hay cache de DB ni HLS latino)
+  // 2) Episode servers fallback. Seeke/manual siempre se agrega y ordena primero.
   const { data: serverData, isLoading: loadingServers, error: serverError } = useQuery({
     queryKey: ["zet-servers", zetSlug, selectedEp, lang],
     queryFn: async () => {
@@ -261,8 +261,9 @@ export default function Watch() {
   const dbLikeCount = rawSources.filter((source) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke").length;
   const apiCount = rawSources.filter((source) => source.origin === "api").length;
   const hasDbBothLanguages = dbLangAvailability.sub > 0 && dbLangAvailability.latino > 0;
-  const shouldShowLanguageControls = hasDbBothLanguages && dbLikeCount > 0 && apiCount === 0;
-  const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls;
+  const hasSeekeBothLanguages = rawSources.some((source) => source.origin === "seeke" && source.lang === "sub") && rawSources.some((source) => source.origin === "seeke" && source.lang === "latino");
+  const shouldShowLanguageControls = hasDbBothLanguages && dbLikeCount > 0;
+  const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls && !hasSeekeBothLanguages;
   const sortedSources = useMemo(() => {
     if (shouldShowLanguageControls) {
       const isDbLike = (source: PlayerSourceItem) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke";
