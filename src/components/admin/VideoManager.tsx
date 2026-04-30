@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
-import { titleToSlug } from "@/lib/zetapi";
+import { getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
 import { saveCachedVideo, getCachedVideo, deleteCachedVideo, listCachedVideosBySlug, type CachedVideo } from "@/lib/video-cache";
 import { getSlugOverride } from "@/lib/slug-overrides";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,8 +69,11 @@ export default function VideoManager() {
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
   const [savedVideos, setSavedVideos] = useState<CachedVideo[]>([]);
   const [showSaved, setShowSaved] = useState(false);
+  const [autoFetching, setAutoFetching] = useState(false);
+  const [autoLog, setAutoLog] = useState<string[]>([]);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const listRef = useRef<HTMLDivElement>(null);
+  const stopAutoFetchRef = useRef(false);
 
   const handleSearch = (val: string) => {
     setSearchQuery(val);
