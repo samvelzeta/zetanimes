@@ -287,6 +287,10 @@ export async function listCachedVideosBySlug(slug: string, anilistId?: number): 
   });
 }
 
+export function clearRuntimeVideoCache() {
+  memCache.clear();
+}
+
 /**
  * Convierte el cache a formato compatible con AnimePlayer sources.
  */
