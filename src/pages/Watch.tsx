@@ -9,7 +9,7 @@ import {
   type ZetServer,
 } from "@/lib/zetapi";
 import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
-import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform } from "@/lib/video-cache";
+import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform, clearRuntimeVideoCache } from "@/lib/video-cache";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
@@ -73,6 +73,7 @@ export default function Watch() {
     if (didResetSeekeRuntimeCache) return;
     didResetSeekeRuntimeCache = true;
     episodeCache.clear();
+    clearRuntimeVideoCache();
     clearSeekeEpisodeCache();
   }, []);
 
@@ -151,7 +152,7 @@ export default function Watch() {
   });
 
   // 1) Cache global (DB) - PRIORIDAD MÁXIMA: lo guardado en admin manda
-  const { data: cachedVideo } = useQuery({
+  const { data: cachedVideo, isFetched: cachedVideoFetched } = useQuery({
     queryKey: ["video-cache", zetSlug, selectedEp, lang],
     queryFn: () => getCachedVideo(zetSlug || animeTitle || String(anilistId), selectedEp, lang, anilistId),
     enabled: anilistId > 0,
@@ -162,14 +163,17 @@ export default function Watch() {
   // la API solo trae 1 idioma (típicamente JP). Si el admin guardó manualmente
   // el otro idioma en DB, lo combinamos para que el botón "Cambiar idioma" funcione.
   const oppositeLang: Lang = lang === "sub" ? "latino" : "sub";
-  const { data: cachedVideoOpposite } = useQuery({
+  const { data: cachedVideoOpposite, isFetched: cachedVideoOppositeFetched } = useQuery({
     queryKey: ["video-cache-opposite", zetSlug, selectedEp, oppositeLang],
     queryFn: () => getCachedVideo(zetSlug || animeTitle || String(anilistId), selectedEp, oppositeLang, anilistId),
     enabled: anilistId > 0 && !!zetSlug,
     staleTime: 1000 * 60 * 5,
   });
 
-  // 2) Episode servers fallback. Seeke/manual siempre se agrega y ordena primero.
+  const hasCurrentSeekeBase = (cachedVideo?.sources?.seeke?.length || 0) > 0;
+  const hasOppositeSeekeBase = (cachedVideoOpposite?.sources?.seeke?.length || 0) > 0;
+
+  // 2) Episode servers fallback. Seeke/manual siempre se pide primero; si existe URL madre Seeke no se consulta AnimeAV1.
   const { data: serverData, isLoading: loadingServers, error: serverError } = useQuery({
     queryKey: ["zet-servers", zetSlug, selectedEp, lang],
     queryFn: async () => {
@@ -178,7 +182,7 @@ export default function Watch() {
       episodeCache.set(cacheKey, res);
       return res;
     },
-    enabled: !!zetSlug,
+    enabled: !!zetSlug && cachedVideoFetched && !hasCurrentSeekeBase,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
@@ -192,7 +196,7 @@ export default function Watch() {
       episodeCache.set(oppositeKey, res);
       return res;
     },
-    enabled: !!zetSlug,
+    enabled: !!zetSlug && cachedVideoOppositeFetched && !hasOppositeSeekeBase,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
@@ -522,7 +526,7 @@ export default function Watch() {
   };
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
-  const isLoading = loadingServers || loadingSlug;
+  const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || loadingServers;
 
   // Tuerca decorativa SVG (estática, mitad visible en esquina)
   const CornerNut = ({ className }: { className: string }) => (
