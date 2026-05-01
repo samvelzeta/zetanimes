@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 
@@ -71,7 +71,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const classified = useMemo(() => classifySources(sources), [sources]);
+  // Estabilizamos por contenido para evitar microreinicios cuando el padre re-renderiza con misma data
+  const sourcesKey = useMemo(
+    () => sources.map((s) => `${s.type || ""}|${s.embed || s.url || ""}|${s.episode ?? ""}`).join("¶"),
+    [sources]
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const classified = useMemo(() => classifySources(sources), [sourcesKey]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -333,8 +339,43 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setShowControls((visible) => {
       const next = !visible;
       if (controlsTimer.current) clearTimeout(controlsTimer.current);
+      if (next) {
+        controlsTimer.current = setTimeout(() => setShowControls(false), 3500);
+      }
       return next;
     });
+  };
+
+  // Double-tap seek (±10s) y single-tap toggle controles desde cualquier parte
+  const lastTapRef = useRef<{ time: number; x: number } | null>(null);
+  const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [seekFlash, setSeekFlash] = useState<null | "back" | "fwd">(null);
+
+  const handleContainerTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    const video = videoRef.current;
+    const now = Date.now();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const last = lastTapRef.current;
+
+    if (last && now - last.time < 320 && video && video.duration) {
+      // Double tap → seek ±10s
+      if (singleTapTimer.current) { clearTimeout(singleTapTimer.current); singleTapTimer.current = null; }
+      const isLeft = x < rect.width / 2;
+      const target = Math.max(0, Math.min(video.duration, video.currentTime + (isLeft ? -10 : 10)));
+      video.currentTime = target;
+      setSeekFlash(isLeft ? "back" : "fwd");
+      setTimeout(() => setSeekFlash(null), 500);
+      lastTapRef.current = null;
+      return;
+    }
+
+    lastTapRef.current = { time: now, x };
+    if (singleTapTimer.current) clearTimeout(singleTapTimer.current);
+    singleTapTimer.current = setTimeout(() => {
+      toggleControls();
+      singleTapTimer.current = null;
+    }, 260);
   };
 
   const selectServer = (idx: number) => {
@@ -399,9 +440,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   return (
     <div
       ref={containerRef}
-      className="relative aspect-video bg-black rounded-xl overflow-hidden group cursor-pointer"
+      className="relative aspect-video bg-black rounded-xl overflow-hidden group cursor-pointer select-none"
       onMouseMove={showControlsTemp}
-      onClick={toggleControls}
+      onClick={handleContainerTap}
     >
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
@@ -428,6 +469,16 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         </div>
       )}
 
+      {/* Flash de double-tap seek ±10s */}
+      {seekFlash && (
+        <div className={`pointer-events-none absolute inset-y-0 ${seekFlash === "back" ? "left-0" : "right-0"} w-1/2 z-30 flex items-center justify-center bg-primary/10 backdrop-blur-[1px] animate-[zet-pop-fade_0.5s_ease-out_forwards]`}>
+          <div className="flex flex-col items-center gap-1 text-primary drop-shadow-[0_0_14px_hsl(var(--primary))]">
+            {seekFlash === "back" ? <SkipBack className="w-10 h-10 fill-current" /> : <SkipForward className="w-10 h-10 fill-current" />}
+            <span className="text-sm font-bold">10s</span>
+          </div>
+        </div>
+      )}
+
       {autoNextVisible && (
         <div className="absolute right-3 bottom-20 z-30 w-[min(92vw,320px)] rounded-xl border border-primary/50 bg-background/92 backdrop-blur px-4 py-3 shadow-[0_0_24px_hsl(var(--primary)/0.35)]" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-3">
@@ -446,25 +497,28 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         </div>
       )}
 
-      {/* Controls overlay */}
+      {/* Controls overlay — bloqueado por completo cuando está oculto para evitar clics fantasma */}
       <div
-        className={`pointer-events-none absolute inset-0 z-10 transition-opacity duration-300 ${showControls || !playing ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 z-10 transition-opacity duration-300 ${
+          showControls || !playing ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Top bar with server picker */}
-        <div className="pointer-events-auto absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+        {/* Top bar with server picker — nombre se muestra como "Pro" */}
+        <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between">
           <p className="text-xs text-white font-medium truncate flex-1 mr-2">{title}</p>
           {showServerPickerEnabled && classified.length > 1 && (
             <div className="relative">
               <button onClick={() => setShowServerPicker(!showServerPicker)}
                 className="px-2 py-1 rounded bg-black/50 text-white text-[10px] flex items-center gap-1 hover:bg-black/80 transition">
-                <Server className="w-3 h-3" /> {currentSource?.name || "—"}
+                <Server className="w-3 h-3" /> Pro
               </button>
               {showServerPicker && (
                 <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[200px] overflow-y-auto">
                   {classified.map((s, i) => (
                     <button key={i} onClick={() => selectServer(i)}
                       className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
-                      <span>{s.name}</span>
+                      <span>Pro {i + 1}</span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.type === "hls" ? "bg-green-500/20 text-green-400" : s.type === "mp4" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"}`}>
                         {s.type.toUpperCase()}
                       </span>
@@ -476,27 +530,27 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           )}
         </div>
 
-        {/* Center episode controls */}
+        {/* Center episode controls — botones reducidos ~50% en móvil para no cubrir tanto */}
         {!loading && !error && (
-          <div className="pointer-events-auto absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-5 sm:gap-7" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => onPrev?.()} disabled={!canPrev} className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-background/70 border border-primary/45 flex items-center justify-center text-foreground hover:text-primary hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95" aria-label="Episodio anterior">
-              <SkipBack className="h-6 w-6 sm:h-7 sm:w-7" />
+          <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 sm:gap-7">
+            <button onClick={(e) => { e.stopPropagation(); onPrev?.(); }} disabled={!canPrev} className="h-8 w-8 sm:h-14 sm:w-14 rounded-full bg-background/70 border border-primary/45 flex items-center justify-center text-foreground hover:text-primary hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95" aria-label="Episodio anterior">
+              <SkipBack className="h-4 w-4 sm:h-7 sm:w-7" />
             </button>
-            <button onClick={togglePlay} className="relative h-20 w-20 rounded-full bg-background/80 border-2 border-primary/70 flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_28px_hsl(var(--primary)/0.55)] before:absolute before:inset-2 before:rounded-full before:border before:border-primary/35" aria-label={playing ? "Pausar" : "Reproducir"}>
+            <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="relative h-12 w-12 sm:h-20 sm:w-20 rounded-full bg-background/80 border-2 border-primary/70 flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_28px_hsl(var(--primary)/0.55)] before:absolute before:inset-2 before:rounded-full before:border before:border-primary/35" aria-label={playing ? "Pausar" : "Reproducir"}>
               {playing ? (
-                <Pause className="relative h-9 w-9 text-primary drop-shadow-[0_0_14px_hsl(var(--primary))]" />
+                <Play className="relative h-6 w-6 sm:h-10 sm:w-10 text-primary fill-current drop-shadow-[0_0_14px_hsl(var(--primary))]" />
               ) : (
-                <Zap className="relative h-11 w-11 text-primary fill-current drop-shadow-[0_0_14px_hsl(var(--primary))]" />
+                <Zap className="relative h-7 w-7 sm:h-11 sm:w-11 text-primary fill-current drop-shadow-[0_0_14px_hsl(var(--primary))]" />
               )}
             </button>
-            <button onClick={() => onNext?.()} disabled={!canNext} className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-background/70 border border-primary/45 flex items-center justify-center text-foreground hover:text-primary hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95" aria-label="Episodio siguiente">
-              <SkipForward className="h-6 w-6 sm:h-7 sm:w-7" />
+            <button onClick={(e) => { e.stopPropagation(); onNext?.(); }} disabled={!canNext} className="h-8 w-8 sm:h-14 sm:w-14 rounded-full bg-background/70 border border-primary/45 flex items-center justify-center text-foreground hover:text-primary hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95" aria-label="Episodio siguiente">
+              <SkipForward className="h-4 w-4 sm:h-7 sm:w-7" />
             </button>
           </div>
         )}
 
         {/* Bottom controls */}
-        <div className="pointer-events-auto absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
           <div onClick={seekTo} className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer mb-2 group/bar">
             <div className="h-full bg-primary rounded-full relative transition-all" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : "0%" }}>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
@@ -504,17 +558,17 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={togglePlay} className="text-white hover:text-primary transition">
-                {playing ? <Pause className="w-5 h-5" /> : <Zap className="w-5 h-5 fill-current" />}
+              <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary transition">
+                {playing ? <Play className="w-5 h-5 fill-current" /> : <Zap className="w-5 h-5 fill-current" />}
               </button>
-              <button onClick={toggleMute} className="text-white hover:text-primary transition">
+              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
               <span className="text-[10px] text-white/70 tabular-nums">
                 {formatTime(progress)} / {formatTime(duration)}
               </span>
             </div>
-            <button onClick={toggleFullscreen} className="text-white hover:text-primary transition">
+            <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white hover:text-primary transition">
               {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
             </button>
           </div>
