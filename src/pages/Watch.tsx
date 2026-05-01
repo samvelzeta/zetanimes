@@ -138,7 +138,12 @@ export default function Watch() {
     enabled: !!anilistData && anilistId > 0,
     staleTime: 1000 * 60 * 30,
   });
-  const totalEpisodes = resolvedTotal || anilistData?.episodes || 0;
+  // Si está en emisión, NO caer al total planeado (anilistData.episodes) — usar solo lo resuelto (capítulos emitidos)
+  const isReleasing = anilistData?.status === "RELEASING";
+  const fallbackTotal = isReleasing
+    ? (anilistData?.nextAiringEpisode?.episode ? anilistData.nextAiringEpisode.episode - 1 : 0)
+    : (anilistData?.episodes || 0);
+  const totalEpisodes = resolvedTotal || fallbackTotal || 0;
   const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, selectedEp) }, (_, i) => i + 1);
 
   const cacheKey = `${zetSlug}-${selectedEp}-${lang}`;
