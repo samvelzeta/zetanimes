@@ -46,20 +46,31 @@ export async function resolveEpisodeCount(media: AniListMedia | undefined, anili
 
   if (!media) return 1;
 
-  // 2. AniList episodes (finished anime)
-  if (media.episodes && media.episodes > 0) return media.episodes;
+  const isReleasing = media.status === "RELEASING";
 
-  // 3. AniList nextAiringEpisode → next ep number minus 1 = aired so far
-  if (media.nextAiringEpisode?.episode && media.nextAiringEpisode.episode > 1) {
+  // 2. CRÍTICO: Si el anime está EN EMISIÓN, prioriza nextAiringEpisode-1 (capítulos REALMENTE emitidos)
+  // No usar media.episodes porque ese es el TOTAL planeado, no los emitidos.
+  if (isReleasing && media.nextAiringEpisode?.episode && media.nextAiringEpisode.episode > 1) {
     return media.nextAiringEpisode.episode - 1;
   }
 
-  // 4. Jikan fallback
+  // 3. Anime finalizado: usar media.episodes
+  if (!isReleasing && media.episodes && media.episodes > 0) return media.episodes;
+
+  // 4. Si está en emisión pero no hay nextAiringEpisode (raro), intentar Jikan
   const title = media.title?.romaji || media.title?.english;
+  if (isReleasing && title) {
+    const jikan = await getJikanCount(anilistId, title);
+    if (jikan && jikan > 0) return jikan;
+    // Último recurso: 1 capítulo (no inflar con totales)
+    return 1;
+  }
+
+  // 5. Anime finalizado sin episodes: fallback a Jikan
   if (title) {
     const jikan = await getJikanCount(anilistId, title);
     if (jikan && jikan > 0) return jikan;
   }
 
-  return 1;
+  return media.episodes || 1;
 }
