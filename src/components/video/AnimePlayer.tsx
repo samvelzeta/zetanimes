@@ -444,6 +444,10 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       ref={containerRef}
       className="relative aspect-video bg-black rounded-xl overflow-hidden group cursor-pointer select-none"
       onMouseMove={showControlsTemp}
+      onMouseLeave={() => {
+        if (controlsTimer.current) clearTimeout(controlsTimer.current);
+        controlsTimer.current = setTimeout(() => setShowControls(false), 3000);
+      }}
       onClick={handleContainerTap}
     >
       {loading && (
