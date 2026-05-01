@@ -333,8 +333,43 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setShowControls((visible) => {
       const next = !visible;
       if (controlsTimer.current) clearTimeout(controlsTimer.current);
+      if (next) {
+        controlsTimer.current = setTimeout(() => setShowControls(false), 3500);
+      }
       return next;
     });
+  };
+
+  // Double-tap seek (±10s) y single-tap toggle controles desde cualquier parte
+  const lastTapRef = useRef<{ time: number; x: number } | null>(null);
+  const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [seekFlash, setSeekFlash] = useState<null | "back" | "fwd">(null);
+
+  const handleContainerTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    const video = videoRef.current;
+    const now = Date.now();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const last = lastTapRef.current;
+
+    if (last && now - last.time < 320 && video && video.duration) {
+      // Double tap → seek ±10s
+      if (singleTapTimer.current) { clearTimeout(singleTapTimer.current); singleTapTimer.current = null; }
+      const isLeft = x < rect.width / 2;
+      const target = Math.max(0, Math.min(video.duration, video.currentTime + (isLeft ? -10 : 10)));
+      video.currentTime = target;
+      setSeekFlash(isLeft ? "back" : "fwd");
+      setTimeout(() => setSeekFlash(null), 500);
+      lastTapRef.current = null;
+      return;
+    }
+
+    lastTapRef.current = { time: now, x };
+    if (singleTapTimer.current) clearTimeout(singleTapTimer.current);
+    singleTapTimer.current = setTimeout(() => {
+      toggleControls();
+      singleTapTimer.current = null;
+    }, 260);
   };
 
   const selectServer = (idx: number) => {
