@@ -71,7 +71,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const classified = useMemo(() => classifySources(sources), [sources]);
+  // Estabilizamos por contenido para evitar microreinicios cuando el padre re-renderiza con misma data
+  const sourcesKey = useMemo(
+    () => sources.map((s) => `${s.type || ""}|${s.embed || s.url || ""}|${s.episode ?? ""}`).join("¶"),
+    [sources]
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const classified = useMemo(() => classifySources(sources), [sourcesKey]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
