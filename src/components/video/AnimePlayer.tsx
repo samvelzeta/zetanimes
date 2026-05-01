@@ -521,9 +521,11 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                     <button key={i} onClick={() => selectServer(i)}
                       className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
                       <span>Pro {i + 1}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.type === "hls" ? "bg-green-500/20 text-green-400" : s.type === "mp4" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-                        {s.type.toUpperCase()}
-                      </span>
+                      {s.type !== "seeke" && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.type === "hls" ? "bg-green-500/20 text-green-400" : s.type === "mp4" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                          {s.type.toUpperCase()}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
