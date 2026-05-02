@@ -456,7 +456,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       onMouseMove={showControlsTemp}
       onMouseLeave={() => {
         if (controlsTimer.current) clearTimeout(controlsTimer.current);
-        controlsTimer.current = setTimeout(() => setShowControls(false), 3000);
+        controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
       }}
       onClick={handleContainerTap}
     >
