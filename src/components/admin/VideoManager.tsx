@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2 } from "lucide-react";
+import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2, Database } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
 import { getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
-import { saveCachedVideo, getCachedVideo, deleteCachedVideo, listCachedVideosBySlug, type CachedVideo } from "@/lib/video-cache";
+import { saveCachedVideo, getCachedVideo, deleteCachedVideo, listCachedVideosBySlug, type CachedVideo, clearRuntimeVideoCache } from "@/lib/video-cache";
 import { getSlugOverride } from "@/lib/slug-overrides";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const API_BASE = "https://zetapi-api.samvelzeta.workers.dev";
@@ -259,6 +260,7 @@ export default function VideoManager() {
     setAutoLog([`Iniciando ${selected.title} · ${lang} desde cap 1`]);
 
     const baseUrl = normalizeSeekeBaseUrl(primaryUrl);
+    // 1) Guardar URL base Seeke (episode=0) — sirve como fallback universal
     const saveBase = await saveCachedVideo({
       slug: selected.slug,
       episode: 0,
@@ -275,6 +277,7 @@ export default function VideoManager() {
       return;
     }
 
+    // 2) Bucle: pedir cap N → guardar SOLO en su episode=N (no como fallback del 1)
     for (let ep = 1; ep <= totalEps; ep++) {
       if (stopAutoFetchRef.current) {
         setAutoLog((prev) => [`Detenido por admin en cap ${ep}`, ...prev]);
@@ -284,25 +287,49 @@ export default function VideoManager() {
       setAutoLog((prev) => [`Pidiendo cap ${ep}...`, ...prev].slice(0, 12));
       try {
         const result = await getSeekeEpisode(baseUrl, ep);
-        const hlsSources = result.embed.includes(".m3u8") ? [result.embed] : [];
-        const embedSources = result.embed.includes(".m3u8") ? [] : [result.embed];
+        if (!result.embed) throw new Error("respuesta vacía");
+
+        const isHls = result.embed.includes(".m3u8");
+        // Cada cap se guarda EXCLUSIVAMENTE en su slot. NO incluimos seeke aquí
+        // (la base ya está en episode=0); así evitamos que el cap 1 termine
+        // recibiendo todos los embeds de los demás caps como "servidores alternativos".
+        const epSources = {
+          hls: isHls ? [result.embed] : [],
+          mp4: [],
+          embed: isHls ? [] : [result.embed],
+          pc: [],
+          mobile: [],
+          seeke: [],
+        };
 
         const saved = await saveCachedVideo({
           slug: selected.slug,
           episode: ep,
           lang,
-          sources: { hls: hlsSources, mp4: [], embed: embedSources, pc: [], mobile: [], seeke: [] },
+          sources: epSources,
           anilist_id: selected.id,
           anime_title: selected.title,
           uploaded_by: user?.id,
         });
 
         if (!saved.success) throw new Error(saved.error || "no se pudo guardar");
+
+        // Verificación: re-leer del cache para confirmar que SÍ quedó persistido
+        // en su episodio correcto (no como fallback del 0).
+        clearRuntimeVideoCache();
+        const verify = await getCachedVideo(selected.slug, ep, lang, selected.id);
+        if (!verify || verify.episode !== ep) {
+          throw new Error(`guardado pero no verificado (episode=${verify?.episode ?? "null"})`);
+        }
+
         setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: true } }));
-        setAutoLog((prev) => [`✔ Cap ${ep} listo${result.cached ? " (cache)" : ""}`, ...prev].slice(0, 12));
+        setAutoLog((prev) => [`✔ Cap ${ep} guardado en su slot${result.cached ? " (cache)" : ""}`, ...prev].slice(0, 12));
+
+        // Pequeña pausa para no saturar el scraper
+        await new Promise((r) => setTimeout(r, 250));
       } catch (e: unknown) {
         setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: false } }));
-        setAutoLog((prev) => [`✘ Cap ${ep}: ${e instanceof Error ? e.message : "error"}`, ...prev].slice(0, 12));
+        setAutoLog((prev) => [`✘ Cap ${ep}: ${e instanceof Error ? e.message : "error"} — detenido`, ...prev].slice(0, 12));
         break;
       }
     }
@@ -310,6 +337,42 @@ export default function VideoManager() {
     const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
     setSavedVideos(refreshed);
     setAutoFetching(false);
+  };
+
+  // Limpia el cache "basura" (todo lo que NO sea base Seeke). Útil tras pruebas
+  // donde se guardaron embeds de otras APIs en animes equivocados. NO toca las
+  // URLs base Seeke (episode=0 con sources.seeke), que son las que admin sube.
+  const [clearingCache, setClearingCache] = useState(false);
+  const clearJunkCache = async () => {
+    if (!confirm(
+      "¿Eliminar TODO el cache rápido de videos (HLS/MP4/embed por capítulo)?\n\n" +
+      "✔ Se MANTIENEN las URLs base Seeke (episode 0).\n" +
+      "✘ Se BORRAN todos los caps individuales que se hayan rellenado por auto-fetch o pruebas.\n\n" +
+      "Esto es seguro: el reproductor volverá a hacer la petición y guardará de nuevo."
+    )) return;
+    setClearingCache(true);
+    try {
+      // Borra todo lo que no sea episode=0 (los seeke base viven en episode=0).
+      const { error, count } = await supabase
+        .from("video_cache")
+        .delete({ count: "exact" })
+        .neq("episode", 0);
+
+      if (error) {
+        toast.error("Error: " + error.message);
+      } else {
+        clearRuntimeVideoCache();
+        toast.success(`Cache limpiado: ${count ?? 0} registros eliminados`);
+        if (selected) {
+          const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
+          setSavedVideos(refreshed);
+          setEpStatuses({});
+        }
+      }
+    } catch (e) {
+      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
+    }
+    setClearingCache(false);
   };
 
   const editSaved = (sv: CachedVideo) => {
@@ -339,12 +402,25 @@ export default function VideoManager() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-        <Film className="w-4 h-4 text-primary" /> Gestor de Videos
-      </h3>
-      <p className="text-[10px] text-muted-foreground">
-        Busca anime → episodio → URL. Se guarda en DB global (Lovable Cloud) + tu API.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Film className="w-4 h-4 text-primary" /> Gestor de Videos
+          </h3>
+          <p className="text-[10px] text-muted-foreground">
+            Busca anime → episodio → URL. Se guarda en DB global (Lovable Cloud) + tu API.
+          </p>
+        </div>
+        <button
+          onClick={clearJunkCache}
+          disabled={clearingCache}
+          className="flex-shrink-0 px-3 py-2 rounded-lg bg-destructive/15 border border-destructive/40 text-destructive font-bold text-[10px] hover:bg-destructive/25 transition flex items-center gap-1.5 disabled:opacity-50"
+          title="Borra todos los caps cacheados (NO toca las URLs base Seeke)"
+        >
+          {clearingCache ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
+          Limpiar cache rápido
+        </button>
+      </div>
 
       {selected ? (
         <div className="flex items-center gap-3 bg-secondary rounded-xl p-3 border border-primary/30">

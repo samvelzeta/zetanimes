@@ -2,6 +2,8 @@
 // Muestra Adsterra 300x250, bloquea clicks al video, y un botón "Cerrar en Xs" deshabilitado
 // hasta que termina el contador. Aparece cada N episodios consumidos.
 // Premium queda exento por completo.
+// IMPORTANTE: en fullscreen usa position:fixed con z-index máximo para que se vea por encima
+// del video que está en pantalla completa.
 import { useEffect, useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,6 +45,19 @@ export default function AdOverlayGate({
   const { isPremium, loading } = useAuth();
   const [show, setShow] = useState(false);
   const [secs, setSecs] = useState(countdownSecs);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Detectar fullscreen para usar position:fixed con z-index máximo
+  // y aparecer por ENCIMA del video aunque esté en pantalla completa.
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    document.addEventListener("webkitfullscreenchange", onFs as any);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      document.removeEventListener("webkitfullscreenchange", onFs as any);
+    };
+  }, []);
 
   // Decide si mostrar al cambiar de episodio
   useEffect(() => {
@@ -75,9 +90,15 @@ export default function AdOverlayGate({
     onClosed?.();
   };
 
+  // En fullscreen → fixed con z-index máximo (por encima del video fullscreen).
+  // En modo normal → absolute dentro del player.
+  const positionClass = isFullscreen
+    ? "fixed inset-0 z-[2147483647]"
+    : "absolute inset-0 z-[60]";
+
   return (
     <div
-      className="absolute inset-0 z-[60] bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 p-3"
+      className={`${positionClass} bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 p-3`}
       onClick={(e) => e.stopPropagation()}
     >
       <p className="text-[10px] uppercase tracking-widest text-white/50">

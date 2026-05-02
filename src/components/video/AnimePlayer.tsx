@@ -329,10 +329,15 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     video.currentTime = pct * duration;
   };
 
+  // En APK/móvil los controles deben quedar visibles más tiempo (4.5s)
+  // En PC con mouse → 3s tras dejar de moverlo o salir.
+  const isMobileLike = inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const HIDE_MS = isMobileLike ? 4500 : 3000;
+
   const showControlsTemp = () => {
     setShowControls(true);
     if (controlsTimer.current) clearTimeout(controlsTimer.current);
-    controlsTimer.current = setTimeout(() => setShowControls(false), 3000);
+    controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
   };
 
   const toggleControls = () => {
@@ -340,14 +345,16 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       const next = !visible;
       if (controlsTimer.current) clearTimeout(controlsTimer.current);
       if (next) {
-        controlsTimer.current = setTimeout(() => setShowControls(false), 3500);
+        controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
       }
       return next;
     });
   };
 
-  // Double-tap seek (±10s) y single-tap toggle controles desde cualquier parte
-  const lastTapRef = useRef<{ time: number; x: number } | null>(null);
+  // Double-tap seek (±10s) — sensor independiente que SIEMPRE arma con cada tap.
+  // Ventana 380ms entre taps; si entran 2 dentro de la ventana en el mismo lado del player → ±10s.
+  // El single tap (toggle controles) se dispara con un timer corto que se cancela si llega un 2do tap.
+  const lastTapRef = useRef<{ time: number; side: "left" | "right" } | null>(null);
   const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [seekFlash, setSeekFlash] = useState<null | "back" | "fwd">(null);
 
@@ -356,26 +363,29 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     const now = Date.now();
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
+    const side: "left" | "right" = x < rect.width / 2 ? "left" : "right";
     const last = lastTapRef.current;
 
-    if (last && now - last.time < 320 && video && video.duration) {
-      // Double tap → seek ±10s
+    // Double tap detectado → seek (siempre re-armable, NO se anula a null)
+    if (last && now - last.time < 380 && last.side === side && video && video.duration) {
       if (singleTapTimer.current) { clearTimeout(singleTapTimer.current); singleTapTimer.current = null; }
-      const isLeft = x < rect.width / 2;
-      const target = Math.max(0, Math.min(video.duration, video.currentTime + (isLeft ? -10 : 10)));
+      const delta = side === "left" ? -10 : 10;
+      const target = Math.max(0, Math.min(video.duration, video.currentTime + delta));
       video.currentTime = target;
-      setSeekFlash(isLeft ? "back" : "fwd");
+      setSeekFlash(side === "left" ? "back" : "fwd");
       setTimeout(() => setSeekFlash(null), 500);
-      lastTapRef.current = null;
+      // Reset COMPLETO para que el siguiente double-tap arranque limpio
+      lastTapRef.current = { time: now, side };
       return;
     }
 
-    lastTapRef.current = { time: now, x };
+    // Primer tap (o tap fuera de ventana) → guardar y armar single-tap
+    lastTapRef.current = { time: now, side };
     if (singleTapTimer.current) clearTimeout(singleTapTimer.current);
     singleTapTimer.current = setTimeout(() => {
       toggleControls();
       singleTapTimer.current = null;
-    }, 260);
+    }, 400);
   };
 
   const selectServer = (idx: number) => {
@@ -446,7 +456,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       onMouseMove={showControlsTemp}
       onMouseLeave={() => {
         if (controlsTimer.current) clearTimeout(controlsTimer.current);
-        controlsTimer.current = setTimeout(() => setShowControls(false), 3000);
+        controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
       }}
       onClick={handleContainerTap}
     >
