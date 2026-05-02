@@ -2,6 +2,8 @@
 // Muestra Adsterra 300x250, bloquea clicks al video, y un botón "Cerrar en Xs" deshabilitado
 // hasta que termina el contador. Aparece cada N episodios consumidos.
 // Premium queda exento por completo.
+// IMPORTANTE: en fullscreen usa position:fixed con z-index máximo para que se vea por encima
+// del video que está en pantalla completa.
 import { useEffect, useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
