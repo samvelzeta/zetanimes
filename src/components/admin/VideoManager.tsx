@@ -402,12 +402,25 @@ export default function VideoManager() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-        <Film className="w-4 h-4 text-primary" /> Gestor de Videos
-      </h3>
-      <p className="text-[10px] text-muted-foreground">
-        Busca anime → episodio → URL. Se guarda en DB global (Lovable Cloud) + tu API.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Film className="w-4 h-4 text-primary" /> Gestor de Videos
+          </h3>
+          <p className="text-[10px] text-muted-foreground">
+            Busca anime → episodio → URL. Se guarda en DB global (Lovable Cloud) + tu API.
+          </p>
+        </div>
+        <button
+          onClick={clearJunkCache}
+          disabled={clearingCache}
+          className="flex-shrink-0 px-3 py-2 rounded-lg bg-destructive/15 border border-destructive/40 text-destructive font-bold text-[10px] hover:bg-destructive/25 transition flex items-center gap-1.5 disabled:opacity-50"
+          title="Borra todos los caps cacheados (NO toca las URLs base Seeke)"
+        >
+          {clearingCache ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
+          Limpiar cache rápido
+        </button>
+      </div>
 
       {selected ? (
         <div className="flex items-center gap-3 bg-secondary rounded-xl p-3 border border-primary/30">
