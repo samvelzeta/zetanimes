@@ -374,26 +374,28 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     const side: "left" | "right" = x < rect.width / 2 ? "left" : "right";
     const last = lastTapRef.current;
 
-    // Double tap detectado → seek (siempre re-armable, NO se anula a null)
-    if (last && now - last.time < 380 && last.side === side && video && video.duration) {
+    // DOBLE TAP — sensor INDEPENDIENTE: nunca toca la visibilidad de controles.
+    // Ventana 320ms entre taps en el mismo lado → ±10s. Re-armable infinitas veces.
+    if (last && now - last.time < 320 && last.side === side && video && video.duration) {
       if (singleTapTimer.current) { clearTimeout(singleTapTimer.current); singleTapTimer.current = null; }
       const delta = side === "left" ? -10 : 10;
-      const target = Math.max(0, Math.min(video.duration, video.currentTime + delta));
-      video.currentTime = target;
-      setSeekFlash(side === "left" ? "back" : "fwd");
-      setTimeout(() => setSeekFlash(null), 500);
-      // Reset COMPLETO para que el siguiente double-tap arranque limpio
+      video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + delta));
+      setSeekFlash(null);
+      // micro-tick para reanimar aunque se repita rápido
+      requestAnimationFrame(() => setSeekFlash(side === "left" ? "back" : "fwd"));
+      setTimeout(() => setSeekFlash(null), 480);
+      // re-armamos para permitir cadena de double-taps
       lastTapRef.current = { time: now, side };
       return;
     }
 
-    // Primer tap (o tap fuera de ventana) → guardar y armar single-tap
+    // TAP SIMPLE → toggle controles, con delay corto para no chocar con un 2do tap
     lastTapRef.current = { time: now, side };
     if (singleTapTimer.current) clearTimeout(singleTapTimer.current);
     singleTapTimer.current = setTimeout(() => {
       toggleControls();
       singleTapTimer.current = null;
-    }, 400);
+    }, 280);
   };
 
   const selectServer = (idx: number) => {
