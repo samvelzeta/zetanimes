@@ -329,10 +329,18 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     video.currentTime = pct * duration;
   };
 
-  // En APK/móvil los controles deben quedar visibles más tiempo (4.5s)
+  // En APK/móvil los controles deben quedar visibles más tiempo (5s estilo YouTube)
   // En PC con mouse → 3s tras dejar de moverlo o salir.
   const isMobileLike = inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const HIDE_MS = isMobileLike ? 4500 : 3000;
+  const HIDE_MS = isMobileLike ? 5000 : 3000;
+
+  const skip90 = () => {
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    video.currentTime = Math.min(video.duration, video.currentTime + 90);
+    setSeekFlash("fwd");
+    setTimeout(() => setSeekFlash(null), 500);
+  };
 
   const showControlsTemp = () => {
     setShowControls(true);
