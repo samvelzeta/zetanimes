@@ -28,6 +28,9 @@ interface Props {
   onNext?: () => void;
   onAutoNext?: () => void;
   autoNextAlreadyTriggered?: boolean;
+  currentEpisode?: number;
+  totalEpisodes?: number;
+  onSelectEpisode?: (ep: number) => void;
 }
 
 type SourceType = "hls" | "mp4" | "embed" | "html" | "seeke";
