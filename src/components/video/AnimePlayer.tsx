@@ -329,10 +329,18 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     video.currentTime = pct * duration;
   };
 
-  // En APK/móvil los controles deben quedar visibles más tiempo (4.5s)
+  // En APK/móvil los controles deben quedar visibles más tiempo (5s estilo YouTube)
   // En PC con mouse → 3s tras dejar de moverlo o salir.
   const isMobileLike = inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const HIDE_MS = isMobileLike ? 4500 : 3000;
+  const HIDE_MS = isMobileLike ? 5000 : 3000;
+
+  const skip90 = () => {
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    video.currentTime = Math.min(video.duration, video.currentTime + 90);
+    setSeekFlash("fwd");
+    setTimeout(() => setSeekFlash(null), 500);
+  };
 
   const showControlsTemp = () => {
     setShowControls(true);
@@ -366,26 +374,28 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     const side: "left" | "right" = x < rect.width / 2 ? "left" : "right";
     const last = lastTapRef.current;
 
-    // Double tap detectado → seek (siempre re-armable, NO se anula a null)
-    if (last && now - last.time < 380 && last.side === side && video && video.duration) {
+    // DOBLE TAP — sensor INDEPENDIENTE: nunca toca la visibilidad de controles.
+    // Ventana 320ms entre taps en el mismo lado → ±10s. Re-armable infinitas veces.
+    if (last && now - last.time < 320 && last.side === side && video && video.duration) {
       if (singleTapTimer.current) { clearTimeout(singleTapTimer.current); singleTapTimer.current = null; }
       const delta = side === "left" ? -10 : 10;
-      const target = Math.max(0, Math.min(video.duration, video.currentTime + delta));
-      video.currentTime = target;
-      setSeekFlash(side === "left" ? "back" : "fwd");
-      setTimeout(() => setSeekFlash(null), 500);
-      // Reset COMPLETO para que el siguiente double-tap arranque limpio
+      video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + delta));
+      setSeekFlash(null);
+      // micro-tick para reanimar aunque se repita rápido
+      requestAnimationFrame(() => setSeekFlash(side === "left" ? "back" : "fwd"));
+      setTimeout(() => setSeekFlash(null), 480);
+      // re-armamos para permitir cadena de double-taps
       lastTapRef.current = { time: now, side };
       return;
     }
 
-    // Primer tap (o tap fuera de ventana) → guardar y armar single-tap
+    // TAP SIMPLE → toggle controles, con delay corto para no chocar con un 2do tap
     lastTapRef.current = { time: now, side };
     if (singleTapTimer.current) clearTimeout(singleTapTimer.current);
     singleTapTimer.current = setTimeout(() => {
       toggleControls();
       singleTapTimer.current = null;
-    }, 400);
+    }, 280);
   };
 
   const selectServer = (idx: number) => {
@@ -581,6 +591,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               </button>
               <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); skip90(); }}
+                className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
+                aria-label="Saltar 1:30"
+                title="Saltar opening/ending (+1:30)"
+              >
+                <SkipForward className="w-3 h-3" /> +1:30
               </button>
               <span className="text-[10px] text-white/70 tabular-nums">
                 {formatTime(progress)} / {formatTime(duration)}
