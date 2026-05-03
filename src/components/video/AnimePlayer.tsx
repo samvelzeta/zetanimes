@@ -590,6 +590,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); skip90(); }}
+                className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
+                aria-label="Saltar 1:30"
+                title="Saltar opening/ending (+1:30)"
+              >
+                <SkipForward className="w-3 h-3" /> +1:30
+              </button>
               <span className="text-[10px] text-white/70 tabular-nums">
                 {formatTime(progress)} / {formatTime(duration)}
               </span>
