@@ -371,6 +371,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [seekFlash, setSeekFlash] = useState<null | "back" | "fwd">(null);
 
   const handleContainerTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (showEpList) setShowEpList(false);
     const video = videoRef.current;
     const now = Date.now();
     const rect = e.currentTarget.getBoundingClientRect();
