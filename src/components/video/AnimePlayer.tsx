@@ -289,10 +289,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     const onFsChange = () => {
       const isFull = !!document.fullscreenElement;
       setIsFullscreen(isFull);
+      const orientation = screen.orientation as ScreenOrientation & {
+        lock?: (orientation: OrientationLockType) => Promise<void>;
+        unlock?: () => void;
+      };
       if (isFull && (inWebView || /Mobi|Android/i.test(navigator.userAgent))) {
-        try { (screen.orientation as any)?.lock?.("landscape").catch(() => {}); } catch {}
+        try { orientation.lock?.("landscape").catch(() => undefined); } catch { void 0; }
       } else {
-        try { (screen.orientation as any)?.unlock?.(); } catch {}
+        try { orientation.unlock?.(); } catch { void 0; }
       }
     };
     document.addEventListener("fullscreenchange", onFsChange);
