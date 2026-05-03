@@ -289,10 +289,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     const onFsChange = () => {
       const isFull = !!document.fullscreenElement;
       setIsFullscreen(isFull);
+      const orientation = screen.orientation as ScreenOrientation & {
+        lock?: (orientation: OrientationLockType) => Promise<void>;
+        unlock?: () => void;
+      };
       if (isFull && (inWebView || /Mobi|Android/i.test(navigator.userAgent))) {
-        try { (screen.orientation as any)?.lock?.("landscape").catch(() => {}); } catch {}
+        try { orientation.lock?.("landscape").catch(() => undefined); } catch { void 0; }
       } else {
-        try { (screen.orientation as any)?.unlock?.(); } catch {}
+        try { orientation.unlock?.(); } catch { void 0; }
       }
     };
     document.addEventListener("fullscreenchange", onFsChange);
@@ -333,10 +337,10 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     video.currentTime = pct * duration;
   };
 
-  // En APK/móvil los controles deben quedar visibles más tiempo (5s estilo YouTube)
+  // En APK/móvil los controles deben quedar visibles bastante más tiempo.
   // En PC con mouse → 3s tras dejar de moverlo o salir.
   const isMobileLike = inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const HIDE_MS = isMobileLike ? 5000 : 3000;
+  const HIDE_MS = isMobileLike ? 6500 : 3000;
 
   const skip90 = () => {
     const video = videoRef.current;
@@ -346,13 +350,17 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setTimeout(() => setSeekFlash(null), 500);
   };
 
-  const showControlsTemp = () => {
-    setShowControls(true);
+  const scheduleControlsHide = useCallback(() => {
     if (controlsTimer.current) clearTimeout(controlsTimer.current);
     controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
-  };
+  }, [HIDE_MS]);
 
-  const toggleControls = () => {
+  const showControlsTemp = useCallback(() => {
+    setShowControls(true);
+    scheduleControlsHide();
+  }, [scheduleControlsHide]);
+
+  const toggleControls = useCallback(() => {
     setShowControls((visible) => {
       const next = !visible;
       if (controlsTimer.current) clearTimeout(controlsTimer.current);
@@ -361,7 +369,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       }
       return next;
     });
-  };
+  }, [HIDE_MS]);
 
   // Double-tap seek (±10s) — sensor independiente que SIEMPRE arma con cada tap.
   // Ventana 380ms entre taps; si entran 2 dentro de la ventana en el mismo lado del player → ±10s.
@@ -370,7 +378,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [seekFlash, setSeekFlash] = useState<null | "back" | "fwd">(null);
 
-  const handleContainerTap = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleContainerTap = (e: React.PointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-player-control="true"]')) return;
     if (showEpList) setShowEpList(false);
     const video = videoRef.current;
     const now = Date.now();
@@ -380,8 +390,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     const last = lastTapRef.current;
 
     // DOBLE TAP — sensor INDEPENDIENTE: nunca toca la visibilidad de controles.
-    // Ventana 320ms entre taps en el mismo lado → ±10s. Re-armable infinitas veces.
-    if (last && now - last.time < 320 && last.side === side && video && video.duration) {
+    // Ventana 360ms entre taps en el mismo lado → ±10s. Re-armable infinitas veces.
+    if (last && now - last.time < 360 && last.side === side && video && video.duration) {
       if (singleTapTimer.current) { clearTimeout(singleTapTimer.current); singleTapTimer.current = null; }
       const delta = side === "left" ? -10 : 10;
       video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + delta));
@@ -400,7 +410,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     singleTapTimer.current = setTimeout(() => {
       toggleControls();
       singleTapTimer.current = null;
-    }, 280);
+    }, 300);
   };
 
   const selectServer = (idx: number) => {
@@ -468,12 +478,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     <div
       ref={containerRef}
       className="relative aspect-video bg-black rounded-xl overflow-hidden group cursor-pointer select-none"
-      onMouseMove={showControlsTemp}
+      onMouseMove={() => { if (!isMobileLike) showControlsTemp(); }}
       onMouseLeave={() => {
+        if (isMobileLike) return;
         if (controlsTimer.current) clearTimeout(controlsTimer.current);
         controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
       }}
-      onClick={handleContainerTap}
+      onPointerUp={handleContainerTap}
     >
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
@@ -530,6 +541,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
       {/* Controls overlay — bloqueado por completo cuando está oculto para evitar clics fantasma */}
       <div
+        data-player-control="true"
         className={`absolute inset-0 z-10 transition-opacity duration-300 ${
           showControls || !playing ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
