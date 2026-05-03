@@ -474,12 +474,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     <div
       ref={containerRef}
       className="relative aspect-video bg-black rounded-xl overflow-hidden group cursor-pointer select-none"
-      onMouseMove={showControlsTemp}
+      onMouseMove={() => { if (!isMobileLike) showControlsTemp(); }}
       onMouseLeave={() => {
+        if (isMobileLike) return;
         if (controlsTimer.current) clearTimeout(controlsTimer.current);
         controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
       }}
-      onClick={handleContainerTap}
+      onPointerUp={handleContainerTap}
     >
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
@@ -536,6 +537,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
       {/* Controls overlay — bloqueado por completo cuando está oculto para evitar clics fantasma */}
       <div
+        data-player-control="true"
         className={`absolute inset-0 z-10 transition-opacity duration-300 ${
           showControls || !playing ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
