@@ -90,6 +90,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [showServerPicker, setShowServerPicker] = useState(false);
+  const [showEpList, setShowEpList] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [autoNextVisible, setAutoNextVisible] = useState(false);
   const [autoNextSeconds, setAutoNextSeconds] = useState(15);
