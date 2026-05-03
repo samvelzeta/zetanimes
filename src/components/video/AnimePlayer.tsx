@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 
@@ -28,6 +28,9 @@ interface Props {
   onNext?: () => void;
   onAutoNext?: () => void;
   autoNextAlreadyTriggered?: boolean;
+  currentEpisode?: number;
+  totalEpisodes?: number;
+  onSelectEpisode?: (ep: number) => void;
 }
 
 type SourceType = "hls" | "mp4" | "embed" | "html" | "seeke";
@@ -67,7 +70,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   return classified;
 }
 
-export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered }: Props) {
+export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -87,6 +90,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [showServerPicker, setShowServerPicker] = useState(false);
+  const [showEpList, setShowEpList] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [autoNextVisible, setAutoNextVisible] = useState(false);
   const [autoNextSeconds, setAutoNextSeconds] = useState(15);
@@ -367,6 +371,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [seekFlash, setSeekFlash] = useState<null | "back" | "fwd">(null);
 
   const handleContainerTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (showEpList) setShowEpList(false);
     const video = videoRef.current;
     const now = Date.now();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -603,6 +608,44 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <span className="text-[10px] text-white/70 tabular-nums">
                 {formatTime(progress)} / {formatTime(duration)}
               </span>
+              {currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); }}
+                    className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
+                    aria-label="Lista de episodios"
+                    title="Lista de episodios"
+                  >
+                    <List className="w-3 h-3" /> {currentEpisode}/{totalEpisodes}
+                  </button>
+                  {showEpList && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute right-0 bottom-full mb-2 bg-black/95 backdrop-blur rounded-lg p-2 z-40 shadow-[0_0_24px_hsl(var(--primary)/0.4)] border border-primary/40 w-[220px] max-h-[220px] overflow-y-auto"
+                    >
+                      <div className="grid grid-cols-4 gap-1">
+                        {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => (
+                          <button
+                            key={n}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowEpList(false);
+                              onSelectEpisode?.(n);
+                            }}
+                            className={`px-1 py-1.5 rounded text-[11px] font-bold transition ${
+                              n === currentEpisode
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-white/10 text-white hover:bg-primary/30"
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white hover:text-primary transition">
               {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}

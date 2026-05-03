@@ -67,11 +67,6 @@ export default function PlayerOverlay({ episode, totalEpisodes, onPrev, onNext, 
         show ? "opacity-100" : "opacity-0"
       }`}
     >
-      {/* Chip episodio */}
-      <div className="pointer-events-auto absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/80 text-white text-xs font-bold tracking-wide shadow-lg border border-primary/20">
-        EP {episode} {totalEpisodes > 0 && <span className="opacity-60">/ {totalEpisodes}</span>}
-      </div>
-
       {/* Prev — solo en fullscreen para no estorbar al ver normal */}
       {isFullscreen && (
         <div className="pointer-events-auto absolute left-2 sm:left-4 top-1/2 -translate-y-1/2">
