@@ -399,7 +399,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-player-control="true"]')) return;
-    if (showEpList) setShowEpList(false);
+    // Si el menú de episodios está abierto, un tap fuera solo lo cierra (no togglea controles).
+    if (showEpList) {
+      setShowEpList(false);
+      showControlsTemp();
+      return;
+    }
     const video = videoRef.current;
     const now = Date.now();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -413,10 +418,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       const delta = side === "left" ? -10 : 10;
       video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + delta));
       setSeekFlash(null);
-      // micro-tick para reanimar aunque se repita rápido
       requestAnimationFrame(() => setSeekFlash(side === "left" ? "back" : "fwd"));
       setTimeout(() => setSeekFlash(null), 480);
-      // re-armamos para permitir cadena de double-taps
       lastTapRef.current = { time: now, side };
       return;
     }
