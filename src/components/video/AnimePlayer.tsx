@@ -337,10 +337,11 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     video.currentTime = pct * duration;
   };
 
-  // En APK/móvil los controles deben quedar visibles bastante más tiempo.
-  // En PC con mouse → 3s tras dejar de moverlo o salir.
+  // El tap simple siempre deja los controles visibles al menos 5s antes de ocultarlos.
   const isMobileLike = inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const HIDE_MS = isMobileLike ? 6500 : 3000;
+  const HIDE_MS = 5000;
+  const DOUBLE_TAP_MS = 300;
+  const SINGLE_TAP_DELAY_MS = 340;
 
   const skip90 = () => {
     const video = videoRef.current;
@@ -371,14 +372,30 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     });
   }, [HIDE_MS]);
 
-  // Double-tap seek (±10s) — sensor independiente que SIEMPRE arma con cada tap.
-  // Ventana 380ms entre taps; si entran 2 dentro de la ventana en el mismo lado del player → ±10s.
-  // El single tap (toggle controles) se dispara con un timer corto que se cancela si llega un 2do tap.
+  useEffect(() => {
+    if (!playing) {
+      if (controlsTimer.current) clearTimeout(controlsTimer.current);
+      setShowControls(true);
+      return;
+    }
+    if (showControls) scheduleControlsHide();
+  }, [playing, showControls, scheduleControlsHide]);
+
+  // Double-tap seek (±10s): divide el player en izquierda/derecha.
+  // El tap simple espera antes de alternar controles para confirmar que no fue doble tap.
   const lastTapRef = useRef<{ time: number; side: "left" | "right" } | null>(null);
   const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [seekFlash, setSeekFlash] = useState<null | "back" | "fwd">(null);
 
+  useEffect(() => {
+    return () => {
+      if (singleTapTimer.current) clearTimeout(singleTapTimer.current);
+      if (controlsTimer.current) clearTimeout(controlsTimer.current);
+    };
+  }, []);
+
   const handleContainerTap = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-player-control="true"]')) return;
     if (showEpList) setShowEpList(false);
@@ -389,9 +406,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     const side: "left" | "right" = x < rect.width / 2 ? "left" : "right";
     const last = lastTapRef.current;
 
-    // DOBLE TAP — sensor INDEPENDIENTE: nunca toca la visibilidad de controles.
-    // Ventana 360ms entre taps en el mismo lado → ±10s. Re-armable infinitas veces.
-    if (last && now - last.time < 360 && last.side === side && video && video.duration) {
+    // DOBLE TAP — sensor independiente: no muestra/oculta controles, solo salta ±10s.
+    if (last && now - last.time <= DOUBLE_TAP_MS && last.side === side && video && video.duration) {
       if (singleTapTimer.current) { clearTimeout(singleTapTimer.current); singleTapTimer.current = null; }
       const delta = side === "left" ? -10 : 10;
       video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + delta));
@@ -410,7 +426,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     singleTapTimer.current = setTimeout(() => {
       toggleControls();
       singleTapTimer.current = null;
-    }, 300);
+      lastTapRef.current = null;
+    }, SINGLE_TAP_DELAY_MS);
   };
 
   const selectServer = (idx: number) => {
@@ -541,14 +558,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
       {/* Controls overlay — bloqueado por completo cuando está oculto para evitar clics fantasma */}
       <div
-        data-player-control="true"
         className={`absolute inset-0 z-10 transition-opacity duration-300 ${
-          showControls || !playing ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          showControls || !playing ? "opacity-100 pointer-events-none" : "opacity-0 pointer-events-none"
         }`}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Top bar with server picker — nombre se muestra como "Pro" */}
-        <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between">
+        <div data-player-control="true" className="pointer-events-auto absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between">
           <p className="text-xs text-white font-medium truncate flex-1 mr-2">{title}</p>
           {showServerPickerEnabled && classified.length > 1 && (
             <div className="relative">
@@ -577,7 +592,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
         {/* Center episode controls — botones reducidos ~50% en móvil para no cubrir tanto */}
         {!loading && !error && (
-          <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 sm:gap-7">
+          <div data-player-control="true" className="pointer-events-auto absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 sm:gap-7">
             <button onClick={(e) => { e.stopPropagation(); onPrev?.(); }} disabled={!canPrev} className="h-8 w-8 sm:h-14 sm:w-14 rounded-full bg-background/70 border border-primary/45 flex items-center justify-center text-foreground hover:text-primary hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95" aria-label="Episodio anterior">
               <SkipBack className="h-4 w-4 sm:h-7 sm:w-7" />
             </button>
@@ -595,12 +610,38 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         )}
 
         {/* Bottom controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+        <div data-player-control="true" className="pointer-events-auto absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
           <div onClick={seekTo} className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer mb-2 group/bar">
             <div className="h-full bg-primary rounded-full relative transition-all" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : "0%" }}>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
             </div>
           </div>
+          {showEpList && currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="mb-2 ml-auto w-[min(72vw,360px)] overflow-x-auto rounded-lg border border-primary/40 bg-black/80 p-1.5 shadow-[0_0_18px_hsl(var(--primary)/0.32)]"
+            >
+              <div className="flex w-max gap-1">
+                {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEpList(false);
+                      onSelectEpisode?.(n);
+                    }}
+                    className={`h-7 min-w-8 rounded px-2 text-[11px] font-bold transition ${
+                      n === currentEpisode
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-foreground hover:bg-primary/30"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary transition">
@@ -621,42 +662,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                 {formatTime(progress)} / {formatTime(duration)}
               </span>
               {currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
-                <div className="relative">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); }}
-                    className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
-                    aria-label="Lista de episodios"
-                    title="Lista de episodios"
-                  >
-                    <List className="w-3 h-3" /> {currentEpisode}/{totalEpisodes}
-                  </button>
-                  {showEpList && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 bottom-full mb-2 bg-black/95 backdrop-blur rounded-lg p-2 z-40 shadow-[0_0_24px_hsl(var(--primary)/0.4)] border border-primary/40 w-[220px] max-h-[220px] overflow-y-auto"
-                    >
-                      <div className="grid grid-cols-4 gap-1">
-                        {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => (
-                          <button
-                            key={n}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowEpList(false);
-                              onSelectEpisode?.(n);
-                            }}
-                            className={`px-1 py-1.5 rounded text-[11px] font-bold transition ${
-                              n === currentEpisode
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-white/10 text-white hover:bg-primary/30"
-                            }`}
-                          >
-                            {n}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
+                  className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
+                  aria-label="Lista de episodios"
+                  title="Lista de episodios"
+                >
+                  <List className="w-3 h-3" /> {currentEpisode}/{totalEpisodes}
+                </button>
               )}
             </div>
             <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white hover:text-primary transition">
