@@ -353,8 +353,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
   const scheduleControlsHide = useCallback(() => {
     if (controlsTimer.current) clearTimeout(controlsTimer.current);
+    if (showEpList) return; // no ocultar mientras el menú de episodios esté abierto
     controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
-  }, [HIDE_MS]);
+  }, [HIDE_MS, showEpList]);
 
   const showControlsTemp = useCallback(() => {
     setShowControls(true);
@@ -365,12 +366,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setShowControls((visible) => {
       const next = !visible;
       if (controlsTimer.current) clearTimeout(controlsTimer.current);
-      if (next) {
+      if (next && !showEpList) {
         controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
       }
       return next;
     });
-  }, [HIDE_MS]);
+  }, [HIDE_MS, showEpList]);
 
   useEffect(() => {
     if (!playing) {
