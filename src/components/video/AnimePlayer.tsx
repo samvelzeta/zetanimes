@@ -559,14 +559,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
       {/* Controls overlay — bloqueado por completo cuando está oculto para evitar clics fantasma */}
       <div
-        data-player-control="true"
         className={`absolute inset-0 z-10 transition-opacity duration-300 ${
           showControls || !playing ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top bar with server picker — nombre se muestra como "Pro" */}
-        <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between">
+        <div data-player-control="true" className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between">
           <p className="text-xs text-white font-medium truncate flex-1 mr-2">{title}</p>
           {showServerPickerEnabled && classified.length > 1 && (
             <div className="relative">
@@ -595,7 +594,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
         {/* Center episode controls — botones reducidos ~50% en móvil para no cubrir tanto */}
         {!loading && !error && (
-          <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 sm:gap-7">
+          <div data-player-control="true" className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 sm:gap-7">
             <button onClick={(e) => { e.stopPropagation(); onPrev?.(); }} disabled={!canPrev} className="h-8 w-8 sm:h-14 sm:w-14 rounded-full bg-background/70 border border-primary/45 flex items-center justify-center text-foreground hover:text-primary hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95" aria-label="Episodio anterior">
               <SkipBack className="h-4 w-4 sm:h-7 sm:w-7" />
             </button>
@@ -613,7 +612,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         )}
 
         {/* Bottom controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+        <div data-player-control="true" className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
           <div onClick={seekTo} className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer mb-2 group/bar">
             <div className="h-full bg-primary rounded-full relative transition-all" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : "0%" }}>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
