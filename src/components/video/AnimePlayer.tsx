@@ -337,10 +337,11 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     video.currentTime = pct * duration;
   };
 
-  // En APK/móvil los controles deben quedar visibles bastante más tiempo.
-  // En PC con mouse → 3s tras dejar de moverlo o salir.
+  // El tap simple siempre deja los controles visibles al menos 5s antes de ocultarlos.
   const isMobileLike = inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const HIDE_MS = isMobileLike ? 6500 : 3000;
+  const HIDE_MS = 5000;
+  const DOUBLE_TAP_MS = 300;
+  const SINGLE_TAP_DELAY_MS = 340;
 
   const skip90 = () => {
     const video = videoRef.current;
@@ -371,6 +372,15 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     });
   }, [HIDE_MS]);
 
+  useEffect(() => {
+    if (!playing) {
+      if (controlsTimer.current) clearTimeout(controlsTimer.current);
+      setShowControls(true);
+      return;
+    }
+    if (showControls) scheduleControlsHide();
+  }, [playing, showControls, scheduleControlsHide]);
+
   // Double-tap seek (±10s) — sensor independiente que SIEMPRE arma con cada tap.
   // Ventana 380ms entre taps; si entran 2 dentro de la ventana en el mismo lado del player → ±10s.
   // El single tap (toggle controles) se dispara con un timer corto que se cancela si llega un 2do tap.
@@ -378,7 +388,15 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [seekFlash, setSeekFlash] = useState<null | "back" | "fwd">(null);
 
+  useEffect(() => {
+    return () => {
+      if (singleTapTimer.current) clearTimeout(singleTapTimer.current);
+      if (controlsTimer.current) clearTimeout(controlsTimer.current);
+    };
+  }, []);
+
   const handleContainerTap = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-player-control="true"]')) return;
     if (showEpList) setShowEpList(false);
@@ -389,9 +407,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     const side: "left" | "right" = x < rect.width / 2 ? "left" : "right";
     const last = lastTapRef.current;
 
-    // DOBLE TAP — sensor INDEPENDIENTE: nunca toca la visibilidad de controles.
-    // Ventana 360ms entre taps en el mismo lado → ±10s. Re-armable infinitas veces.
-    if (last && now - last.time < 360 && last.side === side && video && video.duration) {
+    // DOBLE TAP — sensor independiente: no muestra/oculta controles, solo salta ±10s.
+    if (last && now - last.time <= DOUBLE_TAP_MS && last.side === side && video && video.duration) {
       if (singleTapTimer.current) { clearTimeout(singleTapTimer.current); singleTapTimer.current = null; }
       const delta = side === "left" ? -10 : 10;
       video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + delta));
@@ -410,7 +427,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     singleTapTimer.current = setTimeout(() => {
       toggleControls();
       singleTapTimer.current = null;
-    }, 300);
+      lastTapRef.current = null;
+    }, SINGLE_TAP_DELAY_MS);
   };
 
   const selectServer = (idx: number) => {
