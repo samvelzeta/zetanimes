@@ -646,37 +646,82 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               </div>
             </div>
           )}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary transition">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary transition shrink-0">
                 {playing ? <Play className="w-5 h-5 fill-current" /> : <Zap className="w-5 h-5 fill-current" />}
               </button>
-              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition">
+              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition shrink-0">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); skip90(); }}
-                className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
+                className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1 shrink-0"
                 aria-label="Saltar 1:30"
                 title="Saltar opening/ending (+1:30)"
               >
                 <SkipForward className="w-3 h-3" /> +1:30
               </button>
-              <span className="text-[10px] text-white/70 tabular-nums">
+              <span className="text-[10px] text-white/70 tabular-nums shrink-0">
                 {formatTime(progress)} / {formatTime(duration)}
               </span>
               {currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
-                  className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
-                  aria-label="Lista de episodios"
-                  title="Lista de episodios"
-                >
-                  <List className="w-3 h-3" /> {currentEpisode}/{totalEpisodes}
-                </button>
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
+                    className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1 shrink-0"
+                    aria-label="Lista de episodios"
+                    title="Lista de episodios"
+                  >
+                    <List className="w-3 h-3" /> {currentEpisode}/{totalEpisodes}
+                  </button>
+                  {showEpList && (
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 min-w-0 flex-1 rounded-md border border-primary/40 bg-black/70 px-1 py-0.5">
+                      {!isMobileLike && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); epScrollRef.current?.scrollBy({ left: -120, behavior: "smooth" }); }}
+                          className="shrink-0 h-5 w-5 rounded bg-white/10 hover:bg-primary/30 text-white flex items-center justify-center"
+                          aria-label="Anterior"
+                        >
+                          <ChevronLeft className="w-3 h-3" />
+                        </button>
+                      )}
+                      <div ref={epScrollRef} className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
+                        <div className="flex w-max gap-1">
+                          {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => (
+                            <button
+                              key={n}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEpList(false);
+                                onSelectEpisode?.(n);
+                              }}
+                              className={`h-5 min-w-6 rounded px-1.5 text-[10px] font-bold transition ${
+                                n === currentEpisode
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary/80 text-foreground hover:bg-primary/40"
+                              }`}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {!isMobileLike && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); epScrollRef.current?.scrollBy({ left: 120, behavior: "smooth" }); }}
+                          className="shrink-0 h-5 w-5 rounded bg-white/10 hover:bg-primary/30 text-white flex items-center justify-center"
+                          aria-label="Siguiente"
+                        >
+                          <ChevronRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
-            <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white hover:text-primary transition">
+            <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white hover:text-primary transition shrink-0">
               {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
             </button>
           </div>
