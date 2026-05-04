@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 
@@ -74,6 +74,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const epScrollRef = useRef<HTMLDivElement>(null);
   // Estabilizamos por contenido para evitar microreinicios cuando el padre re-renderiza con misma data
   const sourcesKey = useMemo(
     () => sources.map((s) => `${s.type || ""}|${s.embed || s.url || ""}|${s.episode ?? ""}`).join("¶"),
@@ -353,8 +354,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
   const scheduleControlsHide = useCallback(() => {
     if (controlsTimer.current) clearTimeout(controlsTimer.current);
+    if (showEpList) return; // no ocultar mientras el menú de episodios esté abierto
     controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
-  }, [HIDE_MS]);
+  }, [HIDE_MS, showEpList]);
 
   const showControlsTemp = useCallback(() => {
     setShowControls(true);
@@ -365,12 +367,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setShowControls((visible) => {
       const next = !visible;
       if (controlsTimer.current) clearTimeout(controlsTimer.current);
-      if (next) {
+      if (next && !showEpList) {
         controlsTimer.current = setTimeout(() => setShowControls(false), HIDE_MS);
       }
       return next;
     });
-  }, [HIDE_MS]);
+  }, [HIDE_MS, showEpList]);
 
   useEffect(() => {
     if (!playing) {
@@ -398,7 +400,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-player-control="true"]')) return;
-    if (showEpList) setShowEpList(false);
+    // Si el menú de episodios está abierto, un tap fuera solo lo cierra (no togglea controles).
+    if (showEpList) {
+      setShowEpList(false);
+      showControlsTemp();
+      return;
+    }
     const video = videoRef.current;
     const now = Date.now();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -412,10 +419,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       const delta = side === "left" ? -10 : 10;
       video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + delta));
       setSeekFlash(null);
-      // micro-tick para reanimar aunque se repita rápido
       requestAnimationFrame(() => setSeekFlash(side === "left" ? "back" : "fwd"));
       setTimeout(() => setSeekFlash(null), 480);
-      // re-armamos para permitir cadena de double-taps
       lastTapRef.current = { time: now, side };
       return;
     }
@@ -616,63 +621,82 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
             </div>
           </div>
-          {showEpList && currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="mb-2 ml-auto w-[min(72vw,360px)] overflow-x-auto rounded-lg border border-primary/40 bg-black/80 p-1.5 shadow-[0_0_18px_hsl(var(--primary)/0.32)]"
-            >
-              <div className="flex w-max gap-1">
-                {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => (
-                  <button
-                    key={n}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowEpList(false);
-                      onSelectEpisode?.(n);
-                    }}
-                    className={`h-7 min-w-8 rounded px-2 text-[11px] font-bold transition ${
-                      n === currentEpisode
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-foreground hover:bg-primary/30"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary transition">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary transition shrink-0">
                 {playing ? <Play className="w-5 h-5 fill-current" /> : <Zap className="w-5 h-5 fill-current" />}
               </button>
-              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition">
+              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition shrink-0">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); skip90(); }}
-                className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
+                className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1 shrink-0"
                 aria-label="Saltar 1:30"
                 title="Saltar opening/ending (+1:30)"
               >
                 <SkipForward className="w-3 h-3" /> +1:30
               </button>
-              <span className="text-[10px] text-white/70 tabular-nums">
+              <span className="text-[10px] text-white/70 tabular-nums shrink-0">
                 {formatTime(progress)} / {formatTime(duration)}
               </span>
               {currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
-                  className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
-                  aria-label="Lista de episodios"
-                  title="Lista de episodios"
-                >
-                  <List className="w-3 h-3" /> {currentEpisode}/{totalEpisodes}
-                </button>
+                <>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
+                    className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1 shrink-0"
+                    aria-label="Lista de episodios"
+                    title="Lista de episodios"
+                  >
+                    <List className="w-3 h-3" /> {currentEpisode}/{totalEpisodes}
+                  </button>
+                  {showEpList && (
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 min-w-0 flex-1 rounded-md border border-primary/40 bg-black/70 px-1 py-0.5">
+                      {!isMobileLike && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); epScrollRef.current?.scrollBy({ left: -120, behavior: "smooth" }); }}
+                          className="shrink-0 h-5 w-5 rounded bg-white/10 hover:bg-primary/30 text-white flex items-center justify-center"
+                          aria-label="Anterior"
+                        >
+                          <ChevronLeft className="w-3 h-3" />
+                        </button>
+                      )}
+                      <div ref={epScrollRef} className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
+                        <div className="flex w-max gap-1">
+                          {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => (
+                            <button
+                              key={n}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEpList(false);
+                                onSelectEpisode?.(n);
+                              }}
+                              className={`h-5 min-w-6 rounded px-1.5 text-[10px] font-bold transition ${
+                                n === currentEpisode
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary/80 text-foreground hover:bg-primary/40"
+                              }`}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {!isMobileLike && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); epScrollRef.current?.scrollBy({ left: 120, behavior: "smooth" }); }}
+                          className="shrink-0 h-5 w-5 rounded bg-white/10 hover:bg-primary/30 text-white flex items-center justify-center"
+                          aria-label="Siguiente"
+                        >
+                          <ChevronRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
-            <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white hover:text-primary transition">
+            <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white hover:text-primary transition shrink-0">
               {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
             </button>
           </div>
