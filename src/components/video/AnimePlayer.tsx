@@ -619,6 +619,32 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
             </div>
           </div>
+          {showEpList && currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="mb-2 ml-auto w-[min(72vw,360px)] overflow-x-auto rounded-lg border border-primary/40 bg-black/80 p-1.5 shadow-[0_0_18px_hsl(var(--primary)/0.32)]"
+            >
+              <div className="flex w-max gap-1">
+                {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEpList(false);
+                      onSelectEpisode?.(n);
+                    }}
+                    className={`h-7 min-w-8 rounded px-2 text-[11px] font-bold transition ${
+                      n === currentEpisode
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-foreground hover:bg-primary/30"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary transition">
@@ -639,42 +665,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                 {formatTime(progress)} / {formatTime(duration)}
               </span>
               {currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
-                <div className="relative">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); }}
-                    className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
-                    aria-label="Lista de episodios"
-                    title="Lista de episodios"
-                  >
-                    <List className="w-3 h-3" /> {currentEpisode}/{totalEpisodes}
-                  </button>
-                  {showEpList && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 bottom-full mb-2 bg-black/95 backdrop-blur rounded-lg p-2 z-40 shadow-[0_0_24px_hsl(var(--primary)/0.4)] border border-primary/40 w-[220px] max-h-[220px] overflow-y-auto"
-                    >
-                      <div className="grid grid-cols-4 gap-1">
-                        {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => (
-                          <button
-                            key={n}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowEpList(false);
-                              onSelectEpisode?.(n);
-                            }}
-                            className={`px-1 py-1.5 rounded text-[11px] font-bold transition ${
-                              n === currentEpisode
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-white/10 text-white hover:bg-primary/30"
-                            }`}
-                          >
-                            {n}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
+                  className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1"
+                  aria-label="Lista de episodios"
+                  title="Lista de episodios"
+                >
+                  <List className="w-3 h-3" /> {currentEpisode}/{totalEpisodes}
+                </button>
               )}
             </div>
             <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white hover:text-primary transition">
