@@ -620,32 +620,6 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
             </div>
           </div>
-          {showEpList && currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="mb-2 ml-auto w-[min(72vw,360px)] overflow-x-auto rounded-lg border border-primary/40 bg-black/80 p-1.5 shadow-[0_0_18px_hsl(var(--primary)/0.32)]"
-            >
-              <div className="flex w-max gap-1">
-                {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => (
-                  <button
-                    key={n}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowEpList(false);
-                      onSelectEpisode?.(n);
-                    }}
-                    className={`h-7 min-w-8 rounded px-2 text-[11px] font-bold transition ${
-                      n === currentEpisode
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-foreground hover:bg-primary/30"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
               <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary transition shrink-0">
