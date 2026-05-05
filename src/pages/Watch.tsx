@@ -619,6 +619,7 @@ export default function Watch() {
                 currentEpisode={displayedEpisode}
                 totalEpisodes={totalEpisodes}
                 onSelectEpisode={(n) => selectEpisode(n)}
+                subtitles={activeSubtitles}
               />
               {isEpisodeSwitching && (
                 <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-background/45 backdrop-blur-[2px]">
