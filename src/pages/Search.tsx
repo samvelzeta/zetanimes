@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchAnime } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { Search as SearchIcon, X, Sparkles, TrendingUp, Cog } from "lucide-react";
+import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 
 const SUGGESTIONS = [
   "Naruto",
@@ -79,7 +80,14 @@ export default function SearchPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const animes = data?.media || [];
+  const { data: hiddenIds } = useQuery({
+    queryKey: ["hidden-anime-ids"],
+    queryFn: async () => Array.from(await getHiddenAnimeIds()),
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
+  const animes = (data?.media || []).filter((a) => !hiddenSet.has(a.id));
   const hasQuery = debouncedQuery.trim().length >= 2;
 
   const handleSuggestion = (s: string) => {

@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { getPopular, getByGenre, getTrending, getTopRated, getThisSeason } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
 import { Filter, X, Tv, SearchX } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
+import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 
 const GENRES = ["Acción","Aventura","Comedia","Drama","Fantasía","Horror","Misterio","Romance","Sci-Fi","Slice of Life","Sobrenatural","Sports","Thriller"];
 const GENRE_MAP: Record<string, string> = {
@@ -64,7 +65,14 @@ export default function Directory() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const animes = data?.media || [];
+  const { data: hiddenIds } = useQuery({
+    queryKey: ["hidden-anime-ids"],
+    queryFn: async () => Array.from(await getHiddenAnimeIds()),
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
+  const animes = (data?.media || []).filter((a) => !hiddenSet.has(a.id));
 
   const clearFilters = () => {
     setSelectedGenre(null);

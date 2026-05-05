@@ -94,24 +94,19 @@ export default function Home() {
     return () => window.clearTimeout(timeout);
   }, [trending, trendingError, l1]);
 
-  // TV: Header + Bento + Top Ranking. Sin hero, sin carruseles extra (ahorra RAM).
+  // TV: Hero + Últimos Episodios + Bento + Géneros + Top Ranking.
   if (isTV) {
     return (
-      <div className="min-h-screen px-2 mt-4 space-y-8">
-        <header className="px-2">
-          <h1 className="text-2xl font-black text-foreground tracking-tight">📺 ZetAnime TV</h1>
-          <p className="text-xs text-muted-foreground mt-1">Episodios recientes y top ranking</p>
-        </header>
-
-        <section>
-          <h2 className="text-base font-bold text-foreground mb-2 px-2">📡 Animes Recientes</h2>
-          <BentoEpisodes />
-        </section>
-
-        <section>
-          <h2 className="text-base font-bold text-foreground mb-2 px-2">🏆 Top de Animes</h2>
-          <TopRanking title="" animes={filterFn(topRated?.media)} loading={l4} />
-        </section>
+      <div className="min-h-screen space-y-6">
+        <HeroBanner animes={filterFn(trending?.media)} />
+        <LatestEpisodes />
+        <BentoEpisodes />
+        <GenreList />
+        <TopRanking
+          title="🏆 Top de Animes"
+          animes={filterFn(topRated?.media)}
+          loading={l4}
+        />
       </div>
     );
   }
