@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const MAX_INPUT_LENGTH = 4000;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -15,13 +18,28 @@ serve(async (req) => {
   }
 
   try {
+    // Require authentication to prevent abuse of AI quota
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { text } = await req.json();
     if (!text || typeof text !== "string") {
       return new Response(JSON.stringify({ error: "text required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Clean HTML tags
-    const cleanText = text.replace(/<[^>]*>/g, "").trim();
+    // Clean HTML tags + cap length to limit abuse
+    const cleanText = text.replace(/<[^>]*>/g, "").trim().slice(0, MAX_INPUT_LENGTH);
     if (!cleanText) {
       return new Response(JSON.stringify({ translated: "" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
