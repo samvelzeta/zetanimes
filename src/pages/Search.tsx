@@ -80,7 +80,14 @@ export default function SearchPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const animes = data?.media || [];
+  const { data: hiddenIds } = useQuery({
+    queryKey: ["hidden-anime-ids"],
+    queryFn: async () => Array.from(await getHiddenAnimeIds()),
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
+  const animes = (data?.media || []).filter((a) => !hiddenSet.has(a.id));
   const hasQuery = debouncedQuery.trim().length >= 2;
 
   const handleSuggestion = (s: string) => {
