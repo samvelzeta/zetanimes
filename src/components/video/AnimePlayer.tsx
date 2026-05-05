@@ -37,6 +37,7 @@ interface Props {
   currentEpisode?: number;
   totalEpisodes?: number;
   onSelectEpisode?: (ep: number) => void;
+  subtitles?: PlayerSubtitle[];
 }
 
 type SourceType = "hls" | "mp4" | "embed" | "html" | "seeke";
