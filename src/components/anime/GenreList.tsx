@@ -29,7 +29,7 @@ export default function GenreList() {
     <section className="px-4 mb-8">
       <h2 className="text-base font-bold text-foreground tracking-tight mb-3">🎭 Géneros</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        {GENRES.map(({ name, query, color, img }) => (
+        {GENRES.map(({ name, query, color, img, offsetY }) => (
           <Link
             key={name}
             to={`/directory?genre=${query}`}
@@ -47,6 +47,7 @@ export default function GenreList() {
               // @ts-expect-error fetchpriority es atributo HTML válido
               fetchpriority="high"
               draggable={false}
+              style={{ transform: offsetY ? `translateY(${offsetY}px)` : undefined }}
               className="absolute right-0 -bottom-1 h-[120%] w-auto object-cover object-top pointer-events-none select-none opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 drop-shadow-lg"
             />
 
