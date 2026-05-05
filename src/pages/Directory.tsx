@@ -65,7 +65,14 @@ export default function Directory() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const animes = data?.media || [];
+  const { data: hiddenIds } = useQuery({
+    queryKey: ["hidden-anime-ids"],
+    queryFn: async () => Array.from(await getHiddenAnimeIds()),
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
+  const animes = (data?.media || []).filter((a) => !hiddenSet.has(a.id));
 
   const clearFilters = () => {
     setSelectedGenre(null);
