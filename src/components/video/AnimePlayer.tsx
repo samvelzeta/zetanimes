@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
+
+export interface PlayerSubtitle {
+  lang: string;
+  url: string;
+  label?: string;
+}
 
 export interface PlayerSource {
   name: string;
@@ -31,6 +37,7 @@ interface Props {
   currentEpisode?: number;
   totalEpisodes?: number;
   onSelectEpisode?: (ep: number) => void;
+  subtitles?: PlayerSubtitle[];
 }
 
 type SourceType = "hls" | "mp4" | "embed" | "html" | "seeke";
@@ -70,7 +77,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   return classified;
 }
 
-export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode }: Props) {
+export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, subtitles = [] }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -96,6 +103,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [autoNextVisible, setAutoNextVisible] = useState(false);
   const [autoNextSeconds, setAutoNextSeconds] = useState(15);
   const [playPulse, setPlayPulse] = useState(false);
+  const [subsActive, setSubsActive] = useState(true);
+  const subsKey = useMemo(() => subtitles.map((s) => `${s.lang}|${s.url}`).join("¶"), [subtitles]);
   const controlsTimer = useRef<ReturnType<typeof setTimeout>>();
   const autoNextTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoNextCountdownStarted = useRef(false);
@@ -303,6 +312,38 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, [inWebView]);
+
+  // ── Subtítulos dinámicos (softsubs modo japonés) ───────────────
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    // Limpiar tracks previos
+    Array.from(video.querySelectorAll("track")).forEach((t) => t.remove());
+    if (!subsActive || subtitles.length === 0) {
+      if (video.textTracks) {
+        for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = "disabled";
+      }
+      return;
+    }
+    const preferred = subtitles.find((s) => s.lang.toLowerCase().includes("es")) || subtitles[0];
+    subtitles.forEach((sub) => {
+      const track = document.createElement("track");
+      track.kind = "subtitles";
+      track.label = sub.label || sub.lang;
+      track.srclang = sub.lang;
+      track.src = sub.url;
+      if (sub === preferred) track.default = true;
+      video.appendChild(track);
+    });
+    // Forzar modo showing en el preferido tras un tick
+    requestAnimationFrame(() => {
+      if (!video.textTracks) return;
+      for (let i = 0; i < video.textTracks.length; i++) {
+        const tt = video.textTracks[i];
+        tt.mode = tt.language === preferred.lang ? "showing" : "disabled";
+      }
+    });
+  }, [subsKey, subsActive, currentSource]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -629,6 +670,16 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition shrink-0">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
+              {subtitles.length > 0 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSubsActive((v) => !v); }}
+                  className={`text-white hover:text-primary transition shrink-0 ${subsActive ? "text-primary" : ""}`}
+                  aria-label={subsActive ? "Desactivar subtítulos" : "Activar subtítulos"}
+                  title={subsActive ? "Subtítulos: ON" : "Subtítulos: OFF"}
+                >
+                  {subsActive ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
+                </button>
+              )}
               <button
                 onClick={(e) => { e.stopPropagation(); skip90(); }}
                 className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1 shrink-0"

@@ -8,10 +8,17 @@ export interface ZetServer {
   download?: string;
 }
 
+export interface ZetSubtitle {
+  lang: string;
+  url: string;
+  label?: string;
+}
+
 export interface ZetEpisodeServers {
   title: string;
   number: number;
   servers: ZetServer[];
+  subtitles?: ZetSubtitle[];
 }
 
 export interface ZetLatestEpisode {
