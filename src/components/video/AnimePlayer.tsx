@@ -103,6 +103,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [autoNextVisible, setAutoNextVisible] = useState(false);
   const [autoNextSeconds, setAutoNextSeconds] = useState(15);
   const [playPulse, setPlayPulse] = useState(false);
+  const [subsActive, setSubsActive] = useState(true);
+  const subsKey = useMemo(() => subtitles.map((s) => `${s.lang}|${s.url}`).join("¶"), [subtitles]);
   const controlsTimer = useRef<ReturnType<typeof setTimeout>>();
   const autoNextTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoNextCountdownStarted = useRef(false);
