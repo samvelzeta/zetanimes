@@ -313,6 +313,38 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, [inWebView]);
 
+  // ── Subtítulos dinámicos (softsubs modo japonés) ───────────────
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    // Limpiar tracks previos
+    Array.from(video.querySelectorAll("track")).forEach((t) => t.remove());
+    if (!subsActive || subtitles.length === 0) {
+      if (video.textTracks) {
+        for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = "disabled";
+      }
+      return;
+    }
+    const preferred = subtitles.find((s) => s.lang.toLowerCase().includes("es")) || subtitles[0];
+    subtitles.forEach((sub) => {
+      const track = document.createElement("track");
+      track.kind = "subtitles";
+      track.label = sub.label || sub.lang;
+      track.srclang = sub.lang;
+      track.src = sub.url;
+      if (sub === preferred) track.default = true;
+      video.appendChild(track);
+    });
+    // Forzar modo showing en el preferido tras un tick
+    requestAnimationFrame(() => {
+      if (!video.textTracks) return;
+      for (let i = 0; i < video.textTracks.length; i++) {
+        const tt = video.textTracks[i];
+        tt.mode = tt.language === preferred.lang ? "showing" : "disabled";
+      }
+    });
+  }, [subsKey, subsActive, currentSource]);
+
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
