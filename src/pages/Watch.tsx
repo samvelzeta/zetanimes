@@ -289,6 +289,12 @@ export default function Watch() {
       : rawSources;
   }, [activeSourceIdx, rawSources, shouldShowLanguageControls, lang]);
   const activeLang = sortedSources[0]?.lang || lang;
+  // Subtítulos softsub vienen del API (modo japonés). Usar el del idioma activo.
+  const activeSubtitles = useMemo(() => {
+    const src = activeLang === lang ? serverData : oppositeServerData;
+    const subs = (src as any)?.subtitles;
+    return Array.isArray(subs) ? subs : [];
+  }, [serverData, oppositeServerData, activeLang, lang]);
   const autoNextKey = `${anilistId}-${selectedEp}`;
 
   // Restore progress on episode change
