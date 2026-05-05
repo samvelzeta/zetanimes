@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchAnime } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { Search as SearchIcon, X, Sparkles, TrendingUp, Cog } from "lucide-react";
+import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 
 const SUGGESTIONS = [
   "Naruto",
