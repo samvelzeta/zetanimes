@@ -670,6 +670,16 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition shrink-0">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
+              {subtitles.length > 0 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setSubsActive((v) => !v); }}
+                  className={`text-white hover:text-primary transition shrink-0 ${subsActive ? "text-primary" : ""}`}
+                  aria-label={subsActive ? "Desactivar subtítulos" : "Activar subtítulos"}
+                  title={subsActive ? "Subtítulos: ON" : "Subtítulos: OFF"}
+                >
+                  {subsActive ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
+                </button>
+              )}
               <button
                 onClick={(e) => { e.stopPropagation(); skip90(); }}
                 className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1 shrink-0"
