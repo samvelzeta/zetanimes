@@ -47,8 +47,8 @@ export default function GenreList() {
               // @ts-expect-error fetchpriority es atributo HTML válido
               fetchpriority="high"
               draggable={false}
-              style={{ transform: offsetY ? `translateY(${offsetY}px)` : undefined }}
-              className="absolute right-0 -bottom-1 h-[120%] w-auto object-cover object-top pointer-events-none select-none opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 drop-shadow-lg"
+              style={offsetY ? { ['--genre-offset' as any]: `${offsetY}px` } : undefined}
+              className={`absolute right-0 -bottom-1 h-[120%] w-auto object-cover object-top pointer-events-none select-none opacity-80 group-hover:opacity-100 transition-all duration-300 drop-shadow-lg ${offsetY ? "translate-y-[var(--genre-offset)] group-hover:scale-110" : "group-hover:scale-110"}`}
             />
 
             {/* Genre name */}
