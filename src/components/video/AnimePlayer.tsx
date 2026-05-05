@@ -4,6 +4,12 @@ import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, Ale
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 
+export interface PlayerSubtitle {
+  lang: string;
+  url: string;
+  label?: string;
+}
+
 export interface PlayerSource {
   name: string;
   embed?: string;
