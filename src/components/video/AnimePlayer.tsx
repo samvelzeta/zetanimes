@@ -324,32 +324,88 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    // Limpiar tracks previos
-    Array.from(video.querySelectorAll("track")).forEach((t) => t.remove());
+
+    // Limpiar tracks previos y revocar blobs anteriores
+    const old = Array.from(video.querySelectorAll("track")) as HTMLTrackElement[];
+    old.forEach((t) => {
+      if (t.src.startsWith("blob:")) URL.revokeObjectURL(t.src);
+      t.remove();
+    });
     if (!subsActive || effectiveSubtitles.length === 0) {
       if (video.textTracks) {
         for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = "disabled";
       }
       return;
     }
-    const preferred = effectiveSubtitles.find((s) => s.lang.toLowerCase().includes("es")) || effectiveSubtitles[0];
-    effectiveSubtitles.forEach((sub) => {
+
+    const detectarIdioma = (label: string) => {
+      const l = (label || "").toLowerCase();
+      if (l.includes("es") || l.includes("spa") || l.includes("lat")) return "es";
+      if (l.includes("en") || l.includes("eng")) return "en";
+      if (l.includes("ar")) return "ar";
+      if (l.includes("tr")) return "tr";
+      if (l.includes("pt") || l.includes("por")) return "pt";
+      if (l.includes("ja") || l.includes("jp")) return "ja";
+      return "es";
+    };
+
+    const srtToVtt = (srt: string) => {
+      let s = srt.replace(/\r+/g, "");
+      // Convertir comas de tiempos a puntos: 00:00:01,000 -> 00:00:01.000
+      s = s.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
+      return "WEBVTT\n\n" + s;
+    };
+
+    const preferred = effectiveSubtitles.find((s) => detectarIdioma(s.lang) === "es") || effectiveSubtitles[0];
+    const blobUrls: string[] = [];
+    let cancelled = false;
+
+    const loadOne = async (sub: PlayerSubtitle, isDefault: boolean) => {
+      let src = sub.url;
+      const isSrt = /\.srt(\?|$)/i.test(sub.url);
+      if (isSrt) {
+        try {
+          const r = await fetch(sub.url);
+          const txt = await r.text();
+          const vtt = srtToVtt(txt);
+          const blob = new Blob([vtt], { type: "text/vtt" });
+          src = URL.createObjectURL(blob);
+          blobUrls.push(src);
+        } catch {
+          // si falla, intentar reemplazo simple
+          src = sub.url.replace(/\.srt(\?|$)/i, ".vtt$1");
+        }
+      }
+      if (cancelled) return;
       const track = document.createElement("track");
       track.kind = "subtitles";
-      track.label = sub.label || sub.lang;
-      track.srclang = sub.lang;
-      track.src = sub.url;
-      if (sub === preferred) track.default = true;
+      track.label = sub.label || sub.lang || "Subtítulos";
+      track.srclang = detectarIdioma(sub.lang);
+      track.src = src;
+      if (isDefault) track.default = true;
       video.appendChild(track);
-    });
-    // Forzar modo showing en el preferido tras un tick
-    requestAnimationFrame(() => {
-      if (!video.textTracks) return;
-      for (let i = 0; i < video.textTracks.length; i++) {
-        const tt = video.textTracks[i];
-        tt.mode = tt.language === preferred.lang ? "showing" : "disabled";
+    };
+
+    (async () => {
+      for (const sub of effectiveSubtitles) {
+        await loadOne(sub, sub === preferred);
       }
-    });
+      // Forzar activación del track preferido
+      setTimeout(() => {
+        if (cancelled || !video.textTracks) return;
+        for (let i = 0; i < video.textTracks.length; i++) {
+          const tt = video.textTracks[i];
+          tt.mode = i === 0 ? "showing" : "disabled";
+        }
+        // eslint-disable-next-line no-console
+        console.log("🎯 Tracks activos:", video.textTracks.length);
+      }, 500);
+    })();
+
+    return () => {
+      cancelled = true;
+      blobUrls.forEach((u) => URL.revokeObjectURL(u));
+    };
   }, [subsKey, subsActive, currentSource]);
 
   const togglePlay = () => {
