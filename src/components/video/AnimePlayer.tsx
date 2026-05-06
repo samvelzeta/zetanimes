@@ -326,14 +326,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     if (!video) return;
     // Limpiar tracks previos
     Array.from(video.querySelectorAll("track")).forEach((t) => t.remove());
-    if (!subsActive || subtitles.length === 0) {
+    if (!subsActive || effectiveSubtitles.length === 0) {
       if (video.textTracks) {
         for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = "disabled";
       }
       return;
     }
-    const preferred = subtitles.find((s) => s.lang.toLowerCase().includes("es")) || subtitles[0];
-    subtitles.forEach((sub) => {
+    const preferred = effectiveSubtitles.find((s) => s.lang.toLowerCase().includes("es")) || effectiveSubtitles[0];
+    effectiveSubtitles.forEach((sub) => {
       const track = document.createElement("track");
       track.kind = "subtitles";
       track.label = sub.label || sub.lang;
