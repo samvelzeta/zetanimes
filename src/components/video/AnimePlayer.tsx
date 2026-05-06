@@ -677,7 +677,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition shrink-0">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
-              {subtitles.length > 0 && (
+              {effectiveSubtitles.length > 0 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setSubsActive((v) => !v); }}
                   className={`text-white hover:text-primary transition shrink-0 ${subsActive ? "text-primary" : ""}`}
