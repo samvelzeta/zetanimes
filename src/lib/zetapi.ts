@@ -95,8 +95,10 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
   return res.data;
 }
 
-const SEEKE_CACHE_VERSION = "v2";
-const seekeMemoryCache = new Map<string, { embed: string; episode: number; cached?: boolean; expiresAt: number }>();
+const SEEKE_CACHE_VERSION = "v3";
+const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
+type SeekeResolved = { embed: string; episode: number; cached?: boolean; subtitles?: ZetSubtitle[] };
+const seekeMemoryCache = new Map<string, SeekeResolved & { expiresAt: number }>();
 const SEEKE_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
 
 function getSeekeCacheKey(baseUrl: string, epNumber: number) {
