@@ -197,9 +197,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
     if (currentSource.type === "seeke") {
       setLoading(true);
+      setSeekeSubs([]);
       getSeekeEpisode(currentSource.url, currentSource.episode || 1)
         .then((data) => {
-          if (!cancelled) attachHls(data.embed);
+          if (cancelled) return;
+          if (Array.isArray((data as any).subtitles)) {
+            setSeekeSubs(((data as any).subtitles || []) as PlayerSubtitle[]);
+          }
+          attachHls(data.embed);
         })
         .catch(() => {
           if (!cancelled) tryNext();
