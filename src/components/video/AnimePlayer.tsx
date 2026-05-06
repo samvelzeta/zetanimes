@@ -566,7 +566,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         </div>
       )}
 
-      <video ref={videoRef} className="w-full h-full object-contain" playsInline muted={muted} />
+      <video ref={videoRef} className="w-full h-full object-contain" playsInline muted={muted} crossOrigin="anonymous" />
 
       {playPulse && (
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
