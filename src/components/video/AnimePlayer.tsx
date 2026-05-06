@@ -104,7 +104,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [autoNextSeconds, setAutoNextSeconds] = useState(15);
   const [playPulse, setPlayPulse] = useState(false);
   const [subsActive, setSubsActive] = useState(true);
-  const subsKey = useMemo(() => subtitles.map((s) => `${s.lang}|${s.url}`).join("¶"), [subtitles]);
+  const [seekeSubs, setSeekeSubs] = useState<PlayerSubtitle[]>([]);
+  const effectiveSubtitles = subtitles.length > 0 ? subtitles : seekeSubs;
+  const subsKey = useMemo(() => effectiveSubtitles.map((s) => `${s.lang}|${s.url}`).join("¶"), [effectiveSubtitles]);
   const controlsTimer = useRef<ReturnType<typeof setTimeout>>();
   const autoNextTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoNextCountdownStarted = useRef(false);
@@ -195,9 +197,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
     if (currentSource.type === "seeke") {
       setLoading(true);
+      setSeekeSubs([]);
       getSeekeEpisode(currentSource.url, currentSource.episode || 1)
         .then((data) => {
-          if (!cancelled) attachHls(data.embed);
+          if (cancelled) return;
+          if (Array.isArray((data as any).subtitles)) {
+            setSeekeSubs(((data as any).subtitles || []) as PlayerSubtitle[]);
+          }
+          attachHls(data.embed);
         })
         .catch(() => {
           if (!cancelled) tryNext();
@@ -319,14 +326,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     if (!video) return;
     // Limpiar tracks previos
     Array.from(video.querySelectorAll("track")).forEach((t) => t.remove());
-    if (!subsActive || subtitles.length === 0) {
+    if (!subsActive || effectiveSubtitles.length === 0) {
       if (video.textTracks) {
         for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = "disabled";
       }
       return;
     }
-    const preferred = subtitles.find((s) => s.lang.toLowerCase().includes("es")) || subtitles[0];
-    subtitles.forEach((sub) => {
+    const preferred = effectiveSubtitles.find((s) => s.lang.toLowerCase().includes("es")) || effectiveSubtitles[0];
+    effectiveSubtitles.forEach((sub) => {
       const track = document.createElement("track");
       track.kind = "subtitles";
       track.label = sub.label || sub.lang;
@@ -670,7 +677,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition shrink-0">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
-              {subtitles.length > 0 && (
+              {effectiveSubtitles.length > 0 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setSubsActive((v) => !v); }}
                   className={`text-white hover:text-primary transition shrink-0 ${subsActive ? "text-primary" : ""}`}

@@ -95,8 +95,10 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
   return res.data;
 }
 
-const SEEKE_CACHE_VERSION = "v2";
-const seekeMemoryCache = new Map<string, { embed: string; episode: number; cached?: boolean; expiresAt: number }>();
+const SEEKE_CACHE_VERSION = "v3";
+const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
+type SeekeResolved = { embed: string; episode: number; cached?: boolean; subtitles?: ZetSubtitle[] };
+const seekeMemoryCache = new Map<string, SeekeResolved & { expiresAt: number }>();
 const SEEKE_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
 
 function getSeekeCacheKey(baseUrl: string, epNumber: number) {
@@ -112,31 +114,70 @@ export function clearSeekeEpisodeCache() {
   } catch {}
 }
 
-export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promise<{ embed: string; episode: number; cached?: boolean }> {
+function normalizeSeekeSubs(raw: any): ZetSubtitle[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((s: any) => ({
+      lang: String(s?.lang || s?.language || s?.srclang || "es"),
+      url: String(s?.url || s?.src || ""),
+      label: s?.label ? String(s.label) : undefined,
+    }))
+    .filter((s) => !!s.url);
+}
+
+export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promise<SeekeResolved> {
   const key = getSeekeCacheKey(baseUrl, epNumber);
   const now = Date.now();
   const memory = seekeMemoryCache.get(key);
   if (memory && memory.expiresAt > now) {
-    return { embed: memory.embed, episode: memory.episode, cached: true };
+    return { embed: memory.embed, episode: memory.episode, cached: true, subtitles: memory.subtitles };
   }
 
   try {
-    const stored = JSON.parse(localStorage.getItem(key) || "null") as typeof memory | null;
+    const stored = JSON.parse(localStorage.getItem(key) || "null") as (SeekeResolved & { expiresAt: number }) | null;
     if (stored?.embed && stored.expiresAt > now) {
       seekeMemoryCache.set(key, stored);
-      return { embed: stored.embed, episode: stored.episode, cached: true };
+      return { embed: stored.embed, episode: stored.episode, cached: true, subtitles: stored.subtitles };
     }
   } catch {}
 
-  const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; error?: string }>(
-    `/anime/episode-seeke?url=${encodeURIComponent(baseUrl)}&ep=${epNumber}`
-  );
+  // 1) Fetch directo al bot (entrega embed + subtítulos softsub para JP)
+  let resolved: SeekeResolved | null = null;
+  try {
+    const r = await fetch(SEEKE_BOT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ url: baseUrl, ep: epNumber }),
+    });
+    if (r.ok) {
+      const data = await r.json();
+      if (data?.ok && data?.embed) {
+        resolved = {
+          embed: String(data.embed),
+          episode: Number(data.episode || epNumber),
+          cached: !!data.cached,
+          subtitles: normalizeSeekeSubs(data.subtitles),
+        };
+      }
+    }
+  } catch {}
 
-  if (!res.ok || !res.embed) {
-    throw new Error(res.error || "No se pudo obtener el episodio");
+  // 2) Fallback al proxy/Cloudflare si el bot directo falla (CORS u otro)
+  if (!resolved) {
+    const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; subtitles?: any[]; error?: string }>(
+      `/anime/episode-seeke?url=${encodeURIComponent(baseUrl)}&ep=${epNumber}`
+    );
+    if (!res.ok || !res.embed) {
+      throw new Error(res.error || "No se pudo obtener el episodio");
+    }
+    resolved = {
+      embed: res.embed,
+      episode: res.episode || epNumber,
+      cached: res.cached,
+      subtitles: normalizeSeekeSubs(res.subtitles),
+    };
   }
 
-  const resolved = { embed: res.embed, episode: res.episode || epNumber, cached: res.cached };
   const cacheValue = { ...resolved, expiresAt: now + SEEKE_CACHE_TTL };
   seekeMemoryCache.set(key, cacheValue);
   try { localStorage.setItem(key, JSON.stringify(cacheValue)); } catch {}
