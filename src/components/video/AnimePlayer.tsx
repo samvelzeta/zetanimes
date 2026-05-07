@@ -417,7 +417,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           if (!cancelled) setParsedSubtitleCues(unpack(cached.cues));
           return;
         }
-      } catch {}
+      } catch {
+        void 0;
+      }
 
       try {
         const response = await fetch(selected.url, { headers: { Accept: "application/x-subrip,text/plain,*/*" } });
@@ -428,12 +430,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         try {
           const packed = cues.map((cue) => [Number(cue.start.toFixed(3)), Number(cue.end.toFixed(3)), cue.text] as [number, number, string]);
           localStorage.setItem(cacheKey, JSON.stringify({ expiresAt: Date.now() + SRT_CACHE_TTL, cues: packed }));
-        } catch {}
+        } catch {
+          void 0;
+        }
       } catch (err) {
         if (!cancelled) {
           setParsedSubtitleCues([]);
           setActiveSubtitleText("");
-          // eslint-disable-next-line no-console
           console.warn("No se pudo cargar el SRT dinámico", err);
         }
       }
@@ -442,7 +445,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     return () => {
       cancelled = true;
     };
-  }, [selectedSubtitleUrl, subsActive, subsKey, episodeKey, currentSource?.episode]);
+  }, [selectedSubtitleUrl, subsActive, effectiveSubtitles, episodeKey, currentSource?.episode]);
 
   useEffect(() => {
     const video = videoRef.current;
