@@ -168,7 +168,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
   const subtitleOptions = useMemo(
     () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
-    [subsKey]
+    [effectiveSubtitles]
   );
   const controlsTimer = useRef<ReturnType<typeof setTimeout>>();
   const autoNextTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -264,8 +264,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       getSeekeEpisode(currentSource.url, currentSource.episode || 1)
         .then((data) => {
           if (cancelled) return;
-          if (Array.isArray((data as any).subtitles)) {
-            setSeekeSubs(((data as any).subtitles || []) as PlayerSubtitle[]);
+          if (Array.isArray(data.subtitles)) {
+            setSeekeSubs(data.subtitles);
           }
           attachHls(data.embed);
         })
