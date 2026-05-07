@@ -390,7 +390,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setParsedSubtitleCues([]);
     setActiveSubtitleText("");
     setShowSubtitleMenu(false);
-  }, [subsKey, episodeKey, currentSource?.url]);
+  }, [effectiveSubtitles, episodeKey, currentSource?.url]);
 
   useEffect(() => {
     const video = videoRef.current;
