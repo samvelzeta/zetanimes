@@ -18,6 +18,8 @@ export interface PlayerSource {
   episode?: number;
 }
 
+const EMPTY_PLAYER_SUBTITLES: PlayerSubtitle[] = [];
+
 interface Props {
   sources: PlayerSource[];
   title?: string;
@@ -42,11 +44,66 @@ interface Props {
 
 type SourceType = "hls" | "mp4" | "embed" | "html" | "seeke";
 
+interface ParsedSubtitleCue {
+  start: number;
+  end: number;
+  text: string;
+}
+
 interface ClassifiedSource {
   type: SourceType;
   url: string;
   name: string;
   episode?: number;
+}
+
+const SRT_CACHE_VERSION = "v1";
+const SRT_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
+
+function srtTimeToSeconds(value: string) {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})$/);
+  if (!match) return 0;
+  const [, h, m, s, ms] = match;
+  return Number(h) * 3600 + Number(m) * 60 + Number(s) + Number(ms.padEnd(3, "0")) / 1000;
+}
+
+function parseSrt(raw: string): ParsedSubtitleCue[] {
+  const normalized = raw.replace(/^\uFEFF/, "").replace(/\r/g, "").replace(/\\n/g, "\n").trim();
+  if (!normalized) return [];
+
+  return normalized
+    .split(/\n{2,}/)
+    .map((block) => {
+      const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+      const timeIndex = lines.findIndex((line) => line.includes("-->"));
+      if (timeIndex === -1) return null;
+      const [startRaw, endRaw] = lines[timeIndex].split("-->").map((part) => part.trim().split(/\s+/)[0]);
+      const text = lines.slice(timeIndex + 1).join("\n").replace(/<[^>]+>/g, "").trim();
+      if (!startRaw || !endRaw || !text) return null;
+      return { start: srtTimeToSeconds(startRaw), end: srtTimeToSeconds(endRaw), text };
+    })
+    .filter((cue): cue is ParsedSubtitleCue => !!cue && cue.end > cue.start)
+    .sort((a, b) => a.start - b.start);
+}
+
+function getSubtitleLanguage(sub: PlayerSubtitle) {
+  const haystack = `${sub.lang || ""} ${sub.label || ""} ${decodeURIComponent(sub.url || "")}`.toLowerCase();
+  const has = (re: RegExp) => re.test(haystack);
+  if (has(/(?:^|[^a-z])(es|esp|spa|spanish|espanol|español|castellano)(?:[^a-z]|$)/)) return { code: "es", label: "Español" };
+  if (has(/(?:^|[^a-z])(en|eng|english)(?:[^a-z]|$)/)) return { code: "en", label: "Inglés" };
+  if (has(/(?:^|[^a-z])(ar|ara|arabic)(?:[^a-z]|$)/)) return { code: "ar", label: "Árabe" };
+  if (has(/(?:^|[^a-z])(tr|tur|turkish)(?:[^a-z]|$)/)) return { code: "tr", label: "Turco" };
+  if (has(/(?:^|[^a-z])(pt|por|portuguese|português)(?:[^a-z]|$)/)) return { code: "pt", label: "Portugués" };
+  if (has(/(?:^|[^a-z])(fil|tl|tagalog)(?:[^a-z]|$)/)) return { code: "fil", label: "Filipino" };
+  if (has(/(?:^|[^a-z])(th|tha|thai)(?:[^a-z]|$)/)) return { code: "th", label: "Tailandés" };
+  if (has(/(?:^|[^a-z])(ms|may|malay)(?:[^a-z]|$)/)) return { code: "ms", label: "Malayo" };
+  if (has(/(?:^|[^a-z])(chs|cht|zh|chi|chinese)(?:[^a-z]|$)/)) return { code: "zh", label: "Chino" };
+  if (has(/(?:^|[^a-z])(ja|jp|jpn|japanese)(?:[^a-z]|$)/)) return { code: "ja", label: "Japonés" };
+  return { code: "sub", label: sub.lang || sub.label || "Subtítulo" };
+}
+
+function getPreferredSubtitle(subtitles: PlayerSubtitle[]) {
+  return subtitles.find((sub) => getSubtitleLanguage(sub).code === "es") || subtitles[0] || null;
 }
 
 function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
@@ -77,7 +134,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   return classified;
 }
 
-export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, subtitles = [] }: Props) {
+export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, subtitles = EMPTY_PLAYER_SUBTITLES }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -105,8 +162,16 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [playPulse, setPlayPulse] = useState(false);
   const [subsActive, setSubsActive] = useState(true);
   const [seekeSubs, setSeekeSubs] = useState<PlayerSubtitle[]>([]);
-  const effectiveSubtitles = subtitles.length > 0 ? subtitles : seekeSubs;
+  const effectiveSubtitles = useMemo(() => subtitles.length > 0 ? subtitles : seekeSubs, [subtitles, seekeSubs]);
   const subsKey = useMemo(() => effectiveSubtitles.map((s) => `${s.lang}|${s.url}`).join("¶"), [effectiveSubtitles]);
+  const [selectedSubtitleUrl, setSelectedSubtitleUrl] = useState<string | null>(null);
+  const [parsedSubtitleCues, setParsedSubtitleCues] = useState<ParsedSubtitleCue[]>([]);
+  const [activeSubtitleText, setActiveSubtitleText] = useState("");
+  const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
+  const subtitleOptions = useMemo(
+    () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
+    [effectiveSubtitles]
+  );
   const controlsTimer = useRef<ReturnType<typeof setTimeout>>();
   const autoNextTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoNextCountdownStarted = useRef(false);
@@ -201,8 +266,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       getSeekeEpisode(currentSource.url, currentSource.episode || 1)
         .then((data) => {
           if (cancelled) return;
-          if (Array.isArray((data as any).subtitles)) {
-            setSeekeSubs(((data as any).subtitles || []) as PlayerSubtitle[]);
+          if (Array.isArray(data.subtitles)) {
+            setSeekeSubs(data.subtitles);
           }
           attachHls(data.embed);
         })
@@ -320,93 +385,93 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, [inWebView]);
 
-  // ── Subtítulos dinámicos (softsubs modo japonés) ───────────────
+  // ── Custom SRT renderer: lee el .srt, lo parsea y lo pinta sobre el video ──
+  useEffect(() => {
+    const preferred = getPreferredSubtitle(effectiveSubtitles);
+    setSelectedSubtitleUrl(preferred?.url || null);
+    setParsedSubtitleCues([]);
+    setActiveSubtitleText("");
+    setShowSubtitleMenu(false);
+  }, [effectiveSubtitles, episodeKey, currentSource?.url]);
+
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (video) Array.from(video.querySelectorAll("track")).forEach((track) => track.remove());
 
-    // Limpiar tracks previos y revocar blobs anteriores
-    const old = Array.from(video.querySelectorAll("track")) as HTMLTrackElement[];
-    old.forEach((t) => {
-      if (t.src.startsWith("blob:")) URL.revokeObjectURL(t.src);
-      t.remove();
-    });
-    if (!subsActive || effectiveSubtitles.length === 0) {
-      if (video.textTracks) {
-        for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = "disabled";
-      }
+    if (!subsActive || !selectedSubtitleUrl) {
+      setParsedSubtitleCues([]);
+      setActiveSubtitleText("");
       return;
     }
 
-    const detectarIdioma = (label: string) => {
-      const l = (label || "").toLowerCase();
-      if (l.includes("es") || l.includes("spa") || l.includes("lat")) return "es";
-      if (l.includes("en") || l.includes("eng")) return "en";
-      if (l.includes("ar")) return "ar";
-      if (l.includes("tr")) return "tr";
-      if (l.includes("pt") || l.includes("por")) return "pt";
-      if (l.includes("ja") || l.includes("jp")) return "ja";
-      return "es";
-    };
+    const selected = effectiveSubtitles.find((sub) => sub.url === selectedSubtitleUrl);
+    if (!selected) return;
 
-    const srtToVtt = (srt: string) => {
-      let s = srt.replace(/\r+/g, "");
-      // Convertir comas de tiempos a puntos: 00:00:01,000 -> 00:00:01.000
-      s = s.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
-      return "WEBVTT\n\n" + s;
-    };
-
-    const preferred = effectiveSubtitles.find((s) => detectarIdioma(s.lang) === "es") || effectiveSubtitles[0];
-    const blobUrls: string[] = [];
+    const cacheKey = `zet:srt:${SRT_CACHE_VERSION}:${episodeKey || currentSource?.episode || "ep"}:${selected.url}`;
     let cancelled = false;
 
-    const loadOne = async (sub: PlayerSubtitle, isDefault: boolean) => {
-      let src = sub.url;
-      const isSrt = /\.srt(\?|$)/i.test(sub.url);
-      if (isSrt) {
-        try {
-          const r = await fetch(sub.url);
-          const txt = await r.text();
-          const vtt = srtToVtt(txt);
-          const blob = new Blob([vtt], { type: "text/vtt" });
-          src = URL.createObjectURL(blob);
-          blobUrls.push(src);
-        } catch {
-          // si falla, intentar reemplazo simple
-          src = sub.url.replace(/\.srt(\?|$)/i, ".vtt$1");
-        }
-      }
-      if (cancelled) return;
-      const track = document.createElement("track");
-      track.kind = "subtitles";
-      track.label = sub.label || sub.lang || "Subtítulos";
-      track.srclang = detectarIdioma(sub.lang);
-      track.src = src;
-      if (isDefault) track.default = true;
-      video.appendChild(track);
-    };
+    const unpack = (packed: [number, number, string][]) => packed.map(([start, end, text]) => ({ start, end, text }));
 
     (async () => {
-      for (const sub of effectiveSubtitles) {
-        await loadOne(sub, sub === preferred);
-      }
-      // Forzar activación del track preferido
-      setTimeout(() => {
-        if (cancelled || !video.textTracks) return;
-        for (let i = 0; i < video.textTracks.length; i++) {
-          const tt = video.textTracks[i];
-          tt.mode = i === 0 ? "showing" : "disabled";
+      try {
+        const cached = JSON.parse(localStorage.getItem(cacheKey) || "null") as { expiresAt: number; cues: [number, number, string][] } | null;
+        if (cached?.expiresAt && cached.expiresAt > Date.now() && Array.isArray(cached.cues)) {
+          if (!cancelled) setParsedSubtitleCues(unpack(cached.cues));
+          return;
         }
-        // eslint-disable-next-line no-console
-        console.log("🎯 Tracks activos:", video.textTracks.length);
-      }, 500);
+      } catch {
+        void 0;
+      }
+
+      try {
+        const response = await fetch(selected.url, { headers: { Accept: "application/x-subrip,text/plain,*/*" } });
+        if (!response.ok) throw new Error(`SRT ${response.status}`);
+        const cues = parseSrt(await response.text());
+        if (cancelled) return;
+        setParsedSubtitleCues(cues);
+        try {
+          const packed = cues.map((cue) => [Number(cue.start.toFixed(3)), Number(cue.end.toFixed(3)), cue.text] as [number, number, string]);
+          localStorage.setItem(cacheKey, JSON.stringify({ expiresAt: Date.now() + SRT_CACHE_TTL, cues: packed }));
+        } catch {
+          void 0;
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setParsedSubtitleCues([]);
+          setActiveSubtitleText("");
+          console.warn("No se pudo cargar el SRT dinámico", err);
+        }
+      }
     })();
 
     return () => {
       cancelled = true;
-      blobUrls.forEach((u) => URL.revokeObjectURL(u));
     };
-  }, [subsKey, subsActive, currentSource]);
+  }, [selectedSubtitleUrl, subsActive, effectiveSubtitles, episodeKey, currentSource?.episode]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !subsActive || parsedSubtitleCues.length === 0) {
+      setActiveSubtitleText("");
+      return;
+    }
+
+    const syncSubtitle = () => {
+      const now = video.currentTime;
+      const active = parsedSubtitleCues.find((cue) => now >= cue.start && now <= cue.end);
+      setActiveSubtitleText(active?.text || "");
+    };
+
+    syncSubtitle();
+    video.addEventListener("timeupdate", syncSubtitle);
+    video.addEventListener("seeked", syncSubtitle);
+    video.addEventListener("play", syncSubtitle);
+    return () => {
+      video.removeEventListener("timeupdate", syncSubtitle);
+      video.removeEventListener("seeked", syncSubtitle);
+      video.removeEventListener("play", syncSubtitle);
+    };
+  }, [parsedSubtitleCues, subsActive, currentSource]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -629,7 +694,15 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         </div>
       )}
 
-      <video ref={videoRef} className="w-full h-full object-contain" playsInline muted={muted} crossOrigin="anonymous" />
+      <video ref={videoRef} className="relative z-[1] w-full h-full object-contain" playsInline muted={muted} crossOrigin="anonymous" />
+
+      {subsActive && activeSubtitleText && (
+        <div className="pointer-events-none absolute inset-x-2 bottom-16 sm:bottom-20 z-20 flex justify-center px-2">
+          <div className="max-w-[92%] whitespace-pre-line rounded-md bg-background/35 px-3 py-1.5 text-center text-base font-bold leading-snug text-foreground sm:text-xl md:text-2xl [text-shadow:2px_2px_0_hsl(var(--background)),0_0_8px_hsl(var(--background))]">
+            {activeSubtitleText}
+          </div>
+        </div>
+      )}
 
       {playPulse && (
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
@@ -734,14 +807,43 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
               {effectiveSubtitles.length > 0 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setSubsActive((v) => !v); }}
-                  className={`text-white hover:text-primary transition shrink-0 ${subsActive ? "text-primary" : ""}`}
-                  aria-label={subsActive ? "Desactivar subtítulos" : "Activar subtítulos"}
-                  title={subsActive ? "Subtítulos: ON" : "Subtítulos: OFF"}
-                >
-                  {subsActive ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
-                </button>
+                <div className="relative shrink-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setSubsActive((v) => !v); if (!subsActive) setShowSubtitleMenu(false); }}
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowSubtitleMenu((v) => !v); }}
+                    className={`text-white hover:text-primary transition ${subsActive ? "text-primary" : ""}`}
+                    aria-label={subsActive ? "Desactivar subtítulos" : "Activar subtítulos"}
+                    title={subsActive ? "Subtítulos: ON" : "Subtítulos: OFF"}
+                  >
+                    {subsActive ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowSubtitleMenu((v) => !v); }}
+                    className="ml-1 align-top text-[10px] font-bold text-white/80 hover:text-primary transition"
+                    aria-label="Elegir idioma de subtítulos"
+                    title="Elegir idioma"
+                  >
+                    {selectedSubtitleUrl ? getSubtitleLanguage(effectiveSubtitles.find((sub) => sub.url === selectedSubtitleUrl) || effectiveSubtitles[0]).code.toUpperCase() : "SUB"}
+                  </button>
+                  {showSubtitleMenu && (
+                    <div onClick={(e) => e.stopPropagation()} className="absolute bottom-full left-0 mb-2 max-h-48 w-44 overflow-y-auto rounded-md border border-primary/40 bg-background/95 p-1 shadow-[0_0_18px_hsl(var(--primary)/0.35)] backdrop-blur">
+                      {subtitleOptions.map(({ sub, index, language }) => (
+                        <button
+                          key={`${sub.url}-${index}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSubtitleUrl(sub.url);
+                            setSubsActive(true);
+                            setShowSubtitleMenu(false);
+                          }}
+                          className={`w-full rounded px-2 py-1.5 text-left text-xs transition ${selectedSubtitleUrl === sub.url ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}
+                        >
+                          {language.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
               <button
                 onClick={(e) => { e.stopPropagation(); skip90(); }}
