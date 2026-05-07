@@ -18,6 +18,8 @@ export interface PlayerSource {
   episode?: number;
 }
 
+const EMPTY_PLAYER_SUBTITLES: PlayerSubtitle[] = [];
+
 interface Props {
   sources: PlayerSource[];
   title?: string;
@@ -132,7 +134,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   return classified;
 }
 
-export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, subtitles = [] }: Props) {
+export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, subtitles = EMPTY_PLAYER_SUBTITLES }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -160,7 +162,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [playPulse, setPlayPulse] = useState(false);
   const [subsActive, setSubsActive] = useState(true);
   const [seekeSubs, setSeekeSubs] = useState<PlayerSubtitle[]>([]);
-  const effectiveSubtitles = subtitles.length > 0 ? subtitles : seekeSubs;
+  const effectiveSubtitles = useMemo(() => subtitles.length > 0 ? subtitles : seekeSubs, [subtitles, seekeSubs]);
   const subsKey = useMemo(() => effectiveSubtitles.map((s) => `${s.lang}|${s.url}`).join("¶"), [effectiveSubtitles]);
   const [selectedSubtitleUrl, setSelectedSubtitleUrl] = useState<string | null>(null);
   const [parsedSubtitleCues, setParsedSubtitleCues] = useState<ParsedSubtitleCue[]>([]);
