@@ -689,7 +689,15 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         </div>
       )}
 
-      <video ref={videoRef} className="w-full h-full object-contain" playsInline muted={muted} crossOrigin="anonymous" />
+      <video ref={videoRef} className="relative z-[1] w-full h-full object-contain" playsInline muted={muted} crossOrigin="anonymous" />
+
+      {subsActive && activeSubtitleText && (
+        <div className="pointer-events-none absolute inset-x-2 bottom-16 sm:bottom-20 z-20 flex justify-center px-2">
+          <div className="max-w-[92%] whitespace-pre-line rounded-md bg-black/35 px-3 py-1.5 text-center text-[clamp(1rem,2.4vw,1.9rem)] font-bold leading-snug text-white [text-shadow:2px_2px_0_#000,0_0_8px_#000]">
+            {activeSubtitleText}
+          </div>
+        </div>
+      )}
 
       {playPulse && (
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
