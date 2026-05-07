@@ -42,11 +42,66 @@ interface Props {
 
 type SourceType = "hls" | "mp4" | "embed" | "html" | "seeke";
 
+interface ParsedSubtitleCue {
+  start: number;
+  end: number;
+  text: string;
+}
+
 interface ClassifiedSource {
   type: SourceType;
   url: string;
   name: string;
   episode?: number;
+}
+
+const SRT_CACHE_VERSION = "v1";
+const SRT_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
+
+function srtTimeToSeconds(value: string) {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})$/);
+  if (!match) return 0;
+  const [, h, m, s, ms] = match;
+  return Number(h) * 3600 + Number(m) * 60 + Number(s) + Number(ms.padEnd(3, "0")) / 1000;
+}
+
+function parseSrt(raw: string): ParsedSubtitleCue[] {
+  const normalized = raw.replace(/^\uFEFF/, "").replace(/\r/g, "").replace(/\\n/g, "\n").trim();
+  if (!normalized) return [];
+
+  return normalized
+    .split(/\n{2,}/)
+    .map((block) => {
+      const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+      const timeIndex = lines.findIndex((line) => line.includes("-->"));
+      if (timeIndex === -1) return null;
+      const [startRaw, endRaw] = lines[timeIndex].split("-->").map((part) => part.trim().split(/\s+/)[0]);
+      const text = lines.slice(timeIndex + 1).join("\n").replace(/<[^>]+>/g, "").trim();
+      if (!startRaw || !endRaw || !text) return null;
+      return { start: srtTimeToSeconds(startRaw), end: srtTimeToSeconds(endRaw), text };
+    })
+    .filter((cue): cue is ParsedSubtitleCue => !!cue && cue.end > cue.start)
+    .sort((a, b) => a.start - b.start);
+}
+
+function getSubtitleLanguage(sub: PlayerSubtitle) {
+  const haystack = `${sub.lang || ""} ${sub.label || ""} ${decodeURIComponent(sub.url || "")}`.toLowerCase();
+  const has = (re: RegExp) => re.test(haystack);
+  if (has(/(?:^|[^a-z])(es|esp|spa|spanish|espanol|español|castellano)(?:[^a-z]|$)/)) return { code: "es", label: "Español" };
+  if (has(/(?:^|[^a-z])(en|eng|english)(?:[^a-z]|$)/)) return { code: "en", label: "Inglés" };
+  if (has(/(?:^|[^a-z])(ar|ara|arabic)(?:[^a-z]|$)/)) return { code: "ar", label: "Árabe" };
+  if (has(/(?:^|[^a-z])(tr|tur|turkish)(?:[^a-z]|$)/)) return { code: "tr", label: "Turco" };
+  if (has(/(?:^|[^a-z])(pt|por|portuguese|português)(?:[^a-z]|$)/)) return { code: "pt", label: "Portugués" };
+  if (has(/(?:^|[^a-z])(fil|tl|tagalog)(?:[^a-z]|$)/)) return { code: "fil", label: "Filipino" };
+  if (has(/(?:^|[^a-z])(th|tha|thai)(?:[^a-z]|$)/)) return { code: "th", label: "Tailandés" };
+  if (has(/(?:^|[^a-z])(ms|may|malay)(?:[^a-z]|$)/)) return { code: "ms", label: "Malayo" };
+  if (has(/(?:^|[^a-z])(chs|cht|zh|chi|chinese)(?:[^a-z]|$)/)) return { code: "zh", label: "Chino" };
+  if (has(/(?:^|[^a-z])(ja|jp|jpn|japanese)(?:[^a-z]|$)/)) return { code: "ja", label: "Japonés" };
+  return { code: "sub", label: sub.lang || sub.label || "Subtítulo" };
+}
+
+function getPreferredSubtitle(subtitles: PlayerSubtitle[]) {
+  return subtitles.find((sub) => getSubtitleLanguage(sub).code === "es") || subtitles[0] || null;
 }
 
 function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
