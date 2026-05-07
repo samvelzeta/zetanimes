@@ -379,93 +379,90 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, [inWebView]);
 
-  // ── Subtítulos dinámicos (softsubs modo japonés) ───────────────
+  // ── Custom SRT renderer: lee el .srt, lo parsea y lo pinta sobre el video ──
+  useEffect(() => {
+    const preferred = getPreferredSubtitle(effectiveSubtitles);
+    setSelectedSubtitleUrl(preferred?.url || null);
+    setParsedSubtitleCues([]);
+    setActiveSubtitleText("");
+    setShowSubtitleMenu(false);
+  }, [subsKey, episodeKey, currentSource?.url]);
+
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (video) Array.from(video.querySelectorAll("track")).forEach((track) => track.remove());
 
-    // Limpiar tracks previos y revocar blobs anteriores
-    const old = Array.from(video.querySelectorAll("track")) as HTMLTrackElement[];
-    old.forEach((t) => {
-      if (t.src.startsWith("blob:")) URL.revokeObjectURL(t.src);
-      t.remove();
-    });
-    if (!subsActive || effectiveSubtitles.length === 0) {
-      if (video.textTracks) {
-        for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = "disabled";
-      }
+    if (!subsActive || !selectedSubtitleUrl) {
+      setParsedSubtitleCues([]);
+      setActiveSubtitleText("");
       return;
     }
 
-    const detectarIdioma = (label: string) => {
-      const l = (label || "").toLowerCase();
-      if (l.includes("es") || l.includes("spa") || l.includes("lat")) return "es";
-      if (l.includes("en") || l.includes("eng")) return "en";
-      if (l.includes("ar")) return "ar";
-      if (l.includes("tr")) return "tr";
-      if (l.includes("pt") || l.includes("por")) return "pt";
-      if (l.includes("ja") || l.includes("jp")) return "ja";
-      return "es";
-    };
+    const selected = effectiveSubtitles.find((sub) => sub.url === selectedSubtitleUrl);
+    if (!selected) return;
 
-    const srtToVtt = (srt: string) => {
-      let s = srt.replace(/\r+/g, "");
-      // Convertir comas de tiempos a puntos: 00:00:01,000 -> 00:00:01.000
-      s = s.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2");
-      return "WEBVTT\n\n" + s;
-    };
-
-    const preferred = effectiveSubtitles.find((s) => detectarIdioma(s.lang) === "es") || effectiveSubtitles[0];
-    const blobUrls: string[] = [];
+    const cacheKey = `zet:srt:${SRT_CACHE_VERSION}:${episodeKey || currentSource?.episode || "ep"}:${selected.url}`;
     let cancelled = false;
 
-    const loadOne = async (sub: PlayerSubtitle, isDefault: boolean) => {
-      let src = sub.url;
-      const isSrt = /\.srt(\?|$)/i.test(sub.url);
-      if (isSrt) {
-        try {
-          const r = await fetch(sub.url);
-          const txt = await r.text();
-          const vtt = srtToVtt(txt);
-          const blob = new Blob([vtt], { type: "text/vtt" });
-          src = URL.createObjectURL(blob);
-          blobUrls.push(src);
-        } catch {
-          // si falla, intentar reemplazo simple
-          src = sub.url.replace(/\.srt(\?|$)/i, ".vtt$1");
-        }
-      }
-      if (cancelled) return;
-      const track = document.createElement("track");
-      track.kind = "subtitles";
-      track.label = sub.label || sub.lang || "Subtítulos";
-      track.srclang = detectarIdioma(sub.lang);
-      track.src = src;
-      if (isDefault) track.default = true;
-      video.appendChild(track);
-    };
+    const unpack = (packed: [number, number, string][]) => packed.map(([start, end, text]) => ({ start, end, text }));
 
     (async () => {
-      for (const sub of effectiveSubtitles) {
-        await loadOne(sub, sub === preferred);
-      }
-      // Forzar activación del track preferido
-      setTimeout(() => {
-        if (cancelled || !video.textTracks) return;
-        for (let i = 0; i < video.textTracks.length; i++) {
-          const tt = video.textTracks[i];
-          tt.mode = i === 0 ? "showing" : "disabled";
+      try {
+        const cached = JSON.parse(localStorage.getItem(cacheKey) || "null") as { expiresAt: number; cues: [number, number, string][] } | null;
+        if (cached?.expiresAt && cached.expiresAt > Date.now() && Array.isArray(cached.cues)) {
+          if (!cancelled) setParsedSubtitleCues(unpack(cached.cues));
+          return;
         }
-        // eslint-disable-next-line no-console
-        console.log("🎯 Tracks activos:", video.textTracks.length);
-      }, 500);
+      } catch {}
+
+      try {
+        const response = await fetch(selected.url, { headers: { Accept: "application/x-subrip,text/plain,*/*" } });
+        if (!response.ok) throw new Error(`SRT ${response.status}`);
+        const cues = parseSrt(await response.text());
+        if (cancelled) return;
+        setParsedSubtitleCues(cues);
+        try {
+          const packed = cues.map((cue) => [Number(cue.start.toFixed(3)), Number(cue.end.toFixed(3)), cue.text] as [number, number, string]);
+          localStorage.setItem(cacheKey, JSON.stringify({ expiresAt: Date.now() + SRT_CACHE_TTL, cues: packed }));
+        } catch {}
+      } catch (err) {
+        if (!cancelled) {
+          setParsedSubtitleCues([]);
+          setActiveSubtitleText("");
+          // eslint-disable-next-line no-console
+          console.warn("No se pudo cargar el SRT dinámico", err);
+        }
+      }
     })();
 
     return () => {
       cancelled = true;
-      blobUrls.forEach((u) => URL.revokeObjectURL(u));
     };
-  }, [subsKey, subsActive, currentSource]);
+  }, [selectedSubtitleUrl, subsActive, subsKey, episodeKey, currentSource?.episode]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !subsActive || parsedSubtitleCues.length === 0) {
+      setActiveSubtitleText("");
+      return;
+    }
+
+    const syncSubtitle = () => {
+      const now = video.currentTime;
+      const active = parsedSubtitleCues.find((cue) => now >= cue.start && now <= cue.end);
+      setActiveSubtitleText(active?.text || "");
+    };
+
+    syncSubtitle();
+    video.addEventListener("timeupdate", syncSubtitle);
+    video.addEventListener("seeked", syncSubtitle);
+    video.addEventListener("play", syncSubtitle);
+    return () => {
+      video.removeEventListener("timeupdate", syncSubtitle);
+      video.removeEventListener("seeked", syncSubtitle);
+      video.removeEventListener("play", syncSubtitle);
+    };
+  }, [parsedSubtitleCues, subsActive, currentSource]);
 
   const togglePlay = () => {
     const video = videoRef.current;
