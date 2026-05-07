@@ -802,14 +802,43 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
               {effectiveSubtitles.length > 0 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setSubsActive((v) => !v); }}
-                  className={`text-white hover:text-primary transition shrink-0 ${subsActive ? "text-primary" : ""}`}
-                  aria-label={subsActive ? "Desactivar subtítulos" : "Activar subtítulos"}
-                  title={subsActive ? "Subtítulos: ON" : "Subtítulos: OFF"}
-                >
-                  {subsActive ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
-                </button>
+                <div className="relative shrink-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setSubsActive((v) => !v); if (!subsActive) setShowSubtitleMenu(false); }}
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowSubtitleMenu((v) => !v); }}
+                    className={`text-white hover:text-primary transition ${subsActive ? "text-primary" : ""}`}
+                    aria-label={subsActive ? "Desactivar subtítulos" : "Activar subtítulos"}
+                    title={subsActive ? "Subtítulos: ON" : "Subtítulos: OFF"}
+                  >
+                    {subsActive ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowSubtitleMenu((v) => !v); }}
+                    className="ml-1 align-top text-[10px] font-bold text-white/80 hover:text-primary transition"
+                    aria-label="Elegir idioma de subtítulos"
+                    title="Elegir idioma"
+                  >
+                    {selectedSubtitleUrl ? getSubtitleLanguage(effectiveSubtitles.find((sub) => sub.url === selectedSubtitleUrl) || effectiveSubtitles[0]).code.toUpperCase() : "SUB"}
+                  </button>
+                  {showSubtitleMenu && (
+                    <div onClick={(e) => e.stopPropagation()} className="absolute bottom-full left-0 mb-2 max-h-48 w-44 overflow-y-auto rounded-md border border-primary/40 bg-background/95 p-1 shadow-[0_0_18px_hsl(var(--primary)/0.35)] backdrop-blur">
+                      {subtitleOptions.map(({ sub, index, language }) => (
+                        <button
+                          key={`${sub.url}-${index}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSubtitleUrl(sub.url);
+                            setSubsActive(true);
+                            setShowSubtitleMenu(false);
+                          }}
+                          className={`w-full rounded px-2 py-1.5 text-left text-xs transition ${selectedSubtitleUrl === sub.url ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}
+                        >
+                          {language.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
               <button
                 onClick={(e) => { e.stopPropagation(); skip90(); }}
