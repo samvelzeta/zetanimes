@@ -26,6 +26,7 @@ const OWNER_ONLY_TABS = new Set(["premium", "payment", "apikeys", "roles", "acti
 
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
+  { key: "activity", label: "Historial", icon: Activity },
   { key: "downloads", label: "Descargas", icon: Store },
   { key: "videos", label: "Videos", icon: Film },
   { key: "apidebug", label: "API JSON", icon: Bug },
