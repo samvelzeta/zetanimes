@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Search, Loader2, Shield, Crown, User as UserIcon, X, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { logAdminActivity } from "@/lib/admin-log";
 
 type AppRole = "owner" | "admin" | "premium" | "user";
 
