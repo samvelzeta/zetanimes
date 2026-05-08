@@ -209,6 +209,11 @@ function PremiumTab() {
     try {
       await supabase.from("premium_requests").update({ status: "rejected" as any, notes: rejectReason, proof_url: null }).eq("id", req.id);
       await cleanupProof(req.proof_url);
+      await logAdminActivity({
+        area: "payments", action: "delete",
+        summary: `Rechazó Premium de ${req.username || req.email || req.user_id}: ${rejectReason}`,
+        target_type: "user", target_id: req.user_id,
+      });
       setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "rejected", proof_url: null } : r));
       setSelectedReq(null);
       setRejectReason("");
