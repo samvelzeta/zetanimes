@@ -438,6 +438,11 @@ export default function DownloadTracker() {
                     <p className="text-[10px] text-muted-foreground">
                       {tracker.total_episodes} eps · {tracker.airing_status || "—"}
                     </p>
+                    {tracker.added_by_name && (
+                      <p className="text-[9px] text-primary/80 flex items-center gap-1 mt-0.5">
+                        <User className="w-2.5 h-2.5" /> {tracker.added_by_name}
+                      </p>
+                    )}
                     {tracker.episodes && (
                       <div className="flex items-center gap-2 mt-1">
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
