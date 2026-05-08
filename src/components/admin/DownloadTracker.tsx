@@ -294,14 +294,16 @@ export default function DownloadTracker() {
 
         if (!exists || exists.length === 0) {
           const totalEps = anime.episodes || 0;
-          const { data: ins } = await supabase.from("anime_download_tracker").insert({
+          const { data: ins } = await (supabase.from("anime_download_tracker") as any).insert({
             anilist_id: anime.id,
             title: getTitle(anime),
             cover_image: anime.coverImage?.large,
             total_episodes: totalEps,
-            status: "downloading" as any,
+            status: "downloading",
             airing_status: anime.status,
             genres: anime.genres,
+            added_by: user?.id,
+            updated_by: user?.id,
           }).select().single();
 
           if (ins && totalEps > 0) {
@@ -314,6 +316,12 @@ export default function DownloadTracker() {
           }
           added++;
         }
+      }
+      if (added > 0) {
+        await logAdminActivity({
+          area: "tracker", action: "create",
+          summary: `Sync AniList: agregó ${added} animes nuevos al tracker`,
+        });
       }
       toast.success(`Sincronizado: ${added} animes nuevos agregados`);
       loadTrackers();
