@@ -367,14 +367,17 @@ function NotifsTab() {
     setLoading(true);
     await supabase.from("notifications").insert({ title, message, type, created_by: user?.id });
     setLoading(false);
+    await logAdminActivity({ area: "notifications", action: "create", summary: `Envió notificación "${title}" (${type})` });
     setTitle(""); setMessage("");
     toast.success("Notificación enviada a todos");
     loadNotifications();
   };
 
   const deleteNotif = async (id: string) => {
+    const n = notifications.find((x) => x.id === id);
     await supabase.from("notifications").delete().eq("id", id);
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    await logAdminActivity({ area: "notifications", action: "delete", summary: `Eliminó notificación "${n?.title || id}"` });
     toast.success("Notificación eliminada");
   };
 
