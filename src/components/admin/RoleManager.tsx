@@ -60,11 +60,15 @@ export default function RoleManager() {
     }
     setBusyId(userId);
     try {
+      const target = users.find((u) => u.user_id === userId);
+      const targetName = target?.display_name || target?.username || userId;
       if (currentlyHas) {
         await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
+        await logAdminActivity({ area: "roles", action: "delete", summary: `Removió rol ${role} a ${targetName}`, target_type: "user", target_id: userId });
         toast.success(`Rol ${role} removido`);
       } else {
         await supabase.from("user_roles").insert({ user_id: userId, role: role as any });
+        await logAdminActivity({ area: "roles", action: "create", summary: `Asignó rol ${role} a ${targetName}`, target_type: "user", target_id: userId });
         toast.success(`Rol ${role} asignado`);
       }
       // Refrescar sólo este usuario
