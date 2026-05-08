@@ -52,6 +52,8 @@ export default function DownloadTracker() {
   const [expandedTracker, setExpandedTracker] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
 
+  const { user } = useAuth();
+
   const loadTrackers = useCallback(async (statusOverride?: TrackerStatus) => {
     const status = statusOverride || activeStatus;
     setLoading(true);
@@ -61,21 +63,21 @@ export default function DownloadTracker() {
       .eq("status", status)
       .order("updated_at", { ascending: false });
 
-    if (data) {
-      // For "waiting" status, rotate/shuffle to avoid infinite scroll
-      if (status === "waiting" && data.length > 20) {
-        // Show a random subset of 20, rotated by current hour
-        const seed = new Date().getHours();
-        const shuffled = [...data].sort((a, b) => {
-          const hashA = (a.anilist_id * (seed + 1)) % 100;
-          const hashB = (b.anilist_id * (seed + 1)) % 100;
-          return hashA - hashB;
-        });
-        setTrackers(shuffled.slice(0, 20) as unknown as TrackerItem[]);
-      } else {
-        setTrackers(data as unknown as TrackerItem[]);
-      }
+    let rows = (data || []) as unknown as TrackerItem[];
+
+    // Resolver nombres de "added_by"
+    const ids = Array.from(new Set(rows.map((r) => r.added_by).filter(Boolean) as string[]));
+    if (ids.length > 0) {
+      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, username").in("user_id", ids);
+      const map = new Map((profs || []).map((p: any) => [p.user_id, p.display_name || p.username || "Admin"]));
+      rows = rows.map((r) => ({ ...r, added_by_name: r.added_by ? map.get(r.added_by) : undefined }));
     }
+
+    if (status === "waiting" && rows.length > 20) {
+      const seed = new Date().getHours();
+      rows = [...rows].sort((a, b) => ((a.anilist_id * (seed + 1)) % 100) - ((b.anilist_id * (seed + 1)) % 100)).slice(0, 20);
+    }
+    setTrackers(rows);
     setLoading(false);
   }, [activeStatus]);
 
