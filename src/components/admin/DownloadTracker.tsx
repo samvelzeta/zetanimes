@@ -478,7 +478,7 @@ export default function DownloadTracker() {
                       {tracker.episodes.map((ep) => (
                         <button
                           key={ep.id}
-                          onClick={() => toggleEpisodeDownloaded(tracker.id, ep.id, ep.downloaded)}
+                          onClick={() => toggleEpisodeDownloaded(tracker.id, ep.id, ep.downloaded, ep.episode_number, tracker.title, tracker.anilist_id)}
                           className={`flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-bold transition-all ${
                             ep.downloaded
                               ? "bg-green-600 text-white"
