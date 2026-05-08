@@ -46,16 +46,28 @@ export default function BrokenReports() {
   };
 
   const changeStatus = async (id: string, newStatus: ReportStatus) => {
+    const r = reports.find((x) => x.id === id);
     const update: any = { status: newStatus };
     if (newStatus === "resolved") update.resolved_at = new Date().toISOString();
     await supabase.from("broken_link_reports").update(update).eq("id", id);
     setReports(prev => prev.filter(r => r.id !== id));
+    await logAdminActivity({
+      area: "reports", action: "status_change",
+      summary: `Reporte ${r?.report_type} "${r?.anime_title || r?.slug}"${r?.episode_number ? ` ep ${r.episode_number}` : ""} → ${newStatus}`,
+      anilist_id: r?.anilist_id ?? null, anime_title: r?.anime_title, episode_number: r?.episode_number ?? null,
+    });
     toast.success(`Estado cambiado a ${newStatus}`);
   };
 
   const deleteReport = async (id: string) => {
+    const r = reports.find((x) => x.id === id);
     await supabase.from("broken_link_reports").delete().eq("id", id);
     setReports(prev => prev.filter(r => r.id !== id));
+    await logAdminActivity({
+      area: "reports", action: "delete",
+      summary: `Eliminó reporte de "${r?.anime_title || r?.slug}"`,
+      anilist_id: r?.anilist_id ?? null, anime_title: r?.anime_title,
+    });
     toast.success("Reporte eliminado");
   };
 
