@@ -188,6 +188,11 @@ function PremiumTab() {
         type: "success",
       });
       await cleanupProof(req.proof_url);
+      await logAdminActivity({
+        area: "payments", action: "create",
+        summary: `Aprobó Premium ${type} a ${req.username || req.email || req.user_id}`,
+        target_type: "user", target_id: req.user_id,
+      });
       setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "active", proof_url: null } : r));
       setSelectedReq(null);
       toast.success("Premium activado y comprobante liberado");
