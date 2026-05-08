@@ -746,8 +746,19 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       <video ref={videoRef} className="relative z-[1] w-full h-full object-contain" playsInline muted={muted} crossOrigin="anonymous" />
 
       {subsActive && activeSubtitleText && (
-        <div className="pointer-events-none absolute inset-x-2 bottom-16 sm:bottom-20 z-20 flex justify-center px-2">
-          <div className="max-w-[92%] whitespace-pre-line rounded-md bg-background/35 px-3 py-1.5 text-center text-base font-bold leading-snug text-foreground sm:text-xl md:text-2xl [text-shadow:2px_2px_0_hsl(var(--background)),0_0_8px_hsl(var(--background))]">
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-[10%] flex justify-center px-4"
+          style={{ zIndex: 9999 }}
+        >
+          <div
+            className="max-w-[92%] whitespace-pre-line text-center font-bold leading-snug"
+            style={{
+              color: "#fff",
+              fontSize: "clamp(16px, 2.4vw, 28px)",
+              textShadow: "2px 2px 4px #000, 0 0 10px #000, -1px -1px 2px #000",
+              padding: "4px 12px",
+            }}
+          >
             {activeSubtitleText}
           </div>
         </div>
