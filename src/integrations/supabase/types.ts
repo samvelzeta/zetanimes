@@ -83,6 +83,54 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_activity_log: {
+        Row: {
+          action: string
+          actor_id: string
+          actor_name: string | null
+          anilist_id: number | null
+          anime_title: string | null
+          area: string
+          created_at: string
+          episode_number: number | null
+          id: string
+          metadata: Json | null
+          summary: string
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          actor_name?: string | null
+          anilist_id?: number | null
+          anime_title?: string | null
+          area: string
+          created_at?: string
+          episode_number?: number | null
+          id?: string
+          metadata?: Json | null
+          summary: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          actor_name?: string | null
+          anilist_id?: number | null
+          anime_title?: string | null
+          area?: string
+          created_at?: string
+          episode_number?: number | null
+          id?: string
+          metadata?: Json | null
+          summary?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       admin_payment_info: {
         Row: {
           account_holder: string | null
@@ -118,6 +166,7 @@ export type Database = {
       }
       anime_download_tracker: {
         Row: {
+          added_by: string | null
           airing_status: string | null
           anilist_id: number
           cover_image: string | null
@@ -128,8 +177,10 @@ export type Database = {
           title: string
           total_episodes: number | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
+          added_by?: string | null
           airing_status?: string | null
           anilist_id: number
           cover_image?: string | null
@@ -140,8 +191,10 @@ export type Database = {
           title: string
           total_episodes?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
+          added_by?: string | null
           airing_status?: string | null
           anilist_id?: number
           cover_image?: string | null
@@ -152,6 +205,7 @@ export type Database = {
           title?: string
           total_episodes?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }

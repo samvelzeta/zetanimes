@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Search, Save } from "lucide-react";
+import { logAdminActivity } from "@/lib/admin-log";
 
 interface Override {
   id: string;
@@ -94,6 +95,11 @@ export default function EpisodeCountManager() {
       } as any, { onConflict: "anilist_id" });
     setSaving(false);
     if (error) return toast.error(error.message);
+    await logAdminActivity({
+      area: "episodes", action: "update",
+      summary: `Override episodios: "${title || anilistId}" → ${count} eps`,
+      anilist_id: Number(anilistId), anime_title: title || null,
+    });
     toast.success("Override guardado");
     setAnilistId(""); setTitle(""); setCount(""); setNotes("");
     load();
@@ -101,7 +107,13 @@ export default function EpisodeCountManager() {
 
   const remove = async (id: string) => {
     if (!confirm("¿Eliminar este override?")) return;
+    const item = list.find((x) => x.id === id);
     await supabase.from("episode_count_overrides").delete().eq("id", id);
+    await logAdminActivity({
+      area: "episodes", action: "delete",
+      summary: `Eliminó override de episodios para "${item?.anime_title || item?.anilist_id || id}"`,
+      anilist_id: item?.anilist_id, anime_title: item?.anime_title,
+    });
     toast.success("Eliminado");
     load();
   };

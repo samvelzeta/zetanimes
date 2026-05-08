@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, BarChart3, Crown, Image, Store, CreditCard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search,
-  Trash2, Pencil, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered, Bug,
+  Trash2, Pencil, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered, Bug, Activity,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -19,12 +19,15 @@ import HiddenAnimesManager from "@/components/admin/HiddenAnimesManager";
 import ApkManager from "@/components/admin/ApkManager";
 import EpisodeCountManager from "@/components/admin/EpisodeCountManager";
 import RoleManager from "@/components/admin/RoleManager";
+import ActivityLogTab from "@/components/admin/ActivityLogTab";
+import { logAdminActivity } from "@/lib/admin-log";
 
-// Tabs reservados solo para owner (info de pago, premium, API keys, gestión de roles)
-const OWNER_ONLY_TABS = new Set(["premium", "payment", "apikeys", "roles"]);
+// Tabs reservados solo para owner (info de pago, premium, API keys, gestión de roles, historial)
+const OWNER_ONLY_TABS = new Set(["premium", "payment", "apikeys", "roles", "activity"]);
 
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
+  { key: "activity", label: "Historial", icon: Activity },
   { key: "downloads", label: "Descargas", icon: Store },
   { key: "videos", label: "Videos", icon: Film },
   { key: "apidebug", label: "API JSON", icon: Bug },
@@ -89,6 +92,7 @@ export default function AdminPanel() {
 
       <div className="px-4 pt-6">
         {tab === "stats" && <StatsTab />}
+        {isOwner && tab === "activity" && <ActivityLogTab />}
         {tab === "downloads" && <DownloadTracker />}
         {tab === "videos" && <VideoManager />}
         {tab === "apidebug" && <ApiDebugPanel />}
@@ -185,6 +189,11 @@ function PremiumTab() {
         type: "success",
       });
       await cleanupProof(req.proof_url);
+      await logAdminActivity({
+        area: "payments", action: "create",
+        summary: `Aprobó Premium ${type} a ${req.username || req.email || req.user_id}`,
+        target_type: "user", target_id: req.user_id,
+      });
       setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "active", proof_url: null } : r));
       setSelectedReq(null);
       toast.success("Premium activado y comprobante liberado");
@@ -200,6 +209,11 @@ function PremiumTab() {
     try {
       await supabase.from("premium_requests").update({ status: "rejected" as any, notes: rejectReason, proof_url: null }).eq("id", req.id);
       await cleanupProof(req.proof_url);
+      await logAdminActivity({
+        area: "payments", action: "delete",
+        summary: `Rechazó Premium de ${req.username || req.email || req.user_id}: ${rejectReason}`,
+        target_type: "user", target_id: req.user_id,
+      });
       setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "rejected", proof_url: null } : r));
       setSelectedReq(null);
       setRejectReason("");
@@ -353,14 +367,17 @@ function NotifsTab() {
     setLoading(true);
     await supabase.from("notifications").insert({ title, message, type, created_by: user?.id });
     setLoading(false);
+    await logAdminActivity({ area: "notifications", action: "create", summary: `Envió notificación "${title}" (${type})` });
     setTitle(""); setMessage("");
     toast.success("Notificación enviada a todos");
     loadNotifications();
   };
 
   const deleteNotif = async (id: string) => {
+    const n = notifications.find((x) => x.id === id);
     await supabase.from("notifications").delete().eq("id", id);
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    await logAdminActivity({ area: "notifications", action: "delete", summary: `Eliminó notificación "${n?.title || id}"` });
     toast.success("Notificación eliminada");
   };
 
