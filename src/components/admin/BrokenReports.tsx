@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Trash2, AlertTriangle, CheckCircle, Wrench } from "lucide-react";
 import { toast } from "sonner";
+import { logAdminActivity } from "@/lib/admin-log";
 
 type ReportStatus = "pending" | "fixing" | "resolved";
 
