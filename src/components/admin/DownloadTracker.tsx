@@ -5,8 +5,10 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
   Search, Plus, Loader2, Check, Download, Clock, CheckCircle2,
-  ChevronDown, ChevronUp, RefreshCw, Trash2, Eye,
+  ChevronDown, ChevronUp, RefreshCw, Trash2, Eye, User,
 } from "lucide-react";
+import { logAdminActivity } from "@/lib/admin-log";
+import { useAuth } from "@/contexts/AuthContext";
 
 type TrackerStatus = "waiting" | "downloading" | "completed";
 
@@ -20,7 +22,10 @@ interface TrackerItem {
   airing_status: string | null;
   genres: string[] | null;
   created_at: string;
+  added_by?: string | null;
+  updated_by?: string | null;
   episodes?: EpisodeDownload[];
+  added_by_name?: string;
 }
 
 interface EpisodeDownload {
