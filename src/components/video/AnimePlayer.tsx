@@ -423,24 +423,73 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         void 0;
       }
 
-      try {
-        const response = await fetch(selected.url, { headers: { Accept: "application/x-subrip,text/plain,*/*" } });
-        if (!response.ok) throw new Error(`SRT ${response.status}`);
-        const cues = parseSrt(await response.text());
+      const fetchStrategies: Array<() => Promise<string>> = [
+        // 1) directo
+        async () => {
+          const r = await fetch(selected.url, { headers: { Accept: "application/x-subrip,text/plain,*/*" } });
+          if (!r.ok) throw new Error(`direct ${r.status}`);
+          return await r.text();
+        },
+        // 2) allorigins.win (raw)
+        async () => {
+          const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(selected.url)}`);
+          if (!r.ok) throw new Error(`allorigins-raw ${r.status}`);
+          return await r.text();
+        },
+        // 3) allorigins.win (get + json)
+        async () => {
+          const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(selected.url)}`);
+          if (!r.ok) throw new Error(`allorigins-get ${r.status}`);
+          const j = await r.json();
+          if (!j?.contents) throw new Error("allorigins-empty");
+          return String(j.contents);
+        },
+        // 4) corsproxy.io
+        async () => {
+          const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(selected.url)}`);
+          if (!r.ok) throw new Error(`corsproxy ${r.status}`);
+          return await r.text();
+        },
+      ];
+
+      let srtText = "";
+      let lastErr: unknown = null;
+      for (const strat of fetchStrategies) {
         if (cancelled) return;
-        setParsedSubtitleCues(cues);
         try {
-          const packed = cues.map((cue) => [Number(cue.start.toFixed(3)), Number(cue.end.toFixed(3)), cue.text] as [number, number, string]);
-          localStorage.setItem(cacheKey, JSON.stringify({ expiresAt: Date.now() + SRT_CACHE_TTL, cues: packed }));
-        } catch {
-          void 0;
+          srtText = await strat();
+          if (srtText && srtText.trim().length > 10) break;
+        } catch (e) {
+          lastErr = e;
         }
-      } catch (err) {
+      }
+
+      if (!srtText || srtText.trim().length < 10) {
         if (!cancelled) {
+          // Limpiar caché para que el reintento funcione cuando se arregle la URL
+          try { localStorage.removeItem(cacheKey); } catch { void 0; }
           setParsedSubtitleCues([]);
           setActiveSubtitleText("");
-          console.warn("No se pudo cargar el SRT dinámico", err);
+          console.warn("[Subs] No se pudo cargar el SRT por ningún método", { url: selected.url, lastErr });
         }
+        return;
+      }
+
+      const cues = parseSrt(srtText);
+      console.log(`[Subs] SRT cargado: ${cues.length} cues — ${selected.url}`);
+      if (cancelled) return;
+      if (cues.length === 0) {
+        try { localStorage.removeItem(cacheKey); } catch { void 0; }
+        setParsedSubtitleCues([]);
+        setActiveSubtitleText("");
+        return;
+      }
+      setParsedSubtitleCues(cues);
+      try {
+        const packed = cues.map((cue) => [Number(cue.start.toFixed(3)), Number(cue.end.toFixed(3)), cue.text] as [number, number, string]);
+        localStorage.setItem(cacheKey, JSON.stringify({ expiresAt: Date.now() + SRT_CACHE_TTL, cues: packed }));
+      } catch {
+        void 0;
       }
     })();
 
