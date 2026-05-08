@@ -91,6 +91,7 @@ export default function AdminPanel() {
 
       <div className="px-4 pt-6">
         {tab === "stats" && <StatsTab />}
+        {isOwner && tab === "activity" && <ActivityLogTab />}
         {tab === "downloads" && <DownloadTracker />}
         {tab === "videos" && <VideoManager />}
         {tab === "apidebug" && <ApiDebugPanel />}
