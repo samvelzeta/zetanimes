@@ -116,14 +116,35 @@ export default function DownloadTracker() {
     // Check if already tracked
     const { data: existing } = await supabase
       .from("anime_download_tracker")
-      .select("id")
+      .select("id, status, added_by")
       .eq("anilist_id", anime.id)
       .limit(1);
 
     if (existing && existing.length > 0) {
-      const trackerId = existing[0].id;
-      await supabase.from("anime_download_tracker").update({ status: "downloading" as any }).eq("id", trackerId);
-      toast.success("Ya existía: movido a Descargando");
+      const ex = existing[0] as any;
+      // Resolver nombre del que lo agregó
+      let addedByName = "otro admin";
+      if (ex.added_by) {
+        const { data: p } = await supabase.from("profiles").select("display_name, username").eq("user_id", ex.added_by).maybeSingle();
+        addedByName = p?.display_name || p?.username || "otro admin";
+      }
+      const ok = confirm(
+        `⚠️ "${getTitle(anime)}" ya está en estado "${ex.status}" (agregado por ${addedByName}).\n\n¿Mover a "Descargando" igualmente?`
+      );
+      if (!ok) return;
+      await (supabase.from("anime_download_tracker") as any)
+        .update({ status: "downloading", updated_by: user?.id })
+        .eq("id", ex.id);
+      await logAdminActivity({
+        area: "tracker",
+        action: "status_change",
+        summary: `Movió "${getTitle(anime)}" a Descargando (estaba en ${ex.status})`,
+        target_type: "anime",
+        target_id: ex.id,
+        anilist_id: anime.id,
+        anime_title: getTitle(anime),
+      });
+      toast.success("Movido a Descargando");
       setActiveStatus("downloading");
       setShowSearch(false);
       await loadTrackers("downloading");
@@ -131,14 +152,16 @@ export default function DownloadTracker() {
     }
 
     const totalEps = anime.episodes || 0;
-    const { data: inserted, error } = await supabase.from("anime_download_tracker").insert({
+    const { data: inserted, error } = await (supabase.from("anime_download_tracker") as any).insert({
       anilist_id: anime.id,
       title: getTitle(anime),
       cover_image: anime.coverImage?.large || anime.coverImage?.extraLarge,
       total_episodes: totalEps,
-      status: "downloading" as any,
+      status: "downloading",
       airing_status: anime.status,
       genres: anime.genres,
+      added_by: user?.id,
+      updated_by: user?.id,
     }).select().single();
 
     if (error) {
@@ -146,7 +169,6 @@ export default function DownloadTracker() {
       return;
     }
 
-    // Create episode entries
     if (inserted && totalEps > 0) {
       const episodes = Array.from({ length: totalEps }, (_, i) => ({
         tracker_id: inserted.id,
@@ -155,6 +177,16 @@ export default function DownloadTracker() {
       }));
       await supabase.from("anime_episode_downloads").insert(episodes as any);
     }
+
+    await logAdminActivity({
+      area: "tracker",
+      action: "create",
+      summary: `Agregó "${getTitle(anime)}" a Descargando (${totalEps} eps)`,
+      target_type: "anime",
+      target_id: inserted?.id,
+      anilist_id: anime.id,
+      anime_title: getTitle(anime),
+    });
 
     toast.success(`${getTitle(anime)} agregado a Descargando`);
     setActiveStatus("downloading");
