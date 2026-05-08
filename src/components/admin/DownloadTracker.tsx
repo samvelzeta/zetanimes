@@ -196,7 +196,7 @@ export default function DownloadTracker() {
     if (activeStatus === "downloading") loadTrackers();
   };
 
-  const toggleEpisodeDownloaded = async (trackerId: string, epId: string, current: boolean) => {
+  const toggleEpisodeDownloaded = async (trackerId: string, epId: string, current: boolean, epNum?: number, animeTitle?: string, anilistId?: number) => {
     await supabase.from("anime_episode_downloads").update({ downloaded: !current } as any).eq("id", epId);
 
     setTrackers((prev) =>
@@ -207,7 +207,17 @@ export default function DownloadTracker() {
       })
     );
 
-    // Check if all downloaded → auto-complete
+    await logAdminActivity({
+      area: "tracker",
+      action: "mark_episode",
+      summary: `${!current ? "Marcó descargado" : "Desmarcó"} ep ${epNum} de "${animeTitle}"`,
+      target_type: "episode",
+      target_id: epId,
+      anilist_id: anilistId,
+      anime_title: animeTitle,
+      episode_number: epNum,
+    });
+
     const { data: allEps } = await supabase
       .from("anime_episode_downloads")
       .select("downloaded")
@@ -221,9 +231,14 @@ export default function DownloadTracker() {
       if (allDone) newStatus = "completed";
       else if (anyDone) newStatus = "downloading";
 
-      await supabase.from("anime_download_tracker").update({ status: newStatus as any }).eq("id", trackerId);
+      await (supabase.from("anime_download_tracker") as any).update({ status: newStatus, updated_by: user?.id }).eq("id", trackerId);
 
       if (allDone && activeStatus !== "completed") {
+        await logAdminActivity({
+          area: "tracker", action: "status_change",
+          summary: `Completó "${animeTitle}" (todos los eps descargados)`,
+          target_type: "anime", target_id: trackerId, anilist_id: anilistId, anime_title: animeTitle,
+        });
         toast.success("¡Anime completado! Movido a completados.");
         loadTrackers();
       }
@@ -231,18 +246,30 @@ export default function DownloadTracker() {
   };
 
   const changeStatus = async (trackerId: string, newStatus: TrackerStatus) => {
-    await supabase.from("anime_download_tracker").update({ status: newStatus as any }).eq("id", trackerId);
+    const t = trackers.find((x) => x.id === trackerId);
+    await (supabase.from("anime_download_tracker") as any).update({ status: newStatus, updated_by: user?.id }).eq("id", trackerId);
+    await logAdminActivity({
+      area: "tracker", action: "status_change",
+      summary: `Movió "${t?.title}" a ${STATUS_TABS.find((s) => s.key === newStatus)?.label}`,
+      target_type: "anime", target_id: trackerId, anilist_id: t?.anilist_id, anime_title: t?.title,
+    });
     toast.success(`Movido a ${STATUS_TABS.find((s) => s.key === newStatus)?.label}`);
     setActiveStatus(newStatus);
     loadTrackers(newStatus);
   };
 
   const removeTracker = async (trackerId: string) => {
+    const t = trackers.find((x) => x.id === trackerId);
     const { error } = await (supabase.rpc as any)("delete_download_tracker", { _tracker_id: trackerId });
     if (error) {
       toast.error("No se pudo eliminar del tracker");
       return;
     }
+    await logAdminActivity({
+      area: "tracker", action: "delete",
+      summary: `Eliminó "${t?.title}" del tracker`,
+      target_type: "anime", target_id: trackerId, anilist_id: t?.anilist_id, anime_title: t?.title,
+    });
     toast.info("Anime eliminado del tracker");
     loadTrackers();
   };
