@@ -221,40 +221,60 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     video.currentTime = initialTime;
   }, [initialTime]);
 
-  // Seeke / HLS / MP4 setup
+  // Seeke / HLS / MP4 setup — DESTROY → CLEAN → REBUILD en cada cambio de episodio/servidor.
   useEffect(() => {
     if (!currentSource || currentSource.type === "embed" || currentSource.type === "html") return;
     const video = videoRef.current;
     if (!video) return;
+    const abort = new AbortController();
     let cancelled = false;
 
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
+    // Limpieza dura previa: evita que se reutilicen buffers/instancias del episodio anterior.
+    const hardCleanup = () => {
+      if (hlsRef.current) {
+        try { hlsRef.current.destroy(); } catch { void 0; }
+        hlsRef.current = null;
+      }
+      try {
+        video.pause();
+        video.removeAttribute("src");
+        // Quita cualquier <source> hijo y fuerza al elemento a olvidar el stream anterior.
+        while (video.firstChild) video.removeChild(video.firstChild);
+        video.load();
+      } catch { void 0; }
+    };
+
+    hardCleanup();
 
     const attachHls = (videoUrl: string) => {
+      if (cancelled) return;
       if (Hls.isSupported()) {
-        const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+          backBufferLength: 0, // no compartir buffers entre episodios
+        });
         hlsRef.current = hls;
         hls.loadSource(videoUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (cancelled) return;
           setLoading(false);
           restoreTime();
           if (autoplay) video.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
-          if (data.fatal) tryNext();
+          if (data.fatal && !cancelled) tryNext();
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
         video.src = videoUrl;
         video.addEventListener("loadedmetadata", () => {
+          if (cancelled) return;
           setLoading(false);
           restoreTime();
           if (autoplay) video.play().catch(() => {});
         }, { once: true });
-        video.addEventListener("error", () => tryNext(), { once: true });
+        video.addEventListener("error", () => { if (!cancelled) tryNext(); }, { once: true });
       } else {
         tryNext();
       }
@@ -265,10 +285,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       setSeekeSubs([]);
       getSeekeEpisode(currentSource.url, currentSource.episode || 1)
         .then((data) => {
-          if (cancelled) return;
-          if (Array.isArray(data.subtitles)) {
-            setSeekeSubs(data.subtitles);
-          }
+          if (cancelled || abort.signal.aborted) return;
+          if (Array.isArray(data.subtitles)) setSeekeSubs(data.subtitles);
           attachHls(data.embed);
         })
         .catch(() => {
@@ -279,21 +297,20 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     } else {
       video.src = currentSource.url;
       video.addEventListener("loadeddata", () => {
+        if (cancelled) return;
         setLoading(false);
         restoreTime();
         if (autoplay) video.play().catch(() => {});
       }, { once: true });
-      video.addEventListener("error", () => tryNext(), { once: true });
+      video.addEventListener("error", () => { if (!cancelled) tryNext(); }, { once: true });
     }
 
     return () => {
       cancelled = true;
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
+      abort.abort();
+      hardCleanup();
     };
-  }, [currentSource, autoplay, tryNext, restoreTime]);
+  }, [currentSource, episodeKey, autoplay, tryNext, restoreTime]);
 
   const cancelAutoNext = useCallback(() => {
     autoNextCancelled.current = true;
@@ -423,20 +440,33 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         void 0;
       }
 
+      const PROXY_BASE = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/subtitle-proxy`;
       const fetchStrategies: Array<() => Promise<string>> = [
-        // 1) directo
+        // 1) VPS-style proxy propio (server-side download con headers correctos) — más confiable
+        async () => {
+          const r = await fetch(PROXY_BASE, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: selected.url }),
+          });
+          if (!r.ok) throw new Error(`subtitle-proxy ${r.status}`);
+          const j = await r.json();
+          if (!j?.ok || !j?.content) throw new Error(j?.error || "subtitle-proxy empty");
+          return String(j.content);
+        },
+        // 2) directo
         async () => {
           const r = await fetch(selected.url, { headers: { Accept: "application/x-subrip,text/plain,*/*" } });
           if (!r.ok) throw new Error(`direct ${r.status}`);
           return await r.text();
         },
-        // 2) allorigins.win (raw)
+        // 3) allorigins.win (raw)
         async () => {
           const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(selected.url)}`);
           if (!r.ok) throw new Error(`allorigins-raw ${r.status}`);
           return await r.text();
         },
-        // 3) allorigins.win (get + json)
+        // 4) allorigins.win (get + json)
         async () => {
           const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(selected.url)}`);
           if (!r.ok) throw new Error(`allorigins-get ${r.status}`);
@@ -444,7 +474,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           if (!j?.contents) throw new Error("allorigins-empty");
           return String(j.contents);
         },
-        // 4) corsproxy.io
+        // 5) corsproxy.io
         async () => {
           const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(selected.url)}`);
           if (!r.ok) throw new Error(`corsproxy ${r.status}`);
@@ -498,6 +528,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     };
   }, [selectedSubtitleUrl, subsActive, effectiveSubtitles, episodeKey, currentSource?.episode]);
 
+  // Motor de subtítulos: render loop con rAF + fallback setInterval cuando la pestaña va en background.
+  // Usa búsqueda binaria sobre los cues y se reinicia ante seek/fullscreen/visibility/loadedmetadata.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !subsActive || parsedSubtitleCues.length === 0) {
@@ -505,22 +537,79 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       return;
     }
 
-    const syncSubtitle = () => {
-      const now = video.currentTime;
-      const active = parsedSubtitleCues.find((cue) => now >= cue.start && now <= cue.end);
-      setActiveSubtitleText(active?.text || "");
+    const cues = parsedSubtitleCues;
+    let rafId = 0;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let lastIdx = -1;
+    let lastText = "";
+
+    const findCueIdx = (t: number): number => {
+      let lo = 0, hi = cues.length - 1, ans = -1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        const c = cues[mid];
+        if (t < c.start) hi = mid - 1;
+        else if (t > c.end) lo = mid + 1;
+        else { ans = mid; break; }
+      }
+      return ans;
     };
 
-    syncSubtitle();
-    video.addEventListener("timeupdate", syncSubtitle);
-    video.addEventListener("seeked", syncSubtitle);
-    video.addEventListener("play", syncSubtitle);
-    return () => {
-      video.removeEventListener("timeupdate", syncSubtitle);
-      video.removeEventListener("seeked", syncSubtitle);
-      video.removeEventListener("play", syncSubtitle);
+    const tick = () => {
+      const now = video.currentTime;
+      const idx = findCueIdx(now);
+      const text = idx >= 0 ? cues[idx].text : "";
+      if (idx !== lastIdx || text !== lastText) {
+        lastIdx = idx;
+        lastText = text;
+        setActiveSubtitleText(text);
+      }
     };
-  }, [parsedSubtitleCues, subsActive, currentSource]);
+
+    const startLoop = () => {
+      stopLoop();
+      const loop = () => {
+        tick();
+        rafId = requestAnimationFrame(loop);
+      };
+      rafId = requestAnimationFrame(loop);
+      // Fallback: si el rAF se pausa (pestaña en background, iOS lockscreen),
+      // setInterval garantiza que el overlay siga sincronizado.
+      intervalId = setInterval(tick, 250);
+    };
+    const stopLoop = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (intervalId) clearInterval(intervalId);
+      rafId = 0;
+      intervalId = null;
+    };
+
+    const forceResync = () => { lastIdx = -1; lastText = ""; tick(); };
+    const onVisibility = () => { if (!document.hidden) forceResync(); };
+
+    startLoop();
+    video.addEventListener("seeking", forceResync);
+    video.addEventListener("seeked", forceResync);
+    video.addEventListener("play", forceResync);
+    video.addEventListener("pause", tick);
+    video.addEventListener("waiting", tick);
+    video.addEventListener("loadedmetadata", forceResync);
+    document.addEventListener("visibilitychange", onVisibility);
+    document.addEventListener("fullscreenchange", forceResync);
+
+    return () => {
+      stopLoop();
+      video.removeEventListener("seeking", forceResync);
+      video.removeEventListener("seeked", forceResync);
+      video.removeEventListener("play", forceResync);
+      video.removeEventListener("pause", tick);
+      video.removeEventListener("waiting", tick);
+      video.removeEventListener("loadedmetadata", forceResync);
+      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("fullscreenchange", forceResync);
+      setActiveSubtitleText("");
+    };
+  }, [parsedSubtitleCues, subsActive, currentSource?.url]);
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -798,10 +887,11 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         </div>
       )}
 
-      {/* Controls overlay — bloqueado por completo cuando está oculto para evitar clics fantasma */}
+      {/* Controls overlay — usa visibility: hidden cuando está oculto para bloquear TODOS los clicks (incluso en hijos con pointer-events:auto). Esto arregla el bug del APK donde los botones de prev/next se ejecutaban estando ocultos. */}
       <div
+        aria-hidden={!(showControls || !playing)}
         className={`absolute inset-0 z-10 transition-opacity duration-300 ${
-          showControls || !playing ? "opacity-100 pointer-events-none" : "opacity-0 pointer-events-none"
+          showControls || !playing ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
         }`}
       >
         {/* Top bar with server picker — nombre se muestra como "Pro" */}

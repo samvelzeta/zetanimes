@@ -22,8 +22,8 @@ import RoleManager from "@/components/admin/RoleManager";
 import ActivityLogTab from "@/components/admin/ActivityLogTab";
 import { logAdminActivity } from "@/lib/admin-log";
 
-// Tabs reservados solo para owner (info de pago, premium, API keys, gestión de roles, historial)
-const OWNER_ONLY_TABS = new Set(["premium", "payment", "apikeys", "roles", "activity"]);
+// Tabs reservados solo para owner — los admins NO ven ni pueden interactuar con APK, notificaciones, pagos, premium, API keys, roles ni historial.
+const OWNER_ONLY_TABS = new Set(["premium", "payment", "apikeys", "roles", "activity", "apk", "notifs"]);
 
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
@@ -99,11 +99,11 @@ export default function AdminPanel() {
         {tab === "epcount" && <EpisodeCountManager />}
         {tab === "slugs" && <SlugManager />}
         {tab === "hidden" && <HiddenAnimesManager />}
-        {tab === "apk" && <ApkManager />}
+        {tab === "apk" && isOwner && <ApkManager />}
         {tab === "reports" && <BrokenReports />}
         {isOwner && tab === "premium" && <PremiumTab />}
         {isOwner && tab === "payment" && <PaymentTab />}
-        {tab === "notifs" && <NotifsTab />}
+        {tab === "notifs" && isOwner && <NotifsTab />}
         {tab === "contacts" && <ContactsTab />}
         {isOwner && tab === "apikeys" && <ApiKeysTab />}
         {isOwner && tab === "roles" && <RoleManager />}

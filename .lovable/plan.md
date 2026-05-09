@@ -1,76 +1,98 @@
+# Plan: Owner-only tabs, motor de subtítulos profesional, rebuild de player y wipe de cache
 
-El usuario quiere optimización agresiva de carga para que no se trabe en TV, móvil, ni PC. Ya tenemos LazyImage con IntersectionObserver, pero el Home carga TODAS las secciones a la vez (8+ queries simultáneas a AniList) y todos los componentes se montan inmediatamente.
+Voy a abordar 4 frentes en una sola entrega.
 
-Voy a revisar qué tenemos y proponer un plan de optimización integral.
+---
 
-## Diagnóstico actual
+## 1. Restricciones de acceso en panel admin (Owner-only)
 
-**Problemas detectados:**
-1. **Home monta 10+ secciones de golpe** (HeroBanner, LatestEpisodes, BentoEpisodes, GenreList, SphereCarousel x2, FocusCarousel, TopRanking, HorizontalList x3, AnimeRoulette) — todas hacen fetch al mismo tiempo.
-2. **8 queries paralelas a AniList** al cargar Home (trending, popular, topRated, season, action, fantasy + recientes + bento).
-3. **LazyImage existe pero no se usa en todos lados** (HeroBanner, BentoEpisodes, FocusCarousel, SphereCarousel, TopRanking usan `<img>` directo).
-4. **Componentes pesados se renderizan aunque estén fuera de pantalla** (AnimeRoulette, FocusCarousel con animaciones).
-5. **Animaciones siempre activas** (anillos giratorios, halos pulsantes) consumen GPU continuamente aunque no se vean.
-6. **No hay code-splitting por ruta** — todo el bundle se carga al inicio.
+En `src/pages/Admin.tsx` ya existe el rol `owner` ([samvelzeta@gmail.com](mailto:samvelzeta@gmail.com)). Voy a:
 
-## Plan de optimización
+- Ocultar completamente las pestañas y secciones siguientes para cualquier admin que NO sea owner:
+  - **APK Manager** (subir/editar APK)
+  - **Notificaciones globales** (envío de avisos a usuarios)
+  - **Premium / Pagos** (aprobaciones de premium, comprobantes, configuración de contacto)
+  - **Activity Log** (ya es owner-only, se confirma)
+  - **Roles** (asignar admin/premium) — solo owner
+- Los demás admins seguirán viendo: Descargas, Videos, Slugs, Episodios, Reportes rotos, Animes ocultos.
+- Doble capa de seguridad: además de ocultar UI, validar `isOwner` antes de cualquier mutación crítica (insertar APK, enviar notif, aprobar premium).
 
-### Fase 1 — Lazy mount de secciones del Home (mayor impacto)
-Crear `<LazySection>` que solo monta su contenido cuando entra al viewport (con `rootMargin: 600px` para precarga suave). Aplicar a TODAS las secciones del Home excepto HeroBanner y LatestEpisodes (above-the-fold).
+---
 
-**Resultado:** Home inicial solo dispara 2 queries en vez de 8. El resto se carga al hacer scroll.
+## 2. Motor de subtítulos profesional (sin `<track>`)
 
-### Fase 2 — LazyImage en todos los componentes
-Reemplazar `<img>` por `<LazyImage>` en:
-- `HeroBanner` (background images stacked)
-- `BentoEpisodes` (5 covers)
-- `FocusCarousel` (5 visibles)
-- `SphereCarousel` (3 visibles)
-- `TopRanking` (10 thumbs)
+Crear `src/lib/subtitle-engine.ts`: una clase `SubtitleEngine` aislada por instancia de player.
 
-### Fase 3 — Pausar animaciones fuera de viewport
-Crear hook `useInViewport` y aplicarlo a SphereCarousel/FocusCarousel para que las animaciones (`animate-spin`, `animate-pulse`, autoplay timers) se PAUSEN cuando la sección no está visible. En TV ya están desactivadas, ahora también en móvil/PC cuando no se ven.
+**Características:**
 
-### Fase 4 — React Query optimizado
-- Subir `staleTime` de 10min a 30min en Home queries (los datos de AniList no cambian tan rápido).
-- Activar `gcTime: 1h` para que no re-fetcheen al volver a Home.
-- Mantener IndexedDB cache que ya existe.
+- Parser SRT/VTT propio (sin libs externas pesadas) → array de cues `{start, end, text}`.
+- Descarga del .srt vía cascada de proxies (ya existente) + nuevo edge function `subtitle-proxy` como ruta principal (VPS-style: backend descarga, frontend solo pinta).
+- Render loop con `requestAnimationFrame` + fallback `setInterval(250ms)` cuando la pestaña está en background.
+- Búsqueda binaria de cue activo según `video.currentTime`.
+- Overlay HTML controlado (no `<track>`), con z-index alto, text-shadow fuerte, responsive.
+- Listeners: `seeking`, `seeked`, `play`, `pause`, `waiting`, `loadedmetadata`, `visibilitychange`, `fullscreenchange` → reanudan/forzan repaint.
+- Método `destroy()`: cancela RAF, limpia interval, remueve listeners, vacía cues, limpia overlay.
+- Método `setLanguage(sub)`: destruye estado previo, descarga nuevo .srt, re-parsea, reinicia loop.
+- aplicar todo eso en caso de que no exista o mejorar lo que ya esta con las instrucciones de ejempolo que se te leyo enviado del onwer, no modificar los subtitulos(en el sentido del color de las letras y el fondo de sombra oscura de las letrasque se muestran en pantalla)
 
-### Fase 5 — Code-splitting de rutas
-Convertir las rutas de `App.tsx` a `React.lazy()` con `Suspense`:
-- `/admin`, `/watch`, `/anime/:id`, `/directory`, `/search`, `/profile`, `/settings`, `/auth`, `/recent`, `/download`, `/terms`
-- Inicio carga solo Home + Layout (bundle inicial mucho más pequeño).
+**Edge function nuevo `subtitle-proxy`:** descarga el .srt server-side con headers correctos (User-Agent + Referer), devuelve `{ok, content}`. Evita CORS y headers bloqueados.
 
-### Fase 6 — Imágenes responsive
-- Usar `coverImage.large` (no `extraLarge`) en thumbnails pequeños (TopRanking, side cards de SphereCarousel).
-- Agregar `decoding="async"` y `fetchpriority="low"` a imágenes lejanas.
+**Integración en `AnimePlayer.tsx`:** reemplazar el sistema actual de fetch+cues+rAF por `useSubtitleEngine(videoRef, subtitle)` hook. Garantiza una instancia por player (multiusuario seguro).
 
-## Detalles técnicos
+---
 
-**Archivos nuevos:**
-- `src/components/LazySection.tsx` — wrapper con IntersectionObserver para montar children solo cuando entran al viewport.
-- `src/hooks/useInViewport.ts` — hook que devuelve `boolean` para pausar animaciones/autoplay.
+## 3. Anti-stream pegado: validación + rebuild total
 
-**Archivos modificados:**
-- `src/App.tsx` — `React.lazy` + `Suspense` con fallback skeleton.
-- `src/pages/Home.tsx` — envolver secciones con `<LazySection>`, subir staleTime/gcTime.
-- `src/components/anime/HeroBanner.tsx` — LazyImage en backgrounds + thumbs.
-- `src/components/anime/BentoEpisodes.tsx` — LazyImage.
-- `src/components/anime/FocusCarousel.tsx` — LazyImage + pausar autoplay con useInViewport.
-- `src/components/anime/SphereCarousel.tsx` — LazyImage + pausar anillo giratorio + autoplay con useInViewport.
-- `src/components/anime/TopRanking.tsx` — LazyImage + `large` en vez de `extraLarge`.
+**Cache inteligente con fingerprint** (`src/lib/video-cache.ts` y `zetapi.ts`):
 
-**Sin cambios visuales** — todo es transparente para el usuario, solo se siente más fluido.
+- Clave compuesta: `animeId + episode + lang` (ya existe parcialmente, lo refuerzo).
+- Antes de servir cache, validar: si `cached.embed === lastPlayedEmbed` pero `requestedEpisode !== lastEpisode` → invalidar esa entrada y refetch.
+- Añadir `fingerprint` SHA-1 corto del embed al guardar; comparar al recuperar.
+- Cache busting: `?t=${Date.now()}` solo cuando se detecta conflicto, no siempre (preserva CDN).
+- solucionar problema de demaciados botones jntos en el player en modo apk, botones de pasar cap y devolver cap se ejecutan aun estndo ocultos, no deberia de suceder solo funciona cuando aparecen des pues del tap o click de confirmacion
 
-## Resultado esperado
-- Bundle inicial ~40% más pequeño (code-splitting).
-- 75% menos queries paralelas al cargar Home (de 8 a 2 inicialmente).
-- 60% menos memoria en uso por imágenes (lazy + unmount).
-- 0 animaciones consumiendo GPU cuando no se ven.
-- TV: aún más liviano (las queries deshabilitadas con `enabled: !isTV` siguen igual).
+**Rebuild del player en cambio de episodio/idioma/anime/servidor** (`AnimePlayer.tsx`):
 
-<lov-actions>
-<lov-suggestion message="Aprobado, implementá las 6 fases de optimización">Aprobar plan completo</lov-suggestion>
-<lov-suggestion message="Solo implementá Fase 1 (lazy mount secciones) y Fase 5 (code-splitting rutas) que son las de mayor impacto, el resto después">Solo lo más impactante</lov-suggestion>
-<lov-suggestion message="Antes de implementar, corré un performance profile en el Home actual para tener métricas baseline y comparar después">Medir antes de optimizar</lov-suggestion>
-</lov-actions>
+- `AbortController` para cancelar fetches anteriores.
+- `hls.destroy()` + `hls = null` antes de crear nueva instancia.
+- Limpieza del `<video>`: `pause() → removeAttribute("src") → load() → innerHTML=""`.
+- `subtitleEngine.destroy()` siempre antes de re-crear.
+- Reset de estado React: `currentEmbed`, `currentEpisode`, `subtitleState`, `currentTrack`.
+- Nueva instancia HLS con `backBufferLength: 0` para no compartir buffers.
+- Hook `useEffect` con dependencias `[episode, lang, anime, server]` que ejecuta DESTROY → CLEAN → REBUILD.
+
+---
+
+## 4. Wipe total del cache de servers
+
+Migración SQL para vaciar:
+
+- `video_cache` (todos los servers manuales y Seeke cacheados)
+- `slug_cache` (opcional, lo dejo intacto salvo confirmación)
+- `latino_episodes` NO se toca (son uploads HLS reales del owner)
+
+Adicional: limpiar localStorage `zet:seeke:*` en cliente (auto al próximo load via bump de `SEEKE_CACHE_VERSION` a `v4`).
+
+---
+
+## Archivos afectados
+
+**Nuevos:**
+
+- `src/lib/subtitle-engine.ts` — motor SRT/VTT con render loop
+- `src/hooks/useSubtitleEngine.ts` — hook React por instancia
+- `supabase/functions/subtitle-proxy/index.ts` — proxy VPS-style
+- Migración SQL: `TRUNCATE video_cache`
+
+**Editados:**
+
+- `src/pages/Admin.tsx` — gating owner-only de tabs sensibles
+- `src/components/video/AnimePlayer.tsx` — integración engine + rebuild total
+- `src/lib/video-cache.ts` — fingerprint + validación anti-stream-pegado
+- `src/lib/zetapi.ts` — bump versión seeke cache a v4
+
+---
+
+## Confirmación
+
+¿Procedo con todo el plan? Si quieres ajustar (p. ej. mantener Roles para admins, o no truncar `slug_cache`), dímelo antes.

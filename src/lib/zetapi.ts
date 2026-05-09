@@ -95,7 +95,7 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
   return res.data;
 }
 
-const SEEKE_CACHE_VERSION = "v3";
+const SEEKE_CACHE_VERSION = "v4";
 const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
 type SeekeResolved = { embed: string; episode: number; cached?: boolean; subtitles?: ZetSubtitle[] };
 const seekeMemoryCache = new Map<string, SeekeResolved & { expiresAt: number }>();
