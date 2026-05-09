@@ -423,20 +423,33 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         void 0;
       }
 
+      const PROXY_BASE = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/subtitle-proxy`;
       const fetchStrategies: Array<() => Promise<string>> = [
-        // 1) directo
+        // 1) VPS-style proxy propio (server-side download con headers correctos) — más confiable
+        async () => {
+          const r = await fetch(PROXY_BASE, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: selected.url }),
+          });
+          if (!r.ok) throw new Error(`subtitle-proxy ${r.status}`);
+          const j = await r.json();
+          if (!j?.ok || !j?.content) throw new Error(j?.error || "subtitle-proxy empty");
+          return String(j.content);
+        },
+        // 2) directo
         async () => {
           const r = await fetch(selected.url, { headers: { Accept: "application/x-subrip,text/plain,*/*" } });
           if (!r.ok) throw new Error(`direct ${r.status}`);
           return await r.text();
         },
-        // 2) allorigins.win (raw)
+        // 3) allorigins.win (raw)
         async () => {
           const r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(selected.url)}`);
           if (!r.ok) throw new Error(`allorigins-raw ${r.status}`);
           return await r.text();
         },
-        // 3) allorigins.win (get + json)
+        // 4) allorigins.win (get + json)
         async () => {
           const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(selected.url)}`);
           if (!r.ok) throw new Error(`allorigins-get ${r.status}`);
@@ -444,7 +457,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           if (!j?.contents) throw new Error("allorigins-empty");
           return String(j.contents);
         },
-        // 4) corsproxy.io
+        // 5) corsproxy.io
         async () => {
           const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(selected.url)}`);
           if (!r.ok) throw new Error(`corsproxy ${r.status}`);
