@@ -221,40 +221,60 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     video.currentTime = initialTime;
   }, [initialTime]);
 
-  // Seeke / HLS / MP4 setup
+  // Seeke / HLS / MP4 setup — DESTROY → CLEAN → REBUILD en cada cambio de episodio/servidor.
   useEffect(() => {
     if (!currentSource || currentSource.type === "embed" || currentSource.type === "html") return;
     const video = videoRef.current;
     if (!video) return;
+    const abort = new AbortController();
     let cancelled = false;
 
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
+    // Limpieza dura previa: evita que se reutilicen buffers/instancias del episodio anterior.
+    const hardCleanup = () => {
+      if (hlsRef.current) {
+        try { hlsRef.current.destroy(); } catch { void 0; }
+        hlsRef.current = null;
+      }
+      try {
+        video.pause();
+        video.removeAttribute("src");
+        // Quita cualquier <source> hijo y fuerza al elemento a olvidar el stream anterior.
+        while (video.firstChild) video.removeChild(video.firstChild);
+        video.load();
+      } catch { void 0; }
+    };
+
+    hardCleanup();
 
     const attachHls = (videoUrl: string) => {
+      if (cancelled) return;
       if (Hls.isSupported()) {
-        const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+          backBufferLength: 0, // no compartir buffers entre episodios
+        });
         hlsRef.current = hls;
         hls.loadSource(videoUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (cancelled) return;
           setLoading(false);
           restoreTime();
           if (autoplay) video.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
-          if (data.fatal) tryNext();
+          if (data.fatal && !cancelled) tryNext();
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
         video.src = videoUrl;
         video.addEventListener("loadedmetadata", () => {
+          if (cancelled) return;
           setLoading(false);
           restoreTime();
           if (autoplay) video.play().catch(() => {});
         }, { once: true });
-        video.addEventListener("error", () => tryNext(), { once: true });
+        video.addEventListener("error", () => { if (!cancelled) tryNext(); }, { once: true });
       } else {
         tryNext();
       }
@@ -265,10 +285,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       setSeekeSubs([]);
       getSeekeEpisode(currentSource.url, currentSource.episode || 1)
         .then((data) => {
-          if (cancelled) return;
-          if (Array.isArray(data.subtitles)) {
-            setSeekeSubs(data.subtitles);
-          }
+          if (cancelled || abort.signal.aborted) return;
+          if (Array.isArray(data.subtitles)) setSeekeSubs(data.subtitles);
           attachHls(data.embed);
         })
         .catch(() => {
@@ -279,21 +297,20 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     } else {
       video.src = currentSource.url;
       video.addEventListener("loadeddata", () => {
+        if (cancelled) return;
         setLoading(false);
         restoreTime();
         if (autoplay) video.play().catch(() => {});
       }, { once: true });
-      video.addEventListener("error", () => tryNext(), { once: true });
+      video.addEventListener("error", () => { if (!cancelled) tryNext(); }, { once: true });
     }
 
     return () => {
       cancelled = true;
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
+      abort.abort();
+      hardCleanup();
     };
-  }, [currentSource, autoplay, tryNext, restoreTime]);
+  }, [currentSource, episodeKey, autoplay, tryNext, restoreTime]);
 
   const cancelAutoNext = useCallback(() => {
     autoNextCancelled.current = true;
