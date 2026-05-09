@@ -511,6 +511,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     };
   }, [selectedSubtitleUrl, subsActive, effectiveSubtitles, episodeKey, currentSource?.episode]);
 
+  // Motor de subtítulos: render loop con rAF + fallback setInterval cuando la pestaña va en background.
+  // Usa búsqueda binaria sobre los cues y se reinicia ante seek/fullscreen/visibility/loadedmetadata.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !subsActive || parsedSubtitleCues.length === 0) {
@@ -518,22 +520,79 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       return;
     }
 
-    const syncSubtitle = () => {
-      const now = video.currentTime;
-      const active = parsedSubtitleCues.find((cue) => now >= cue.start && now <= cue.end);
-      setActiveSubtitleText(active?.text || "");
+    const cues = parsedSubtitleCues;
+    let rafId = 0;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let lastIdx = -1;
+    let lastText = "";
+
+    const findCueIdx = (t: number): number => {
+      let lo = 0, hi = cues.length - 1, ans = -1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        const c = cues[mid];
+        if (t < c.start) hi = mid - 1;
+        else if (t > c.end) lo = mid + 1;
+        else { ans = mid; break; }
+      }
+      return ans;
     };
 
-    syncSubtitle();
-    video.addEventListener("timeupdate", syncSubtitle);
-    video.addEventListener("seeked", syncSubtitle);
-    video.addEventListener("play", syncSubtitle);
-    return () => {
-      video.removeEventListener("timeupdate", syncSubtitle);
-      video.removeEventListener("seeked", syncSubtitle);
-      video.removeEventListener("play", syncSubtitle);
+    const tick = () => {
+      const now = video.currentTime;
+      const idx = findCueIdx(now);
+      const text = idx >= 0 ? cues[idx].text : "";
+      if (idx !== lastIdx || text !== lastText) {
+        lastIdx = idx;
+        lastText = text;
+        setActiveSubtitleText(text);
+      }
     };
-  }, [parsedSubtitleCues, subsActive, currentSource]);
+
+    const startLoop = () => {
+      stopLoop();
+      const loop = () => {
+        tick();
+        rafId = requestAnimationFrame(loop);
+      };
+      rafId = requestAnimationFrame(loop);
+      // Fallback: si el rAF se pausa (pestaña en background, iOS lockscreen),
+      // setInterval garantiza que el overlay siga sincronizado.
+      intervalId = setInterval(tick, 250);
+    };
+    const stopLoop = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (intervalId) clearInterval(intervalId);
+      rafId = 0;
+      intervalId = null;
+    };
+
+    const forceResync = () => { lastIdx = -1; lastText = ""; tick(); };
+    const onVisibility = () => { if (!document.hidden) forceResync(); };
+
+    startLoop();
+    video.addEventListener("seeking", forceResync);
+    video.addEventListener("seeked", forceResync);
+    video.addEventListener("play", forceResync);
+    video.addEventListener("pause", tick);
+    video.addEventListener("waiting", tick);
+    video.addEventListener("loadedmetadata", forceResync);
+    document.addEventListener("visibilitychange", onVisibility);
+    document.addEventListener("fullscreenchange", forceResync);
+
+    return () => {
+      stopLoop();
+      video.removeEventListener("seeking", forceResync);
+      video.removeEventListener("seeked", forceResync);
+      video.removeEventListener("play", forceResync);
+      video.removeEventListener("pause", tick);
+      video.removeEventListener("waiting", tick);
+      video.removeEventListener("loadedmetadata", forceResync);
+      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("fullscreenchange", forceResync);
+      setActiveSubtitleText("");
+    };
+  }, [parsedSubtitleCues, subsActive, currentSource?.url]);
 
   const togglePlay = () => {
     const video = videoRef.current;
