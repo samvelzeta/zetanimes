@@ -99,11 +99,11 @@ export default function AdminPanel() {
         {tab === "epcount" && <EpisodeCountManager />}
         {tab === "slugs" && <SlugManager />}
         {tab === "hidden" && <HiddenAnimesManager />}
-        {tab === "apk" && <ApkManager />}
+        {tab === "apk" && isOwner && <ApkManager />}
         {tab === "reports" && <BrokenReports />}
         {isOwner && tab === "premium" && <PremiumTab />}
         {isOwner && tab === "payment" && <PaymentTab />}
-        {tab === "notifs" && <NotifsTab />}
+        {tab === "notifs" && isOwner && <NotifsTab />}
         {tab === "contacts" && <ContactsTab />}
         {isOwner && tab === "apikeys" && <ApiKeysTab />}
         {isOwner && tab === "roles" && <RoleManager />}
