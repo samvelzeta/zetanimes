@@ -22,8 +22,8 @@ import RoleManager from "@/components/admin/RoleManager";
 import ActivityLogTab from "@/components/admin/ActivityLogTab";
 import { logAdminActivity } from "@/lib/admin-log";
 
-// Tabs reservados solo para owner (info de pago, premium, API keys, gestión de roles, historial)
-const OWNER_ONLY_TABS = new Set(["premium", "payment", "apikeys", "roles", "activity"]);
+// Tabs reservados solo para owner — los admins NO ven ni pueden interactuar con APK, notificaciones, pagos, premium, API keys, roles ni historial.
+const OWNER_ONLY_TABS = new Set(["premium", "payment", "apikeys", "roles", "activity", "apk", "notifs"]);
 
 const TABS = [
   { key: "stats", label: "Stats", icon: BarChart3 },
