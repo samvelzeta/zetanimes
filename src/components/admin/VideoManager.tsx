@@ -220,6 +220,7 @@ export default function VideoManager() {
     if (!selected || selectedEp === null || !primaryUrl.trim()) return toast.error("Falta la URL del video");
     setSending(true);
     const sources = buildSourcesObj(primaryUrl, fallbackUrl, pcUrl, mobileUrl);
+    const isSeekeBase = hasSeekeSource(sources);
     const saveEpisode = hasSeekeSource(sources) ? 0 : selectedEp;
 
     try {
@@ -239,6 +240,20 @@ export default function VideoManager() {
         return;
       }
 
+      if (isSeekeBase) {
+        const { error: wipeError } = await supabase
+          .from("video_cache")
+          .delete()
+          .eq("anilist_id", selected.id)
+          .eq("lang", lang)
+          .neq("episode", 0);
+        if (wipeError) throw wipeError;
+        clearRuntimeVideoCache();
+        clearSeekeEpisodeCache();
+        clearProgress();
+        setEpStatuses({});
+      }
+
       // 2. Guardar también en API externa (si está caída no rompe — DB ya guardó)
       try {
         await fetch(`${API_BASE}/api/admin/save-video`, {
@@ -250,7 +265,7 @@ export default function VideoManager() {
         console.warn("API externa falló pero DB guardó OK:", e);
       }
 
-      toast.success(hasSeekeSource(sources) ? `URL base Seeke ${lang} guardada para todos los episodios` : `EP ${selectedEp} guardado correctamente en DB global`);
+      toast.success(isSeekeBase ? `URL base Seeke ${lang} guardada y capítulos viejos vaciados` : `EP ${selectedEp} guardado correctamente en DB global`);
       const key = `${selectedEp}-${lang}`;
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
       const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
