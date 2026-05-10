@@ -72,6 +72,7 @@ export default function VideoManager() {
   const [showSaved, setShowSaved] = useState(false);
   const [autoFetching, setAutoFetching] = useState(false);
   const [autoLog, setAutoLog] = useState<string[]>([]);
+  const [deletingEp, setDeletingEp] = useState<number | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const listRef = useRef<HTMLDivElement>(null);
   const stopAutoFetchRef = useRef(false);
@@ -396,6 +397,43 @@ export default function VideoManager() {
       setPrimaryUrl("");
       setFallbackUrl("");
     }
+  };
+
+  const deleteEpisodeCache = async (ep: number) => {
+    if (!selected) return;
+    if (!confirm(`¿Vaciar TODO lo guardado del Cap ${ep} (${lang})?\n\nSe borra el HLS/MP4/embed de ese capítulo para que vuelva a pedirse desde cero. La URL madre Seeke se mantiene.`)) return;
+    setDeletingEp(ep);
+    try {
+      const targets = savedVideos.filter((video) => video.episode === ep && video.lang === lang);
+      if (targets.length) {
+        const results = await Promise.all(targets.map((video) => deleteCachedVideo(video.slug, video.episode, video.lang, video.id)));
+        const failed = results.find((res) => !res.success);
+        if (failed) throw new Error(failed.error || "no se pudo borrar");
+      } else {
+        const res = await deleteCachedVideo(selected.slug, ep, lang);
+        if (!res.success) throw new Error(res.error || "no se pudo borrar");
+      }
+
+      clearRuntimeVideoCache();
+      try {
+        Object.keys(localStorage)
+          .filter((key) => key.startsWith("zet:seeke:") && key.endsWith(`:${ep}`))
+          .forEach((key) => localStorage.removeItem(key));
+      } catch { void 0; }
+
+      setSavedVideos((prev) => prev.filter((video) => !(video.episode === ep && video.lang === lang)));
+      setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: false } }));
+      if (selectedEp === ep) {
+        setPrimaryUrl("");
+        setFallbackUrl("");
+        setPcUrl("");
+        setMobileUrl("");
+      }
+      toast.success(`Cap ${ep} vaciado; se pedirá de nuevo desde cero`);
+    } catch (e) {
+      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
+    }
+    setDeletingEp(null);
   };
 
   const totalEps = selected?.totalEpisodes || 0;
