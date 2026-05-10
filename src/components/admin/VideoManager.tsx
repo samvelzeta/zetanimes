@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2, Database } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
-import { getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
+import { clearSeekeEpisodeCache, getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
 import { saveCachedVideo, getCachedVideo, deleteCachedVideo, listCachedVideosBySlug, type CachedVideo, clearRuntimeVideoCache } from "@/lib/video-cache";
 import { getSlugOverride } from "@/lib/slug-overrides";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,6 +51,16 @@ function saveProgress(slug: string, lang: string, episode: number, url: string) 
 function getProgress(slug: string, lang: string, episode: number): string {
   const data = getStoredProgress();
   return data[slug]?.[lang]?.[String(episode)] || "";
+}
+
+function clearProgress(slug?: string, lang?: string, episode?: number) {
+  if (!slug || !lang || episode == null) {
+    localStorage.removeItem(STORAGE_KEY);
+    return;
+  }
+  const data = getStoredProgress();
+  delete data[slug]?.[lang]?.[String(episode)];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 export default function VideoManager() {
