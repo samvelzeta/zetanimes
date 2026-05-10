@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2, Database } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
-import { getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
+import { clearSeekeEpisodeCache, getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
 import { saveCachedVideo, getCachedVideo, deleteCachedVideo, listCachedVideosBySlug, type CachedVideo, clearRuntimeVideoCache } from "@/lib/video-cache";
 import { getSlugOverride } from "@/lib/slug-overrides";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +53,16 @@ function getProgress(slug: string, lang: string, episode: number): string {
   return data[slug]?.[lang]?.[String(episode)] || "";
 }
 
+function clearProgress(slug?: string, lang?: string, episode?: number) {
+  if (!slug || !lang || episode == null) {
+    localStorage.removeItem(STORAGE_KEY);
+    return;
+  }
+  const data = getStoredProgress();
+  delete data[slug]?.[lang]?.[String(episode)];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
 export default function VideoManager() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,6 +82,7 @@ export default function VideoManager() {
   const [showSaved, setShowSaved] = useState(false);
   const [autoFetching, setAutoFetching] = useState(false);
   const [autoLog, setAutoLog] = useState<string[]>([]);
+  const [deletingEp, setDeletingEp] = useState<number | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const listRef = useRef<HTMLDivElement>(null);
   const stopAutoFetchRef = useRef(false);
@@ -209,6 +220,7 @@ export default function VideoManager() {
     if (!selected || selectedEp === null || !primaryUrl.trim()) return toast.error("Falta la URL del video");
     setSending(true);
     const sources = buildSourcesObj(primaryUrl, fallbackUrl, pcUrl, mobileUrl);
+    const isSeekeBase = hasSeekeSource(sources);
     const saveEpisode = hasSeekeSource(sources) ? 0 : selectedEp;
 
     try {
@@ -228,6 +240,20 @@ export default function VideoManager() {
         return;
       }
 
+      if (isSeekeBase) {
+        const { error: wipeError } = await supabase
+          .from("video_cache")
+          .delete()
+          .eq("anilist_id", selected.id)
+          .eq("lang", lang)
+          .neq("episode", 0);
+        if (wipeError) throw wipeError;
+        clearRuntimeVideoCache();
+        clearSeekeEpisodeCache();
+        clearProgress();
+        setEpStatuses({});
+      }
+
       // 2. Guardar también en API externa (si está caída no rompe — DB ya guardó)
       try {
         await fetch(`${API_BASE}/api/admin/save-video`, {
@@ -239,7 +265,7 @@ export default function VideoManager() {
         console.warn("API externa falló pero DB guardó OK:", e);
       }
 
-      toast.success(hasSeekeSource(sources) ? `URL base Seeke ${lang} guardada para todos los episodios` : `EP ${selectedEp} guardado correctamente en DB global`);
+      toast.success(isSeekeBase ? `URL base Seeke ${lang} guardada y capítulos viejos vaciados` : `EP ${selectedEp} guardado correctamente en DB global`);
       const key = `${selectedEp}-${lang}`;
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
       const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
@@ -398,6 +424,43 @@ export default function VideoManager() {
     }
   };
 
+  const deleteEpisodeCache = async (ep: number) => {
+    if (!selected) return;
+    if (!confirm(`¿Vaciar TODO lo guardado del Cap ${ep} (${lang})?\n\nSe borra el HLS/MP4/embed de ese capítulo para que vuelva a pedirse desde cero. La URL madre Seeke se mantiene.`)) return;
+    setDeletingEp(ep);
+    try {
+      const targets = savedVideos.filter((video) => video.episode === ep && video.lang === lang);
+      if (targets.length) {
+        const results = await Promise.all(targets.map((video) => deleteCachedVideo(video.slug, video.episode, video.lang, video.id)));
+        const failed = results.find((res) => !res.success);
+        if (failed) throw new Error(failed.error || "no se pudo borrar");
+      } else {
+        const res = await deleteCachedVideo(selected.slug, ep, lang);
+        if (!res.success) throw new Error(res.error || "no se pudo borrar");
+      }
+
+      clearRuntimeVideoCache();
+      try {
+        Object.keys(localStorage)
+          .filter((key) => key.startsWith("zet:seeke:") && key.endsWith(`:${ep}`))
+          .forEach((key) => localStorage.removeItem(key));
+      } catch { void 0; }
+
+      setSavedVideos((prev) => prev.filter((video) => !(video.episode === ep && video.lang === lang)));
+      setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: false } }));
+      if (selectedEp === ep) {
+        setPrimaryUrl("");
+        setFallbackUrl("");
+        setPcUrl("");
+        setMobileUrl("");
+      }
+      toast.success(`Cap ${ep} vaciado; se pedirá de nuevo desde cero`);
+    } catch (e) {
+      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
+    }
+    setDeletingEp(null);
+  };
+
   const totalEps = selected?.totalEpisodes || 0;
 
   return (
@@ -522,9 +585,9 @@ export default function VideoManager() {
       )}
 
       {selected && (
-        <div className="flex gap-3" style={{ height: "400px" }}>
+        <div className="flex flex-col gap-3 sm:h-[400px] sm:flex-row">
           <div ref={listRef} onScroll={handleScroll}
-            className="w-1/3 overflow-y-auto border border-border rounded-xl bg-secondary/30"
+            className="h-56 w-full overflow-y-auto border border-border rounded-xl bg-secondary/30 sm:h-auto sm:w-1/3"
             style={{ contain: "strict" }}>
             <div style={{ height: `${totalEps * 40}px`, position: "relative" }}>
               {Array.from({ length: visibleRange.end - visibleRange.start }, (_, i) => {
@@ -534,24 +597,36 @@ export default function VideoManager() {
                 const status = epStatuses[key];
                 const isActive = selectedEp === ep;
                 return (
-                  <button key={ep} onClick={() => setSelectedEp(ep)}
+                  <div key={ep}
                     style={{ position: "absolute", top: `${(ep - 1) * 40}px`, height: "40px", left: 0, right: 0 }}
-                    className={`flex items-center justify-between px-3 text-xs font-medium border-b border-border/30 transition ${
-                      isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
-                    }`}>
-                    <span>Cap {ep}</span>
-                    {status?.checked && (
-                      status.exists
-                        ? <Check className="w-3.5 h-3.5 text-primary" />
-                        : <AlertCircle className="w-3.5 h-3.5 text-destructive" />
-                    )}
-                  </button>
+                    className="flex border-b border-border/30">
+                    <button onClick={() => setSelectedEp(ep)}
+                      className={`flex flex-1 items-center justify-between px-3 text-xs font-medium transition ${
+                        isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                      }`}>
+                      <span>Cap {ep}</span>
+                      {status?.checked && (
+                        status.exists
+                          ? <Check className="w-3.5 h-3.5 text-primary" />
+                          : <AlertCircle className="w-3.5 h-3.5 text-destructive" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => deleteEpisodeCache(ep)}
+                      disabled={deletingEp === ep}
+                      className="w-9 shrink-0 border-l border-border/30 text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
+                      title={`Vaciar cache del Cap ${ep}`}
+                      aria-label={`Vaciar cache del Cap ${ep}`}
+                    >
+                      {deletingEp === ep ? <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mx-auto h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 );
               })}
             </div>
           </div>
 
-          <div className="flex-1 space-y-3">
+          <div className="flex-1 space-y-3 pb-28 sm:overflow-y-auto sm:pb-2 sm:pr-1">
             {selectedEp !== null ? (
               <>
                 <div className="bg-secondary rounded-xl p-3 border border-border">
