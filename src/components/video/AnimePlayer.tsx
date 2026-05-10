@@ -836,8 +836,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
       {subsActive && activeSubtitleText && (
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-[10%] flex justify-center px-4"
-          style={{ zIndex: 9999 }}
+          className={`pointer-events-none absolute inset-x-0 flex justify-center px-4 ${isFullscreen ? "bottom-[16%]" : "bottom-[18%]"}`}
+          style={{ zIndex: 5 }}
         >
           <div
             className="max-w-[92%] whitespace-pre-line text-center font-bold leading-snug"
@@ -923,7 +923,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         </div>
 
         {/* Center episode controls — botones reducidos ~50% en móvil para no cubrir tanto */}
-        {!loading && !error && (
+        {isFullscreen && !loading && !error && (
           <div data-player-control="true" className="pointer-events-auto absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 sm:gap-7">
             <button onClick={(e) => { e.stopPropagation(); onPrev?.(); }} disabled={!canPrev} className="h-8 w-8 sm:h-14 sm:w-14 rounded-full bg-background/70 border border-primary/45 flex items-center justify-center text-foreground hover:text-primary hover:border-primary disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95" aria-label="Episodio anterior">
               <SkipBack className="h-4 w-4 sm:h-7 sm:w-7" />
@@ -1006,7 +1006,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <span className="text-[10px] text-white/70 tabular-nums shrink-0">
                 {formatTime(progress)} / {formatTime(duration)}
               </span>
-              {currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
+              {isFullscreen && currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
                 <>
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
