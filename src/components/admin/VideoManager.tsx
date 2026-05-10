@@ -560,9 +560,9 @@ export default function VideoManager() {
       )}
 
       {selected && (
-        <div className="flex gap-3" style={{ height: "400px" }}>
+        <div className="flex flex-col gap-3 sm:h-[400px] sm:flex-row">
           <div ref={listRef} onScroll={handleScroll}
-            className="w-1/3 overflow-y-auto border border-border rounded-xl bg-secondary/30"
+            className="h-56 w-full overflow-y-auto border border-border rounded-xl bg-secondary/30 sm:h-auto sm:w-1/3"
             style={{ contain: "strict" }}>
             <div style={{ height: `${totalEps * 40}px`, position: "relative" }}>
               {Array.from({ length: visibleRange.end - visibleRange.start }, (_, i) => {
@@ -572,24 +572,36 @@ export default function VideoManager() {
                 const status = epStatuses[key];
                 const isActive = selectedEp === ep;
                 return (
-                  <button key={ep} onClick={() => setSelectedEp(ep)}
+                  <div key={ep}
                     style={{ position: "absolute", top: `${(ep - 1) * 40}px`, height: "40px", left: 0, right: 0 }}
-                    className={`flex items-center justify-between px-3 text-xs font-medium border-b border-border/30 transition ${
-                      isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
-                    }`}>
-                    <span>Cap {ep}</span>
-                    {status?.checked && (
-                      status.exists
-                        ? <Check className="w-3.5 h-3.5 text-primary" />
-                        : <AlertCircle className="w-3.5 h-3.5 text-destructive" />
-                    )}
-                  </button>
+                    className="flex border-b border-border/30">
+                    <button onClick={() => setSelectedEp(ep)}
+                      className={`flex flex-1 items-center justify-between px-3 text-xs font-medium transition ${
+                        isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground"
+                      }`}>
+                      <span>Cap {ep}</span>
+                      {status?.checked && (
+                        status.exists
+                          ? <Check className="w-3.5 h-3.5 text-primary" />
+                          : <AlertCircle className="w-3.5 h-3.5 text-destructive" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => deleteEpisodeCache(ep)}
+                      disabled={deletingEp === ep}
+                      className="w-9 shrink-0 border-l border-border/30 text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
+                      title={`Vaciar cache del Cap ${ep}`}
+                      aria-label={`Vaciar cache del Cap ${ep}`}
+                    >
+                      {deletingEp === ep ? <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mx-auto h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 );
               })}
             </div>
           </div>
 
-          <div className="flex-1 space-y-3">
+          <div className="flex-1 space-y-3 pb-28 sm:overflow-y-auto sm:pb-2 sm:pr-1">
             {selectedEp !== null ? (
               <>
                 <div className="bg-secondary rounded-xl p-3 border border-border">
