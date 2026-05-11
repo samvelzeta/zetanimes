@@ -388,6 +388,8 @@ export default function VideoManager() {
         toast.error("Error: " + error.message);
       } else {
         clearRuntimeVideoCache();
+        clearSeekeEpisodeCache();
+        clearProgress();
         toast.success(`Cache limpiado: ${count ?? 0} registros eliminados`);
         if (selected) {
           const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
