@@ -388,6 +388,8 @@ export default function VideoManager() {
         toast.error("Error: " + error.message);
       } else {
         clearRuntimeVideoCache();
+        clearSeekeEpisodeCache();
+        clearProgress();
         toast.success(`Cache limpiado: ${count ?? 0} registros eliminados`);
         if (selected) {
           const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
@@ -440,6 +442,8 @@ export default function VideoManager() {
       }
 
       clearRuntimeVideoCache();
+      // Borrar TODOS los caches en memoria/localStorage relacionados a este capítulo
+      clearSeekeEpisodeCache(); // limpia mem + todas las keys zet:seeke:*
       try {
         Object.keys(localStorage)
           .filter((key) => key.startsWith("zet:seeke:") && key.endsWith(`:${ep}`))

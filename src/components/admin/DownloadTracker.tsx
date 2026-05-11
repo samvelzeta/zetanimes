@@ -467,12 +467,32 @@ export default function DownloadTracker() {
                     <button
                       onClick={() => loadEpisodes(tracker.id)}
                       className="p-1.5 rounded-lg bg-muted hover:bg-primary/20 transition"
+                      title={isExpanded ? "Ocultar episodios" : "Ver episodios"}
                     >
                       {isExpanded ? <ChevronUp className="w-4 h-4 text-foreground" /> : <ChevronDown className="w-4 h-4 text-foreground" />}
                     </button>
+                    {tracker.status !== "completed" && (
+                      <button
+                        onClick={() => changeStatus(tracker.id, "completed")}
+                        className="p-1.5 rounded-lg bg-green-500/15 hover:bg-green-500/30 transition"
+                        title="Marcar como completado"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                      </button>
+                    )}
+                    {tracker.status === "completed" && (
+                      <button
+                        onClick={() => changeStatus(tracker.id, "downloading")}
+                        className="p-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/30 transition"
+                        title="Volver a descargando"
+                      >
+                        <Download className="w-3.5 h-3.5 text-blue-400" />
+                      </button>
+                    )}
                     <button
                       onClick={() => removeTracker(tracker.id)}
                       className="p-1.5 rounded-lg hover:bg-destructive/20 transition"
+                      title="Eliminar del tracker"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
                     </button>
