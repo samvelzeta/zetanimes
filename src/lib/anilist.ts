@@ -18,6 +18,7 @@ async function withIdbCache<T>(key: string, fetcher: () => Promise<T>, ttl = TTL
 const MEDIA_FRAGMENT = `
   fragment MediaFields on Media {
     id
+    idMal
     title { romaji english }
     coverImage { extraLarge large color }
     bannerImage
