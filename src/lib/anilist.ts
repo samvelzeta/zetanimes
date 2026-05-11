@@ -48,6 +48,7 @@ async function queryAniList(query: string, variables: Record<string, unknown> = 
 
 export interface AniListMedia {
   id: number;
+  idMal?: number | null;
   title: { romaji: string; english: string | null };
   coverImage: { extraLarge: string; large: string; color: string | null };
   bannerImage: string | null;
