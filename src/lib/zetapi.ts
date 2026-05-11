@@ -133,18 +133,22 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
   const now = Date.now();
   const memory = seekeMemoryCache.get(key);
   if (memory && memory.expiresAt > now) {
-    return { embed: memory.embed, episode: memory.episode, cached: true, subtitles: memory.subtitles };
+    // Refresco ligero de latest_episode si la entrada cacheada es vieja (>30min)
+    // sin volver a resolver el embed.
+    const stale = (memory.expiresAt - now) < (SEEKE_CACHE_TTL - LATEST_EP_TTL);
+    if (stale) refreshLatestEpisode(baseUrl, epNumber).catch(() => {});
+    return { embed: memory.embed, episode: memory.episode, cached: true, subtitles: memory.subtitles, latest_episode: memory.latest_episode };
   }
 
   try {
     const stored = JSON.parse(localStorage.getItem(key) || "null") as (SeekeResolved & { expiresAt: number }) | null;
     if (stored?.embed && stored.expiresAt > now) {
       seekeMemoryCache.set(key, stored);
-      return { embed: stored.embed, episode: stored.episode, cached: true, subtitles: stored.subtitles };
+      return { embed: stored.embed, episode: stored.episode, cached: true, subtitles: stored.subtitles, latest_episode: stored.latest_episode };
     }
   } catch {}
 
-  // 1) Fetch directo al bot (entrega embed + subtítulos softsub para JP)
+  // 1) Fetch directo al bot (entrega embed + subtítulos softsub para JP + latest_episode)
   let resolved: SeekeResolved | null = null;
   try {
     const r = await fetch(SEEKE_BOT_URL, {
@@ -160,6 +164,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
           episode: Number(data.episode || epNumber),
           cached: !!data.cached,
           subtitles: normalizeSeekeSubs(data.subtitles),
+          latest_episode: Number.isFinite(Number(data.latest_episode)) ? Number(data.latest_episode) : undefined,
         };
       }
     }
@@ -167,7 +172,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
 
   // 2) Fallback al proxy/Cloudflare si el bot directo falla (CORS u otro)
   if (!resolved) {
-    const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; subtitles?: any[]; error?: string }>(
+    const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; subtitles?: any[]; latest_episode?: number; error?: string }>(
       `/anime/episode-seeke?url=${encodeURIComponent(baseUrl)}&ep=${epNumber}`
     );
     if (!res.ok || !res.embed) {
@@ -178,6 +183,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
       episode: res.episode || epNumber,
       cached: res.cached,
       subtitles: normalizeSeekeSubs(res.subtitles),
+      latest_episode: Number.isFinite(Number(res.latest_episode)) ? Number(res.latest_episode) : undefined,
     };
   }
 
@@ -185,6 +191,56 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
   seekeMemoryCache.set(key, cacheValue);
   try { localStorage.setItem(key, JSON.stringify(cacheValue)); } catch {}
   return resolved;
+}
+
+/**
+ * Refresca SOLO `latest_episode` para una URL madre Seeke. No reemplaza el embed
+ * ni los subtítulos, solo actualiza el contador para que el frontend pueda
+ * mostrar episodios nuevos sin tocar el reproductor.
+ */
+async function refreshLatestEpisode(baseUrl: string, epNumber: number): Promise<number | undefined> {
+  try {
+    const r = await fetch(SEEKE_BOT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ url: baseUrl, ep: epNumber, latest_only: true }),
+    });
+    if (!r.ok) return undefined;
+    const data = await r.json();
+    const latest = Number(data?.latest_episode);
+    if (!Number.isFinite(latest)) return undefined;
+    const key = getSeekeCacheKey(baseUrl, epNumber);
+    const memory = seekeMemoryCache.get(key);
+    if (memory) {
+      memory.latest_episode = latest;
+      seekeMemoryCache.set(key, memory);
+      try { localStorage.setItem(key, JSON.stringify(memory)); } catch {}
+    }
+    return latest;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * API pública: obtiene el último episodio disponible para una URL madre Seeke.
+ * Devuelve `undefined` si la VPS aún no ha resuelto el dato.
+ */
+export async function getLatestEpisodeForBase(baseUrl: string, hintEp = 1): Promise<number | undefined> {
+  // Si ya tenemos algo cacheado, lo devolvemos rápido y refrescamos en background.
+  for (const [key, value] of seekeMemoryCache.entries()) {
+    if (key.includes(baseUrl.trim()) && value.latest_episode) {
+      refreshLatestEpisode(baseUrl, hintEp).catch(() => {});
+      return value.latest_episode;
+    }
+  }
+  // Sin cache: llamamos al endpoint normal con el hint para que la VPS resuelva.
+  try {
+    const result = await getSeekeEpisode(baseUrl, hintEp);
+    return result.latest_episode;
+  } catch {
+    return undefined;
+  }
 }
 
 // ===== IMPROVED SLUG RESOLUTION =====
