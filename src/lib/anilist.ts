@@ -110,11 +110,59 @@ export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult>
   }, 6 * 60 * 60 * 1000); // 6h
 }
 
+/**
+ * Búsqueda con fallback a Jikan (MyAnimeList).
+ * Motivo: AniList GraphQL ha tenido el parámetro `search` devolviendo media:[] vacío
+ * de forma intermitente. Cuando eso pasa, consultamos Jikan, mapeamos los mal_ids
+ * y volvemos a pedir esos mismos animes a AniList por `idMal_in` para mantener el
+ * shape consistente con el resto de la app.
+ */
 export async function searchAnime(searchTerm: string, page = 1, perPage = 20, genres: string[] = []): Promise<PageResult> {
   const variables: Record<string, unknown> = { page, perPage };
   if (searchTerm) variables.search = searchTerm;
   if (genres.length > 0) variables.genres = genres;
   const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$search:String,$genres:[String]){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(search:$search,type:ANIME,genre_in:$genres,isAdult:false,sort:SEARCH_MATCH){...MediaFields}}}`, variables);
+
+  // Fallback Jikan si AniList devolvió cero resultados con un término de búsqueda
+  if (searchTerm && (!data?.Page?.media?.length)) {
+    try {
+      const jikanRes = await fetch(
+        `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(searchTerm)}&limit=${Math.min(perPage, 25)}&page=${page}&sfw=true`
+      );
+      if (jikanRes.ok) {
+        const jikanJson = await jikanRes.json();
+        const malIds: number[] = (jikanJson?.data || [])
+          .map((a: any) => Number(a?.mal_id))
+          .filter((n: number) => Number.isFinite(n) && n > 0)
+          .slice(0, perPage);
+
+        if (malIds.length > 0) {
+          const idsCsv = malIds.join(",");
+          const aniData = await queryAniList(
+            `${MEDIA_FRAGMENT} query($perPage:Int){Page(page:1,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(idMal_in:[${idsCsv}],type:ANIME,isAdult:false){...MediaFields}}}`,
+            { perPage: malIds.length }
+          );
+          const fetched: AniListMedia[] = aniData?.Page?.media || [];
+          // Reordenar respetando el orden de relevancia que devolvió Jikan
+          const order = new Map(malIds.map((id, i) => [id, i]));
+          fetched.sort((a: any, b: any) => (order.get(a.idMal) ?? 999) - (order.get(b.idMal) ?? 999));
+          const pag = jikanJson?.pagination || {};
+          return {
+            pageInfo: {
+              total: pag?.items?.total || fetched.length,
+              currentPage: page,
+              lastPage: pag?.last_visible_page || page,
+              hasNextPage: !!pag?.has_next_page,
+            },
+            media: fetched,
+          };
+        }
+      }
+    } catch {
+      // si Jikan también falla, devolvemos lo que dio AniList (vacío)
+    }
+  }
+
   return data.Page;
 }
 
