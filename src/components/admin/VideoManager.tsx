@@ -8,6 +8,7 @@ import { getSlugOverride } from "@/lib/slug-overrides";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import BlocksEditor from "./BlocksEditor";
 
 const API_BASE = "https://zetapi-api.samvelzeta.workers.dev";
 
