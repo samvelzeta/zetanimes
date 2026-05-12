@@ -223,6 +223,17 @@ export default function Watch() {
     retry: 1,
   });
 
+  // Latest_episode dinámico:
+  // - Para el idioma actual: gobierna el botón "Siguiente" y el auto-next.
+  // - El máximo absoluto entre idiomas amplía la lista de botones (botones nuevos sin hardcode).
+  const latestForCurrentLang = latestCurrent ?? 0;
+  const dynamicMax = Math.max(baseTotalEpisodes, latestCurrent || 0, latestOpposite || 0);
+  const totalEpisodes = dynamicMax;
+  // Tope efectivo de navegación según el idioma actual: si la VPS dio latest, lo usamos;
+  // si no, dejamos el total dinámico (no bloqueamos a ciegas).
+  const maxEpisodeForLang = latestForCurrentLang > 0 ? latestForCurrentLang : dynamicMax;
+  const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, selectedEp) }, (_, i) => i + 1);
+
   const { data: oppositeServerData } = useQuery({
     queryKey: ["zet-servers-opposite", zetSlug, selectedEp, oppositeLang],
     queryFn: async () => {
