@@ -387,7 +387,7 @@ export default function Watch() {
       return next;
     });
     selectEpisode(selectedEp + 1);
-  }, [autoNextDone, autoNextKey, selectedEp, totalEpisodes]);
+  }, [autoNextDone, autoNextKey, selectedEp, maxEpisodeForLang]);
 
   // Helper: marca el episodio como visto en estado + localStorage (sólo logueado)
   const markWatchedReactive = useCallback((epSlug: string) => {
