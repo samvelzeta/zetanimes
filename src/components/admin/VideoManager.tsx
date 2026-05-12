@@ -570,6 +570,10 @@ export default function VideoManager() {
         </div>
       )}
 
+      {selected && (
+        <BlocksEditor anilistId={selected.id} slug={selected.slug} lang={lang} />
+      )}
+
       {/* Slug editable - útil cuando el slug del scraper no coincide con el calculado */}
       {selected && (
         <div>
