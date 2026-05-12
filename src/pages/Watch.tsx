@@ -233,7 +233,7 @@ export default function Watch() {
       episodeCache.set(oppositeKey, res);
       return res;
     },
-    enabled: !!zetSlug && cachedVideoOppositeFetched && !hasOppositeSeekeBase,
+    enabled: !!zetSlug && cachedVideoOppositeFetched && !hasOppositeSeekeBase && !oppositeBlock,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
