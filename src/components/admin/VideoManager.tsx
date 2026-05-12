@@ -8,6 +8,7 @@ import { getSlugOverride } from "@/lib/slug-overrides";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import BlocksEditor from "./BlocksEditor";
 
 const API_BASE = "https://zetapi-api.samvelzeta.workers.dev";
 
@@ -567,6 +568,10 @@ export default function VideoManager() {
             </button>
           ))}
         </div>
+      )}
+
+      {selected && (
+        <BlocksEditor anilistId={selected.id} slug={selected.slug} lang={lang} />
       )}
 
       {/* Slug editable - útil cuando el slug del scraper no coincide con el calculado */}
