@@ -144,8 +144,7 @@ export default function Watch() {
   const fallbackTotal = isReleasing
     ? (anilistData?.nextAiringEpisode?.episode ? anilistData.nextAiringEpisode.episode - 1 : 0)
     : (anilistData?.episodes || 0);
-  const totalEpisodes = resolvedTotal || fallbackTotal || 0;
-  const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, selectedEp) }, (_, i) => i + 1);
+  const baseTotalEpisodes = resolvedTotal || fallbackTotal || 0;
 
   const cacheKey = `${zetSlug}-${selectedEp}-${lang}`;
 
