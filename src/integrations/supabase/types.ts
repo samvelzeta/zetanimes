@@ -822,6 +822,51 @@ export type Database = {
         }
         Relationships: []
       }
+      video_cache_blocks: {
+        Row: {
+          anilist_id: number
+          block_index: number
+          block_label: string | null
+          created_at: string
+          created_by: string | null
+          episode_from: number
+          episode_to: number
+          id: string
+          lang: string
+          seeke_base_url: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          block_index: number
+          block_label?: string | null
+          created_at?: string
+          created_by?: string | null
+          episode_from: number
+          episode_to: number
+          id?: string
+          lang?: string
+          seeke_base_url: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          block_index?: number
+          block_label?: string | null
+          created_at?: string
+          created_by?: string | null
+          episode_from?: number
+          episode_to?: number
+          id?: string
+          lang?: string
+          seeke_base_url?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       watch_history: {
         Row: {
           anime_cover: string | null
