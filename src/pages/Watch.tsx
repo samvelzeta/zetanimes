@@ -243,10 +243,26 @@ export default function Watch() {
   const buildSources = useCallback((): PlayerSourceItem[] => {
     const sources: PlayerSourceItem[] = [];
 
-    const addDb = (cached: typeof cachedVideo, sourceLang: Lang) => {
+    const addBlock = (block: typeof currentBlock, sourceLang: Lang) => {
+      if (!block) return;
+      const tag = sourceLang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
+      appendUniqueSource(sources, {
+        name: `Bloque ${block.blockIndex}${block.blockLabel ? " · " + block.blockLabel : ""} • ${tag}`,
+        embed: block.baseUrl,
+        type: "seeke",
+        episode: block.episodeWithinBlock,
+        lang: sourceLang,
+        origin: "seeke",
+      });
+    };
+
+    const addDb = (cached: typeof cachedVideo, sourceLang: Lang, hasBlock: boolean) => {
       if (!cached) return;
       const tag = sourceLang === "latino" ? "🌎 LAT" : "🇯🇵 JP";
       cachedVideoToSources(cached).forEach((item) => {
+        // Si hay bloque definido, NO usamos la URL madre única para seeke
+        // (la del bloque manda y ya fue agregada antes).
+        if (hasBlock && item.type === "seeke") return;
         appendUniqueSource(sources, {
           ...item,
           episode: selectedEp,
@@ -270,7 +286,8 @@ export default function Watch() {
       });
     };
 
-    addDb(cachedVideo, lang);
+    addBlock(currentBlock, lang);
+    addDb(cachedVideo, lang, !!currentBlock);
     if (lang === "latino") {
       (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
         name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
@@ -278,7 +295,8 @@ export default function Watch() {
     }
     addApi(serverData, lang);
 
-    addDb(cachedVideoOpposite, oppositeLang);
+    addBlock(oppositeBlock, oppositeLang);
+    addDb(cachedVideoOpposite, oppositeLang, !!oppositeBlock);
     if (oppositeLang === "latino") {
       (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
         name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
@@ -287,7 +305,7 @@ export default function Watch() {
     addApi(oppositeServerData, oppositeLang);
 
     return sources.sort((a, b) => sourcePriority(a) - sourcePriority(b));
-  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp]);
+  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
   const langAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
