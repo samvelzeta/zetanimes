@@ -380,7 +380,7 @@ export default function Watch() {
 
   const handleAutoNext = useCallback(() => {
     const autoPlayEnabled = localStorage.getItem("zet_autoplay") !== "false";
-    if (!autoPlayEnabled || selectedEp >= (totalEpisodes || 0) || autoNextDone.has(autoNextKey)) return;
+    if (!autoPlayEnabled || selectedEp >= (maxEpisodeForLang || 0) || autoNextDone.has(autoNextKey)) return;
     setAutoNextDone((prev) => {
       const next = new Set(prev);
       next.add(autoNextKey);
@@ -669,9 +669,9 @@ export default function Watch() {
                 showServerPicker={shouldShowServerControl}
                 episodeKey={displayedAutoNextKey}
                 canPrev={displayedEpisode > 1}
-                canNext={displayedEpisode < totalEpisodes}
+                canNext={displayedEpisode < maxEpisodeForLang}
                 onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
-                onNext={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
+                onNext={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
                 onAutoNext={isEpisodeSwitching ? undefined : handleAutoNext}
                 autoNextAlreadyTriggered={autoNextDone.has(displayedAutoNextKey)}
                 currentEpisode={displayedEpisode}
@@ -692,7 +692,7 @@ export default function Watch() {
                 episode={displayedEpisode}
                 totalEpisodes={totalEpisodes}
                 onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
-                onNext={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
+                onNext={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
                 containerRef={playerWrapperRef}
               />
               {/* Ad gate cada 3 episodios — bloquea video hasta cerrar */}
@@ -839,8 +839,8 @@ export default function Watch() {
             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showEpisodes ? "rotate-180" : ""}`} />
           </button>
           <button
-            onClick={() => selectedEp < totalEpisodes && selectEpisode(selectedEp + 1)}
-            disabled={selectedEp >= totalEpisodes}
+            onClick={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
+            disabled={selectedEp >= maxEpisodeForLang}
             className="flex-1 py-2.5 px-3 rounded-lg bg-primary/15 hover:bg-primary/30 border border-primary/40 text-primary text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95"
           >
             Siguiente <ChevronLeft className="w-4 h-4 rotate-180" />
