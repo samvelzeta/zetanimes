@@ -64,7 +64,8 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
 
   const save = async () => {
     setSaving(true);
-    const res = await saveBlocks(anilistId, slug, lang, rows, user?.id);
+    const payload = rows.map((r) => ({ ...r, inverse_mode: r.source_episode_offset > 0 }));
+    const res = await saveBlocks(anilistId, slug, lang, payload, user?.id);
     if (!res.success) {
       toast.error(res.error || "Error guardando bloques");
       setSaving(false);
