@@ -301,8 +301,15 @@ export default function Watch() {
       });
     };
 
-    addBlock(currentBlock, lang);
-    addDb(cachedVideo, lang, !!currentBlock);
+    // Si Seeke ya no cubre el episodio actual del idioma activo, NO usamos
+    // bloque/DB-seeke (forzamos AV1). Esto evita capítulos fantasma reciclados.
+    if (seekeCoversCurrent) {
+      addBlock(currentBlock, lang);
+      addDb(cachedVideo, lang, !!currentBlock);
+    } else if (cachedVideo) {
+      // Solo añadimos fuentes NO-seeke del DB cache (HLS/MP4/embed manuales).
+      addDb({ ...cachedVideo, sources: { ...cachedVideo.sources, seeke: [] } } as any, lang, true);
+    }
     if (lang === "latino") {
       (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
         name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
