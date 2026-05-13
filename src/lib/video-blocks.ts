@@ -178,11 +178,18 @@ export async function getLatestEpisodeByLang(
   if (blocks.length) {
     const results = await Promise.all(
       blocks.map(async (b) => {
-        const latestWithin = await getLatestEpisodeForBase(b.seeke_base_url, 1);
+        const offset = Number(b.source_episode_offset || 0);
+        // En modo inverso (offset>0), pedimos a partir del cap real en Seeke.
+        const hint = Math.max(1, offset + 1);
+        const latestWithin = await getLatestEpisodeForBase(b.seeke_base_url, hint);
         if (!latestWithin) return undefined;
-        // Mapear a numeración global y respetar el techo del rango declarado
-        const globalEp = b.episode_from + Math.min(latestWithin, b.episode_to - b.episode_from + 1) - 1;
-        return globalEp;
+        // latestWithin viene en numeración de Seeke. Restamos offset para obtener
+        // el cap relativo al bloque, luego mapeamos a numeración global.
+        const blockSize = b.episode_to - b.episode_from + 1;
+        const relative = Math.max(0, latestWithin - offset); // cap visible dentro del bloque
+        if (relative <= 0) return undefined;
+        const clamped = Math.min(relative, blockSize);
+        return b.episode_from + clamped - 1;
       })
     );
     const valid = results.filter((n): n is number => typeof n === "number" && n > 0);
