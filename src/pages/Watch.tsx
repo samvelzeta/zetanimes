@@ -218,7 +218,7 @@ export default function Watch() {
       episodeCache.set(cacheKey, res);
       return res;
     },
-    enabled: !!zetSlug && cachedVideoFetched && !hasCurrentSeekeBase && !currentBlock,
+    enabled: !!zetSlug && cachedVideoFetched && (!(hasCurrentSeekeBase || currentBlock) || (latestCurrent !== undefined && selectedEp > (latestCurrent || 0))),
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
