@@ -666,7 +666,15 @@ export default function Watch() {
                 "0 0 0 1px hsl(var(--primary) / 0.15), 0 0 22px hsl(var(--primary) / 0.45), 0 0 50px hsl(var(--primary) / 0.25)",
             }}
           >
-          {isLoading && playerSources.length === 0 ? (
+          {isEpisodeBlocked ? (
+            <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3 px-4 text-center">
+              <AlertCircle className="w-10 h-10 text-primary" />
+              <p className="text-sm font-bold text-foreground">Episodio aún no disponible</p>
+              <p className="text-[11px] text-muted-foreground max-w-sm">
+                El episodio {selectedEp} todavía no se ha emitido o cargado para este idioma. Último disponible: <span className="text-primary font-bold">EP {maxEpisodeForLang}</span>.
+              </p>
+            </div>
+          ) : isLoading && playerSources.length === 0 ? (
             <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
