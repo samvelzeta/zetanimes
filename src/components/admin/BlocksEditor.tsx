@@ -128,6 +128,19 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
                     <Input type="number" min={1} value={r.episode_to} onChange={(e) => updateRow(i, { episode_to: Number(e.target.value) })} placeholder="Hasta" className="h-8 text-xs w-20" />
                   </div>
                   <Input value={r.seeke_base_url} onChange={(e) => updateRow(i, { seeke_base_url: e.target.value })} placeholder="https://flixlat.com/.../detail/..." className="h-8 text-xs font-mono" />
+                  <div className="flex gap-2 items-center">
+                    <label className="text-[10px] text-muted-foreground whitespace-nowrap">Cap real Seeke ep {r.episode_from} →</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={r.source_episode_offset + 1}
+                      onChange={(e) => updateRow(i, { source_episode_offset: Math.max(0, Number(e.target.value) - 1) })}
+                      className="h-7 text-xs w-20"
+                    />
+                    {r.source_episode_offset > 0 && (
+                      <span className="text-[10px] font-bold text-primary">⇄ Inverso</span>
+                    )}
+                  </div>
                 </div>
                 <button onClick={() => removeRow(i)} className="self-start text-destructive hover:bg-destructive/10 p-1.5 rounded">
                   <Trash2 className="w-3.5 h-3.5" />
