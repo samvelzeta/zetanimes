@@ -229,9 +229,14 @@ export default function Watch() {
   const latestForCurrentLang = latestCurrent ?? 0;
   const dynamicMax = Math.max(baseTotalEpisodes, latestCurrent || 0, latestOpposite || 0);
   const totalEpisodes = dynamicMax;
-  // Tope efectivo de navegación según el idioma actual: si la VPS dio latest, lo usamos;
-  // si no, dejamos el total dinámico (no bloqueamos a ciegas).
-  const maxEpisodeForLang = latestForCurrentLang > 0 ? latestForCurrentLang : dynamicMax;
+  // Tope efectivo de navegación según el idioma actual: combina latest Seeke
+  // y el techo de AnimeAV1 (anilist episodes / nextAiringEpisode-1). Si NINGUNO
+  // de los dos cubre el episodio solicitado, se considera fantasma y se bloquea.
+  const av1Max = baseTotalEpisodes; // techo razonable de AnimeAV1 / API
+  const maxEpisodeForLang = Math.max(latestForCurrentLang, av1Max);
+  const isEpisodeBlocked = selectedEp > maxEpisodeForLang && maxEpisodeForLang > 0;
+  // Si Seeke ya no cubre el ep actual, NO usamos su URL (forzamos AV1).
+  const seekeCoversCurrent = latestForCurrentLang > 0 ? selectedEp <= latestForCurrentLang : true;
   const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, selectedEp) }, (_, i) => i + 1);
 
   const { data: oppositeServerData } = useQuery({
