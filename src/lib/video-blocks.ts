@@ -82,13 +82,17 @@ export async function resolveSeekeBaseForEpisode(
   if (!blocks.length) return null;
   const match = blocks.find((b) => episode >= b.episode_from && episode <= b.episode_to);
   if (!match) return null;
+  const offset = Number(match.source_episode_offset || 0);
+  const relative = episode - match.episode_from + 1; // 1-indexed within block
   return {
     baseUrl: match.seeke_base_url,
     blockIndex: match.block_index,
     blockLabel: match.block_label,
     episodeFrom: match.episode_from,
     episodeTo: match.episode_to,
-    episodeWithinBlock: episode - match.episode_from + 1,
+    episodeWithinBlock: relative + offset,
+    sourceEpisodeOffset: offset,
+    inverseMode: !!match.inverse_mode || offset > 0,
   };
 }
 
