@@ -19,6 +19,7 @@ interface Row {
   episode_from: number;
   episode_to: number;
   seeke_base_url: string;
+  source_episode_offset: number;
 }
 
 export default function BlocksEditor({ anilistId, slug, lang }: Props) {
