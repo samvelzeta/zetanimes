@@ -111,8 +111,9 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
         )}
       </div>
 
-      <p className="text-[10px] text-muted-foreground">
-        Para series divididas por temporadas en la fuente externa (ej. Black Clover). Cada bloque mapea un rango de episodios → su URL madre Seeke. El usuario sigue viendo numeración continua.
+      <p className="text-[10px] text-muted-foreground leading-relaxed">
+        <strong>Modo normal:</strong> serie dividida por temporadas en Seeke pero unida en mi página (ej. Black Clover). Cada bloque tiene su URL madre.<br />
+        <strong>Modo inverso (offset &gt; 0):</strong> serie unida en Seeke pero dividida en mi página. Pon el cap real en Seeke donde empieza esta temporada en "Cap real Seeke" (ej. T2 ep 1 → 25).
       </p>
 
       {enabled && (
