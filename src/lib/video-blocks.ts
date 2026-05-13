@@ -14,6 +14,11 @@ export interface VideoBlock {
   episode_from: number;
   episode_to: number;
   seeke_base_url: string;
+  /** Si > 0, modo inverso: el episodio relativo al bloque se desplaza por este valor
+   *  cuando se construye la petición a la VPS.
+   *  Ej. página ep 1, offset 24 → se pide a Seeke como ep 25. */
+  source_episode_offset?: number;
+  inverse_mode?: boolean;
 }
 
 export interface ResolvedBlock {
@@ -22,8 +27,11 @@ export interface ResolvedBlock {
   blockLabel: string | null;
   episodeFrom: number;
   episodeTo: number;
-  /** Episodio relativo dentro del bloque (1-indexed). */
+  /** Episodio que se debe pedir a la VPS (ya con offset aplicado si inverso). */
   episodeWithinBlock: number;
+  /** Offset usado (solo informativo). */
+  sourceEpisodeOffset: number;
+  inverseMode: boolean;
 }
 
 const blocksMemoryCache = new Map<string, { value: VideoBlock[]; expiresAt: number }>();
@@ -74,13 +82,17 @@ export async function resolveSeekeBaseForEpisode(
   if (!blocks.length) return null;
   const match = blocks.find((b) => episode >= b.episode_from && episode <= b.episode_to);
   if (!match) return null;
+  const offset = Number(match.source_episode_offset || 0);
+  const relative = episode - match.episode_from + 1; // 1-indexed within block
   return {
     baseUrl: match.seeke_base_url,
     blockIndex: match.block_index,
     blockLabel: match.block_label,
     episodeFrom: match.episode_from,
     episodeTo: match.episode_to,
-    episodeWithinBlock: episode - match.episode_from + 1,
+    episodeWithinBlock: relative + offset,
+    sourceEpisodeOffset: offset,
+    inverseMode: !!match.inverse_mode || offset > 0,
   };
 }
 
@@ -92,7 +104,7 @@ export async function saveBlocks(
   anilistId: number,
   slug: string,
   lang: string,
-  blocks: Array<{ block_label?: string | null; episode_from: number; episode_to: number; seeke_base_url: string }>,
+  blocks: Array<{ block_label?: string | null; episode_from: number; episode_to: number; seeke_base_url: string; source_episode_offset?: number; inverse_mode?: boolean }>,
   createdBy?: string
 ): Promise<{ success: boolean; error?: string }> {
   // Validar
@@ -114,6 +126,9 @@ export async function saveBlocks(
     if (!b.seeke_base_url.trim()) return { success: false, error: `Bloque ${i + 1} sin URL` };
     if (b.episode_from < 1 || b.episode_to < b.episode_from) {
       return { success: false, error: `Bloque ${i + 1}: rango inválido (${b.episode_from}–${b.episode_to})` };
+    }
+    if ((b.source_episode_offset || 0) < 0) {
+      return { success: false, error: `Bloque ${i + 1}: offset negativo no permitido` };
     }
     if (i > 0 && b.episode_from <= sorted[i - 1].episode_to) {
       return { success: false, error: `Bloques ${i} y ${i + 1} se solapan` };
@@ -137,6 +152,8 @@ export async function saveBlocks(
     episode_from: b.episode_from,
     episode_to: b.episode_to,
     seeke_base_url: b.seeke_base_url.trim(),
+    source_episode_offset: Number(b.source_episode_offset || 0),
+    inverse_mode: !!b.inverse_mode,
     created_by: createdBy || null,
   }));
 
@@ -161,11 +178,18 @@ export async function getLatestEpisodeByLang(
   if (blocks.length) {
     const results = await Promise.all(
       blocks.map(async (b) => {
-        const latestWithin = await getLatestEpisodeForBase(b.seeke_base_url, 1);
+        const offset = Number(b.source_episode_offset || 0);
+        // En modo inverso (offset>0), pedimos a partir del cap real en Seeke.
+        const hint = Math.max(1, offset + 1);
+        const latestWithin = await getLatestEpisodeForBase(b.seeke_base_url, hint);
         if (!latestWithin) return undefined;
-        // Mapear a numeración global y respetar el techo del rango declarado
-        const globalEp = b.episode_from + Math.min(latestWithin, b.episode_to - b.episode_from + 1) - 1;
-        return globalEp;
+        // latestWithin viene en numeración de Seeke. Restamos offset para obtener
+        // el cap relativo al bloque, luego mapeamos a numeración global.
+        const blockSize = b.episode_to - b.episode_from + 1;
+        const relative = Math.max(0, latestWithin - offset); // cap visible dentro del bloque
+        if (relative <= 0) return undefined;
+        const clamped = Math.min(relative, blockSize);
+        return b.episode_from + clamped - 1;
       })
     );
     const valid = results.filter((n): n is number => typeof n === "number" && n > 0);

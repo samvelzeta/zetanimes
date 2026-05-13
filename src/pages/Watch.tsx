@@ -218,7 +218,7 @@ export default function Watch() {
       episodeCache.set(cacheKey, res);
       return res;
     },
-    enabled: !!zetSlug && cachedVideoFetched && !hasCurrentSeekeBase && !currentBlock,
+    enabled: !!zetSlug && cachedVideoFetched && (!(hasCurrentSeekeBase || currentBlock) || (latestCurrent !== undefined && selectedEp > (latestCurrent || 0))),
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
@@ -229,9 +229,14 @@ export default function Watch() {
   const latestForCurrentLang = latestCurrent ?? 0;
   const dynamicMax = Math.max(baseTotalEpisodes, latestCurrent || 0, latestOpposite || 0);
   const totalEpisodes = dynamicMax;
-  // Tope efectivo de navegación según el idioma actual: si la VPS dio latest, lo usamos;
-  // si no, dejamos el total dinámico (no bloqueamos a ciegas).
-  const maxEpisodeForLang = latestForCurrentLang > 0 ? latestForCurrentLang : dynamicMax;
+  // Tope efectivo de navegación según el idioma actual: combina latest Seeke
+  // y el techo de AnimeAV1 (anilist episodes / nextAiringEpisode-1). Si NINGUNO
+  // de los dos cubre el episodio solicitado, se considera fantasma y se bloquea.
+  const av1Max = baseTotalEpisodes; // techo razonable de AnimeAV1 / API
+  const maxEpisodeForLang = Math.max(latestForCurrentLang, av1Max);
+  const isEpisodeBlocked = selectedEp > maxEpisodeForLang && maxEpisodeForLang > 0;
+  // Si Seeke ya no cubre el ep actual, NO usamos su URL (forzamos AV1).
+  const seekeCoversCurrent = latestForCurrentLang > 0 ? selectedEp <= latestForCurrentLang : true;
   const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, selectedEp) }, (_, i) => i + 1);
 
   const { data: oppositeServerData } = useQuery({
@@ -296,8 +301,15 @@ export default function Watch() {
       });
     };
 
-    addBlock(currentBlock, lang);
-    addDb(cachedVideo, lang, !!currentBlock);
+    // Si Seeke ya no cubre el episodio actual del idioma activo, NO usamos
+    // bloque/DB-seeke (forzamos AV1). Esto evita capítulos fantasma reciclados.
+    if (seekeCoversCurrent) {
+      addBlock(currentBlock, lang);
+      addDb(cachedVideo, lang, !!currentBlock);
+    } else if (cachedVideo) {
+      // Solo añadimos fuentes NO-seeke del DB cache (HLS/MP4/embed manuales).
+      addDb({ ...cachedVideo, sources: { ...cachedVideo.sources, seeke: [] } } as any, lang, true);
+    }
     if (lang === "latino") {
       (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
         name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
@@ -315,7 +327,7 @@ export default function Watch() {
     addApi(oppositeServerData, oppositeLang);
 
     return sources.sort((a, b) => sourcePriority(a) - sourcePriority(b));
-  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock]);
+  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
   const langAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
@@ -654,7 +666,15 @@ export default function Watch() {
                 "0 0 0 1px hsl(var(--primary) / 0.15), 0 0 22px hsl(var(--primary) / 0.45), 0 0 50px hsl(var(--primary) / 0.25)",
             }}
           >
-          {isLoading && playerSources.length === 0 ? (
+          {isEpisodeBlocked ? (
+            <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3 px-4 text-center">
+              <AlertCircle className="w-10 h-10 text-primary" />
+              <p className="text-sm font-bold text-foreground">Episodio aún no disponible</p>
+              <p className="text-[11px] text-muted-foreground max-w-sm">
+                El episodio {selectedEp} todavía no se ha emitido o cargado para este idioma. Último disponible: <span className="text-primary font-bold">EP {maxEpisodeForLang}</span>.
+              </p>
+            </div>
+          ) : isLoading && playerSources.length === 0 ? (
             <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
@@ -876,15 +896,18 @@ export default function Watch() {
                 const isActive = epNum === selectedEp;
                 const epSlug = zetSlug ? `${zetSlug}-${epNum}` : "";
                 const watched = epSlug ? watchedSet.has(epSlug) : false;
+                const blocked = maxEpisodeForLang > 0 && epNum > maxEpisodeForLang;
                 return (
-                  <div key={epNum} className={`flex rounded-lg overflow-hidden transition-all ${isActive ? "ring-2 ring-primary/50" : ""}`}>
-                    <button onClick={() => { selectEpisode(epNum); setShowEpisodes(false); }}
-                      className={`flex-1 py-2 px-2 text-xs font-bold transition-all text-left ${isActive ? "bg-primary text-primary-foreground" : watched ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                      EP {epNum}
+                  <div key={epNum} className={`flex rounded-lg overflow-hidden transition-all ${isActive ? "ring-2 ring-primary/50" : ""} ${blocked ? "opacity-40" : ""}`}>
+                    <button onClick={() => { if (blocked) return; selectEpisode(epNum); setShowEpisodes(false); }}
+                      disabled={blocked}
+                      title={blocked ? "Aún no disponible" : undefined}
+                      className={`flex-1 py-2 px-2 text-xs font-bold transition-all text-left ${isActive ? "bg-primary text-primary-foreground" : watched ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground hover:bg-muted hover:text-foreground"} disabled:cursor-not-allowed`}>
+                      EP {epNum}{blocked ? " 🔒" : ""}
                     </button>
                     <button
                       onClick={() => toggleWatched(epNum)}
-                      disabled={!user}
+                      disabled={!user || blocked}
                       title={!user ? "Inicia sesión para marcar episodios" : (watched ? "Marcado como visto" : "Marcar como visto")}
                       className={`w-7 flex items-center justify-center transition-all border-l border-background/20 ${watched ? "bg-primary text-primary-foreground" : "bg-secondary/80 text-muted-foreground hover:text-primary"} disabled:opacity-50 disabled:cursor-not-allowed`}>
                       {watched ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}

@@ -702,6 +702,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ranking_overrides: {
+        Row: {
+          anilist_id: number
+          anime_title: string | null
+          cover_image: string | null
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          anime_title?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          position: number
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          anime_title?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       slug_cache: {
         Row: {
           anilist_id: number
@@ -832,9 +868,11 @@ export type Database = {
           episode_from: number
           episode_to: number
           id: string
+          inverse_mode: boolean
           lang: string
           seeke_base_url: string
           slug: string
+          source_episode_offset: number
           updated_at: string
         }
         Insert: {
@@ -846,9 +884,11 @@ export type Database = {
           episode_from: number
           episode_to: number
           id?: string
+          inverse_mode?: boolean
           lang?: string
           seeke_base_url: string
           slug: string
+          source_episode_offset?: number
           updated_at?: string
         }
         Update: {
@@ -860,9 +900,11 @@ export type Database = {
           episode_from?: number
           episode_to?: number
           id?: string
+          inverse_mode?: boolean
           lang?: string
           seeke_base_url?: string
           slug?: string
+          source_episode_offset?: number
           updated_at?: string
         }
         Relationships: []

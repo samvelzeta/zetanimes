@@ -19,6 +19,7 @@ interface Row {
   episode_from: number;
   episode_to: number;
   seeke_base_url: string;
+  source_episode_offset: number;
 }
 
 export default function BlocksEditor({ anilistId, slug, lang }: Props) {
@@ -38,6 +39,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
         episode_from: b.episode_from,
         episode_to: b.episode_to,
         seeke_base_url: b.seeke_base_url,
+        source_episode_offset: Number(b.source_episode_offset || 0),
       })));
     } else {
       setEnabled(false);
@@ -51,7 +53,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
   const addRow = () => {
     const last = rows[rows.length - 1];
     const start = last ? last.episode_to + 1 : 1;
-    setRows([...rows, { block_label: "", episode_from: start, episode_to: start + 24, seeke_base_url: "" }]);
+    setRows([...rows, { block_label: "", episode_from: start, episode_to: start + 24, seeke_base_url: "", source_episode_offset: 0 }]);
   };
 
   const updateRow = (idx: number, patch: Partial<Row>) => {
@@ -62,7 +64,8 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
 
   const save = async () => {
     setSaving(true);
-    const res = await saveBlocks(anilistId, slug, lang, rows, user?.id);
+    const payload = rows.map((r) => ({ ...r, inverse_mode: r.source_episode_offset > 0 }));
+    const res = await saveBlocks(anilistId, slug, lang, payload, user?.id);
     if (!res.success) {
       toast.error(res.error || "Error guardando bloques");
       setSaving(false);
@@ -108,8 +111,9 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
         )}
       </div>
 
-      <p className="text-[10px] text-muted-foreground">
-        Para series divididas por temporadas en la fuente externa (ej. Black Clover). Cada bloque mapea un rango de episodios → su URL madre Seeke. El usuario sigue viendo numeración continua.
+      <p className="text-[10px] text-muted-foreground leading-relaxed">
+        <strong>Modo normal:</strong> serie dividida por temporadas en Seeke pero unida en mi página (ej. Black Clover). Cada bloque tiene su URL madre.<br />
+        <strong>Modo inverso (offset &gt; 0):</strong> serie unida en Seeke pero dividida en mi página. Pon el cap real en Seeke donde empieza esta temporada en "Cap real Seeke" (ej. T2 ep 1 → 25).
       </p>
 
       {enabled && (
@@ -124,6 +128,19 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
                     <Input type="number" min={1} value={r.episode_to} onChange={(e) => updateRow(i, { episode_to: Number(e.target.value) })} placeholder="Hasta" className="h-8 text-xs w-20" />
                   </div>
                   <Input value={r.seeke_base_url} onChange={(e) => updateRow(i, { seeke_base_url: e.target.value })} placeholder="https://flixlat.com/.../detail/..." className="h-8 text-xs font-mono" />
+                  <div className="flex gap-2 items-center">
+                    <label className="text-[10px] text-muted-foreground whitespace-nowrap">Cap real Seeke ep {r.episode_from} →</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={r.source_episode_offset + 1}
+                      onChange={(e) => updateRow(i, { source_episode_offset: Math.max(0, Number(e.target.value) - 1) })}
+                      className="h-7 text-xs w-20"
+                    />
+                    {r.source_episode_offset > 0 && (
+                      <span className="text-[10px] font-bold text-primary">⇄ Inverso</span>
+                    )}
+                  </div>
                 </div>
                 <button onClick={() => removeRow(i)} className="self-start text-destructive hover:bg-destructive/10 p-1.5 rounded">
                   <Trash2 className="w-3.5 h-3.5" />
