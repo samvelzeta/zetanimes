@@ -104,7 +104,7 @@ export async function saveBlocks(
   anilistId: number,
   slug: string,
   lang: string,
-  blocks: Array<{ block_label?: string | null; episode_from: number; episode_to: number; seeke_base_url: string }>,
+  blocks: Array<{ block_label?: string | null; episode_from: number; episode_to: number; seeke_base_url: string; source_episode_offset?: number; inverse_mode?: boolean }>,
   createdBy?: string
 ): Promise<{ success: boolean; error?: string }> {
   // Validar
@@ -126,6 +126,9 @@ export async function saveBlocks(
     if (!b.seeke_base_url.trim()) return { success: false, error: `Bloque ${i + 1} sin URL` };
     if (b.episode_from < 1 || b.episode_to < b.episode_from) {
       return { success: false, error: `Bloque ${i + 1}: rango inválido (${b.episode_from}–${b.episode_to})` };
+    }
+    if ((b.source_episode_offset || 0) < 0) {
+      return { success: false, error: `Bloque ${i + 1}: offset negativo no permitido` };
     }
     if (i > 0 && b.episode_from <= sorted[i - 1].episode_to) {
       return { success: false, error: `Bloques ${i} y ${i + 1} se solapan` };
@@ -149,6 +152,8 @@ export async function saveBlocks(
     episode_from: b.episode_from,
     episode_to: b.episode_to,
     seeke_base_url: b.seeke_base_url.trim(),
+    source_episode_offset: Number(b.source_episode_offset || 0),
+    inverse_mode: !!b.inverse_mode,
     created_by: createdBy || null,
   }));
 
