@@ -39,6 +39,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
         episode_from: b.episode_from,
         episode_to: b.episode_to,
         seeke_base_url: b.seeke_base_url,
+        source_episode_offset: Number(b.source_episode_offset || 0),
       })));
     } else {
       setEnabled(false);
@@ -52,7 +53,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
   const addRow = () => {
     const last = rows[rows.length - 1];
     const start = last ? last.episode_to + 1 : 1;
-    setRows([...rows, { block_label: "", episode_from: start, episode_to: start + 24, seeke_base_url: "" }]);
+    setRows([...rows, { block_label: "", episode_from: start, episode_to: start + 24, seeke_base_url: "", source_episode_offset: 0 }]);
   };
 
   const updateRow = (idx: number, patch: Partial<Row>) => {
