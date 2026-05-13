@@ -14,6 +14,11 @@ export interface VideoBlock {
   episode_from: number;
   episode_to: number;
   seeke_base_url: string;
+  /** Si > 0, modo inverso: el episodio relativo al bloque se desplaza por este valor
+   *  cuando se construye la petición a la VPS.
+   *  Ej. página ep 1, offset 24 → se pide a Seeke como ep 25. */
+  source_episode_offset?: number;
+  inverse_mode?: boolean;
 }
 
 export interface ResolvedBlock {
@@ -22,8 +27,11 @@ export interface ResolvedBlock {
   blockLabel: string | null;
   episodeFrom: number;
   episodeTo: number;
-  /** Episodio relativo dentro del bloque (1-indexed). */
+  /** Episodio que se debe pedir a la VPS (ya con offset aplicado si inverso). */
   episodeWithinBlock: number;
+  /** Offset usado (solo informativo). */
+  sourceEpisodeOffset: number;
+  inverseMode: boolean;
 }
 
 const blocksMemoryCache = new Map<string, { value: VideoBlock[]; expiresAt: number }>();
