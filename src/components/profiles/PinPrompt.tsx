@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, KeyRound, ArrowLeft } from "lucide-react";
-import { verifyProfilePin, markProfilePin, type AccountProfile } from "@/lib/account-profiles";
+import { hashProfilePin, markProfilePin, type AccountProfile } from "@/lib/account-profiles";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Props {
@@ -14,11 +15,31 @@ export default function PinPrompt({ profile, onSuccess, onCancel }: Props) {
   const [busy, setBusy] = useState(false);
   const [shake, setShake] = useState(false);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const handleVerify = async (value: string) => {
-    if (value.length !== 4) return;
+    if (value.length !== 4 || busy) return;
     setBusy(true);
     try {
-      const ok = await verifyProfilePin(profile, value);
+      // Re-fetch the latest hash from DB to avoid stale state
+      const { data, error } = await supabase
+        .from("account_profiles")
+        .select("pin_enabled, pin_hash")
+        .eq("id", profile.id)
+        .maybeSingle();
+      if (error) {
+        toast.error("Error al validar PIN");
+        return;
+      }
+      const pinEnabled = data?.pin_enabled ?? profile.pin_enabled;
+      const pinHash = data?.pin_hash ?? profile.pin_hash;
+      let ok = false;
+      if (!pinEnabled || !pinHash) {
+        ok = true;
+      } else {
+        const hash = await hashProfilePin(profile.id, value);
+        ok = hash === pinHash;
+      }
       if (ok) {
         markProfilePin(profile.id);
         onSuccess();
@@ -27,6 +48,7 @@ export default function PinPrompt({ profile, onSuccess, onCancel }: Props) {
         setShake(true);
         setTimeout(() => setShake(false), 400);
         setPin("");
+        setTimeout(() => inputRef.current?.focus(), 50);
       }
     } finally {
       setBusy(false);
@@ -58,16 +80,21 @@ export default function PinPrompt({ profile, onSuccess, onCancel }: Props) {
         <p className="text-xs text-muted-foreground mb-6">Introduce el PIN de 4 dígitos</p>
 
         <input
+          ref={inputRef}
           type="password"
           inputMode="numeric"
           pattern="\d*"
           autoFocus
           maxLength={4}
           value={pin}
+          disabled={busy}
           onChange={(e) => {
             const v = e.target.value.replace(/\D/g, "").slice(0, 4);
             setPin(v);
             if (v.length === 4) handleVerify(v);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && pin.length === 4) handleVerify(pin);
           }}
           className={`w-full text-center text-3xl tracking-[1em] font-black px-4 py-4 rounded-xl bg-background border-2 border-input focus:border-primary outline-none transition-all ${
             shake ? "animate-[wiggle_0.4s] border-destructive" : ""
