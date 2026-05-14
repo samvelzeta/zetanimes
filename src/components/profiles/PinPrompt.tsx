@@ -80,16 +80,21 @@ export default function PinPrompt({ profile, onSuccess, onCancel }: Props) {
         <p className="text-xs text-muted-foreground mb-6">Introduce el PIN de 4 dígitos</p>
 
         <input
+          ref={inputRef}
           type="password"
           inputMode="numeric"
           pattern="\d*"
           autoFocus
           maxLength={4}
           value={pin}
+          disabled={busy}
           onChange={(e) => {
             const v = e.target.value.replace(/\D/g, "").slice(0, 4);
             setPin(v);
             if (v.length === 4) handleVerify(v);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && pin.length === 4) handleVerify(pin);
           }}
           className={`w-full text-center text-3xl tracking-[1em] font-black px-4 py-4 rounded-xl bg-background border-2 border-input focus:border-primary outline-none transition-all ${
             shake ? "animate-[wiggle_0.4s] border-destructive" : ""
