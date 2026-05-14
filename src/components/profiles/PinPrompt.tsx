@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, KeyRound, ArrowLeft } from "lucide-react";
-import { verifyProfilePin, markProfilePin, type AccountProfile } from "@/lib/account-profiles";
+import { hashProfilePin, markProfilePin, type AccountProfile } from "@/lib/account-profiles";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Props {
