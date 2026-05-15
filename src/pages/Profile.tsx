@@ -11,6 +11,8 @@ import { getAccentColor } from "@/lib/accent";
 import ProfileManagementSection from "@/components/profiles/ProfileManagementSection";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import ProfileSelector from "@/components/profiles/ProfileSelector";
+import PremiumScreen from "@/components/profiles/PremiumScreen";
+import { setActiveProfileId } from "@/lib/account-profiles";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
@@ -354,14 +356,23 @@ export default function Profile() {
           <Share2 className="w-4 h-4 text-primary" />
         </button>
 
-        {isMainProfile && (
-          <button onClick={() => { signOut(); navigate("/"); }} className="w-full flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-destructive/10 transition mt-2">
-            <LogOut className="w-4 h-4 text-destructive" /><span className="text-sm text-destructive">Cerrar Sesión</span>
-          </button>
-        )}
+        {/* Cerrar perfil — disponible en TODOS los perfiles. Vuelve al selector "¿Quién está viendo?" */}
+        <button
+          onClick={() => { setActiveProfileId(null); navigate("/"); }}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-primary/10 transition mt-2"
+        >
+          <Users className="w-4 h-4 text-primary" />
+          <span className="text-sm text-foreground font-bold flex-1 text-left">Cerrar perfil</span>
+          <span className="text-[10px] text-muted-foreground">Cambiar de perfil</span>
+        </button>
+
+        {/* Cerrar sesión — disponible en TODOS los perfiles. Cierra la cuenta entera. */}
+        <button onClick={() => { signOut(); navigate("/"); }} className="w-full flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-destructive/10 transition">
+          <LogOut className="w-4 h-4 text-destructive" /><span className="text-sm text-destructive font-bold">Cerrar Sesión</span>
+        </button>
       </div>
 
-      {showPremiumModal && <PremiumModal onClose={() => setShowPremiumModal(false)} />}
+      {showPremiumModal && <PremiumScreen onClose={() => setShowPremiumModal(false)} />}
       {showOwnProfileEditor && activeProfile && (
         <ProfileSelector
           manageMode
