@@ -45,11 +45,22 @@ export function getActiveProfileId(): string | null {
 }
 
 export function setActiveProfileId(id: string | null): void {
+  const previous = activeProfileId;
   activeProfileId = id;
   try {
     localStorage.removeItem(ACTIVE_KEY);
     if (id) sessionStorage.setItem(ACTIVE_KEY, id);
     else sessionStorage.removeItem(ACTIVE_KEY);
+    // Cada vez que cambia el perfil activo invalidamos los PIN de TODOS
+    // los demás perfiles, para que al volver a uno protegido SIEMPRE
+    // se vuelva a pedir el PIN. Conservamos el flag del perfil que se
+    // acaba de seleccionar (lo seteó markProfilePin justo antes).
+    if (previous !== id) {
+      const keep = id ? PIN_OK_PREFIX + id : null;
+      Object.keys(sessionStorage)
+        .filter((k) => k.startsWith(PIN_OK_PREFIX) && k !== keep)
+        .forEach((k) => sessionStorage.removeItem(k));
+    }
   } catch {}
   window.dispatchEvent(new Event("zet:active-profile-changed"));
 }

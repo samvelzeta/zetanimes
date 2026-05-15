@@ -627,6 +627,51 @@ export type Database = {
         }
         Relationships: []
       }
+      premium_plans: {
+        Row: {
+          accent_color: string | null
+          badge: string | null
+          created_at: string
+          enabled: boolean
+          features: Json
+          id: string
+          membership_type: string
+          name: string
+          period: string
+          price_label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          badge?: string | null
+          created_at?: string
+          enabled?: boolean
+          features?: Json
+          id?: string
+          membership_type?: string
+          name: string
+          period?: string
+          price_label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          badge?: string | null
+          created_at?: string
+          enabled?: boolean
+          features?: Json
+          id?: string
+          membership_type?: string
+          name?: string
+          period?: string
+          price_label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       premium_requests: {
         Row: {
           created_at: string
@@ -666,6 +711,51 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      premium_settings: {
+        Row: {
+          alt_payment_url: string | null
+          background_image_url: string | null
+          character_image_url: string | null
+          description: string | null
+          id: string
+          layout_mode: string
+          show_proof_form: boolean
+          stripe_enabled: boolean
+          stripe_payment_url: string | null
+          subtitle: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alt_payment_url?: string | null
+          background_image_url?: string | null
+          character_image_url?: string | null
+          description?: string | null
+          id?: string
+          layout_mode?: string
+          show_proof_form?: boolean
+          stripe_enabled?: boolean
+          stripe_payment_url?: string | null
+          subtitle?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          alt_payment_url?: string | null
+          background_image_url?: string | null
+          character_image_url?: string | null
+          description?: string | null
+          id?: string
+          layout_mode?: string
+          show_proof_form?: boolean
+          stripe_enabled?: boolean
+          stripe_payment_url?: string | null
+          subtitle?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
