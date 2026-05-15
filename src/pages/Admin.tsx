@@ -20,6 +20,7 @@ import ApkManager from "@/components/admin/ApkManager";
 import EpisodeCountManager from "@/components/admin/EpisodeCountManager";
 import RoleManager from "@/components/admin/RoleManager";
 import ActivityLogTab from "@/components/admin/ActivityLogTab";
+import PremiumConfigEditor from "@/components/admin/PremiumConfigEditor";
 import { logAdminActivity } from "@/lib/admin-log";
 
 // Tabs reservados solo para owner — los admins NO ven ni pueden interactuar con APK, notificaciones, pagos, premium, API keys, roles ni historial.
@@ -299,7 +300,7 @@ function PremiumTab() {
   );
 }
 
-// ========== PAYMENT ==========
+// ========== PAYMENT (datos bancarios + editor completo del modal premium) ==========
 function PaymentTab() {
   const [info, setInfo] = useState({ bank_name: "", account_holder: "", account_number: "", price_annual: "", price_lifetime: "", instructions: "" });
   const [loading, setLoading] = useState(false);
@@ -319,27 +320,33 @@ function PaymentTab() {
   };
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><CreditCard className="w-4 h-4 text-green-400" /> Información Bancaria</h3>
-      {[
-        { key: "bank_name", label: "Banco / Plataforma" },
-        { key: "account_holder", label: "Titular de la cuenta" },
-        { key: "account_number", label: "Cuenta / CLABE / CBU" },
-        { key: "price_annual", label: "Precio 1 año" },
-        { key: "price_lifetime", label: "Precio Para Siempre" },
-      ].map((f) => (
-        <div key={f.key}>
-          <label className="text-[10px] text-primary mb-1 block">{f.label}</label>
-          <Input value={(info as any)[f.key]} onChange={(e) => setInfo({ ...info, [f.key]: e.target.value })} className="h-10 bg-secondary border-primary/30 rounded-xl" />
+    <div className="space-y-8">
+      <section className="space-y-3">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><CreditCard className="w-4 h-4 text-green-400" /> Datos bancarios para transferencia</h3>
+        {[
+          { key: "bank_name", label: "Banco / Plataforma" },
+          { key: "account_holder", label: "Titular de la cuenta" },
+          { key: "account_number", label: "Cuenta / CLABE / CBU" },
+          { key: "price_annual", label: "Precio 1 año (legacy)" },
+          { key: "price_lifetime", label: "Precio Para Siempre (legacy)" },
+        ].map((f) => (
+          <div key={f.key}>
+            <label className="text-[10px] text-primary mb-1 block">{f.label}</label>
+            <Input value={(info as any)[f.key]} onChange={(e) => setInfo({ ...info, [f.key]: e.target.value })} className="h-10 bg-secondary border-primary/30 rounded-xl" />
+          </div>
+        ))}
+        <div>
+          <label className="text-[10px] text-primary mb-1 block">Instrucciones</label>
+          <textarea value={info.instructions} onChange={(e) => setInfo({ ...info, instructions: e.target.value })} className="w-full h-24 bg-secondary border border-primary/30 rounded-xl p-3 text-sm text-foreground resize-none" />
         </div>
-      ))}
-      <div>
-        <label className="text-[10px] text-primary mb-1 block">Instrucciones</label>
-        <textarea value={info.instructions} onChange={(e) => setInfo({ ...info, instructions: e.target.value })} className="w-full h-24 bg-secondary border border-primary/30 rounded-xl p-3 text-sm text-foreground resize-none" />
+        <button onClick={save} disabled={loading} className="px-5 py-2.5 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center gap-2">
+          {loading && <Loader2 className="w-4 h-4 animate-spin" />} Guardar datos bancarios
+        </button>
+      </section>
+
+      <div className="pt-6 border-t-2 border-primary/30">
+        <PremiumConfigEditor />
       </div>
-      <button onClick={save} disabled={loading} className="w-full py-3 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center justify-center gap-2">
-        {loading && <Loader2 className="w-4 h-4 animate-spin" />} 💾 Guardar
-      </button>
     </div>
   );
 }
