@@ -153,6 +153,39 @@ function StatsTab() {
 }
 
 // OverrideURLTab removed - replaced by VideoManager component
+// ========== PROOF IMAGE (signed URL) ==========
+function ProofImage({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    supabase.storage
+      .from("premium-proofs")
+      .createSignedUrl(path, 60 * 30)
+      .then(({ data, error }) => {
+        if (!alive) return;
+        if (error || !data) setErr(error?.message || "no se pudo cargar");
+        else setUrl(data.signedUrl);
+      });
+    return () => { alive = false; };
+  }, [path]);
+  return (
+    <div>
+      <p className="text-xs font-bold text-foreground mb-2">Comprobante de pago:</p>
+      {url ? (
+        <a href={url} target="_blank" rel="noopener">
+          <img src={url} alt="Comprobante" className="w-full rounded-xl border border-border max-h-64 object-contain bg-black/20" />
+        </a>
+      ) : err ? (
+        <p className="text-xs text-destructive">No se pudo cargar el comprobante: {err}</p>
+      ) : (
+        <div className="w-full h-32 rounded-xl border border-border bg-secondary animate-pulse" />
+      )}
+      <p className="text-[10px] text-muted-foreground mt-1 break-all">{path}</p>
+    </div>
+  );
+}
+
 // ========== PREMIUM ==========
 function PremiumTab() {
   const [requests, setRequests] = useState<any[]>([]);
