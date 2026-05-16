@@ -264,10 +264,7 @@ function PremiumTab() {
                 <p className="text-[10px] text-muted-foreground">{new Date(selectedReq.created_at).toLocaleString()}</p>
               </div>
               {selectedReq.proof_url ? (
-                <div>
-                  <p className="text-xs font-bold text-foreground mb-2">Comprobante de pago:</p>
-                  <img src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/premium-proofs/${selectedReq.proof_url}`} alt="Comprobante" className="w-full rounded-xl border border-border max-h-64 object-contain bg-black/20" />
-                </div>
+                <ProofImage path={selectedReq.proof_url} />
               ) : (
                 <p className="text-xs text-muted-foreground italic">Sin comprobante adjunto</p>
               )}
