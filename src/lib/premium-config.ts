@@ -19,6 +19,7 @@ export interface PremiumSettings {
   subtitle: string;
   description: string | null;
   character_image_url: string | null;
+  checkout_character_image_url: string | null;
   background_image_url: string | null;
   alt_payment_url: string | null;
   stripe_enabled: boolean;
