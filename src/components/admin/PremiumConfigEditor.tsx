@@ -55,15 +55,18 @@ export default function PremiumConfigEditor() {
     toast.success("Configuración guardada");
   };
 
-  const uploadAsset = async (e: React.ChangeEvent<HTMLInputElement>, kind: "character" | "background") => {
+  const uploadAsset = async (e: React.ChangeEvent<HTMLInputElement>, kind: "character" | "background" | "checkout") => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(kind);
+    setUploading(kind as any);
     try {
-      const url = await uploadPremiumAsset(file, kind);
-      const patch = kind === "character" ? { character_image_url: url } : { background_image_url: url };
-      handleSettings(patch);
-      await savePremiumSettings(patch);
+      const url = await uploadPremiumAsset(file, kind === "checkout" ? "character" : kind);
+      const patch =
+        kind === "character" ? { character_image_url: url } :
+        kind === "background" ? { background_image_url: url } :
+        { checkout_character_image_url: url };
+      handleSettings(patch as any);
+      await savePremiumSettings(patch as any);
       toast.success("Imagen subida");
     } catch {
       toast.error("Error al subir");
@@ -72,10 +75,13 @@ export default function PremiumConfigEditor() {
     }
   };
 
-  const removeAsset = async (kind: "character" | "background") => {
-    const patch = kind === "character" ? { character_image_url: null } : { background_image_url: null };
-    handleSettings(patch);
-    await savePremiumSettings(patch);
+  const removeAsset = async (kind: "character" | "background" | "checkout") => {
+    const patch =
+      kind === "character" ? { character_image_url: null } :
+      kind === "background" ? { background_image_url: null } :
+      { checkout_character_image_url: null };
+    handleSettings(patch as any);
+    await savePremiumSettings(patch as any);
   };
 
   const updatePlan = (id: string, patch: Partial<PremiumPlan>) => {
