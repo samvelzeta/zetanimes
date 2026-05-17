@@ -55,15 +55,18 @@ export default function PremiumConfigEditor() {
     toast.success("Configuración guardada");
   };
 
-  const uploadAsset = async (e: React.ChangeEvent<HTMLInputElement>, kind: "character" | "background") => {
+  const uploadAsset = async (e: React.ChangeEvent<HTMLInputElement>, kind: "character" | "background" | "checkout") => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(kind);
+    setUploading(kind as any);
     try {
-      const url = await uploadPremiumAsset(file, kind);
-      const patch = kind === "character" ? { character_image_url: url } : { background_image_url: url };
-      handleSettings(patch);
-      await savePremiumSettings(patch);
+      const url = await uploadPremiumAsset(file, kind === "checkout" ? "character" : kind);
+      const patch =
+        kind === "character" ? { character_image_url: url } :
+        kind === "background" ? { background_image_url: url } :
+        { checkout_character_image_url: url };
+      handleSettings(patch as any);
+      await savePremiumSettings(patch as any);
       toast.success("Imagen subida");
     } catch {
       toast.error("Error al subir");
@@ -72,10 +75,13 @@ export default function PremiumConfigEditor() {
     }
   };
 
-  const removeAsset = async (kind: "character" | "background") => {
-    const patch = kind === "character" ? { character_image_url: null } : { background_image_url: null };
-    handleSettings(patch);
-    await savePremiumSettings(patch);
+  const removeAsset = async (kind: "character" | "background" | "checkout") => {
+    const patch =
+      kind === "character" ? { character_image_url: null } :
+      kind === "background" ? { background_image_url: null } :
+      { checkout_character_image_url: null };
+    handleSettings(patch as any);
+    await savePremiumSettings(patch as any);
   };
 
   const updatePlan = (id: string, patch: Partial<PremiumPlan>) => {
@@ -125,16 +131,23 @@ export default function PremiumConfigEditor() {
           />
         </Field>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <AssetUpload
-            label="Imagen del personaje (transparente, lateral del modal)"
+            label="Personaje paso 1 (selección de plan)"
             url={settings?.character_image_url}
             uploading={uploading === "character"}
             onUpload={(e) => uploadAsset(e, "character")}
             onRemove={() => removeAsset("character")}
           />
           <AssetUpload
-            label="Imagen de fondo (opcional, decorativa)"
+            label="Personaje paso 2 (checkout / pago) — opcional"
+            url={(settings as any)?.checkout_character_image_url}
+            uploading={uploading === ("checkout" as any)}
+            onUpload={(e) => uploadAsset(e, "checkout" as any)}
+            onRemove={() => removeAsset("checkout" as any)}
+          />
+          <AssetUpload
+            label="Imagen de fondo (decorativa)"
             url={settings?.background_image_url}
             uploading={uploading === "background"}
             onUpload={(e) => uploadAsset(e, "background")}
