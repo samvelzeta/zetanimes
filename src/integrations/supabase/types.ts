@@ -719,6 +719,7 @@ export type Database = {
           alt_payment_url: string | null
           background_image_url: string | null
           character_image_url: string | null
+          checkout_character_image_url: string | null
           description: string | null
           id: string
           layout_mode: string
@@ -733,6 +734,7 @@ export type Database = {
           alt_payment_url?: string | null
           background_image_url?: string | null
           character_image_url?: string | null
+          checkout_character_image_url?: string | null
           description?: string | null
           id?: string
           layout_mode?: string
@@ -747,6 +749,7 @@ export type Database = {
           alt_payment_url?: string | null
           background_image_url?: string | null
           character_image_url?: string | null
+          checkout_character_image_url?: string | null
           description?: string | null
           id?: string
           layout_mode?: string
