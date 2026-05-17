@@ -131,16 +131,23 @@ export default function PremiumConfigEditor() {
           />
         </Field>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <AssetUpload
-            label="Imagen del personaje (transparente, lateral del modal)"
+            label="Personaje paso 1 (selección de plan)"
             url={settings?.character_image_url}
             uploading={uploading === "character"}
             onUpload={(e) => uploadAsset(e, "character")}
             onRemove={() => removeAsset("character")}
           />
           <AssetUpload
-            label="Imagen de fondo (opcional, decorativa)"
+            label="Personaje paso 2 (checkout / pago) — opcional"
+            url={(settings as any)?.checkout_character_image_url}
+            uploading={uploading === ("checkout" as any)}
+            onUpload={(e) => uploadAsset(e, "checkout" as any)}
+            onRemove={() => removeAsset("checkout" as any)}
+          />
+          <AssetUpload
+            label="Imagen de fondo (decorativa)"
             url={settings?.background_image_url}
             uploading={uploading === "background"}
             onUpload={(e) => uploadAsset(e, "background")}
