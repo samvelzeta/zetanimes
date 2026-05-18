@@ -33,13 +33,16 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
         .is("episode_number", epNum === null ? null : undefined as any)
         .maybeSingle();
 
+      const reasonText = reason.trim();
       if (existing && epNum === null) {
-        // Update count for full anime
         await supabase.from("broken_link_reports")
-          .update({ report_count: existing.report_count + 1, last_reported_at: new Date().toISOString() })
+          .update({
+            report_count: existing.report_count + 1,
+            last_reported_at: new Date().toISOString(),
+            reason: reasonText,
+          } as any)
           .eq("id", existing.id);
       } else if (type === "episode") {
-        // Check for existing episode report
         const { data: epExisting } = await supabase
           .from("broken_link_reports")
           .select("id, report_count")
@@ -50,19 +53,25 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
 
         if (epExisting) {
           await supabase.from("broken_link_reports")
-            .update({ report_count: epExisting.report_count + 1, last_reported_at: new Date().toISOString() })
+            .update({
+              report_count: epExisting.report_count + 1,
+              last_reported_at: new Date().toISOString(),
+              reason: reasonText,
+            } as any)
             .eq("id", epExisting.id);
         } else {
           await supabase.from("broken_link_reports").insert({
             slug, episode_number: epNum, report_type: type,
             anime_title: animeTitle, anime_cover: animeCover, anilist_id: anilistId,
-          });
+            reason: reasonText,
+          } as any);
         }
       } else {
         await supabase.from("broken_link_reports").insert({
           slug, episode_number: epNum, report_type: type,
           anime_title: animeTitle, anime_cover: animeCover, anilist_id: anilistId,
-        });
+          reason: reasonText,
+        } as any);
       }
 
       toast.success("Reporte enviado. ¡Gracias!");
