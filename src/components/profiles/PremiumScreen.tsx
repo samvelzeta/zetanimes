@@ -101,13 +101,19 @@ export default function PremiumScreen({ onClose }: Props) {
 
   const characterUrl = settings?.character_image_url || null;
   const checkoutUrl = settings?.checkout_character_image_url || settings?.character_image_url || null;
+  const character3Url = (settings as any)?.character3_image_url || checkoutUrl;
   const bgUrl = settings?.background_image_url || null;
   const hasStripe = !!(settings?.stripe_enabled && settings?.stripe_payment_url);
   const hasAlt = !!settings?.alt_payment_url;
 
   // Trueque: en step "plans" imagen va a la DERECHA, en "method"/"manual" imagen va a la IZQUIERDA
   const imageOnRight = step === "plans";
-  const currentImg = step === "plans" ? characterUrl : checkoutUrl;
+  const currentImg = step === "plans" ? characterUrl : step === "method" ? checkoutUrl : character3Url;
+  const currentHover = step === "plans"
+    ? (settings as any)?.character_hover_text_1
+    : step === "method" ? (settings as any)?.character_hover_text_2
+    : (settings as any)?.character_hover_text_3;
+  const currentCharIdx: 1 | 2 | 3 = step === "plans" ? 1 : step === "method" ? 2 : 3;
 
   return (
     <div className="fixed inset-0 z-[120] bg-background flex flex-col overflow-hidden">
@@ -115,11 +121,11 @@ export default function PremiumScreen({ onClose }: Props) {
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary" />
       {bgUrl && (
         <div
-          className="absolute inset-0 opacity-15 pointer-events-none"
-          style={{ backgroundImage: `url(${bgUrl})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(2px)" }}
+          className="absolute inset-0 opacity-35 pointer-events-none"
+          style={{ backgroundImage: `url(${bgUrl})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(1px)" }}
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/40 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/40 to-background/30 pointer-events-none" />
 
       {/* Orbe decorativo animado */}
       <div className="pointer-events-none absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full opacity-30 blur-3xl animate-[pulseGlow_6s_ease-in-out_infinite]"
