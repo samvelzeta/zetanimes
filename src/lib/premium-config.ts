@@ -73,7 +73,7 @@ export async function deletePlan(id: string): Promise<void> {
   await supabase.from("premium_plans" as any).delete().eq("id", id);
 }
 
-export async function uploadPremiumAsset(file: File, kind: "character" | "background"): Promise<string> {
+export async function uploadPremiumAsset(file: File, kind: "character" | "background" | "character2" | "character3"): Promise<string> {
   const ext = file.name.split(".").pop() || "png";
   const path = `${kind}-${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from("premium-assets").upload(path, file, { upsert: true, contentType: file.type });
