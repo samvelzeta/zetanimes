@@ -190,7 +190,7 @@ export default function PremiumScreen({ onClose }: Props) {
       ) : loaded ? (
         // === PC: layout split que hace TRUEQUE ===
         <div className="relative z-10 flex-1 overflow-hidden">
-          <div className="h-full max-w-[1400px] mx-auto px-8 py-6 grid grid-cols-2 gap-10 items-stretch">
+          <div className="h-full max-w-[1600px] mx-auto px-8 py-5 grid grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)] gap-8 items-stretch">
             {/* PANEL IZQUIERDO */}
             <div className="relative h-full overflow-visible">
               {imageOnRight ? (
@@ -297,7 +297,7 @@ function PanelContent({ children, direction }: { children: React.ReactNode; dire
 function CharacterPanel({ url, accent, hoverText }: { url: string | null; accent?: string | null; hoverText?: string | null }) {
   const glow = accent || "hsl(var(--primary))";
   return (
-    <div className="relative h-full w-full flex items-center justify-center group">
+    <div className="relative h-full w-full flex items-start justify-center pt-2 group">
       <div
         className="absolute inset-8 rounded-[40%] opacity-40 blur-3xl pointer-events-none"
         style={{ background: `radial-gradient(circle, ${glow}55, transparent 60%)` }}
@@ -307,7 +307,7 @@ function CharacterPanel({ url, accent, hoverText }: { url: string | null; accent
           <img
             src={url}
             alt=""
-            className="relative max-h-full max-w-full w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+            className="relative max-h-[92%] max-w-full w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-[1.03]"
             style={{
               filter: `drop-shadow(0 30px 60px rgba(0,0,0,.7)) drop-shadow(0 0 50px ${glow}66)`,
               animation: "floatY 5s ease-in-out infinite",
