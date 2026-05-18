@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { getPopular, getByGenre, getTrending, getTopRated, getThisSeason } from "@/lib/anilist";
+import { getPopular, getByGenre, getTrending, getTopRated, getThisSeason, getMovies } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
 import { Filter, X, Tv, SearchX } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
@@ -27,6 +27,7 @@ const QUICK_FILTERS = [
   { key: "popular",  label: "⭐ Popular"   },
   { key: "top",      label: "🏆 Top Rating" },
   { key: "season",   label: "🌸 Temporada" },
+  { key: "movies",   label: "🎬 Películas" },
 ];
 
 // Reverse map: English genre -> Spanish label
@@ -59,6 +60,7 @@ export default function Directory() {
       if (quickFilter === "trending") return getTrending(1, 30);
       if (quickFilter === "top") return getTopRated(1, 30);
       if (quickFilter === "season") return getThisSeason(1, 30);
+      if (quickFilter === "movies") return getMovies(1, 30);
       if (selectedGenre) return getByGenre(GENRE_MAP[selectedGenre] || selectedGenre, 1, 30);
       return getPopular(1, 30);
     },
