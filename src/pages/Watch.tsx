@@ -369,17 +369,22 @@ export default function Watch() {
   const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls && !hasSeekeBothLanguages;
   const sortedSources = useMemo(() => {
     if (shouldShowLanguageControls) {
-      const isDbLike = (source: PlayerSourceItem) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke";
+      // Cuando hay DB-like en el idioma actual, priorízalo. Si solo hay API en
+      // ese idioma (caso AV1-LAT cuando Seeke solo trae JP), prioriza cualquier
+      // fuente de ese idioma.
+      const hasDbLikeForLang = dbLangAvailability[lang] > 0;
       return [...rawSources].sort((a, b) => {
-        const aRank = a.lang === lang && isDbLike(a) ? 0 : 1;
-        const bRank = b.lang === lang && isDbLike(b) ? 0 : 1;
+        const aMatch = a.lang === lang && (hasDbLikeForLang ? (a.origin === "db" || a.origin === "hls" || a.origin === "seeke") : true);
+        const bMatch = b.lang === lang && (hasDbLikeForLang ? (b.origin === "db" || b.origin === "hls" || b.origin === "seeke") : true);
+        const aRank = aMatch ? 0 : 1;
+        const bRank = bMatch ? 0 : 1;
         return aRank - bRank || sourcePriority(a) - sourcePriority(b);
       });
     }
     return activeSourceIdx > 0 && activeSourceIdx < rawSources.length
       ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
       : rawSources;
-  }, [activeSourceIdx, rawSources, shouldShowLanguageControls, lang]);
+  }, [activeSourceIdx, rawSources, shouldShowLanguageControls, lang, dbLangAvailability]);
   const activeLang = sortedSources[0]?.lang || lang;
   // Subtítulos softsub vienen del API (modo japonés). Usar el del idioma activo.
   const activeSubtitles = useMemo(() => {
