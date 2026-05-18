@@ -190,19 +190,41 @@ export default function VastAdOverlay({
     };
   }, [show, vast]);
 
-  // Portal target: the #player-video container (so the ad lives inside the player
-  // in normal mode AND travels into fullscreen with it).
+  // Portal target: prefer the active fullscreen player surface when needed;
+  // otherwise render inside #player-video so it stays contained in normal mode.
   useEffect(() => {
     if (!show) return;
     const find = () => {
-      const el = document.getElementById("player-video");
-      setPortalEl(el || null);
+      const playerEl = document.getElementById("player-video");
+      const fullscreenEl = getFullscreenElement();
+      if (isReplacedFullscreenElement(fullscreenEl)) {
+        setPortalEl(fullscreenEl);
+        return;
+      }
+      setPortalEl(playerEl || fullscreenEl || null);
     };
     find();
+    const onFsChange = () => {
+      const playerEl = document.getElementById("player-video");
+      const fullscreenEl = getFullscreenElement();
+      if (playerEl && isReplacedFullscreenElement(fullscreenEl)) {
+        void switchFullscreenToPlayer(playerEl);
+      }
+      find();
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange as EventListener);
     // Retry briefly in case the player mounts a tick later
     const t1 = setTimeout(find, 100);
     const t2 = setTimeout(find, 500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    const t3 = setTimeout(onFsChange, 900);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange as EventListener);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [show]);
 
   // Skip countdown
@@ -212,7 +234,7 @@ export default function VastAdOverlay({
     return () => clearTimeout(t);
   }, [show, vast, secs]);
 
-  if (loading || isPremium || !show) return null;
+  if (authPending || adsExempt || !show) return null;
 
   const fireOnce = (evt: string) => {
     if (firedEvents.current.has(evt)) return;
