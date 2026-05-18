@@ -6,6 +6,9 @@ export interface PremiumPlan {
   price_label: string;
   period: string; // monthly|yearly|lifetime|custom
   membership_type: "annual" | "lifetime";
+  tier: string; // solo | duo | trio
+  profile_count: number;
+  simultaneous_sessions: number;
   features: string[];
   badge: string | null;
   accent_color: string | null;
@@ -20,6 +23,11 @@ export interface PremiumSettings {
   description: string | null;
   character_image_url: string | null;
   checkout_character_image_url: string | null;
+  character3_image_url: string | null;
+  character_hover_text_1: string | null;
+  character_hover_text_2: string | null;
+  character_hover_text_3: string | null;
+  companion_prompt: string | null;
   background_image_url: string | null;
   alt_payment_url: string | null;
   stripe_enabled: boolean;
