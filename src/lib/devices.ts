@@ -2,6 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDeviceInfo } from "./device-id";
 
 const INACTIVE_HOURS = 24 * 7; // 7 días → se considera dispositivo libre
+const FRESH_LOGIN_KEY = "zet:fresh-login-at";
+const FRESH_LOGIN_MS = 30_000;
 
 export interface DeviceSession {
   id: string;
@@ -16,11 +18,43 @@ export interface DeviceSession {
 }
 
 async function sessionFingerprint(): Promise<string | null> {
-  const token = (await supabase.auth.getSession()).data.session?.access_token;
-  if (!token) return null;
-  const data = new TextEncoder().encode(token);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  try {
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    if (!token || !crypto.subtle) return null;
+    const data = new TextEncoder().encode(token);
+    const hash = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return null;
+  }
+}
+
+async function getDeviceEntitlements(userId: string, isPremium: boolean, unlimited: boolean) {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  const roles = new Set(((data as any[]) || []).map((r) => r.role));
+  const hasUnlimited = unlimited || roles.has("owner") || roles.has("admin");
+  const hasPremiumLimit = isPremium || hasUnlimited || roles.has("premium");
+  return {
+    unlimited: hasUnlimited,
+    limit: hasUnlimited ? 999 : hasPremiumLimit ? 5 : 1,
+  };
+}
+
+function consumeFreshLogin(): boolean {
+  try {
+    const at = Number(sessionStorage.getItem(FRESH_LOGIN_KEY) || 0);
+    if (!at || Date.now() - at > FRESH_LOGIN_MS) return false;
+    sessionStorage.removeItem(FRESH_LOGIN_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function markFreshLogin() {
+  try {
+    sessionStorage.setItem(FRESH_LOGIN_KEY, String(Date.now()));
+  } catch {}
 }
 
 /**
@@ -34,7 +68,8 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean, 
   isCurrent?: boolean;
   revoked?: boolean;
 }> {
-  const limit = unlimited ? 999 : isPremium ? 5 : 1;
+  const entitlements = await getDeviceEntitlements(userId, isPremium, unlimited);
+  const limit = entitlements.limit;
   const info = getDeviceInfo();
   const fingerprint = await sessionFingerprint();
 
@@ -47,7 +82,10 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean, 
     .limit(1);
 
   const currentRecord = currentRows?.[0] as DeviceSession | undefined;
-  if (currentRecord?.revoked_at) {
+  const wasRevoked = !!currentRecord?.revoked_at;
+  const canRestoreRevokedDevice = wasRevoked && (entitlements.unlimited || consumeFreshLogin());
+
+  if (wasRevoked && !canRestoreRevokedDevice) {
     return { allowed: false, limit, current: 0, isCurrent: true, revoked: true };
   }
 
@@ -64,6 +102,9 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean, 
   const exists = list.find((d) => d.device_id === info.deviceId);
 
   if (exists) {
+    if (!entitlements.unlimited && list.length > limit) {
+      return { allowed: false, limit, current: list.length, isCurrent: true };
+    }
     // Update timestamp
     await supabase.rpc("touch_device_session", {
       _user_id: userId,
@@ -76,8 +117,8 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean, 
     return { allowed: true, limit, current: list.length, isCurrent: true };
   }
 
-  if (!unlimited && list.length >= limit) {
-    return { allowed: false, limit, current: list.length };
+  if (!entitlements.unlimited && list.length >= limit) {
+    return { allowed: false, limit, current: list.length, revoked: wasRevoked };
   }
 
   // 2) Insertar nuevo
@@ -138,6 +179,10 @@ export async function isCurrentDeviceSessionValid(userId: string): Promise<boole
 
   if (error) return true; // ante error de red, no cerrar sesión
   if (!data) return true; // dispositivo aún no registrado → permitir
+  if (data.revoked_at && consumeFreshLogin()) {
+    await touchCurrentDevice(userId);
+    return true;
+  }
   return !data.revoked_at;
 }
 

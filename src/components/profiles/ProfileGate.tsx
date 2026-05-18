@@ -16,7 +16,7 @@ const SKIP_PATHS = ["/auth", "/reset-password", "/download"];
 
 export default function ProfileGate() {
   const location = useLocation();
-  const { user, isPremium, isOwner, loading: authLoading } = useAuth();
+  const { user, isPremium, isOwner, isAdmin, loading: authLoading } = useAuth();
   const { profiles, loading: profilesLoading, refresh, selectProfile } = useProfiles();
 
   const [pendingProfile, setPendingProfile] = useState<AccountProfile | null>(null);
@@ -30,7 +30,7 @@ export default function ProfileGate() {
 
   const checkCurrentDevice = async () => {
     if (!user || authLoading || skip) return;
-    const result = await registerCurrentDevice(user.id, isPremium, isOwner);
+    const result = await registerCurrentDevice(user.id, isPremium, isOwner || isAdmin);
     setDeviceCheck(result);
     setDeviceChecked(true);
   };
@@ -38,13 +38,13 @@ export default function ProfileGate() {
   // Registrar dispositivo y verificar límite
   useEffect(() => {
     checkCurrentDevice();
-  }, [user, isPremium, isOwner, authLoading, skip, location.pathname]);
+  }, [user, isPremium, isOwner, isAdmin, authLoading, skip, location.pathname]);
 
   useEffect(() => {
     const onDevicesUpdated = () => checkCurrentDevice();
     window.addEventListener("zet:device-sessions-updated", onDevicesUpdated);
     return () => window.removeEventListener("zet:device-sessions-updated", onDevicesUpdated);
-  }, [user, isPremium, isOwner, authLoading, skip]);
+  }, [user, isPremium, isOwner, isAdmin, authLoading, skip]);
 
   useEffect(() => {
     if (!user || skip) {
