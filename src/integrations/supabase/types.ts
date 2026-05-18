@@ -599,6 +599,8 @@ export type Database = {
           expires_at: string | null
           id: string
           membership_type: Database["public"]["Enums"]["membership_type"]
+          plan_tier: string | null
+          simultaneous_sessions: number | null
           status: Database["public"]["Enums"]["membership_status"]
           updated_at: string
           user_id: string
@@ -610,6 +612,8 @@ export type Database = {
           expires_at?: string | null
           id?: string
           membership_type: Database["public"]["Enums"]["membership_type"]
+          plan_tier?: string | null
+          simultaneous_sessions?: number | null
           status?: Database["public"]["Enums"]["membership_status"]
           updated_at?: string
           user_id: string
@@ -621,6 +625,8 @@ export type Database = {
           expires_at?: string | null
           id?: string
           membership_type?: Database["public"]["Enums"]["membership_type"]
+          plan_tier?: string | null
+          simultaneous_sessions?: number | null
           status?: Database["public"]["Enums"]["membership_status"]
           updated_at?: string
           user_id?: string
@@ -639,7 +645,10 @@ export type Database = {
           name: string
           period: string
           price_label: string
+          profile_count: number
+          simultaneous_sessions: number
           sort_order: number
+          tier: string
           updated_at: string
         }
         Insert: {
@@ -653,7 +662,10 @@ export type Database = {
           name: string
           period?: string
           price_label: string
+          profile_count?: number
+          simultaneous_sessions?: number
           sort_order?: number
+          tier?: string
           updated_at?: string
         }
         Update: {
@@ -667,7 +679,10 @@ export type Database = {
           name?: string
           period?: string
           price_label?: string
+          profile_count?: number
+          simultaneous_sessions?: number
           sort_order?: number
+          tier?: string
           updated_at?: string
         }
         Relationships: []
@@ -718,8 +733,13 @@ export type Database = {
         Row: {
           alt_payment_url: string | null
           background_image_url: string | null
+          character_hover_text_1: string | null
+          character_hover_text_2: string | null
+          character_hover_text_3: string | null
           character_image_url: string | null
+          character3_image_url: string | null
           checkout_character_image_url: string | null
+          companion_prompt: string | null
           description: string | null
           id: string
           layout_mode: string
@@ -733,8 +753,13 @@ export type Database = {
         Insert: {
           alt_payment_url?: string | null
           background_image_url?: string | null
+          character_hover_text_1?: string | null
+          character_hover_text_2?: string | null
+          character_hover_text_3?: string | null
           character_image_url?: string | null
+          character3_image_url?: string | null
           checkout_character_image_url?: string | null
+          companion_prompt?: string | null
           description?: string | null
           id?: string
           layout_mode?: string
@@ -748,8 +773,13 @@ export type Database = {
         Update: {
           alt_payment_url?: string | null
           background_image_url?: string | null
+          character_hover_text_1?: string | null
+          character_hover_text_2?: string | null
+          character_hover_text_3?: string | null
           character_image_url?: string | null
+          character3_image_url?: string | null
           checkout_character_image_url?: string | null
+          companion_prompt?: string | null
           description?: string | null
           id?: string
           layout_mode?: string
