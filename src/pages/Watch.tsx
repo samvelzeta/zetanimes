@@ -339,6 +339,9 @@ export default function Watch() {
   }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
+  // Embeds reales por idioma (después del dedup global de appendUniqueSource).
+  // Si la API del idioma opuesto devolvió exactamente los mismos embeds que el
+  // actual, NO los consideramos verdaderamente "del otro idioma".
   const langAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
     acc[source.lang] += 1;
     return acc;
@@ -347,12 +350,22 @@ export default function Watch() {
     if (source.origin === "db" || source.origin === "hls" || source.origin === "seeke") acc[source.lang] += 1;
     return acc;
   }, { sub: 0, latino: 0 });
+  const apiLangAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
+    if (source.origin === "api") acc[source.lang] += 1;
+    return acc;
+  }, { sub: 0, latino: 0 });
   const hasMultipleSources = rawSources.length >= 2;
   const dbLikeCount = rawSources.filter((source) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke").length;
   const apiCount = rawSources.filter((source) => source.origin === "api").length;
   const hasDbBothLanguages = dbLangAvailability.sub > 0 && dbLangAvailability.latino > 0;
   const hasSeekeBothLanguages = rawSources.some((source) => source.origin === "seeke" && source.lang === "sub") && rawSources.some((source) => source.origin === "seeke" && source.lang === "latino");
-  const shouldShowLanguageControls = hasDbBothLanguages && dbLikeCount > 0;
+  // Activar toggle de idioma también cuando solo hay Seeke en un idioma pero la
+  // API (AV1/zetapi) trae servidores reales en el opuesto (embeds únicos, ya
+  // filtrados por appendUniqueSource). Permite alternar JP (Seeke+AV1) ↔ LAT (AV1).
+  const hasApiOnlyOppositeLang =
+    (dbLangAvailability.sub > 0 && dbLangAvailability.latino === 0 && apiLangAvailability.latino > 0) ||
+    (dbLangAvailability.latino > 0 && dbLangAvailability.sub === 0 && apiLangAvailability.sub > 0);
+  const shouldShowLanguageControls = (hasDbBothLanguages && dbLikeCount > 0) || hasApiOnlyOppositeLang;
   const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls && !hasSeekeBothLanguages;
   const sortedSources = useMemo(() => {
     if (shouldShowLanguageControls) {
