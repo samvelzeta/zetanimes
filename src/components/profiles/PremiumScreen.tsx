@@ -127,6 +127,8 @@ export default function PremiumScreen({ onClose }: Props) {
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-background/25 to-background/15 pointer-events-none" />
 
+      <div className="absolute inset-0 bg-gradient-to-t from-background/45 via-background/12 to-background/8 pointer-events-none" />
+
       {/* Orbe decorativo animado */}
       <div className="pointer-events-none absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full opacity-30 blur-3xl animate-[pulseGlow_6s_ease-in-out_infinite]"
         style={{ background: "radial-gradient(circle, hsl(var(--primary)/.6), transparent 70%)" }} />
