@@ -155,8 +155,15 @@ export default function PremiumScreen({ onClose }: Props) {
         </button>
       </div>
 
+      {/* Skeleton inicial para evitar flash vacío */}
+      {!loaded && (
+        <div className="relative z-10 flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
+
       {/* === MOBILE / APK === */}
-      {isMobile ? (
+      {loaded && isMobile ? (
         <MobileLayout
           step={step}
           plans={plans}
@@ -180,14 +187,13 @@ export default function PremiumScreen({ onClose }: Props) {
           onSetNotes={setNotes}
           onSubmit={submitRequest}
         />
-      ) : (
+      ) : loaded ? (
         // === PC: layout split que hace TRUEQUE ===
         <div className="relative z-10 flex-1 overflow-hidden">
           <div className="h-full max-w-[1400px] mx-auto px-8 py-6 grid grid-cols-2 gap-10 items-stretch">
             {/* PANEL IZQUIERDO */}
-            <div className="relative h-full overflow-hidden">
+            <div className="relative h-full overflow-visible">
               {imageOnRight ? (
-                // step=plans → izquierda muestra PLANES
                 <PanelContent key="plans-left" direction="left">
                   <PlansPanel
                     settings={settings}
@@ -196,18 +202,17 @@ export default function PremiumScreen({ onClose }: Props) {
                   />
                 </PanelContent>
               ) : (
-                // step=method/manual → izquierda muestra IMAGEN (la nueva)
                 <PanelContent key={`img-left-${step}`} direction="left">
-                  <CharacterPanel url={currentImg} accent={selected?.accent_color} />
+                  <CharacterPanel url={currentImg} accent={selected?.accent_color} hoverText={currentHover} />
                 </PanelContent>
               )}
             </div>
 
             {/* PANEL DERECHO */}
-            <div className="relative h-full overflow-hidden">
+            <div className="relative h-full overflow-visible">
               {imageOnRight ? (
                 <PanelContent key="img-right" direction="right">
-                  <CharacterPanel url={currentImg} />
+                  <CharacterPanel url={currentImg} hoverText={currentHover} />
                 </PanelContent>
               ) : step === "method" && selected ? (
                 <PanelContent key="method-right" direction="right">
@@ -241,7 +246,7 @@ export default function PremiumScreen({ onClose }: Props) {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       <style>{`
         @keyframes swapInFromLeft {
