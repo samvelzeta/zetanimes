@@ -172,12 +172,12 @@ export default function VastAdOverlay({
     };
   }, [show, vast]);
 
-  // Portal target: normal mode uses #player-video; fullscreen mode uses the exact
+  // Portal target: normal mode uses #playerVideo; fullscreen mode uses the exact
   // fullscreen host so the overlay exists inside the browser fullscreen surface.
   useEffect(() => {
     if (!show) return;
     const find = () => {
-      const playerEl = document.getElementById("player-video");
+      const playerEl = document.getElementById("playerVideo") || document.getElementById("player-video");
       const fullscreenEl = getFullscreenElement();
       const host = fullscreenEl instanceof HTMLElement
         ? fullscreenEl.tagName === "IFRAME" || fullscreenEl.tagName === "VIDEO"
