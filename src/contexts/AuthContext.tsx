@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const revokedByRemoteRef = useRef(false);
   const rolesRef = useRef<string[]>([]);
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(prof);
     const { data: userRoles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
     setRoles(userRoles?.map((r) => r.role) || []);
+    setRolesLoaded(true);
   };
 
   const refreshProfile = async () => {
@@ -54,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRoles([]);
+    setRolesLoaded(false);
     try {
       setActiveProfileId(null);
       clearAllProfilePins();
@@ -74,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(null);
         setRoles([]);
+        setRolesLoaded(false);
       }
       setLoading(false);
     });
@@ -137,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !rolesLoaded) return;
     const check = async () => {
       if (rolesRef.current.includes("owner") || rolesRef.current.includes("admin")) {
         await touchCurrentDevice(user.id);
@@ -159,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [user]);
+  }, [user, rolesLoaded]);
 
   const isPremium = roles.includes("premium") || roles.includes("owner");
   const isOwner = roles.includes("owner");
