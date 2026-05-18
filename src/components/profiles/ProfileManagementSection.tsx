@@ -9,7 +9,7 @@ import { getMaxProfiles } from "@/lib/account-profiles";
 import ProfileSelector from "./ProfileSelector";
 
 export default function ProfileManagementSection() {
-  const { user, isPremium, isOwner, isAdmin } = useAuth();
+  const { user, isPremium, isOwner, isAdmin, signOut } = useAuth();
   const { profiles, refresh } = useProfiles();
   const [showProfileMgmt, setShowProfileMgmt] = useState(false);
   const [devices, setDevices] = useState<DeviceSession[]>([]);
@@ -36,6 +36,10 @@ export default function ProfileManagementSection() {
     if (!user) return;
     await revokeDevice(user.id, deviceId);
     toast.success(deviceId === currentDeviceId ? "Sesión cerrada en este dispositivo" : "Dispositivo desconectado");
+    if (deviceId === currentDeviceId) {
+      await signOut();
+      return;
+    }
     await loadDevices();
     window.dispatchEvent(new Event("zet:device-sessions-updated"));
   };
@@ -44,6 +48,8 @@ export default function ProfileManagementSection() {
     if (!user || devices.length === 0) return;
     await revokeAllDevices(user.id);
     toast.success("Todas las sesiones fueron cerradas");
+    await signOut();
+    return;
     await loadDevices();
     window.dispatchEvent(new Event("zet:device-sessions-updated"));
   };
