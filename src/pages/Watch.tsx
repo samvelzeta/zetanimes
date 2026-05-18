@@ -742,11 +742,19 @@ export default function Watch() {
                 onNext={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
                 containerRef={playerWrapperRef}
               />
-              {/* Ad gate cada 3 episodios — bloquea video hasta cerrar */}
+              {/* Ad gate (banner 300x250) cada 2 episodios — bloquea video hasta cerrar */}
               <AdOverlayGate
                 episodeKey={`${anilistId}-${selectedEp}`}
-                everyN={3}
+                everyN={2}
                 countdownSecs={5}
+              />
+              {/* VAST video ad (ExoClick) — cada 2 episodios con cooldown de 40min, funciona en fullscreen */}
+              <VastAdOverlay
+                episodeKey={`${anilistId}-${selectedEp}`}
+                vastUrl="https://s.magsrv.com/v1/vast.php?idzone=5929298"
+                everyN={2}
+                cooldownMs={40 * 60 * 1000}
+                skipAfter={5}
               />
             </>
           ) : (
