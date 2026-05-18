@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { searchAnime, getTrending, getRecentlyUpdated, type AniListMedia, getTitle } from "@/lib/anilist";
 import { toast } from "sonner";
@@ -51,8 +51,44 @@ export default function DownloadTracker() {
   const [showSearch, setShowSearch] = useState(false);
   const [expandedTracker, setExpandedTracker] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [resultStatus, setResultStatus] = useState<Record<number, TrackerStatus | null>>({});
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const { user } = useAuth();
+
+  const fetchResultStatuses = useCallback(async (ids: number[]) => {
+    if (ids.length === 0) { setResultStatus({}); return; }
+    const { data } = await supabase
+      .from("anime_download_tracker")
+      .select("anilist_id, status")
+      .in("anilist_id", ids);
+    const map: Record<number, TrackerStatus | null> = {};
+    ids.forEach((id) => { map[id] = null; });
+    (data || []).forEach((row: any) => { map[row.anilist_id] = row.status as TrackerStatus; });
+    setResultStatus(map);
+  }, []);
+
+  const handleSearch = (val: string) => {
+    setSearchQuery(val);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (val.trim().length < 2) {
+      setSearchResults([]);
+      setResultStatus({});
+      return;
+    }
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await searchAnime(val, 1, 12);
+        const media = res.media || [];
+        setSearchResults(media);
+        await fetchResultStatuses(media.map((m) => m.id));
+      } catch {
+        setSearchResults([]);
+      }
+      setSearching(false);
+    }, 350);
+  };
 
   const loadTrackers = useCallback(async (statusOverride?: TrackerStatus) => {
     const status = statusOverride || activeStatus;
@@ -100,17 +136,6 @@ export default function DownloadTracker() {
     setExpandedTracker(trackerId);
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true);
-    try {
-      const res = await searchAnime(searchQuery, 1, 10);
-      setSearchResults(res.media);
-    } catch {
-      toast.error("Error buscando en AniList");
-    }
-    setSearching(false);
-  };
 
   const addAnime = async (anime: AniListMedia) => {
     // Check if already tracked
@@ -375,47 +400,70 @@ export default function DownloadTracker() {
       {/* Search panel */}
       {showSearch && (
         <div className="bg-secondary/50 border border-border rounded-xl p-3 space-y-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Buscar anime en AniList..."
-                className="pl-10 h-10 bg-background border-primary/30 rounded-xl"
-              />
-            </div>
-            <button
-              onClick={handleSearch}
-              disabled={searching}
-              className="px-4 rounded-xl bg-primary text-primary-foreground text-xs font-bold"
-            >
-              {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar"}
-            </button>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Buscar anime en AniList (en vivo)..."
+              className="pl-10 pr-10 h-10 bg-background border-primary/30 rounded-xl"
+              autoFocus
+            />
+            {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-primary" />}
           </div>
 
-          {searchResults.map((anime) => (
-            <div key={anime.id} className="flex items-center gap-3 bg-background rounded-lg p-2">
-              <img
-                src={anime.coverImage?.large}
-                alt=""
-                className="w-10 h-14 rounded object-cover"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-foreground truncate">{getTitle(anime)}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {anime.episodes || "?"} eps · {anime.status}
-                </p>
+          {searchQuery.trim().length >= 2 && !searching && searchResults.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-2">Sin resultados</p>
+          )}
+
+          {searchResults.length > 0 && (() => {
+            const notAdded = searchResults.filter((a) => !resultStatus[a.id]);
+            const tracked = searchResults.filter((a) => !!resultStatus[a.id]);
+            const renderRow = (anime: AniListMedia) => {
+              const status = resultStatus[anime.id];
+              const meta = status ? STATUS_TABS.find((s) => s.key === status) : null;
+              return (
+                <div key={anime.id} className="flex items-center gap-3 bg-background rounded-lg p-2">
+                  <img src={anime.coverImage?.large} alt="" className="w-10 h-14 rounded object-cover" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-foreground truncate">{getTitle(anime)}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {anime.episodes || "?"} eps · {anime.status}
+                    </p>
+                    {meta ? (
+                      <span className={`inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-secondary ${meta.color}`}>
+                        <meta.icon className="w-2.5 h-2.5" /> {meta.label}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-secondary text-orange-400">
+                        ● No agregado
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => addAnime(anime)}
+                    className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-bold"
+                    title={status ? "Ya está en el tracker" : "Agregar a Descargando"}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            };
+            return (
+              <div className="space-y-2">
+                {tracked.map(renderRow)}
+                {notAdded.length > 0 && (
+                  <>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400 pt-1">
+                      No agregados / no completados ({notAdded.length})
+                    </p>
+                    {notAdded.map(renderRow)}
+                  </>
+                )}
               </div>
-              <button
-                onClick={() => addAnime(anime)}
-                className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-bold"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
+            );
+          })()}
         </div>
       )}
 
