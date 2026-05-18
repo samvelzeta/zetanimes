@@ -34,7 +34,7 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean, 
   isCurrent?: boolean;
   revoked?: boolean;
 }> {
-  const limit = unlimited ? 999 : isPremium ? 3 : 1;
+  const limit = unlimited ? 999 : isPremium ? 5 : 2;
   const info = getDeviceInfo();
   const fingerprint = await sessionFingerprint();
 
