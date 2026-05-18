@@ -40,24 +40,6 @@ function getFullscreenElement(): Element | null {
   return document.fullscreenElement || doc.webkitFullscreenElement || null;
 }
 
-function isReplacedFullscreenElement(el: Element | null): boolean {
-  if (!(el instanceof HTMLElement)) return false;
-  return ["IFRAME", "VIDEO", "EMBED", "OBJECT"].includes(el.tagName);
-}
-
-async function switchFullscreenToPlayer(playerEl: HTMLElement) {
-  try {
-    if (document.fullscreenElement && document.fullscreenElement !== playerEl) {
-      await document.exitFullscreen();
-    }
-    if (!document.fullscreenElement && playerEl.isConnected) {
-      await playerEl.requestFullscreen?.();
-    }
-  } catch {
-    // Some browsers require a direct user gesture; the overlay still renders in normal player mode.
-  }
-}
-
 interface ParsedVast {
   mediaUrl: string;
   clickThrough?: string;
@@ -132,11 +114,13 @@ export default function VastAdOverlay({
   const [secs, setSecs] = useState(skipAfter);
   const [muted, setMuted] = useState(false);
   const [portalEl, setPortalEl] = useState<Element | null>(null);
+  const [useFullscreenDialog, setUseFullscreenDialog] = useState(false);
   const [, force] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const pausedVideos = useRef<HTMLVideoElement[]>([]);
   const firedEvents = useRef<Set<string>>(new Set());
-  const authPending = loading || (!!user && roles.length === 0);
+  const authPending = loading;
   const adsExempt = isPremium || isOwner || roles.includes("premium") || roles.includes("owner");
 
   useEffect(() => {
