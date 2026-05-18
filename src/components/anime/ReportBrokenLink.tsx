@@ -16,9 +16,11 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [reason, setReason] = useState("");
 
   const report = async (type: "episode" | "full") => {
     if (!user) return toast.error("Inicia sesión para reportar");
+    if (reason.trim().length < 500) return toast.error(`Describe el problema con al menos 500 caracteres (llevas ${reason.trim().length})`);
     setSending(true);
     try {
       const epNum = type === "full" ? null : episodeNumber;
@@ -31,13 +33,16 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
         .is("episode_number", epNum === null ? null : undefined as any)
         .maybeSingle();
 
+      const reasonText = reason.trim();
       if (existing && epNum === null) {
-        // Update count for full anime
         await supabase.from("broken_link_reports")
-          .update({ report_count: existing.report_count + 1, last_reported_at: new Date().toISOString() })
+          .update({
+            report_count: existing.report_count + 1,
+            last_reported_at: new Date().toISOString(),
+            reason: reasonText,
+          } as any)
           .eq("id", existing.id);
       } else if (type === "episode") {
-        // Check for existing episode report
         const { data: epExisting } = await supabase
           .from("broken_link_reports")
           .select("id, report_count")
@@ -48,19 +53,25 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
 
         if (epExisting) {
           await supabase.from("broken_link_reports")
-            .update({ report_count: epExisting.report_count + 1, last_reported_at: new Date().toISOString() })
+            .update({
+              report_count: epExisting.report_count + 1,
+              last_reported_at: new Date().toISOString(),
+              reason: reasonText,
+            } as any)
             .eq("id", epExisting.id);
         } else {
           await supabase.from("broken_link_reports").insert({
             slug, episode_number: epNum, report_type: type,
             anime_title: animeTitle, anime_cover: animeCover, anilist_id: anilistId,
-          });
+            reason: reasonText,
+          } as any);
         }
       } else {
         await supabase.from("broken_link_reports").insert({
           slug, episode_number: epNum, report_type: type,
           anime_title: animeTitle, anime_cover: animeCover, anilist_id: anilistId,
-        });
+          reason: reasonText,
+        } as any);
       }
 
       toast.success("Reporte enviado. ¡Gracias!");
@@ -80,7 +91,7 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setOpen(false)}>
-          <div className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl max-h-[90vh] overflow-y-auto hide-scrollbar" onClick={e => e.stopPropagation()}>
             <div className="p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-black text-foreground flex items-center gap-2">
@@ -89,16 +100,35 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
                 <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
               </div>
 
+              <div>
+                <label className="text-[11px] font-bold text-foreground block mb-1.5">
+                  Describe el problema <span className="text-destructive">*</span>
+                  <span className="text-muted-foreground font-normal ml-1">(mínimo 500 caracteres)</span>
+                </label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Explica con detalle qué sucede: ¿pantalla negra, audio sin video, error específico, no carga, idioma equivocado, subtítulos rotos, etc.? Cuanto más detalle nos des, más rápido lo solucionamos."
+                  className="w-full h-40 bg-secondary border border-border rounded-xl p-3 text-xs text-foreground resize-none focus:border-primary outline-none"
+                  maxLength={3000}
+                />
+                <div className="flex justify-end mt-1">
+                  <span className={`text-[10px] font-mono ${reason.trim().length >= 500 ? "text-green-500" : "text-muted-foreground"}`}>
+                    {reason.trim().length}/500
+                  </span>
+                </div>
+              </div>
+
               <p className="text-xs text-muted-foreground">¿Qué deseas reportar?</p>
 
-              <button onClick={() => report("episode")} disabled={sending}
-                className="w-full py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm font-bold hover:bg-destructive/20 transition flex items-center justify-center gap-2 disabled:opacity-50">
+              <button onClick={() => report("episode")} disabled={sending || reason.trim().length < 500}
+                className="w-full py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm font-bold hover:bg-destructive/20 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                 {sending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Capítulo {episodeNumber} no funciona
               </button>
 
-              <button onClick={() => report("full")} disabled={sending}
-                className="w-full py-3 rounded-xl bg-yellow-600/10 border border-yellow-600/30 text-yellow-400 text-sm font-bold hover:bg-yellow-600/20 transition flex items-center justify-center gap-2 disabled:opacity-50">
+              <button onClick={() => report("full")} disabled={sending || reason.trim().length < 500}
+                className="w-full py-3 rounded-xl bg-yellow-600/10 border border-yellow-600/30 text-yellow-400 text-sm font-bold hover:bg-yellow-600/20 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                 {sending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Anime completo no funciona
               </button>

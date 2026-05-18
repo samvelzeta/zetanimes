@@ -329,6 +329,7 @@ export type Database = {
           first_reported_at: string
           id: string
           last_reported_at: string
+          reason: string | null
           report_count: number
           report_type: string
           resolved_at: string | null
@@ -345,6 +346,7 @@ export type Database = {
           first_reported_at?: string
           id?: string
           last_reported_at?: string
+          reason?: string | null
           report_count?: number
           report_type?: string
           resolved_at?: string | null
@@ -361,6 +363,7 @@ export type Database = {
           first_reported_at?: string
           id?: string
           last_reported_at?: string
+          reason?: string | null
           report_count?: number
           report_type?: string
           resolved_at?: string | null
@@ -1151,7 +1154,7 @@ export type Database = {
         | "undecided"
       app_role: "owner" | "admin" | "premium" | "user"
       membership_status: "pending" | "active" | "expired" | "rejected"
-      membership_type: "annual" | "lifetime"
+      membership_type: "monthly" | "annual" | "lifetime"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1288,7 +1291,7 @@ export const Constants = {
       ],
       app_role: ["owner", "admin", "premium", "user"],
       membership_status: ["pending", "active", "expired", "rejected"],
-      membership_type: ["annual", "lifetime"],
+      membership_type: ["monthly", "annual", "lifetime"],
     },
   },
 } as const

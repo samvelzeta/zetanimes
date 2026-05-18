@@ -16,6 +16,7 @@ interface Report {
   anilist_id: number | null;
   report_count: number;
   status: string;
+  reason: string | null;
   first_reported_at: string;
   last_reported_at: string;
 }
@@ -103,6 +104,12 @@ export default function BrokenReports() {
                 </p>
                 <p className="text-[10px] text-muted-foreground font-mono">{r.slug}</p>
                 <p className="text-[10px] text-muted-foreground">Último: {new Date(r.last_reported_at).toLocaleString()}</p>
+                {r.reason && (
+                  <div className="mt-2 p-2 rounded-lg bg-background border border-border">
+                    <p className="text-[10px] font-bold text-primary mb-0.5">Motivo del reporte:</p>
+                    <p className="text-[11px] text-foreground whitespace-pre-wrap leading-relaxed">{r.reason}</p>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col gap-1 flex-shrink-0">
                 {activeStatus === "pending" && (

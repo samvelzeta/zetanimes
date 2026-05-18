@@ -106,8 +106,8 @@ export default function PremiumScreen({ onClose }: Props) {
   const hasStripe = !!(settings?.stripe_enabled && settings?.stripe_payment_url);
   const hasAlt = !!settings?.alt_payment_url;
 
-  // Trueque: en step "plans" imagen va a la DERECHA, en "method"/"manual" imagen va a la IZQUIERDA
-  const imageOnRight = step === "plans";
+  // Trueque: en step "plans" y "manual" imagen va a la DERECHA; en "method" imagen va a la IZQUIERDA
+  const imageOnRight = step === "plans" || step === "manual";
   const currentImg = step === "plans" ? characterUrl : step === "method" ? checkoutUrl : character3Url;
   const currentHover = step === "plans"
     ? (settings as any)?.character_hover_text_1
@@ -193,7 +193,7 @@ export default function PremiumScreen({ onClose }: Props) {
           <div className="h-full max-w-[1600px] mx-auto px-8 py-5 grid grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)] gap-8 items-stretch">
             {/* PANEL IZQUIERDO */}
             <div className="relative h-full overflow-visible">
-              {imageOnRight ? (
+              {step === "plans" ? (
                 <PanelContent key="plans-left" direction="left">
                   <PlansPanel
                     settings={settings}
@@ -201,33 +201,12 @@ export default function PremiumScreen({ onClose }: Props) {
                     onPick={pickPlan}
                   />
                 </PanelContent>
-              ) : (
-                <PanelContent key={`img-left-${step}`} direction="left">
+              ) : step === "method" ? (
+                <PanelContent key="img-left-method" direction="left">
                   <CharacterPanel url={currentImg} accent={selected?.accent_color} hoverText={currentHover} />
                 </PanelContent>
-              )}
-            </div>
-
-            {/* PANEL DERECHO */}
-            <div className="relative h-full overflow-visible">
-              {imageOnRight ? (
-                <PanelContent key="img-right" direction="right">
-                  <CharacterPanel url={currentImg} hoverText={currentHover} />
-                </PanelContent>
-              ) : step === "method" && selected ? (
-                <PanelContent key="method-right" direction="right">
-                  <MethodPanel
-                    selected={selected}
-                    hasStripe={hasStripe}
-                    hasAlt={hasAlt}
-                    settings={settings}
-                    onBack={() => setStep("plans")}
-                    onStripe={goStripe}
-                    onManual={() => setStep("manual")}
-                  />
-                </PanelContent>
               ) : step === "manual" && selected ? (
-                <PanelContent key="manual-right" direction="right">
+                <PanelContent key="manual-left" direction="left">
                   <ManualPanel
                     selected={selected}
                     paymentInfo={paymentInfo}
@@ -240,6 +219,27 @@ export default function PremiumScreen({ onClose }: Props) {
                     onBack={() => setStep("method")}
                     onSubmit={submitRequest}
                     fileRef={fileRef}
+                  />
+                </PanelContent>
+              ) : null}
+            </div>
+
+            {/* PANEL DERECHO */}
+            <div className="relative h-full overflow-visible">
+              {step === "plans" || step === "manual" ? (
+                <PanelContent key={`img-right-${step}`} direction="right">
+                  <CharacterPanel url={currentImg} accent={selected?.accent_color} hoverText={currentHover} />
+                </PanelContent>
+              ) : step === "method" && selected ? (
+                <PanelContent key="method-right" direction="right">
+                  <MethodPanel
+                    selected={selected}
+                    hasStripe={hasStripe}
+                    hasAlt={hasAlt}
+                    settings={settings}
+                    onBack={() => setStep("plans")}
+                    onStripe={goStripe}
+                    onManual={() => setStep("manual")}
                   />
                 </PanelContent>
               ) : null}

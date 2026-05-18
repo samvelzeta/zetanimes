@@ -247,7 +247,7 @@ export default function PremiumConfigEditor() {
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto hide-scrollbar pr-1 pb-4">
           {plans.map((plan) => (
             <PlanCard
               key={plan.id}
@@ -325,6 +325,7 @@ function PlanCard({ plan, onChange, onSave, onDelete }: { plan: PremiumPlan; onC
           <option value="custom">Personalizado</option>
         </select>
         <select value={plan.membership_type} onChange={(e) => onChange({ membership_type: e.target.value as any })} className="h-9 bg-secondary border border-border rounded-lg px-2 text-xs">
+          <option value="monthly">Mensual</option>
           <option value="annual">Renovable (anual)</option>
           <option value="lifetime">Para siempre</option>
         </select>
