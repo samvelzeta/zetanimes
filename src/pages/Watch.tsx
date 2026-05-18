@@ -339,6 +339,9 @@ export default function Watch() {
   }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
+  // Embeds reales por idioma (después del dedup global de appendUniqueSource).
+  // Si la API del idioma opuesto devolvió exactamente los mismos embeds que el
+  // actual, NO los consideramos verdaderamente "del otro idioma".
   const langAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
     acc[source.lang] += 1;
     return acc;
@@ -347,26 +350,41 @@ export default function Watch() {
     if (source.origin === "db" || source.origin === "hls" || source.origin === "seeke") acc[source.lang] += 1;
     return acc;
   }, { sub: 0, latino: 0 });
+  const apiLangAvailability = rawSources.reduce<Record<Lang, number>>((acc, source) => {
+    if (source.origin === "api") acc[source.lang] += 1;
+    return acc;
+  }, { sub: 0, latino: 0 });
   const hasMultipleSources = rawSources.length >= 2;
   const dbLikeCount = rawSources.filter((source) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke").length;
   const apiCount = rawSources.filter((source) => source.origin === "api").length;
   const hasDbBothLanguages = dbLangAvailability.sub > 0 && dbLangAvailability.latino > 0;
   const hasSeekeBothLanguages = rawSources.some((source) => source.origin === "seeke" && source.lang === "sub") && rawSources.some((source) => source.origin === "seeke" && source.lang === "latino");
-  const shouldShowLanguageControls = hasDbBothLanguages && dbLikeCount > 0;
+  // Activar toggle de idioma también cuando solo hay Seeke en un idioma pero la
+  // API (AV1/zetapi) trae servidores reales en el opuesto (embeds únicos, ya
+  // filtrados por appendUniqueSource). Permite alternar JP (Seeke+AV1) ↔ LAT (AV1).
+  const hasApiOnlyOppositeLang =
+    (dbLangAvailability.sub > 0 && dbLangAvailability.latino === 0 && apiLangAvailability.latino > 0) ||
+    (dbLangAvailability.latino > 0 && dbLangAvailability.sub === 0 && apiLangAvailability.sub > 0);
+  const shouldShowLanguageControls = (hasDbBothLanguages && dbLikeCount > 0) || hasApiOnlyOppositeLang;
   const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls && !hasSeekeBothLanguages;
   const sortedSources = useMemo(() => {
     if (shouldShowLanguageControls) {
-      const isDbLike = (source: PlayerSourceItem) => source.origin === "db" || source.origin === "hls" || source.origin === "seeke";
+      // Cuando hay DB-like en el idioma actual, priorízalo. Si solo hay API en
+      // ese idioma (caso AV1-LAT cuando Seeke solo trae JP), prioriza cualquier
+      // fuente de ese idioma.
+      const hasDbLikeForLang = dbLangAvailability[lang] > 0;
       return [...rawSources].sort((a, b) => {
-        const aRank = a.lang === lang && isDbLike(a) ? 0 : 1;
-        const bRank = b.lang === lang && isDbLike(b) ? 0 : 1;
+        const aMatch = a.lang === lang && (hasDbLikeForLang ? (a.origin === "db" || a.origin === "hls" || a.origin === "seeke") : true);
+        const bMatch = b.lang === lang && (hasDbLikeForLang ? (b.origin === "db" || b.origin === "hls" || b.origin === "seeke") : true);
+        const aRank = aMatch ? 0 : 1;
+        const bRank = bMatch ? 0 : 1;
         return aRank - bRank || sourcePriority(a) - sourcePriority(b);
       });
     }
     return activeSourceIdx > 0 && activeSourceIdx < rawSources.length
       ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
       : rawSources;
-  }, [activeSourceIdx, rawSources, shouldShowLanguageControls, lang]);
+  }, [activeSourceIdx, rawSources, shouldShowLanguageControls, lang, dbLangAvailability]);
   const activeLang = sortedSources[0]?.lang || lang;
   // Subtítulos softsub vienen del API (modo japonés). Usar el del idioma activo.
   const activeSubtitles = useMemo(() => {
@@ -766,8 +784,7 @@ export default function Watch() {
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
           {shouldShowLanguageControls && (["sub", "latino"] as const).map((targetLang) => {
-            const firstIdx = rawSources.findIndex((source) => source.lang === targetLang && (source.origin === "db" || source.origin === "hls" || source.origin === "seeke"));
-            const enabled = firstIdx >= 0;
+            const enabled = langAvailability[targetLang] > 0;
             const selected = activeLang === targetLang;
             return (
               <button
@@ -783,7 +800,7 @@ export default function Watch() {
                 }`}
               >
                 {targetLang === "sub" ? "🇯🇵 Japonés" : "🌎 Latino"}
-                <span className="text-[10px] opacity-80">{dbLangAvailability[targetLang]}</span>
+                <span className="text-[10px] opacity-80">{langAvailability[targetLang]}</span>
               </button>
             );
           })}
