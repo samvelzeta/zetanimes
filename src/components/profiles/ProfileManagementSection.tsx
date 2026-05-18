@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
-import { Users, Smartphone, Loader2, Trash2, Crown, Plus, KeyRound } from "lucide-react";
+import { Users, Smartphone, Loader2, Trash2, Crown, Plus, KeyRound, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { getDeviceLimit, listMyDevices, revokeAllDevices, revokeDevice, type DeviceSession } from "@/lib/devices";
 import { getDeviceId } from "@/lib/device-id";
@@ -35,14 +35,16 @@ export default function ProfileManagementSection() {
     if (!user) return;
     await revokeDevice(user.id, deviceId);
     toast.success(deviceId === currentDeviceId ? "Sesión cerrada en este dispositivo" : "Dispositivo desconectado");
-    loadDevices();
+    await loadDevices();
+    window.dispatchEvent(new Event("zet:device-sessions-updated"));
   };
 
   const handleRevokeAll = async () => {
     if (!user || devices.length === 0) return;
     await revokeAllDevices(user.id);
     toast.success("Todas las sesiones fueron cerradas");
-    loadDevices();
+    await loadDevices();
+    window.dispatchEvent(new Event("zet:device-sessions-updated"));
   };
 
   if (!user) return null;
@@ -124,9 +126,9 @@ export default function ProfileManagementSection() {
         )}
 
         {!premiumAccess && devices.length >= deviceLimit && (
-          <div className="mt-3 p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-[10px] text-yellow-300 flex items-center gap-2">
-            <Crown className="w-3.5 h-3.5" />
-            Hazte Premium para conectar hasta 3 dispositivos
+          <div className="mt-3 p-2.5 rounded-lg bg-primary/10 border border-primary/30 text-[10px] text-primary flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Estás en el límite. Puedes cerrar dispositivos aquí o subir a Premium para conectar hasta 3.
           </div>
         )}
       </div>

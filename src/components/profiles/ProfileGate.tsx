@@ -26,15 +26,24 @@ export default function ProfileGate() {
   const [deviceChecked, setDeviceChecked] = useState(false);
 
   const skip = SKIP_PATHS.some((p) => location.pathname.startsWith(p));
+  const isProfileRoute = location.pathname.startsWith("/profile");
+
+  const checkCurrentDevice = async () => {
+    if (!user || authLoading || skip) return;
+    const result = await registerCurrentDevice(user.id, isPremium, isOwner);
+    setDeviceCheck(result);
+    setDeviceChecked(true);
+  };
 
   // Registrar dispositivo y verificar límite
   useEffect(() => {
-    if (!user || authLoading || skip) return;
-    (async () => {
-      const result = await registerCurrentDevice(user.id, isPremium, isOwner);
-      setDeviceCheck(result);
-      setDeviceChecked(true);
-    })();
+    checkCurrentDevice();
+  }, [user, isPremium, isOwner, authLoading, skip, location.pathname]);
+
+  useEffect(() => {
+    const onDevicesUpdated = () => checkCurrentDevice();
+    window.addEventListener("zet:device-sessions-updated", onDevicesUpdated);
+    return () => window.removeEventListener("zet:device-sessions-updated", onDevicesUpdated);
   }, [user, isPremium, isOwner, authLoading, skip]);
 
   useEffect(() => {
@@ -71,9 +80,12 @@ export default function ProfileGate() {
   if (profilesLoading || ensuringMainProfile || profiles.length === 0 || !deviceChecked) return null;
 
   // 1) Bloqueo por dispositivos
-  if (deviceCheck && !deviceCheck.allowed) {
+  if (deviceCheck && !deviceCheck.allowed && !isProfileRoute) {
     return <DeviceLimitModal current={deviceCheck.current} limit={deviceCheck.limit} />;
   }
+
+  // En /profile siempre dejamos pasar: ahí es donde se cierran sesiones/dispositivos.
+  if (isProfileRoute) return null;
 
   // 2) PIN del perfil pendiente (cuando seleccionamos uno protegido)
   if (pendingProfile) {
