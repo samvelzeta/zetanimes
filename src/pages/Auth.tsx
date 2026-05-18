@@ -101,7 +101,7 @@ function RegisterForm({ onSwitch, onSuccess }: { onSwitch: (m: "login" | "regist
       password,
       options: {
         data: { username, display_name: username },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/verified`,
       },
     });
     setLoading(false);

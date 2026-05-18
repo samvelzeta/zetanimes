@@ -24,6 +24,7 @@ const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const AdminPanel = lazy(() => import("@/pages/Admin"));
 const TermsPage = lazy(() => import("@/pages/Terms"));
 const DownloadPage = lazy(() => import("@/pages/Download"));
+const VerifiedPage = lazy(() => import("@/pages/Verified"));
 const MyLists = lazy(() => import("@/pages/MyLists"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
@@ -72,6 +73,7 @@ const App = () => (
                 <Route path="/terms" element={<TermsPage />} />
               </Route>
               <Route path="/download" element={<DownloadPage />} />
+              <Route path="/verified" element={<VerifiedPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
