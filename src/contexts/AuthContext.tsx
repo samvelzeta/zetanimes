@@ -165,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user, rolesLoaded]);
 
+  const effectiveLoading = loading || (!!user && !rolesLoaded);
   const isPremium = roles.includes("premium") || roles.includes("owner");
   const isOwner = roles.includes("owner");
   // Owner es siempre admin también; admin explícito tiene acceso al panel pero NO a áreas owner-only.
@@ -188,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, isPremium, isOwner, isAdmin, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, roles, isPremium, isOwner, isAdmin, loading: effectiveLoading, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
