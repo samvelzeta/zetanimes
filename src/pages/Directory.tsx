@@ -155,7 +155,7 @@ export default function Directory() {
         {GENRES.map((g) => (
           <button
             key={g}
-            onClick={() => { setSelectedGenre(g); setQuickFilter(null); }}
+            onClick={() => { setSelectedGenre(selectedGenre === g ? null : g); if (!isMovies) setQuickFilter(null); }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedGenre === g ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
           >
             {g}
