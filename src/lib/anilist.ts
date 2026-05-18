@@ -100,6 +100,13 @@ export async function getTopRated(page = 1, perPage = 20): Promise<PageResult> {
   }, 24 * 60 * 60 * 1000); // 24h
 }
 
+export async function getMovies(page = 1, perPage = 30): Promise<PageResult> {
+  return withIdbCache(`movies:${page}:${perPage}`, async () => {
+    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,isAdult:false){...MediaFields}}}`, { page, perPage });
+    return data.Page;
+  }, 6 * 60 * 60 * 1000);
+}
+
 export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult> {
   const now = new Date();
   const month = now.getMonth();
