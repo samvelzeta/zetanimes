@@ -806,6 +806,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   return (
     <div
       ref={containerRef}
+      id="player-video"
       className="relative aspect-video bg-black rounded-xl overflow-hidden group cursor-pointer select-none"
       onMouseMove={() => { if (!isMobileLike) showControlsTemp(); }}
       onMouseLeave={() => {
