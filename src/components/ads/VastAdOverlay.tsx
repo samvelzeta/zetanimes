@@ -174,28 +174,18 @@ export default function VastAdOverlay({
     };
   }, [show, vast]);
 
-  // Portal target: prefer the active fullscreen player surface when needed;
-  // otherwise render inside #player-video so it stays contained in normal mode.
+  // Portal target: in normal mode render inside #player-video; in fullscreen use
+  // a modal dialog top-layer so the ad is above native/iframe fullscreen surfaces.
   useEffect(() => {
     if (!show) return;
     const find = () => {
       const playerEl = document.getElementById("player-video");
       const fullscreenEl = getFullscreenElement();
-      if (isReplacedFullscreenElement(fullscreenEl)) {
-        setPortalEl(fullscreenEl);
-        return;
-      }
-      setPortalEl(playerEl || fullscreenEl || null);
+      setUseFullscreenDialog(!!fullscreenEl);
+      setPortalEl(playerEl || null);
     };
     find();
-    const onFsChange = () => {
-      const playerEl = document.getElementById("player-video");
-      const fullscreenEl = getFullscreenElement();
-      if (playerEl && isReplacedFullscreenElement(fullscreenEl)) {
-        void switchFullscreenToPlayer(playerEl);
-      }
-      find();
-    };
+    const onFsChange = () => find();
     document.addEventListener("fullscreenchange", onFsChange);
     document.addEventListener("webkitfullscreenchange", onFsChange as EventListener);
     // Retry briefly in case the player mounts a tick later
@@ -210,6 +200,16 @@ export default function VastAdOverlay({
       clearTimeout(t3);
     };
   }, [show]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (show && useFullscreenDialog && !dialog.open) {
+      try { dialog.showModal(); } catch {}
+    } else if ((!show || !useFullscreenDialog) && dialog.open) {
+      try { dialog.close(); } catch {}
+    }
+  }, [show, useFullscreenDialog]);
 
   // Skip countdown
   useEffect(() => {
@@ -238,11 +238,10 @@ export default function VastAdOverlay({
   };
 
   const canSkip = secs <= 0;
-  const portalIsMediaElement = isReplacedFullscreenElement(portalEl);
 
   const node = (
     <div
-      className={`${portalIsMediaElement ? "fixed" : "absolute"} inset-0 z-[2147483647] bg-black flex items-center justify-center`}
+      className="absolute inset-0 z-[2147483647] bg-black flex items-center justify-center"
       onClick={(e) => e.stopPropagation()}
     >
       {!vast && !error && (
