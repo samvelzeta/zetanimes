@@ -133,5 +133,5 @@ export async function isCurrentDeviceSessionValid(userId: string): Promise<boole
 }
 
 export function getDeviceLimit(isPremium: boolean, isOwner = false): number {
-  return isOwner ? 999 : isPremium ? 3 : 1;
+  return isOwner ? 999 : isPremium ? 5 : 2;
 }
