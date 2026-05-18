@@ -784,8 +784,7 @@ export default function Watch() {
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
           {shouldShowLanguageControls && (["sub", "latino"] as const).map((targetLang) => {
-            const firstIdx = rawSources.findIndex((source) => source.lang === targetLang && (source.origin === "db" || source.origin === "hls" || source.origin === "seeke"));
-            const enabled = firstIdx >= 0;
+            const enabled = langAvailability[targetLang] > 0;
             const selected = activeLang === targetLang;
             return (
               <button
@@ -801,7 +800,7 @@ export default function Watch() {
                 }`}
               >
                 {targetLang === "sub" ? "🇯🇵 Japonés" : "🌎 Latino"}
-                <span className="text-[10px] opacity-80">{dbLangAvailability[targetLang]}</span>
+                <span className="text-[10px] opacity-80">{langAvailability[targetLang]}</span>
               </button>
             );
           })}
