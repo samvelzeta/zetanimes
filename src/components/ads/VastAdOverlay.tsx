@@ -179,6 +179,17 @@ export default function VastAdOverlay({
     const find = () => {
       const playerEl = document.getElementById("playerVideo") || document.getElementById("player-video");
       const fullscreenEl = getFullscreenElement();
+      if (
+        playerEl instanceof HTMLElement &&
+        fullscreenEl instanceof HTMLElement &&
+        fullscreenEl !== playerEl &&
+        playerEl.contains(fullscreenEl) &&
+        (fullscreenEl.tagName === "IFRAME" || fullscreenEl.tagName === "VIDEO")
+      ) {
+        document.exitFullscreen?.()
+          .then(() => playerEl.requestFullscreen?.())
+          .catch(() => {});
+      }
       const host = fullscreenEl instanceof HTMLElement
         ? fullscreenEl.tagName === "IFRAME" || fullscreenEl.tagName === "VIDEO"
           ? (fullscreenEl.parentElement || playerEl)
