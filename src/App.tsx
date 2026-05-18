@@ -73,6 +73,7 @@ const App = () => (
                 <Route path="/terms" element={<TermsPage />} />
               </Route>
               <Route path="/download" element={<DownloadPage />} />
+              <Route path="/verified" element={<VerifiedPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
