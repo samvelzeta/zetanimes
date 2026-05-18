@@ -21,6 +21,7 @@ import EpisodeCountManager from "@/components/admin/EpisodeCountManager";
 import RoleManager from "@/components/admin/RoleManager";
 import ActivityLogTab from "@/components/admin/ActivityLogTab";
 import PremiumConfigEditor from "@/components/admin/PremiumConfigEditor";
+import RankingOverridesAdmin from "@/components/admin/RankingOverridesAdmin";
 import { logAdminActivity } from "@/lib/admin-log";
 
 // Tabs reservados solo para owner — los admins NO ven ni pueden interactuar con APK, notificaciones, pagos, premium, API keys, roles ni historial.
@@ -35,6 +36,7 @@ const TABS = [
   { key: "epcount", label: "Episodios", icon: ListOrdered },
   { key: "slugs", label: "Slugs", icon: Link2 },
   { key: "hidden", label: "Ocultar", icon: X },
+  { key: "ranking", label: "Top Ranking", icon: ListOrdered },
   { key: "apk", label: "APK", icon: ExternalLink },
   { key: "reports", label: "Reportes", icon: AlertTriangle },
   { key: "premium", label: "Premium", icon: Crown },
@@ -100,6 +102,7 @@ export default function AdminPanel() {
         {tab === "epcount" && <EpisodeCountManager />}
         {tab === "slugs" && <SlugManager />}
         {tab === "hidden" && <HiddenAnimesManager />}
+        {tab === "ranking" && <RankingOverridesAdmin />}
         {tab === "apk" && isOwner && <ApkManager />}
         {tab === "reports" && <BrokenReports />}
         {isOwner && tab === "premium" && <PremiumTab />}
