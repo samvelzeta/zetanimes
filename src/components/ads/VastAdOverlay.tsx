@@ -203,7 +203,7 @@ export default function VastAdOverlay({
 
   const node = (
     <div
-      className="fixed inset-0 z-[2147483647] bg-black flex items-center justify-center"
+      className="absolute inset-0 z-50 bg-black flex items-center justify-center"
       onClick={(e) => e.stopPropagation()}
     >
       {!vast && !error && (
