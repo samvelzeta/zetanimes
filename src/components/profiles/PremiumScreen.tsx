@@ -191,8 +191,8 @@ export default function PremiumScreen({ onClose }: Props) {
         />
       ) : loaded ? (
         // === PC: layout split que hace TRUEQUE ===
-        <div className="relative z-10 flex-1 overflow-hidden">
-          <div className="h-full max-w-[1580px] mx-auto px-10 py-5 grid grid-cols-[minmax(0,1.12fr)_minmax(380px,1fr)] gap-10 items-stretch">
+        <div className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar">
+          <div className="min-h-full max-w-[1580px] mx-auto px-10 py-5 grid grid-cols-[minmax(0,1.12fr)_minmax(380px,1fr)] gap-10 items-stretch">
             {/* PANEL IZQUIERDO */}
             <div className="relative h-full overflow-visible">
               {step === "plans" ? (
@@ -287,7 +287,7 @@ export default function PremiumScreen({ onClose }: Props) {
 function PanelContent({ children, direction }: { children: React.ReactNode; direction: "left" | "right" }) {
   return (
     <div
-      className="h-full w-full overflow-visible"
+      className="h-full min-h-[calc(100vh-6.5rem)] w-full overflow-visible"
       style={{ animation: `${direction === "left" ? "swapInFromLeft" : "swapInFromRight"} 0.55s cubic-bezier(0.16,1,0.3,1)` }}
     >
       {children}
