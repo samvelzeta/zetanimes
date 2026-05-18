@@ -214,7 +214,7 @@ export default function Directory() {
       <AdBannerInline size="728x90" className="mb-4" />
 
       {/* Results */}
-      {isLoading ? (
+      {loading ? (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
           {Array(18).fill(0).map((_, i) => (
             <div key={i}>
@@ -231,7 +231,22 @@ export default function Directory() {
         </div>
       )}
 
-      {!isLoading && animes.length === 0 && (
+      {/* Sentinel + spinner para scroll infinito (solo Películas) */}
+      {isMovies && !loading && (
+        <>
+          <div ref={sentinelRef} className="h-10" />
+          {moviesInfinite.isFetchingNextPage && (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          )}
+          {!moviesInfinite.hasNextPage && animes.length > 0 && (
+            <p className="text-center text-[10px] text-muted-foreground py-6">No hay más películas</p>
+          )}
+        </>
+      )}
+
+      {!loading && animes.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
           <SearchX className="w-10 h-10 text-muted" />
           <p className="text-muted-foreground text-sm">No encontramos resultados.</p>
