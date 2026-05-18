@@ -653,6 +653,7 @@ export default function VideoManager() {
               })}
             </div>
           </div>
+          </div>
 
           <div className="flex-1 space-y-3 pb-28 sm:overflow-y-auto sm:pb-2 sm:pr-1">
             {selectedEp !== null ? (
