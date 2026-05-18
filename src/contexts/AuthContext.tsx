@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const revokedByRemoteRef = useRef(false);
+  const rolesRef = useRef<string[]>([]);
 
   const fetchProfile = async (userId: string) => {
     const { data: prof } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
@@ -43,6 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
   };
+
+  useEffect(() => {
+    rolesRef.current = roles;
+  }, [roles]);
 
   const clearLocalAuthState = () => {
     setUser(null);
@@ -118,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "device_sessions", filter: `user_id=eq.${user.id}` },
         async (payload) => {
+          if (rolesRef.current.includes("owner") || rolesRef.current.includes("admin")) return;
           const updated = payload.new as { device_id?: string; revoked_at?: string | null } | null;
           if (updated?.device_id === currentDeviceId && updated.revoked_at) {
             revokedByRemoteRef.current = true;
@@ -133,6 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) return;
     const check = async () => {
+      if (rolesRef.current.includes("owner") || rolesRef.current.includes("admin")) {
+        await touchCurrentDevice(user.id);
+        return;
+      }
       const valid = await isCurrentDeviceSessionValid(user.id);
       if (!valid) {
         revokedByRemoteRef.current = true;
