@@ -309,6 +309,20 @@ export default function VastAdOverlay({
     </div>
   );
 
+  const fullscreenNode = (
+    <dialog
+      ref={dialogRef}
+      className="fixed inset-0 z-[2147483647] m-0 h-dvh w-dvw max-h-none max-w-none overflow-hidden border-0 bg-black p-0 backdrop:bg-black"
+      onCancel={(e) => e.preventDefault()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="relative h-full w-full overflow-hidden bg-black">
+        {node}
+      </div>
+    </dialog>
+  );
+
   // Only render when we have a player/fullscreen target.
+  if (useFullscreenDialog) return createPortal(fullscreenNode, document.body);
   return portalEl ? createPortal(node, portalEl) : null;
 }
