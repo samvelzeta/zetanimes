@@ -134,20 +134,33 @@ export default function PremiumConfigEditor() {
           />
         </Field>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <AssetUpload
-            label="Personaje paso 1 (selección de plan)"
+            label="Personaje 1 (paso planes)"
             url={settings?.character_image_url}
             uploading={uploading === "character"}
             onUpload={(e) => uploadAsset(e, "character")}
             onRemove={() => removeAsset("character")}
+            hoverText={settings?.character_hover_text_1}
+            onHoverChange={(v) => handleSettings({ character_hover_text_1: v } as any)}
           />
           <AssetUpload
-            label="Personaje paso 2 (checkout / pago) — opcional"
+            label="Personaje 2 (paso método)"
             url={(settings as any)?.checkout_character_image_url}
             uploading={uploading === ("checkout" as any)}
             onUpload={(e) => uploadAsset(e, "checkout" as any)}
             onRemove={() => removeAsset("checkout" as any)}
+            hoverText={(settings as any)?.character_hover_text_2}
+            onHoverChange={(v) => handleSettings({ character_hover_text_2: v } as any)}
+          />
+          <AssetUpload
+            label="Personaje 3 (paso pago manual)"
+            url={(settings as any)?.character3_image_url}
+            uploading={uploading === ("character3" as any)}
+            onUpload={(e) => uploadAsset(e, "character3" as any)}
+            onRemove={() => removeAsset("character3" as any)}
+            hoverText={(settings as any)?.character_hover_text_3}
+            onHoverChange={(v) => handleSettings({ character_hover_text_3: v } as any)}
           />
           <AssetUpload
             label="Imagen de fondo (decorativa)"
@@ -157,6 +170,14 @@ export default function PremiumConfigEditor() {
             onRemove={() => removeAsset("background")}
           />
         </div>
+
+        <Field label="Mensaje 'Elige tu compañero' (se muestra antes de los personajes)">
+          <Input
+            value={(settings as any)?.companion_prompt || ""}
+            onChange={(e) => handleSettings({ companion_prompt: e.target.value } as any)}
+            placeholder="Elige al personaje que te acompañará..."
+          />
+        </Field>
 
         <Field label="Modo de layout">
           <select
