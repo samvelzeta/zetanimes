@@ -271,5 +271,6 @@ export default function VastAdOverlay({
     </div>
   );
 
-  return portalEl ? createPortal(node, portalEl) : node;
+  // Only render when we have the player container — never as full-page overlay.
+  return portalEl ? createPortal(node, portalEl) : null;
 }
