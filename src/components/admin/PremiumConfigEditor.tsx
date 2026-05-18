@@ -109,7 +109,7 @@ export default function PremiumConfigEditor() {
   };
 
   const addPlan = async () => {
-    await upsertPlan(blankPlan());
+    await upsertPlan(blankPlan(plans.length));
     reload();
   };
 
