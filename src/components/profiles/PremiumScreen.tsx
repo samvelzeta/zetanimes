@@ -22,7 +22,7 @@ export default function PremiumScreen({ onClose }: Props) {
   const { user, profile } = useAuth();
   const isMobile = useIsMobile();
   const [plans, setPlans] = useState<PremiumPlan[]>([]);
-  const [settings, setSettings] = useState<(PremiumSettings & { checkout_character_image_url?: string | null }) | null>(null);
+  const [settings, setSettings] = useState<(PremiumSettings & { checkout_character_image_url?: string | null; character3_image_url?: string | null; character_hover_text_1?: string | null; character_hover_text_2?: string | null; character_hover_text_3?: string | null; companion_prompt?: string | null }) | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
   const [selected, setSelected] = useState<PremiumPlan | null>(null);
   const [step, setStep] = useState<Step>("plans");
@@ -30,6 +30,9 @@ export default function PremiumScreen({ onClose }: Props) {
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [companion, setCompanion] = useState<1 | 2 | 3 | null>(null);
+  const [hoverChar, setHoverChar] = useState<1 | 2 | 3 | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -41,6 +44,7 @@ export default function PremiumScreen({ onClose }: Props) {
       setPlans(p);
       setSettings(s as any);
       setPaymentInfo(pi.data);
+      setLoaded(true);
     });
   }, []);
 
@@ -97,13 +101,19 @@ export default function PremiumScreen({ onClose }: Props) {
 
   const characterUrl = settings?.character_image_url || null;
   const checkoutUrl = settings?.checkout_character_image_url || settings?.character_image_url || null;
+  const character3Url = (settings as any)?.character3_image_url || checkoutUrl;
   const bgUrl = settings?.background_image_url || null;
   const hasStripe = !!(settings?.stripe_enabled && settings?.stripe_payment_url);
   const hasAlt = !!settings?.alt_payment_url;
 
   // Trueque: en step "plans" imagen va a la DERECHA, en "method"/"manual" imagen va a la IZQUIERDA
   const imageOnRight = step === "plans";
-  const currentImg = step === "plans" ? characterUrl : checkoutUrl;
+  const currentImg = step === "plans" ? characterUrl : step === "method" ? checkoutUrl : character3Url;
+  const currentHover = step === "plans"
+    ? (settings as any)?.character_hover_text_1
+    : step === "method" ? (settings as any)?.character_hover_text_2
+    : (settings as any)?.character_hover_text_3;
+  const currentCharIdx: 1 | 2 | 3 = step === "plans" ? 1 : step === "method" ? 2 : 3;
 
   return (
     <div className="fixed inset-0 z-[120] bg-background flex flex-col overflow-hidden">
@@ -111,11 +121,11 @@ export default function PremiumScreen({ onClose }: Props) {
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary" />
       {bgUrl && (
         <div
-          className="absolute inset-0 opacity-15 pointer-events-none"
-          style={{ backgroundImage: `url(${bgUrl})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(2px)" }}
+          className="absolute inset-0 opacity-35 pointer-events-none"
+          style={{ backgroundImage: `url(${bgUrl})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(1px)" }}
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/40 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/40 to-background/30 pointer-events-none" />
 
       {/* Orbe decorativo animado */}
       <div className="pointer-events-none absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full opacity-30 blur-3xl animate-[pulseGlow_6s_ease-in-out_infinite]"
@@ -145,8 +155,15 @@ export default function PremiumScreen({ onClose }: Props) {
         </button>
       </div>
 
+      {/* Skeleton inicial para evitar flash vacío */}
+      {!loaded && (
+        <div className="relative z-10 flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
+
       {/* === MOBILE / APK === */}
-      {isMobile ? (
+      {loaded && isMobile ? (
         <MobileLayout
           step={step}
           plans={plans}
@@ -170,14 +187,13 @@ export default function PremiumScreen({ onClose }: Props) {
           onSetNotes={setNotes}
           onSubmit={submitRequest}
         />
-      ) : (
+      ) : loaded ? (
         // === PC: layout split que hace TRUEQUE ===
         <div className="relative z-10 flex-1 overflow-hidden">
           <div className="h-full max-w-[1400px] mx-auto px-8 py-6 grid grid-cols-2 gap-10 items-stretch">
             {/* PANEL IZQUIERDO */}
-            <div className="relative h-full overflow-hidden">
+            <div className="relative h-full overflow-visible">
               {imageOnRight ? (
-                // step=plans → izquierda muestra PLANES
                 <PanelContent key="plans-left" direction="left">
                   <PlansPanel
                     settings={settings}
@@ -186,18 +202,17 @@ export default function PremiumScreen({ onClose }: Props) {
                   />
                 </PanelContent>
               ) : (
-                // step=method/manual → izquierda muestra IMAGEN (la nueva)
                 <PanelContent key={`img-left-${step}`} direction="left">
-                  <CharacterPanel url={currentImg} accent={selected?.accent_color} />
+                  <CharacterPanel url={currentImg} accent={selected?.accent_color} hoverText={currentHover} />
                 </PanelContent>
               )}
             </div>
 
             {/* PANEL DERECHO */}
-            <div className="relative h-full overflow-hidden">
+            <div className="relative h-full overflow-visible">
               {imageOnRight ? (
                 <PanelContent key="img-right" direction="right">
-                  <CharacterPanel url={currentImg} />
+                  <CharacterPanel url={currentImg} hoverText={currentHover} />
                 </PanelContent>
               ) : step === "method" && selected ? (
                 <PanelContent key="method-right" direction="right">
@@ -231,7 +246,7 @@ export default function PremiumScreen({ onClose }: Props) {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       <style>{`
         @keyframes swapInFromLeft {
@@ -279,25 +294,32 @@ function PanelContent({ children, direction }: { children: React.ReactNode; dire
 }
 
 // ---------- IMAGEN PERSONAJE (PC) ----------
-function CharacterPanel({ url, accent }: { url: string | null; accent?: string | null }) {
+function CharacterPanel({ url, accent, hoverText }: { url: string | null; accent?: string | null; hoverText?: string | null }) {
   const glow = accent || "hsl(var(--primary))";
   return (
-    <div className="relative h-full w-full flex items-center justify-center pointer-events-none">
-      {/* Halo */}
+    <div className="relative h-full w-full flex items-center justify-center group">
       <div
-        className="absolute inset-8 rounded-[40%] opacity-40 blur-3xl"
+        className="absolute inset-8 rounded-[40%] opacity-40 blur-3xl pointer-events-none"
         style={{ background: `radial-gradient(circle, ${glow}55, transparent 60%)` }}
       />
       {url ? (
-        <img
-          src={url}
-          alt=""
-          className="relative max-h-full max-w-full w-auto h-auto object-contain"
-          style={{
-            filter: `drop-shadow(0 30px 60px rgba(0,0,0,.7)) drop-shadow(0 0 50px ${glow}66)`,
-            animation: "floatY 5s ease-in-out infinite",
-          }}
-        />
+        <>
+          <img
+            src={url}
+            alt=""
+            className="relative max-h-full max-w-full w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+            style={{
+              filter: `drop-shadow(0 30px 60px rgba(0,0,0,.7)) drop-shadow(0 0 50px ${glow}66)`,
+              animation: "floatY 5s ease-in-out infinite",
+            }}
+          />
+          {hoverText && (
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 max-w-[80%] px-4 py-2.5 rounded-2xl bg-card/95 backdrop-blur-md border-2 border-primary/40 shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-y-2 group-hover:translate-y-0 pointer-events-none">
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-r-2 border-b-2 border-primary/40 rotate-45" />
+              <p className="text-sm font-bold text-foreground text-center leading-snug italic">"{hoverText}"</p>
+            </div>
+          )}
+        </>
       ) : (
         <div className="w-full h-3/4 rounded-3xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground text-xs px-6 text-center">
           El admin puede subir aquí una imagen del personaje
