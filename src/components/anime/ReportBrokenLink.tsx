@@ -16,9 +16,11 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [reason, setReason] = useState("");
 
   const report = async (type: "episode" | "full") => {
     if (!user) return toast.error("Inicia sesión para reportar");
+    if (reason.trim().length < 500) return toast.error(`Describe el problema con al menos 500 caracteres (llevas ${reason.trim().length})`);
     setSending(true);
     try {
       const epNum = type === "full" ? null : episodeNumber;
