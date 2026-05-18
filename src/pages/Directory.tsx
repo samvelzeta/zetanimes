@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { getPopular, getByGenre, getTrending, getTopRated, getThisSeason, getMovies } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
-import { Filter, X, Tv, SearchX } from "lucide-react";
+import { Filter, X, Tv, SearchX, Loader2 } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 
@@ -54,17 +54,30 @@ export default function Directory() {
     }
   }, [genreParam]);
 
+  const isMovies = quickFilter === "movies";
+  const genreEn = selectedGenre ? (GENRE_MAP[selectedGenre] || selectedGenre) : null;
+
+  // Infinite query for Películas (con o sin género)
+  const moviesInfinite = useInfiniteQuery({
+    queryKey: ["directory-movies", genreEn],
+    queryFn: ({ pageParam = 1 }) => getMovies(pageParam, 30, genreEn),
+    getNextPageParam: (last) => (last.pageInfo.hasNextPage ? last.pageInfo.currentPage + 1 : undefined),
+    initialPageParam: 1,
+    enabled: isMovies,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["directory", selectedGenre, selectedYear, selectedStatus, quickFilter],
     queryFn: () => {
       if (quickFilter === "trending") return getTrending(1, 30);
       if (quickFilter === "top") return getTopRated(1, 30);
       if (quickFilter === "season") return getThisSeason(1, 30);
-      if (quickFilter === "movies") return getMovies(1, 30);
-      if (selectedGenre) return getByGenre(GENRE_MAP[selectedGenre] || selectedGenre, 1, 30);
+      if (selectedGenre) return getByGenre(genreEn!, 1, 30);
       return getPopular(1, 30);
     },
     staleTime: 1000 * 60 * 5,
+    enabled: !isMovies,
   });
 
   const { data: hiddenIds } = useQuery({
@@ -74,7 +87,27 @@ export default function Directory() {
     refetchOnMount: "always",
   });
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
-  const animes = (data?.media || []).filter((a) => !hiddenSet.has(a.id));
+
+  const rawMedia = isMovies
+    ? (moviesInfinite.data?.pages.flatMap((p) => p.media) || [])
+    : (data?.media || []);
+  const animes = rawMedia.filter((a) => !hiddenSet.has(a.id));
+  const loading = isMovies ? moviesInfinite.isLoading : isLoading;
+
+  // Intersection observer para scroll infinito de Películas
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!isMovies) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && moviesInfinite.hasNextPage && !moviesInfinite.isFetchingNextPage) {
+        moviesInfinite.fetchNextPage();
+      }
+    }, { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [isMovies, moviesInfinite.hasNextPage, moviesInfinite.isFetchingNextPage, moviesInfinite.fetchNextPage]);
 
   const clearFilters = () => {
     setSelectedGenre(null);
@@ -109,7 +142,7 @@ export default function Directory() {
         {QUICK_FILTERS.map((f) => (
           <button
             key={f.key}
-            onClick={() => { setQuickFilter(f.key); setSelectedGenre(null); }}
+            onClick={() => { setQuickFilter(f.key); if (f.key !== "movies") setSelectedGenre(null); }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${quickFilter === f.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
           >
             {f.label}
@@ -122,7 +155,7 @@ export default function Directory() {
         {GENRES.map((g) => (
           <button
             key={g}
-            onClick={() => { setSelectedGenre(g); setQuickFilter(null); }}
+            onClick={() => { setSelectedGenre(selectedGenre === g ? null : g); if (!isMovies) setQuickFilter(null); }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedGenre === g ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
           >
             {g}
@@ -181,7 +214,7 @@ export default function Directory() {
       <AdBannerInline size="728x90" className="mb-4" />
 
       {/* Results */}
-      {isLoading ? (
+      {loading ? (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
           {Array(18).fill(0).map((_, i) => (
             <div key={i}>
@@ -198,7 +231,22 @@ export default function Directory() {
         </div>
       )}
 
-      {!isLoading && animes.length === 0 && (
+      {/* Sentinel + spinner para scroll infinito (solo Películas) */}
+      {isMovies && !loading && (
+        <>
+          <div ref={sentinelRef} className="h-10" />
+          {moviesInfinite.isFetchingNextPage && (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          )}
+          {!moviesInfinite.hasNextPage && animes.length > 0 && (
+            <p className="text-center text-[10px] text-muted-foreground py-6">No hay más películas</p>
+          )}
+        </>
+      )}
+
+      {!loading && animes.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
           <SearchX className="w-10 h-10 text-muted" />
           <p className="text-muted-foreground text-sm">No encontramos resultados.</p>
