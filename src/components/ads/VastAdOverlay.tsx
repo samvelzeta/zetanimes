@@ -35,6 +35,29 @@ function markShown() {
   try { localStorage.setItem(COOLDOWN_KEY, String(Date.now())); } catch {}
 }
 
+function getFullscreenElement(): Element | null {
+  const doc = document as Document & { webkitFullscreenElement?: Element | null };
+  return document.fullscreenElement || doc.webkitFullscreenElement || null;
+}
+
+function isReplacedFullscreenElement(el: Element | null): boolean {
+  if (!(el instanceof HTMLElement)) return false;
+  return ["IFRAME", "VIDEO", "EMBED", "OBJECT"].includes(el.tagName);
+}
+
+async function switchFullscreenToPlayer(playerEl: HTMLElement) {
+  try {
+    if (document.fullscreenElement && document.fullscreenElement !== playerEl) {
+      await document.exitFullscreen();
+    }
+    if (!document.fullscreenElement && playerEl.isConnected) {
+      await playerEl.requestFullscreen?.();
+    }
+  } catch {
+    // Some browsers require a direct user gesture; the overlay still renders in normal player mode.
+  }
+}
+
 interface ParsedVast {
   mediaUrl: string;
   clickThrough?: string;
@@ -102,7 +125,7 @@ export default function VastAdOverlay({
   cooldownMs = 40 * 60 * 1000,
   skipAfter = 5,
 }: Props) {
-  const { isPremium, loading } = useAuth();
+  const { user, roles, isPremium, isOwner, loading } = useAuth();
   const [show, setShow] = useState(false);
   const [vast, setVast] = useState<ParsedVast | null>(null);
   const [error, setError] = useState(false);
@@ -113,10 +136,19 @@ export default function VastAdOverlay({
   const videoRef = useRef<HTMLVideoElement>(null);
   const pausedVideos = useRef<HTMLVideoElement[]>([]);
   const firedEvents = useRef<Set<string>>(new Set());
+  const authPending = loading || (!!user && roles.length === 0);
+  const adsExempt = isPremium || isOwner || roles.includes("premium") || roles.includes("owner");
+
+  useEffect(() => {
+    if (!adsExempt) return;
+    setShow(false);
+    setVast(null);
+    setError(false);
+  }, [adsExempt]);
 
   // Decide whether to show on episode change
   useEffect(() => {
-    if (loading || isPremium || !episodeKey) return;
+    if (authPending || adsExempt || !episodeKey) return;
     const cur = getCounter();
     if (cur.lastKey === episodeKey) return;
     const nextCount = cur.count + 1;
@@ -129,7 +161,7 @@ export default function VastAdOverlay({
       setSecs(skipAfter);
       firedEvents.current = new Set();
     }
-  }, [episodeKey, isPremium, loading, everyN, cooldownMs, skipAfter]);
+  }, [episodeKey, authPending, adsExempt, everyN, cooldownMs, skipAfter]);
 
   // Fetch VAST when opened
   useEffect(() => {
