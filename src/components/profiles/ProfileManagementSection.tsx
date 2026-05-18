@@ -49,9 +49,6 @@ export default function ProfileManagementSection() {
     await revokeAllDevices(user.id);
     toast.success("Todas las sesiones fueron cerradas");
     await signOut();
-    return;
-    await loadDevices();
-    window.dispatchEvent(new Event("zet:device-sessions-updated"));
   };
 
   if (!user) return null;
