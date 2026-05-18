@@ -54,17 +54,30 @@ export default function Directory() {
     }
   }, [genreParam]);
 
+  const isMovies = quickFilter === "movies";
+  const genreEn = selectedGenre ? (GENRE_MAP[selectedGenre] || selectedGenre) : null;
+
+  // Infinite query for Películas (con o sin género)
+  const moviesInfinite = useInfiniteQuery({
+    queryKey: ["directory-movies", genreEn],
+    queryFn: ({ pageParam = 1 }) => getMovies(pageParam, 30, genreEn),
+    getNextPageParam: (last) => (last.pageInfo.hasNextPage ? last.pageInfo.currentPage + 1 : undefined),
+    initialPageParam: 1,
+    enabled: isMovies,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["directory", selectedGenre, selectedYear, selectedStatus, quickFilter],
     queryFn: () => {
       if (quickFilter === "trending") return getTrending(1, 30);
       if (quickFilter === "top") return getTopRated(1, 30);
       if (quickFilter === "season") return getThisSeason(1, 30);
-      if (quickFilter === "movies") return getMovies(1, 30);
-      if (selectedGenre) return getByGenre(GENRE_MAP[selectedGenre] || selectedGenre, 1, 30);
+      if (selectedGenre) return getByGenre(genreEn!, 1, 30);
       return getPopular(1, 30);
     },
     staleTime: 1000 * 60 * 5,
+    enabled: !isMovies,
   });
 
   const { data: hiddenIds } = useQuery({
@@ -74,7 +87,27 @@ export default function Directory() {
     refetchOnMount: "always",
   });
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
-  const animes = (data?.media || []).filter((a) => !hiddenSet.has(a.id));
+
+  const rawMedia = isMovies
+    ? (moviesInfinite.data?.pages.flatMap((p) => p.media) || [])
+    : (data?.media || []);
+  const animes = rawMedia.filter((a) => !hiddenSet.has(a.id));
+  const loading = isMovies ? moviesInfinite.isLoading : isLoading;
+
+  // Intersection observer para scroll infinito de Películas
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!isMovies) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && moviesInfinite.hasNextPage && !moviesInfinite.isFetchingNextPage) {
+        moviesInfinite.fetchNextPage();
+      }
+    }, { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [isMovies, moviesInfinite.hasNextPage, moviesInfinite.isFetchingNextPage, moviesInfinite.fetchNextPage]);
 
   const clearFilters = () => {
     setSelectedGenre(null);
