@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, roles]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !rolesLoaded) return;
     const currentDeviceId = getDeviceId();
     const channel = supabase
       .channel(`device-session-${user.id}-${currentDeviceId}`)
@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, rolesLoaded]);
 
   useEffect(() => {
     if (!user || !rolesLoaded) return;
