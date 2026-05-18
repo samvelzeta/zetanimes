@@ -224,20 +224,29 @@ export default function Watch() {
   });
 
   // Latest_episode dinámico:
-  // - Para el idioma actual: gobierna el botón "Siguiente" y el auto-next.
-  // - El máximo absoluto entre idiomas amplía la lista de botones (botones nuevos sin hardcode).
+  // REGLA: si hay AL MENOS un servidor Seeke (URL madre o bloque) en CUALQUIER idioma,
+  // la VPS manda — `latest_episode` define cuántos botones se muestran. NUNCA se
+  // reconstruye el player con un capítulo viejo (p.ej. 1) cuando AniList dice
+  // que hay más capítulos de los que realmente existen en Seeke.
+  // Si no hay nada de Seeke en ningún idioma, recurrimos al techo de AniList/API.
   const latestForCurrentLang = latestCurrent ?? 0;
-  const dynamicMax = Math.max(baseTotalEpisodes, latestCurrent || 0, latestOpposite || 0);
-  const totalEpisodes = dynamicMax;
-  // Tope efectivo de navegación según el idioma actual: combina latest Seeke
-  // y el techo de AnimeAV1 (anilist episodes / nextAiringEpisode-1). Si NINGUNO
-  // de los dos cubre el episodio solicitado, se considera fantasma y se bloquea.
-  const av1Max = baseTotalEpisodes; // techo razonable de AnimeAV1 / API
-  const maxEpisodeForLang = Math.max(latestForCurrentLang, av1Max);
+  const hasAnySeekeSource = !!(currentBlock || currentSeekeBase || oppositeBlock || oppositeSeekeBase);
+  const hasSeekeForCurrentLang = !!(currentBlock || currentSeekeBase);
+  const seekeMax = Math.max(latestCurrent || 0, latestOpposite || 0);
+  const totalEpisodes = hasAnySeekeSource ? seekeMax : baseTotalEpisodes;
+  // Tope efectivo de navegación según el idioma actual:
+  // - Con Seeke en idioma actual → estricto a su latest_episode.
+  // - Sin Seeke en idioma actual pero con Seeke en el opuesto → usar el opuesto.
+  // - Sin Seeke en ningún idioma → cae a AniList/API.
+  const av1Max = baseTotalEpisodes;
+  const maxEpisodeForLang = hasSeekeForCurrentLang
+    ? latestForCurrentLang
+    : (hasAnySeekeSource ? (latestOpposite || 0) : av1Max);
   const isEpisodeBlocked = selectedEp > maxEpisodeForLang && maxEpisodeForLang > 0;
-  // Si Seeke ya no cubre el ep actual, NO usamos su URL (forzamos AV1).
+  // Si Seeke ya no cubre el ep actual, NO usamos su URL (forzamos AV1 sólo si NO hay seeke en ningún idioma).
   const seekeCoversCurrent = latestForCurrentLang > 0 ? selectedEp <= latestForCurrentLang : true;
-  const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, selectedEp) }, (_, i) => i + 1);
+  // Sin padding con selectedEp: si el usuario pide un ep > tope, se bloquea arriba.
+  const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, 0) }, (_, i) => i + 1);
 
   const { data: oppositeServerData } = useQuery({
     queryKey: ["zet-servers-opposite", zetSlug, selectedEp, oppositeLang],
