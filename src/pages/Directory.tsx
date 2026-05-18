@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { getPopular, getByGenre, getTrending, getTopRated, getThisSeason } from "@/lib/anilist";
+import { getPopular, getByGenre, getTrending, getTopRated, getThisSeason, getMovies } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
 import { Filter, X, Tv, SearchX } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
