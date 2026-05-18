@@ -5,7 +5,7 @@ export interface PremiumPlan {
   name: string;
   price_label: string;
   period: string; // monthly|yearly|lifetime|custom
-  membership_type: "annual" | "lifetime";
+  membership_type: "monthly" | "annual" | "lifetime";
   tier: string; // solo | duo | trio
   profile_count: number;
   simultaneous_sessions: number;
