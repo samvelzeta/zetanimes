@@ -27,6 +27,7 @@ const QUICK_FILTERS = [
   { key: "popular",  label: "⭐ Popular"   },
   { key: "top",      label: "🏆 Top Rating" },
   { key: "season",   label: "🌸 Temporada" },
+  { key: "movies",   label: "🎬 Películas" },
 ];
 
 // Reverse map: English genre -> Spanish label
