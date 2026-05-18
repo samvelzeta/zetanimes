@@ -1,7 +1,8 @@
 // VAST video ad overlay (ExoClick / MagSrv).
 // - Fetches & parses VAST XML, plays the first MediaFile in an HTML5 <video>.
-// - Pauses ALL other <video> elements on the page while the ad runs (no audio overlap).
-// - Works in fullscreen: portals into document.fullscreenElement when active.
+// - Renders INSIDE the #player-video container (absolute inset-0) — never covers the whole page.
+// - Travels into fullscreen automatically because #player-video is the element that goes fullscreen.
+// - Pauses ALL other <video> elements while the ad runs (no audio overlap).
 // - Frequency: shows after `everyN` episode changes AND >= `cooldownMs` since last impression.
 // - Premium users are exempt.
 import { useEffect, useRef, useState } from "react";
