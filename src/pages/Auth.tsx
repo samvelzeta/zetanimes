@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { markFreshLogin } from "@/lib/devices";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
@@ -49,6 +50,7 @@ function LoginForm({ onSwitch, onSuccess }: { onSwitch: (m: "login" | "register"
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
+    markFreshLogin();
     toast.success("¡Bienvenido de vuelta!");
     onSuccess();
   };
