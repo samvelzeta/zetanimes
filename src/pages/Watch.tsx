@@ -17,7 +17,6 @@ import {
   Globe, Bug, ChevronDown, List,
 } from "lucide-react";
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
-import AdOverlayGate from "@/components/ads/AdOverlayGate";
 import VastAdOverlay from "@/components/ads/VastAdOverlay";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import PlayerOverlay from "@/components/video/PlayerOverlay";
@@ -742,12 +741,6 @@ export default function Watch() {
                 onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
                 onNext={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
                 containerRef={playerWrapperRef}
-              />
-              {/* Ad gate (banner 300x250) cada 2 episodios — bloquea video hasta cerrar */}
-              <AdOverlayGate
-                episodeKey={`${anilistId}-${selectedEp}`}
-                everyN={2}
-                countdownSecs={5}
               />
               {/* VAST video ad (ExoClick) — cada 2 episodios con cooldown de 40min, funciona en fullscreen */}
               <VastAdOverlay
