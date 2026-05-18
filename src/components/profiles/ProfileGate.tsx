@@ -84,6 +84,9 @@ export default function ProfileGate() {
     return <DeviceLimitModal current={deviceCheck.current} limit={deviceCheck.limit} />;
   }
 
+  // En /profile siempre dejamos pasar: ahí es donde se cierran sesiones/dispositivos.
+  if (isProfileRoute) return null;
+
   // 2) PIN del perfil pendiente (cuando seleccionamos uno protegido)
   if (pendingProfile) {
     return (
