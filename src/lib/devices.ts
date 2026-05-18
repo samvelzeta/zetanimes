@@ -47,7 +47,7 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean, 
     .limit(1);
 
   const currentRecord = currentRows?.[0] as DeviceSession | undefined;
-  if (currentRecord?.revoked_at && (!currentRecord.session_fingerprint || currentRecord.session_fingerprint === fingerprint)) {
+  if (currentRecord?.revoked_at) {
     return { allowed: false, limit, current: 0, isCurrent: true, revoked: true };
   }
 
