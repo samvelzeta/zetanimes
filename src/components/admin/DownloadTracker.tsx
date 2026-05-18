@@ -136,17 +136,6 @@ export default function DownloadTracker() {
     setExpandedTracker(trackerId);
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true);
-    try {
-      const res = await searchAnime(searchQuery, 1, 10);
-      setSearchResults(res.media);
-    } catch {
-      toast.error("Error buscando en AniList");
-    }
-    setSearching(false);
-  };
 
   const addAnime = async (anime: AniListMedia) => {
     // Check if already tracked
