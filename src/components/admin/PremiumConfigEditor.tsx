@@ -55,16 +55,18 @@ export default function PremiumConfigEditor() {
     toast.success("Configuración guardada");
   };
 
-  const uploadAsset = async (e: React.ChangeEvent<HTMLInputElement>, kind: "character" | "background" | "checkout") => {
+  const uploadAsset = async (e: React.ChangeEvent<HTMLInputElement>, kind: "character" | "background" | "checkout" | "character3") => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(kind as any);
     try {
-      const url = await uploadPremiumAsset(file, kind === "checkout" ? "character" : kind);
+      const k = kind === "checkout" ? "character2" : kind === "character3" ? "character3" : kind;
+      const url = await uploadPremiumAsset(file, k as any);
       const patch =
         kind === "character" ? { character_image_url: url } :
         kind === "background" ? { background_image_url: url } :
-        { checkout_character_image_url: url };
+        kind === "checkout" ? { checkout_character_image_url: url } :
+        { character3_image_url: url };
       handleSettings(patch as any);
       await savePremiumSettings(patch as any);
       toast.success("Imagen subida");
@@ -75,11 +77,12 @@ export default function PremiumConfigEditor() {
     }
   };
 
-  const removeAsset = async (kind: "character" | "background" | "checkout") => {
+  const removeAsset = async (kind: "character" | "background" | "checkout" | "character3") => {
     const patch =
       kind === "character" ? { character_image_url: null } :
       kind === "background" ? { background_image_url: null } :
-      { checkout_character_image_url: null };
+      kind === "checkout" ? { checkout_character_image_url: null } :
+      { character3_image_url: null };
     handleSettings(patch as any);
     await savePremiumSettings(patch as any);
   };
