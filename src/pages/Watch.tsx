@@ -755,7 +755,7 @@ export default function Watch() {
                 vastUrl="https://s.magsrv.com/v1/vast.php?idzone=5929298"
                 everyN={2}
                 cooldownMs={40 * 60 * 1000}
-                skipAfter={5}
+                skipAfter={18}
               />
             </>
           ) : (
