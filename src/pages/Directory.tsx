@@ -142,7 +142,7 @@ export default function Directory() {
         {QUICK_FILTERS.map((f) => (
           <button
             key={f.key}
-            onClick={() => { setQuickFilter(f.key); setSelectedGenre(null); }}
+            onClick={() => { setQuickFilter(f.key); if (f.key !== "movies") setSelectedGenre(null); }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${quickFilter === f.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
           >
             {f.label}
