@@ -121,11 +121,11 @@ export default function PremiumScreen({ onClose }: Props) {
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary" />
       {bgUrl && (
         <div
-          className="absolute inset-0 opacity-35 pointer-events-none"
-          style={{ backgroundImage: `url(${bgUrl})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(1px)" }}
+          className="absolute inset-0 opacity-55 pointer-events-none"
+          style={{ backgroundImage: `url(${bgUrl})`, backgroundSize: "cover", backgroundPosition: "center", filter: "blur(.5px)" }}
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/40 to-background/30 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-background/25 to-background/15 pointer-events-none" />
 
       {/* Orbe decorativo animado */}
       <div className="pointer-events-none absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full opacity-30 blur-3xl animate-[pulseGlow_6s_ease-in-out_infinite]"
@@ -190,7 +190,7 @@ export default function PremiumScreen({ onClose }: Props) {
       ) : loaded ? (
         // === PC: layout split que hace TRUEQUE ===
         <div className="relative z-10 flex-1 overflow-hidden">
-          <div className="h-full max-w-[1600px] mx-auto px-8 py-5 grid grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)] gap-8 items-stretch">
+          <div className="h-full max-w-[1580px] mx-auto px-10 py-5 grid grid-cols-[minmax(0,1.12fr)_minmax(380px,1fr)] gap-10 items-stretch">
             {/* PANEL IZQUIERDO */}
             <div className="relative h-full overflow-visible">
               {step === "plans" ? (
@@ -285,7 +285,7 @@ export default function PremiumScreen({ onClose }: Props) {
 function PanelContent({ children, direction }: { children: React.ReactNode; direction: "left" | "right" }) {
   return (
     <div
-      className="h-full w-full overflow-hidden"
+      className="h-full w-full overflow-visible"
       style={{ animation: `${direction === "left" ? "swapInFromLeft" : "swapInFromRight"} 0.55s cubic-bezier(0.16,1,0.3,1)` }}
     >
       {children}
