@@ -347,14 +347,14 @@ function PlansPanel({ settings, plans, onPick }: any) {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2 xl:grid-cols-3 pt-2">
           {plans.map((plan: PremiumPlan, i: number) => {
             const accent = plan.accent_color || "hsl(var(--primary))";
             return (
               <button
                 key={plan.id}
                 onClick={() => onPick(plan)}
-                className="group relative text-left rounded-2xl border-2 p-5 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 anim-rise overflow-hidden"
+                className="group relative text-left rounded-2xl border-2 p-4 pt-6 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 anim-rise overflow-visible"
                 style={{
                   borderColor: accent + "55",
                   boxShadow: `0 12px 32px ${accent}22`,
@@ -366,14 +366,14 @@ function PlansPanel({ settings, plans, onPick }: any) {
                   style={{ background: `linear-gradient(90deg, transparent, ${accent}22, transparent)`, backgroundSize: "200% 100%", animation: "shimmer 1.5s linear infinite" }} />
                 {plan.badge && (
                   <span
-                    className="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-lg"
+                    className="absolute top-0 right-4 -translate-y-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-lg z-10 whitespace-nowrap"
                     style={{ background: accent, boxShadow: `0 4px 12px ${accent}88` }}
                   >
                     {plan.badge}
                   </span>
                 )}
-                <h3 className="text-lg font-black mb-1 text-foreground">{plan.name}</h3>
-                <p className="text-3xl font-black mb-3" style={{ color: accent }}>{plan.price_label}</p>
+                <h3 className="text-base font-black mb-1 text-foreground">{plan.name}</h3>
+                <p className="text-2xl font-black mb-3" style={{ color: accent }}>{plan.price_label}</p>
                 <ul className="space-y-1.5 mb-4 text-[12px]">
                   {plan.features.slice(0, 5).map((f: string, idx: number) => (
                     <li key={idx} className="flex items-start gap-1.5">
