@@ -83,7 +83,7 @@ export default function ProfileManagementSection() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-foreground">Dispositivos conectados ({devices.length}/{deviceLimit})</p>
-            <p className="text-[10px] text-muted-foreground">{isOwner ? "Owner · sin límite" : premiumAccess ? "Premium · 3 dispositivos" : "Gratis · 1 dispositivo"}</p>
+            <p className="text-[10px] text-muted-foreground">{isOwner ? "Owner · sin límite" : premiumAccess ? "Premium · 5 dispositivos" : "Gratis · 1 dispositivo"}</p>
           </div>
           {devices.length > 0 && (
             <button
@@ -125,10 +125,10 @@ export default function ProfileManagementSection() {
           </div>
         )}
 
-        {!premiumAccess && devices.length >= deviceLimit && (
+        {!premiumAccess && devices.length > deviceLimit && (
           <div className="mt-3 p-2.5 rounded-lg bg-primary/10 border border-primary/30 text-[10px] text-primary flex items-center gap-2">
             <AlertTriangle className="w-3.5 h-3.5" />
-            Estás en el límite. Puedes cerrar dispositivos aquí o subir a Premium para conectar hasta 3.
+            Hay más dispositivos de los permitidos. Cierra el otro dispositivo aquí o sube a Premium para conectar hasta 5.
           </div>
         )}
       </div>
