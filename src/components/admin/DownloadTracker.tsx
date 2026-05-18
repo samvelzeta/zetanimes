@@ -51,8 +51,44 @@ export default function DownloadTracker() {
   const [showSearch, setShowSearch] = useState(false);
   const [expandedTracker, setExpandedTracker] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [resultStatus, setResultStatus] = useState<Record<number, TrackerStatus | null>>({});
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const { user } = useAuth();
+
+  const fetchResultStatuses = useCallback(async (ids: number[]) => {
+    if (ids.length === 0) { setResultStatus({}); return; }
+    const { data } = await supabase
+      .from("anime_download_tracker")
+      .select("anilist_id, status")
+      .in("anilist_id", ids);
+    const map: Record<number, TrackerStatus | null> = {};
+    ids.forEach((id) => { map[id] = null; });
+    (data || []).forEach((row: any) => { map[row.anilist_id] = row.status as TrackerStatus; });
+    setResultStatus(map);
+  }, []);
+
+  const handleSearch = (val: string) => {
+    setSearchQuery(val);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (val.trim().length < 2) {
+      setSearchResults([]);
+      setResultStatus({});
+      return;
+    }
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await searchAnime(val, 1, 12);
+        const media = res.media || [];
+        setSearchResults(media);
+        await fetchResultStatuses(media.map((m) => m.id));
+      } catch {
+        setSearchResults([]);
+      }
+      setSearching(false);
+    }, 350);
+  };
 
   const loadTrackers = useCallback(async (statusOverride?: TrackerStatus) => {
     const status = statusOverride || activeStatus;
