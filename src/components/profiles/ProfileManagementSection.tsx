@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
-import { Users, Smartphone, Loader2, Trash2, Crown, Plus, KeyRound, AlertTriangle } from "lucide-react";
+import { Users, Smartphone, Loader2, Trash2, Plus, KeyRound, AlertTriangle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { getDeviceLimit, listMyDevices, revokeAllDevices, revokeDevice, type DeviceSession } from "@/lib/devices";
 import { getDeviceId } from "@/lib/device-id";
@@ -90,12 +90,23 @@ export default function ProfileManagementSection() {
             <p className="text-[10px] text-muted-foreground">{unlimitedDevices ? "Admin · sin bloqueo" : premiumAccess ? "Premium · 5 dispositivos" : "Gratis · 1 dispositivo"}</p>
           </div>
           {devices.length > 0 && (
-            <button
-              onClick={handleRevokeAll}
-              className="px-2.5 py-1.5 rounded-md border border-border text-[10px] font-bold text-foreground hover:border-primary hover:text-primary transition"
-            >
-              Cerrar todas
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={loadDevices}
+                disabled={loadingDevices}
+                className="h-7 w-7 rounded-md border border-border text-foreground hover:border-primary hover:text-primary disabled:opacity-50 transition flex items-center justify-center"
+                title="Actualizar dispositivos"
+                aria-label="Actualizar dispositivos"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loadingDevices ? "animate-spin" : ""}`} />
+              </button>
+              <button
+                onClick={handleRevokeAll}
+                className="px-2.5 py-1.5 rounded-md border border-border text-[10px] font-bold text-foreground hover:border-primary hover:text-primary transition"
+              >
+                Cerrar todas
+              </button>
+            </div>
           )}
         </div>
 

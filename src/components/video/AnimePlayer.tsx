@@ -402,6 +402,25 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, [inWebView]);
 
+  // Si un servidor externo intenta poner su iframe/video en fullscreen nativo,
+  // lo cambiamos al contenedor del player para que los overlays internos (VAST) sigan visibles.
+  useEffect(() => {
+    const onFsChange = async () => {
+      const host = containerRef.current;
+      const fullscreenEl = document.fullscreenElement as HTMLElement | null;
+      if (!host || !fullscreenEl || fullscreenEl === host || !host.contains(fullscreenEl)) return;
+      if (fullscreenEl.tagName !== "IFRAME" && fullscreenEl.tagName !== "VIDEO") return;
+      try {
+        await document.exitFullscreen();
+        await host.requestFullscreen?.();
+      } catch {
+        void 0;
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
   // ── Custom SRT renderer: lee el .srt, lo parsea y lo pinta sobre el video ──
   useEffect(() => {
     const preferred = getPreferredSubtitle(effectiveSubtitles);
@@ -784,7 +803,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   // Embed mode: usar el player externo si viene como iframe/video embebido o URL de reproductor.
   if (currentSource?.type === "embed" || currentSource?.type === "html") {
     return (
-      <div id="player-video" className="relative aspect-video bg-black rounded-xl overflow-hidden">
+      <div ref={containerRef} id="playerVideo" data-player-video="true" className="relative aspect-video bg-black rounded-xl overflow-hidden">
         {currentSource.type === "html" ? (
           <div className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_video]:w-full [&_video]:h-full" dangerouslySetInnerHTML={{ __html: currentSource.url }} />
         ) : (
@@ -806,7 +825,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   return (
     <div
       ref={containerRef}
-      id="player-video"
+      id="playerVideo"
+      data-player-video="true"
       className="relative aspect-video bg-black rounded-xl overflow-hidden group cursor-pointer select-none"
       onMouseMove={() => { if (!isMobileLike) showControlsTemp(); }}
       onMouseLeave={() => {

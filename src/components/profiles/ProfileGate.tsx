@@ -13,10 +13,11 @@ import {
 import { registerCurrentDevice } from "@/lib/devices";
 
 const SKIP_PATHS = ["/auth", "/reset-password", "/download"];
+const DEVICE_WARNING_KEY = "zet:device-limit-warnings";
 
 export default function ProfileGate() {
   const location = useLocation();
-  const { user, isPremium, isOwner, isAdmin, loading: authLoading } = useAuth();
+  const { user, isPremium, isOwner, isAdmin, loading: authLoading, signOut } = useAuth();
   const { profiles, loading: profilesLoading, refresh, selectProfile } = useProfiles();
 
   const [pendingProfile, setPendingProfile] = useState<AccountProfile | null>(null);
@@ -24,6 +25,7 @@ export default function ProfileGate() {
   const autoCreatingRef = useRef(false);
   const [ensuringMainProfile, setEnsuringMainProfile] = useState(false);
   const [deviceChecked, setDeviceChecked] = useState(false);
+  const [dismissedDeviceAlertPath, setDismissedDeviceAlertPath] = useState<string | null>(null);
 
   const skip = SKIP_PATHS.some((p) => location.pathname.startsWith(p));
   const isProfileRoute = location.pathname.startsWith("/profile");
@@ -33,6 +35,9 @@ export default function ProfileGate() {
     const result = await registerCurrentDevice(user.id, isPremium, isOwner || isAdmin);
     setDeviceCheck(result);
     setDeviceChecked(true);
+    if (result.allowed) {
+      try { sessionStorage.removeItem(DEVICE_WARNING_KEY); } catch {}
+    }
   };
 
   // Registrar dispositivo y verificar límite
@@ -52,6 +57,21 @@ export default function ProfileGate() {
       setDeviceChecked(false);
     }
   }, [user, skip]);
+
+  useEffect(() => {
+    setDismissedDeviceAlertPath(null);
+  }, [location.pathname, location.search]);
+
+  const handleDeviceAlertClose = async () => {
+    const warnings = Number(sessionStorage.getItem(DEVICE_WARNING_KEY) || 0) + 1;
+    try { sessionStorage.setItem(DEVICE_WARNING_KEY, String(warnings)); } catch {}
+    if (warnings >= 3) {
+      try { sessionStorage.removeItem(DEVICE_WARNING_KEY); } catch {}
+      await signOut();
+      return;
+    }
+    setDismissedDeviceAlertPath(`${location.pathname}${location.search}`);
+  };
 
   // Refrescar perfiles cuando cambia el usuario
   useEffect(() => { if (user) refresh(); }, [user, refresh]);
@@ -80,8 +100,8 @@ export default function ProfileGate() {
   if (profilesLoading || ensuringMainProfile || profiles.length === 0 || !deviceChecked) return null;
 
   // 1) Bloqueo por dispositivos
-  if (deviceCheck && !deviceCheck.allowed && !isProfileRoute) {
-    return <DeviceLimitModal current={deviceCheck.current} limit={deviceCheck.limit} />;
+  if (deviceCheck && !deviceCheck.allowed && !isProfileRoute && dismissedDeviceAlertPath !== `${location.pathname}${location.search}`) {
+    return <DeviceLimitModal current={deviceCheck.current} limit={deviceCheck.limit} onClose={handleDeviceAlertClose} />;
   }
 
   // En /profile siempre dejamos pasar: ahí es donde se cierran sesiones/dispositivos.
