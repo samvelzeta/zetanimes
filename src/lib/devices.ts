@@ -124,12 +124,21 @@ export async function touchCurrentDevice(userId: string): Promise<void> {
 
 export async function isCurrentDeviceSessionValid(userId: string): Promise<boolean> {
   const info = getDeviceInfo();
-  const { data } = await supabase.rpc("is_device_session_valid", {
-    _user_id: userId,
-    _device_id: info.deviceId,
-    _session_fingerprint: await sessionFingerprint(),
-  });
-  return data === true;
+  // Validación basada SOLO en device_id + revoked_at.
+  // (Antes se usaba un fingerprint del access_token, pero Supabase rota el token
+  // cada hora y eso provocaba cierres de sesión automáticos.)
+  const { data, error } = await supabase
+    .from("device_sessions")
+    .select("id, revoked_at")
+    .eq("user_id", userId)
+    .eq("device_id", info.deviceId)
+    .order("last_active_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return true; // ante error de red, no cerrar sesión
+  if (!data) return true; // dispositivo aún no registrado → permitir
+  return !data.revoked_at;
 }
 
 export function getDeviceLimit(isPremium: boolean, isOwner = false): number {
