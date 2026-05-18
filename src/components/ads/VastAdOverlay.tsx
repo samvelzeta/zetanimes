@@ -158,17 +158,19 @@ export default function VastAdOverlay({
     };
   }, [show, vast]);
 
-  // Fullscreen-aware portal target
+  // Portal target: the #player-video container (so the ad lives inside the player
+  // in normal mode AND travels into fullscreen with it).
   useEffect(() => {
     if (!show) return;
-    const update = () => setPortalEl(document.fullscreenElement || null);
-    update();
-    document.addEventListener("fullscreenchange", update);
-    document.addEventListener("webkitfullscreenchange", update as any);
-    return () => {
-      document.removeEventListener("fullscreenchange", update);
-      document.removeEventListener("webkitfullscreenchange", update as any);
+    const find = () => {
+      const el = document.getElementById("player-video");
+      setPortalEl(el || null);
     };
+    find();
+    // Retry briefly in case the player mounts a tick later
+    const t1 = setTimeout(find, 100);
+    const t2 = setTimeout(find, 500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [show]);
 
   // Skip countdown
