@@ -1,4 +1,4 @@
-import { Crown, ShieldX } from "lucide-react";
+import { Crown, ShieldX, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Props {
@@ -12,6 +12,15 @@ export default function DeviceLimitModal({ current, limit, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-[120] bg-background/95 backdrop-blur-xl flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-card border-2 border-destructive/40 rounded-2xl p-6 shadow-2xl text-center">
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="ml-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-foreground hover:bg-muted"
+            aria-label="Cerrar alerta"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
         <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
           <ShieldX className="w-8 h-8 text-destructive" />
         </div>
