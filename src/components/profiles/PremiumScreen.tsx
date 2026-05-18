@@ -504,7 +504,68 @@ function MobileLayout({
   );
 }
 
-// ---------- Step: elegir método ----------
+// ---------- PLAN CARD MOBILE (con badge visible y features desplegables) ----------
+function PlanCardMobile({ plan, accent, index, onPick }: { plan: PremiumPlan; accent: string; index: number; onPick: (p: PremiumPlan) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const visibleCount = expanded ? plan.features.length : 3;
+  const extra = plan.features.length - 3;
+  return (
+    <div className="relative overflow-visible" style={{ zIndex: 1 }}>
+      {plan.badge && (
+        <span
+          className="absolute -top-2 right-3 z-30 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-white shadow-lg pointer-events-none whitespace-nowrap"
+          style={{ background: accent, boxShadow: `0 4px 12px ${accent}88` }}
+        >
+          {plan.badge}
+        </span>
+      )}
+      <button
+        onClick={() => onPick(plan)}
+        className="group w-full text-left rounded-2xl bg-card/90 backdrop-blur-sm border-2 p-4 transition active:scale-[0.98] anim-rise relative overflow-visible"
+        style={{
+          borderColor: accent + "44",
+          boxShadow: `0 10px 28px ${accent}1f`,
+          animationDelay: `${0.05 + index * 0.07}s`,
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-black text-foreground truncate">{plan.name}</h3>
+            <p className="text-2xl font-black mt-0.5 mb-2" style={{ color: accent }}>{plan.price_label}</p>
+            <ul className="space-y-1">
+              {plan.features.slice(0, visibleCount).map((f: string, idx: number) => (
+                <li key={idx} className="flex items-start gap-1.5 text-[11px] text-foreground/85">
+                  <Check className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: accent }} />
+                  <span className="leading-snug">{f}</span>
+                </li>
+              ))}
+              {extra > 0 && (
+                <li>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); e.preventDefault(); setExpanded((v) => !v); } }}
+                    className="inline-block mt-1 text-[10px] font-bold underline-offset-2 hover:underline cursor-pointer"
+                    style={{ color: accent }}
+                  >
+                    {expanded ? "Ver menos ▲" : `+${extra} más ▼`}
+                  </span>
+                </li>
+              )}
+            </ul>
+          </div>
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition group-active:scale-90"
+            style={{ background: accent, boxShadow: `0 6px 16px ${accent}66` }}
+          >
+            <ChevronRight className="w-4 h-4 text-white" />
+          </div>
+        </div>
+      </button>
+    </div>
+  );
+}
 function MethodPanel({ selected, hasStripe, hasAlt, settings, onBack, onStripe, onManual, compact }: any) {
   const accent = selected.accent_color || "hsl(var(--primary))";
   return (
