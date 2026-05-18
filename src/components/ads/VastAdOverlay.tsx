@@ -1,7 +1,8 @@
 // VAST video ad overlay (ExoClick / MagSrv).
 // - Fetches & parses VAST XML, plays the first MediaFile in an HTML5 <video>.
-// - Pauses ALL other <video> elements on the page while the ad runs (no audio overlap).
-// - Works in fullscreen: portals into document.fullscreenElement when active.
+// - Renders INSIDE the #player-video container (absolute inset-0) — never covers the whole page.
+// - Travels into fullscreen automatically because #player-video is the element that goes fullscreen.
+// - Pauses ALL other <video> elements while the ad runs (no audio overlap).
 // - Frequency: shows after `everyN` episode changes AND >= `cooldownMs` since last impression.
 // - Premium users are exempt.
 import { useEffect, useRef, useState } from "react";
@@ -157,17 +158,19 @@ export default function VastAdOverlay({
     };
   }, [show, vast]);
 
-  // Fullscreen-aware portal target
+  // Portal target: the #player-video container (so the ad lives inside the player
+  // in normal mode AND travels into fullscreen with it).
   useEffect(() => {
     if (!show) return;
-    const update = () => setPortalEl(document.fullscreenElement || null);
-    update();
-    document.addEventListener("fullscreenchange", update);
-    document.addEventListener("webkitfullscreenchange", update as any);
-    return () => {
-      document.removeEventListener("fullscreenchange", update);
-      document.removeEventListener("webkitfullscreenchange", update as any);
+    const find = () => {
+      const el = document.getElementById("player-video");
+      setPortalEl(el || null);
     };
+    find();
+    // Retry briefly in case the player mounts a tick later
+    const t1 = setTimeout(find, 100);
+    const t2 = setTimeout(find, 500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [show]);
 
   // Skip countdown
@@ -200,7 +203,7 @@ export default function VastAdOverlay({
 
   const node = (
     <div
-      className="fixed inset-0 z-[2147483647] bg-black flex items-center justify-center"
+      className="absolute inset-0 z-50 bg-black flex items-center justify-center"
       onClick={(e) => e.stopPropagation()}
     >
       {!vast && !error && (
@@ -268,5 +271,6 @@ export default function VastAdOverlay({
     </div>
   );
 
-  return portalEl ? createPortal(node, portalEl) : node;
+  // Only render when we have the player container — never as full-page overlay.
+  return portalEl ? createPortal(node, portalEl) : null;
 }
