@@ -35,6 +35,11 @@ function markShown() {
   try { localStorage.setItem(COOLDOWN_KEY, String(Date.now())); } catch {}
 }
 
+function getFullscreenElement(): Element | null {
+  const doc = document as Document & { webkitFullscreenElement?: Element | null };
+  return document.fullscreenElement || doc.webkitFullscreenElement || null;
+}
+
 interface ParsedVast {
   mediaUrl: string;
   clickThrough?: string;
@@ -102,21 +107,32 @@ export default function VastAdOverlay({
   cooldownMs = 40 * 60 * 1000,
   skipAfter = 5,
 }: Props) {
-  const { isPremium, loading } = useAuth();
+  const { user, roles, isPremium, isOwner, loading } = useAuth();
   const [show, setShow] = useState(false);
   const [vast, setVast] = useState<ParsedVast | null>(null);
   const [error, setError] = useState(false);
   const [secs, setSecs] = useState(skipAfter);
   const [muted, setMuted] = useState(false);
   const [portalEl, setPortalEl] = useState<Element | null>(null);
+  const [useFullscreenDialog, setUseFullscreenDialog] = useState(false);
   const [, force] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const pausedVideos = useRef<HTMLVideoElement[]>([]);
   const firedEvents = useRef<Set<string>>(new Set());
+  const authPending = loading;
+  const adsExempt = isPremium || isOwner || roles.includes("premium") || roles.includes("owner");
+
+  useEffect(() => {
+    if (!adsExempt) return;
+    setShow(false);
+    setVast(null);
+    setError(false);
+  }, [adsExempt]);
 
   // Decide whether to show on episode change
   useEffect(() => {
-    if (loading || isPremium || !episodeKey) return;
+    if (authPending || adsExempt || !episodeKey) return;
     const cur = getCounter();
     if (cur.lastKey === episodeKey) return;
     const nextCount = cur.count + 1;
@@ -129,7 +145,7 @@ export default function VastAdOverlay({
       setSecs(skipAfter);
       firedEvents.current = new Set();
     }
-  }, [episodeKey, isPremium, loading, everyN, cooldownMs, skipAfter]);
+  }, [episodeKey, authPending, adsExempt, everyN, cooldownMs, skipAfter]);
 
   // Fetch VAST when opened
   useEffect(() => {
@@ -158,20 +174,42 @@ export default function VastAdOverlay({
     };
   }, [show, vast]);
 
-  // Portal target: the #player-video container (so the ad lives inside the player
-  // in normal mode AND travels into fullscreen with it).
+  // Portal target: in normal mode render inside #player-video; in fullscreen use
+  // a modal dialog top-layer so the ad is above native/iframe fullscreen surfaces.
   useEffect(() => {
     if (!show) return;
     const find = () => {
-      const el = document.getElementById("player-video");
-      setPortalEl(el || null);
+      const playerEl = document.getElementById("player-video");
+      const fullscreenEl = getFullscreenElement();
+      setUseFullscreenDialog(!!fullscreenEl);
+      setPortalEl(playerEl || null);
     };
     find();
+    const onFsChange = () => find();
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange as EventListener);
     // Retry briefly in case the player mounts a tick later
     const t1 = setTimeout(find, 100);
     const t2 = setTimeout(find, 500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    const t3 = setTimeout(onFsChange, 900);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange as EventListener);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [show]);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (show && useFullscreenDialog && !dialog.open) {
+      try { dialog.showModal(); } catch {}
+    } else if ((!show || !useFullscreenDialog) && dialog.open) {
+      try { dialog.close(); } catch {}
+    }
+  }, [show, useFullscreenDialog]);
 
   // Skip countdown
   useEffect(() => {
@@ -180,7 +218,7 @@ export default function VastAdOverlay({
     return () => clearTimeout(t);
   }, [show, vast, secs]);
 
-  if (loading || isPremium || !show) return null;
+  if (authPending || adsExempt || !show) return null;
 
   const fireOnce = (evt: string) => {
     if (firedEvents.current.has(evt)) return;
@@ -203,7 +241,7 @@ export default function VastAdOverlay({
 
   const node = (
     <div
-      className="absolute inset-0 z-50 bg-black flex items-center justify-center"
+      className="absolute inset-0 z-[2147483647] bg-black flex items-center justify-center"
       onClick={(e) => e.stopPropagation()}
     >
       {!vast && !error && (
@@ -271,6 +309,20 @@ export default function VastAdOverlay({
     </div>
   );
 
-  // Only render when we have the player container — never as full-page overlay.
+  const fullscreenNode = (
+    <dialog
+      ref={dialogRef}
+      className="fixed inset-0 z-[2147483647] m-0 h-dvh w-dvw max-h-none max-w-none overflow-hidden border-0 bg-black p-0 backdrop:bg-black"
+      onCancel={(e) => e.preventDefault()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="relative h-full w-full overflow-hidden bg-black">
+        {node}
+      </div>
+    </dialog>
+  );
+
+  // Only render when we have a player/fullscreen target.
+  if (useFullscreenDialog) return createPortal(fullscreenNode, document.body);
   return portalEl ? createPortal(node, portalEl) : null;
 }
