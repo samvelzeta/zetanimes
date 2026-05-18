@@ -294,25 +294,32 @@ function PanelContent({ children, direction }: { children: React.ReactNode; dire
 }
 
 // ---------- IMAGEN PERSONAJE (PC) ----------
-function CharacterPanel({ url, accent }: { url: string | null; accent?: string | null }) {
+function CharacterPanel({ url, accent, hoverText }: { url: string | null; accent?: string | null; hoverText?: string | null }) {
   const glow = accent || "hsl(var(--primary))";
   return (
-    <div className="relative h-full w-full flex items-center justify-center pointer-events-none">
-      {/* Halo */}
+    <div className="relative h-full w-full flex items-center justify-center group">
       <div
-        className="absolute inset-8 rounded-[40%] opacity-40 blur-3xl"
+        className="absolute inset-8 rounded-[40%] opacity-40 blur-3xl pointer-events-none"
         style={{ background: `radial-gradient(circle, ${glow}55, transparent 60%)` }}
       />
       {url ? (
-        <img
-          src={url}
-          alt=""
-          className="relative max-h-full max-w-full w-auto h-auto object-contain"
-          style={{
-            filter: `drop-shadow(0 30px 60px rgba(0,0,0,.7)) drop-shadow(0 0 50px ${glow}66)`,
-            animation: "floatY 5s ease-in-out infinite",
-          }}
-        />
+        <>
+          <img
+            src={url}
+            alt=""
+            className="relative max-h-full max-w-full w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+            style={{
+              filter: `drop-shadow(0 30px 60px rgba(0,0,0,.7)) drop-shadow(0 0 50px ${glow}66)`,
+              animation: "floatY 5s ease-in-out infinite",
+            }}
+          />
+          {hoverText && (
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 max-w-[80%] px-4 py-2.5 rounded-2xl bg-card/95 backdrop-blur-md border-2 border-primary/40 shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-y-2 group-hover:translate-y-0 pointer-events-none">
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-r-2 border-b-2 border-primary/40 rotate-45" />
+              <p className="text-sm font-bold text-foreground text-center leading-snug italic">"{hoverText}"</p>
+            </div>
+          )}
+        </>
       ) : (
         <div className="w-full h-3/4 rounded-3xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground text-xs px-6 text-center">
           El admin puede subir aquí una imagen del personaje
