@@ -254,10 +254,11 @@ export default function VastAdOverlay({
   };
 
   const canSkip = secs <= 0;
+  const portalIsMediaElement = isReplacedFullscreenElement(portalEl);
 
   const node = (
     <div
-      className="absolute inset-0 z-50 bg-black flex items-center justify-center"
+      className={`${portalIsMediaElement ? "fixed" : "absolute"} inset-0 z-[2147483647] bg-black flex items-center justify-center`}
       onClick={(e) => e.stopPropagation()}
     >
       {!vast && !error && (
@@ -325,6 +326,6 @@ export default function VastAdOverlay({
     </div>
   );
 
-  // Only render when we have the player container — never as full-page overlay.
+  // Only render when we have a player/fullscreen target.
   return portalEl ? createPortal(node, portalEl) : null;
 }
