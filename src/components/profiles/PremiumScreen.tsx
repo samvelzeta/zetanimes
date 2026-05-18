@@ -22,7 +22,7 @@ export default function PremiumScreen({ onClose }: Props) {
   const { user, profile } = useAuth();
   const isMobile = useIsMobile();
   const [plans, setPlans] = useState<PremiumPlan[]>([]);
-  const [settings, setSettings] = useState<(PremiumSettings & { checkout_character_image_url?: string | null }) | null>(null);
+  const [settings, setSettings] = useState<(PremiumSettings & { checkout_character_image_url?: string | null; character3_image_url?: string | null; character_hover_text_1?: string | null; character_hover_text_2?: string | null; character_hover_text_3?: string | null; companion_prompt?: string | null }) | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
   const [selected, setSelected] = useState<PremiumPlan | null>(null);
   const [step, setStep] = useState<Step>("plans");
@@ -30,6 +30,9 @@ export default function PremiumScreen({ onClose }: Props) {
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [companion, setCompanion] = useState<1 | 2 | 3 | null>(null);
+  const [hoverChar, setHoverChar] = useState<1 | 2 | 3 | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -41,6 +44,7 @@ export default function PremiumScreen({ onClose }: Props) {
       setPlans(p);
       setSettings(s as any);
       setPaymentInfo(pi.data);
+      setLoaded(true);
     });
   }, []);
 
