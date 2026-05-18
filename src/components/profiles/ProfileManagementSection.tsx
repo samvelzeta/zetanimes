@@ -9,7 +9,7 @@ import { getMaxProfiles } from "@/lib/account-profiles";
 import ProfileSelector from "./ProfileSelector";
 
 export default function ProfileManagementSection() {
-  const { user, isPremium, isOwner } = useAuth();
+  const { user, isPremium, isOwner, isAdmin } = useAuth();
   const { profiles, refresh } = useProfiles();
   const [showProfileMgmt, setShowProfileMgmt] = useState(false);
   const [devices, setDevices] = useState<DeviceSession[]>([]);
@@ -17,7 +17,8 @@ export default function ProfileManagementSection() {
 
   const currentDeviceId = getDeviceId();
   const premiumAccess = isPremium || isOwner;
-  const deviceLimit = getDeviceLimit(isPremium, isOwner);
+  const unlimitedDevices = isOwner || isAdmin;
+  const deviceLimit = getDeviceLimit(isPremium, unlimitedDevices);
   const maxProfiles = getMaxProfiles(premiumAccess);
   const profilesWithPin = profiles.filter((p) => p.pin_enabled).length;
 
@@ -83,7 +84,7 @@ export default function ProfileManagementSection() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-foreground">Dispositivos conectados ({devices.length}/{deviceLimit})</p>
-            <p className="text-[10px] text-muted-foreground">{isOwner ? "Owner · sin límite" : premiumAccess ? "Premium · 5 dispositivos" : "Gratis · 1 dispositivo"}</p>
+            <p className="text-[10px] text-muted-foreground">{unlimitedDevices ? "Admin · sin bloqueo" : premiumAccess ? "Premium · 5 dispositivos" : "Gratis · 1 dispositivo"}</p>
           </div>
           {devices.length > 0 && (
             <button
