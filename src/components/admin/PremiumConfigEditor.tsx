@@ -272,7 +272,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function AssetUpload({ label, url, uploading, onUpload, onRemove }: any) {
+function AssetUpload({ label, url, uploading, onUpload, onRemove, hoverText, onHoverChange }: any) {
   return (
     <div>
       <label className="text-[10px] text-primary mb-1 block font-black uppercase tracking-wider">{label}</label>
@@ -292,6 +292,14 @@ function AssetUpload({ label, url, uploading, onUpload, onRemove }: any) {
           {uploading ? "Subiendo..." : "Subir imagen"}
           <input type="file" accept="image/*" onChange={onUpload} className="hidden" disabled={uploading} />
         </label>
+        {onHoverChange && (
+          <textarea
+            value={hoverText || ""}
+            onChange={(e) => onHoverChange(e.target.value)}
+            placeholder="Frase del personaje (aparece al hover)"
+            className="mt-2 w-full h-14 bg-background border border-border rounded-lg p-2 text-[11px] resize-none focus:border-primary outline-none"
+          />
+        )}
       </div>
     </div>
   );
