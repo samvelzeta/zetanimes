@@ -13,14 +13,26 @@ import {
   type PremiumSettings,
 } from "@/lib/premium-config";
 
-const blankPlan = (): Partial<PremiumPlan> => ({
+// Paleta secuencial para asignar color a planes nuevos
+const PLAN_ACCENT_PALETTE = [
+  "#22C55E", // verde
+  "#3B82F6", // azul
+  "#F97316", // naranja
+  "#A855F7", // púrpura
+  "#EC4899", // rosa
+  "#EAB308", // oro
+  "#06B6D4", // cian
+  "#EF4444", // rojo
+];
+
+const blankPlan = (existingCount: number): Partial<PremiumPlan> => ({
   name: "Nuevo plan",
   price_label: "$0",
   period: "yearly",
   membership_type: "annual",
   features: [],
   badge: null,
-  accent_color: null,
+  accent_color: PLAN_ACCENT_PALETTE[existingCount % PLAN_ACCENT_PALETTE.length],
   sort_order: 99,
   enabled: true,
 });
@@ -97,7 +109,7 @@ export default function PremiumConfigEditor() {
   };
 
   const addPlan = async () => {
-    await upsertPlan(blankPlan());
+    await upsertPlan(blankPlan(plans.length));
     reload();
   };
 
