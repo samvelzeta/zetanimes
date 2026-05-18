@@ -297,19 +297,19 @@ function PanelContent({ children, direction }: { children: React.ReactNode; dire
 function CharacterPanel({ url, accent, hoverText }: { url: string | null; accent?: string | null; hoverText?: string | null }) {
   const glow = accent || "hsl(var(--primary))";
   return (
-    <div className="relative h-full w-full flex items-start justify-center pt-2 group">
+    <div className="relative h-full w-full flex items-center justify-center group overflow-visible">
       <div
-        className="absolute inset-8 rounded-[40%] opacity-40 blur-3xl pointer-events-none"
-        style={{ background: `radial-gradient(circle, ${glow}55, transparent 60%)` }}
+        className="absolute left-1/2 top-1/2 h-[72%] w-[78%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-45 blur-[90px] pointer-events-none"
+        style={{ background: `radial-gradient(circle, ${glow}55 0%, ${glow}22 38%, transparent 72%)` }}
       />
       {url ? (
         <>
           <img
             src={url}
             alt=""
-            className="relative max-h-[92%] max-w-full w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+            className="relative max-h-[96%] max-w-[108%] w-auto h-auto object-contain transition-transform duration-500 group-hover:scale-[1.03]"
             style={{
-              filter: `drop-shadow(0 30px 60px rgba(0,0,0,.7)) drop-shadow(0 0 50px ${glow}66)`,
+              filter: `drop-shadow(0 30px 60px rgba(0,0,0,.7)) drop-shadow(0 0 44px ${glow}55)`,
               animation: "floatY 5s ease-in-out infinite",
             }}
           />
@@ -332,8 +332,8 @@ function CharacterPanel({ url, accent, hoverText }: { url: string | null; accent
 // ---------- PANEL PLANES (PC) ----------
 function PlansPanel({ settings, plans, onPick }: any) {
   return (
-    <div className="h-full overflow-y-auto pr-3 custom-scroll">
-      <div className="space-y-6 pb-6">
+    <div className="h-full overflow-y-auto overflow-x-visible hide-scrollbar px-3">
+      <div className="space-y-6 pb-10">
         <div className="anim-rise">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-3">
             <Sparkles className="w-3 h-3 text-primary" />
@@ -347,14 +347,14 @@ function PlansPanel({ settings, plans, onPick }: any) {
           </p>
         </div>
 
-        <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2 xl:grid-cols-3 pt-2">
+        <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3 pt-4 pb-3 overflow-visible">
           {plans.map((plan: PremiumPlan, i: number) => {
             const accent = plan.accent_color || "hsl(var(--primary))";
             return (
               <button
                 key={plan.id}
                 onClick={() => onPick(plan)}
-                className="group relative text-left rounded-2xl border-2 p-4 pt-6 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 anim-rise overflow-visible"
+                className="group relative text-left rounded-2xl border-2 p-4 pt-7 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:scale-[1.025] hover:-translate-y-1 anim-rise overflow-visible z-0 hover:z-20"
                 style={{
                   borderColor: accent + "55",
                   boxShadow: `0 12px 32px ${accent}22`,
@@ -541,8 +541,8 @@ function MobileLayout({
 function MethodPanel({ selected, hasStripe, hasAlt, settings, onBack, onStripe, onManual, compact }: any) {
   const accent = selected.accent_color || "hsl(var(--primary))";
   return (
-    <div className={`h-full overflow-y-auto pr-2 custom-scroll`}>
-      <div className="space-y-4 max-w-xl pb-4">
+    <div className={`h-full overflow-y-auto overflow-x-visible hide-scrollbar px-3`}>
+      <div className="space-y-4 max-w-xl pb-8 pt-2">
         {/* Botón cambiar plan — animado */}
         <button
           onClick={onBack}
@@ -616,7 +616,7 @@ function MethodButton({ onClick, icon, iconBg, title, subtitle, accent }: any) {
   return (
     <Cmp
       onClick={onClick}
-      className="group w-full flex items-center gap-3 p-3.5 rounded-2xl bg-card/90 backdrop-blur-sm border-2 border-border hover:border-primary transition-all text-left hover:scale-[1.015] active:scale-[0.99]"
+      className="group w-full flex items-center gap-3 p-3.5 rounded-2xl bg-card/90 backdrop-blur-sm border-2 border-border hover:border-primary transition-all text-left hover:scale-[1.015] active:scale-[0.99] overflow-visible"
       style={{ boxShadow: `0 6px 16px ${accent}15` }}
     >
       <div className={`w-11 h-11 rounded-xl ${iconBg} flex items-center justify-center flex-shrink-0 shadow-md`}>{icon}</div>
@@ -635,8 +635,8 @@ function ManualPanel({
 }: any) {
   const accent = selected.accent_color || "hsl(var(--primary))";
   return (
-    <div className="h-full overflow-y-auto pr-2 custom-scroll">
-      <div className="space-y-3.5 max-w-xl pb-4">
+    <div className="h-full overflow-y-auto overflow-x-visible hide-scrollbar px-3">
+      <div className="space-y-3.5 max-w-xl pb-8 pt-2">
         <button
           onClick={onBack}
           className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/80 hover:bg-secondary border border-border hover:border-primary transition text-xs font-bold"
