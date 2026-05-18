@@ -784,7 +784,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   // Embed mode: usar el player externo si viene como iframe/video embebido o URL de reproductor.
   if (currentSource?.type === "embed" || currentSource?.type === "html") {
     return (
-      <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
+      <div id="player-video" className="relative aspect-video bg-black rounded-xl overflow-hidden">
         {currentSource.type === "html" ? (
           <div className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_video]:w-full [&_video]:h-full" dangerouslySetInnerHTML={{ __html: currentSource.url }} />
         ) : (
@@ -806,6 +806,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   return (
     <div
       ref={containerRef}
+      id="player-video"
       className="relative aspect-video bg-black rounded-xl overflow-hidden group cursor-pointer select-none"
       onMouseMove={() => { if (!isMobileLike) showControlsTemp(); }}
       onMouseLeave={() => {
