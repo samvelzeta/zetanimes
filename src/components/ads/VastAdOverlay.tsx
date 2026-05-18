@@ -1,7 +1,7 @@
 // VAST video ad overlay (ExoClick / MagSrv).
 // - Fetches & parses VAST XML, plays the first MediaFile in an HTML5 <video>.
-// - Renders INSIDE the #player-video container (absolute inset-0) — never covers the whole page.
-// - Travels into fullscreen automatically because #player-video is the element that goes fullscreen.
+// - Renders INSIDE the active player/fullscreen element (absolute inset-0) — never covers the whole page.
+// - When fullscreen is active, portals directly into that fullscreen host so it is visible before exiting fullscreen.
 // - Pauses ALL other <video> elements while the ad runs (no audio overlap).
 // - Frequency: shows after `everyN` episode changes AND >= `cooldownMs` since last impression.
 // - Premium users are exempt.
@@ -114,10 +114,8 @@ export default function VastAdOverlay({
   const [secs, setSecs] = useState(skipAfter);
   const [muted, setMuted] = useState(false);
   const [portalEl, setPortalEl] = useState<Element | null>(null);
-  const [useFullscreenDialog, setUseFullscreenDialog] = useState(false);
   const [, force] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const pausedVideos = useRef<HTMLVideoElement[]>([]);
   const firedEvents = useRef<Set<string>>(new Set());
   const authPending = loading;
@@ -174,15 +172,22 @@ export default function VastAdOverlay({
     };
   }, [show, vast]);
 
-  // Portal target: in normal mode render inside #player-video; in fullscreen use
-  // a modal dialog top-layer so the ad is above native/iframe fullscreen surfaces.
+  // Portal target: normal mode uses #player-video; fullscreen mode uses the exact
+  // fullscreen host so the overlay exists inside the browser fullscreen surface.
   useEffect(() => {
     if (!show) return;
     const find = () => {
       const playerEl = document.getElementById("player-video");
       const fullscreenEl = getFullscreenElement();
-      setUseFullscreenDialog(!!fullscreenEl);
-      setPortalEl(playerEl || null);
+      const host = fullscreenEl instanceof HTMLElement
+        ? fullscreenEl.tagName === "IFRAME" || fullscreenEl.tagName === "VIDEO"
+          ? (fullscreenEl.parentElement || playerEl)
+          : fullscreenEl
+        : playerEl;
+      if (host instanceof HTMLElement && getComputedStyle(host).position === "static") {
+        host.style.position = "relative";
+      }
+      setPortalEl(host || playerEl || null);
     };
     find();
     const onFsChange = () => find();
@@ -200,16 +205,6 @@ export default function VastAdOverlay({
       clearTimeout(t3);
     };
   }, [show]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (show && useFullscreenDialog && !dialog.open) {
-      try { dialog.showModal(); } catch {}
-    } else if ((!show || !useFullscreenDialog) && dialog.open) {
-      try { dialog.close(); } catch {}
-    }
-  }, [show, useFullscreenDialog]);
 
   // Skip countdown
   useEffect(() => {
