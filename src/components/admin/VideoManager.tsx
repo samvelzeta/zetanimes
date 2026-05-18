@@ -595,10 +595,29 @@ export default function VideoManager() {
 
       {selected && (
         <div className="flex flex-col gap-3 sm:h-[400px] sm:flex-row">
-          <div ref={listRef} onScroll={handleScroll}
-            className="h-56 w-full overflow-y-auto border border-border rounded-xl bg-secondary/30 sm:h-auto sm:w-1/3"
-            style={{ contain: "strict" }}>
-            <div style={{ height: `${totalEps * 40}px`, position: "relative" }}>
+          <div className="w-full sm:w-1/3 flex flex-col gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                type="number"
+                min={1}
+                max={totalEps}
+                placeholder={`Ir al capítulo… (1-${totalEps})`}
+                className="h-8 pl-8 bg-secondary border-primary/30 rounded-lg text-xs"
+                onChange={(e) => {
+                  const ep = parseInt(e.target.value, 10);
+                  if (!Number.isFinite(ep) || ep < 1 || ep > totalEps) return;
+                  setSelectedEp(ep);
+                  if (listRef.current) {
+                    listRef.current.scrollTo({ top: Math.max(0, (ep - 1) * 40 - 80), behavior: "smooth" });
+                  }
+                }}
+              />
+            </div>
+            <div ref={listRef} onScroll={handleScroll}
+              className="h-56 w-full overflow-y-auto border border-border rounded-xl bg-secondary/30 sm:h-auto sm:flex-1"
+              style={{ contain: "strict" }}>
+              <div style={{ height: `${totalEps * 40}px`, position: "relative" }}>
               {Array.from({ length: visibleRange.end - visibleRange.start }, (_, i) => {
                 const ep = visibleRange.start + i + 1;
                 if (ep > totalEps) return null;
