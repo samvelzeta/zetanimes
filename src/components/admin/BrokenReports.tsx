@@ -16,6 +16,7 @@ interface Report {
   anilist_id: number | null;
   report_count: number;
   status: string;
+  reason: string | null;
   first_reported_at: string;
   last_reported_at: string;
 }
