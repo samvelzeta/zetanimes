@@ -410,8 +410,8 @@ function MobileLayout({
 }: any) {
   return (
     <div className="relative z-10 flex-1 flex flex-col overflow-hidden">
-      {/* Hero personaje arriba — fijo, no se mueve con el contenido */}
-      <div className="relative h-[34vh] flex-shrink-0 overflow-hidden">
+      {/* Hero personaje arriba — fijo, recortado en la línea inferior del personaje */}
+      <div className="relative h-[32vh] flex-shrink-0 overflow-hidden">
         {characterUrl ? (
           <img
             key={characterUrl}
@@ -423,15 +423,15 @@ function MobileLayout({
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30" />
         )}
-        {/* Fade fuerte hacia el contenido para que NUNCA haya texto encima de la cara */}
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background via-background/85 to-transparent" />
+        {/* Fade suave (reducido) hacia el contenido */}
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/80 via-background/30 to-transparent" />
         {/* Halo decorativo */}
-        <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-2/3 h-24 rounded-full opacity-50 blur-3xl"
+        <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-2/3 h-24 rounded-full opacity-40 blur-3xl"
           style={{ background: "radial-gradient(circle, hsl(var(--primary)/.6), transparent 70%)" }} />
       </div>
 
-      {/* Contenido scrollable — UN SOLO scroll */}
-      <div className="relative flex-1 overflow-y-auto overflow-x-hidden -mt-6 px-4 pb-8 space-y-4">
+      {/* Contenido scrollable — empieza JUSTO debajo de la línea del personaje */}
+      <div className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-8 space-y-4">
         {/* Título */}
         <div className="anim-rise">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30 mb-2">
@@ -447,52 +447,17 @@ function MobileLayout({
         </div>
 
         {step === "plans" && (
-          <div className="space-y-3">
+          <div className="space-y-4 pt-2">
             {plans.map((plan: PremiumPlan, i: number) => {
               const accent = plan.accent_color || "hsl(var(--primary))";
               return (
-                <button
+                <PlanCardMobile
                   key={plan.id}
-                  onClick={() => onPick(plan)}
-                  className="group w-full text-left rounded-2xl bg-card/90 backdrop-blur-sm border-2 p-4 transition active:scale-[0.98] anim-rise relative overflow-hidden"
-                  style={{
-                    borderColor: accent + "44",
-                    boxShadow: `0 10px 28px ${accent}1f`,
-                    animationDelay: `${0.05 + i * 0.07}s`,
-                  }}
-                >
-                  {plan.badge && (
-                    <span
-                      className="absolute -top-2 right-3 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-white shadow"
-                      style={{ background: accent, boxShadow: `0 4px 10px ${accent}66` }}
-                    >
-                      {plan.badge}
-                    </span>
-                  )}
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-black text-foreground truncate">{plan.name}</h3>
-                      <p className="text-2xl font-black mt-0.5 mb-2" style={{ color: accent }}>{plan.price_label}</p>
-                      <ul className="space-y-1">
-                        {plan.features.slice(0, 3).map((f: string, idx: number) => (
-                          <li key={idx} className="flex items-start gap-1.5 text-[11px] text-foreground/85">
-                            <Check className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: accent }} />
-                            <span className="leading-snug">{f}</span>
-                          </li>
-                        ))}
-                        {plan.features.length > 3 && (
-                          <li className="text-[10px] text-muted-foreground pl-4.5">+{plan.features.length - 3} más</li>
-                        )}
-                      </ul>
-                    </div>
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition group-active:scale-90"
-                      style={{ background: accent, boxShadow: `0 6px 16px ${accent}66` }}
-                    >
-                      <ChevronRight className="w-4 h-4 text-white" />
-                    </div>
-                  </div>
-                </button>
+                  plan={plan}
+                  accent={accent}
+                  index={i}
+                  onPick={onPick}
+                />
               );
             })}
             {plans.length === 0 && (
