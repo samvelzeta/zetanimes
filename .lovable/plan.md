@@ -1,123 +1,156 @@
-# Plan: Bloques inversos + fallback Seeke↔AV1 + validación dura latest_episode + ranking editable + aviso descargas
+# Refactor del sistema Premium + Streams + PDF
 
-## 1. Bloques inversos (Seeke unido → mi página dividida)
+## Problema actual
+- El sistema mezcla **sesiones de login** con **streams simultáneos** y con **perfiles**.
+- Hoy bloquea el login completo cuando se supera el "cupo de dispositivos", cuando en realidad solo debería bloquear **reproducciones activas**.
+- Los planes están medio cableados (límites fijos free=2 / premium=5) y no se reflejan dinámicamente desde el admin.
+- El botón Exportar PDF solo aparece para premium y se descarga igual en APK que en navegador.
 
-Caso: en Seeke un anime tiene 1–48 continuos. En mi página existen como **dos AniList IDs** (Temp 1 = 1–24, Temp 2 = 1–24). Debo poder mapear los caps "visuales" de mi página a un offset en la URL madre Seeke.
-
-### Cambios en DB
-Extender `video_cache_blocks` añadiendo dos columnas opcionales:
-- `source_episode_offset` (int, default 0) — desplazamiento que se suma al episodio relativo del bloque para construir el episodio que se pide a la VPS.
-- `inverse_mode` (boolean, default false) — solo flag visual para el admin (saber que este registro es del modo inverso).
-
-Reutilizamos el mismo registro (`anilist_id`, `lang`, `block_index`) — no se crea tabla nueva. Para el modo "inverso" típicamente habrá **un solo bloque** por AniList ID (ej. `episode_from=1, episode_to=24, source_episode_offset=24, seeke_base_url=<madre Seeke unida>`).
-
-### Cambios en `src/lib/video-blocks.ts`
-- Añadir los dos campos a `VideoBlock`, `ResolvedBlock`.
-- En `resolveSeekeBaseForEpisode` calcular:
-  ```
-  episodeWithinBlock = (episode - episode_from + 1) + source_episode_offset
-  ```
-  Así el episodio "visual" 1 se transforma en 25 cuando el offset es 24.
-- En `getLatestEpisodeByLang`, cuando hay offset:
-  - Pedir `latest_episode` a la madre.
-  - Restar el offset y limitar al rango del bloque.
-  - Devolver el `globalEp` resultante (si la madre tiene 30 y offset 24 → bloque ya tiene hasta el 6 visual).
-- `saveBlocks`: aceptar y validar los nuevos campos.
-
-### Admin UI (`BlocksEditor.tsx`)
-- Toggle "Modo inverso (Seeke unido → mi página dividida)" por idioma.
-- Cuando está activo: mostrar un campo extra "Empezar desde el cap N de Seeke" (= `source_episode_offset + 1`). Etiqueta clara: "En Seeke, esta temporada empieza en el cap X".
-- Validar: con offset >0, el bloque suele ser único; permitir múltiples si el usuario quiere.
-
-### Reproductor (`AnimePlayer.tsx`/`Watch.tsx`)
-- Donde se invoca el embed Seeke, ya pasa por `resolveSeekeBaseForEpisode`. Solo hay que asegurarse de que el `episode` enviado al backend sea `resolved.episodeWithinBlock` (esto ya está, solo cambia el cálculo interno).
-
-## 2. Fallback inteligente Seeke ↔ AnimeAV1 según `latest_episode`
-
-Reglas (usadas SOLO cuando el episodio sí existe globalmente — ver §3):
-- Cargar Seeke si:
-  - hay madre/bloques para ese `(anilist_id, lang, episode)` **y** `episode <= latest_episode_seeke_para_ese_idioma`.
-- Si Seeke se quedó corto (`episode > latest_seeke` pero `episode <= anilist.episodes` o `<= latest_av1`), usar AnimeAV1 con slug.
-- Si AnimeAV1 se queda corto y Seeke tiene más, usar Seeke.
-- Si ninguno cubre el episodio → bloquear (regla §3).
-
-### Implementación
-- Nueva función `pickProvider(anilistId, lang, episode, slug)` en `src/lib/video-blocks.ts` o nuevo `src/lib/provider-router.ts`:
-  1. `latestSeeke = await getLatestEpisodeByLang(anilistId, lang, fallbackBase)`
-  2. `latestAV1 = await getAV1LatestForSlug(slug)` (nueva helper en `zetapi.ts` que ya pega a la VPS/AV1)
-  3. Devuelve `{ provider: 'seeke' | 'av1' | null, reason }`.
-- `AnimePlayer.tsx`: antes de montar el player, llamar `pickProvider`. Si `null`, no construir nada (ver §3). Si cambia de provider entre episodios, **destruir el player anterior** (HLS, listeners, subs) y reconstruir.
-
-## 3. Validación dura `latest_episode` — bloqueo total de episodios fantasma
-
-Eliminar todo fallback automático cuando `requestedEpisode > max(latestSeeke, latestAV1)`.
-
-### En `AnimePlayer.tsx`
-- Añadir guard al inicio del effect que carga el episodio:
-  ```
-  const maxAvailable = Math.max(latestSeeke ?? 0, latestAV1 ?? 0);
-  if (requestedEpisode > maxAvailable) {
-    hardCleanup();          // pause, src="", load(), destroy HLS, destroy subs
-    setBlockedReason("Episodio aún no disponible");
-    return;
-  }
-  ```
-- `hardCleanup` debe limpiar: `video.pause()`, `removeAttribute("src")`, `video.load()`, destruir HLS, destruir motor de subs, resetear `currentEmbed`, `lastServer`, `lastEpisode`, `lastHls`, `lastSubtitleTrack` (variables de cache en memoria del componente y del módulo).
-- En `seekeMemoryCache` y `clearSeekeEpisodeCache`: añadir helper `purgeForEpisode(anilistId, lang, episode)` y llamarlo cuando se bloquea.
-- Mostrar overlay claro: ícono lock + "Episodio aún no disponible".
-
-### En `Watch.tsx` / `BentoEpisodes.tsx`
-- Calcular `maxAvailable` por idioma una vez.
-- Botones con `episode > maxAvailable` → `disabled`, opacidad 50%, ícono lock, tooltip "No disponible".
-- "Siguiente episodio" desactivado si superaría `maxAvailable`.
-- Cambio de idioma: si `currentEpisode > maxForNewLang`, mostrar el overlay de bloqueo y NO autoplay.
-
-### Cero reciclaje
-- Cada cambio de episodio: `DESTROY → CLEAN → VALIDATE → REBUILD`. Cambiar el flujo a:
-  1. `hardCleanup()`
-  2. `pickProvider()` → si null, mostrar bloqueo y salir
-  3. resolver embed/HLS
-  4. crear nuevo HLS + subs
-
-## 4. Aviso "Anime ya completado" en VideoManager (búsqueda admin)
-
-En `src/components/admin/VideoManager.tsx`:
-- Cuando el admin busca/selecciona un anime, query a `anime_download_tracker` por `anilist_id` y `status='completed'`.
-- Si hay match: mostrar banner amarillo en la tarjeta de selección: "⚠️ Este anime ya está marcado como COMPLETADO en Descargas."
-- No bloquea, solo informa.
-
-## 5. Editor de Ranking + auto-actualización
-
-Nueva sección en Admin "Ranking destacado":
-- Tabla `ranking_overrides` con columnas: `id`, `anilist_id`, `position` (int 1–N), `anime_title`, `cover_image`, `enabled` (bool), `auto_update` (bool global vía `app_settings`), `created_by`, timestamps. RLS admin/owner write, public read.
-- UI permite:
-  - Listar posiciones 1..N.
-  - Reemplazar el anime de cada posición buscando por título (AniList).
-  - Toggle global "Auto-actualizar ranking" (guardado en `app_settings.key='ranking_auto_update'`).
-- Cuando `auto_update = true`: el componente público (`TopRanking.tsx`) ignora overrides y consume el ranking dinámico actual (AniList trending o `anime_views`).
-- Cuando `false`: respeta `ranking_overrides` ordenado por `position`.
-- `TopRanking.tsx`: lee primero `app_settings`, luego decide fuente.
+## Objetivo
+1. **Separar 3 conceptos** en backend y UI:
+   - `auth_sessions` → login en N dispositivos, **sin límite por plan**.
+   - `streaming_sessions` → solo cuando hay un reproductor activo. Limitado por plan.
+   - `account_profiles` → perfiles dentro de la cuenta. Limitado por plan.
+2. **Planes 100% dinámicos** editables desde admin, con permisos booleanos que toda la app consulta.
+3. **Tres planes oficiales** (SOLO / DUO / TRIO) con los precios y permisos solicitados.
+4. **Exportar PDF** visible siempre, pero solo ejecutable si el plan lo permite. En APK WebView → copiar enlace temporal al portapapeles para abrir en navegador externo.
 
 ---
 
-## Archivos a tocar
+## 1. Cambios de base de datos
 
-**Migraciones SQL**
-- Añadir `source_episode_offset int default 0`, `inverse_mode boolean default false` a `video_cache_blocks`.
-- Crear `ranking_overrides` con RLS.
-- Insertar fila default en `app_settings` (`ranking_auto_update` = `'true'`).
+### 1.1 Ampliar `premium_plans`
+Agregar columnas de permisos (todas con default seguro):
 
-**Frontend**
-- `src/lib/video-blocks.ts` — offset inverso, `pickProvider` (o nuevo `provider-router.ts`).
-- `src/lib/zetapi.ts` — helper `getAV1LatestForSlug`, exportar `clearSeekeEpisodeCache` granular.
-- `src/components/admin/BlocksEditor.tsx` — toggle inverso + campo offset.
-- `src/components/admin/VideoManager.tsx` — aviso "ya completado".
-- `src/components/video/AnimePlayer.tsx` — `hardCleanup`, guard `requestedEpisode > maxAvailable`, switch dinámico de provider, overlay de bloqueo.
-- `src/pages/Watch.tsx` — propagar `maxAvailable`, deshabilitar next.
-- `src/components/anime/BentoEpisodes.tsx` — botones bloqueados.
-- `src/components/anime/TopRanking.tsx` — leer overrides + flag.
-- `src/components/admin/RankingManager.tsx` (nuevo) + tab en `Admin.tsx`.
+```
+slug              text unique           -- 'solo' | 'duo' | 'trio' (estable)
+price_monthly     numeric
+price_annual      numeric
+max_streams       int  default 1
+max_profiles      int  default 1
+quality_max       text default 'hd'     -- 'hd' | 'fhd' | '4k'
+ads_free          bool default false
+priority_servers  bool default false
+downloads_allowed bool default false
+pdf_export        bool default false
+premium_badge     bool default false
+```
 
-## NO se toca
-- Player HLS internals, sistema de embeds, subtítulos, renderizado del video.
-- Acceso restringido a APK/notificaciones/pago — siguen siendo solo del owner.
+Seed inicial:
+- **SOLO** $2.99 / $14.99 — 1 stream, 2 perfiles (no simultáneos), HD, ads_free.
+- **DUO** $4.99 / $23.99 — 2 streams, 2 perfiles, FHD, ads_free, priority_servers.
+- **TRIO** $7.99 / $34.99 — 3 streams, 3 perfiles, 4K, ads_free, priority_servers, downloads_allowed, **pdf_export**, premium_badge.
+
+### 1.2 Nueva tabla `streaming_sessions`
+```
+id uuid pk
+user_id uuid
+device_id text
+profile_id uuid null
+anime_id int
+episode_number int
+started_at timestamptz default now()
+last_heartbeat_at timestamptz default now()
+ended_at timestamptz null
+```
+- "Activa" = `ended_at IS NULL AND last_heartbeat_at > now() - 90s`.
+- Índices por `(user_id) WHERE ended_at IS NULL`.
+
+Funciones RPC:
+- `start_stream(_device_id, _profile_id, _anime_id, _episode)` → cierra streams del mismo device, valida límite del plan, inserta nuevo. Retorna `{ allowed, current, limit }`.
+- `heartbeat_stream(_session_id)` → update `last_heartbeat_at`.
+- `end_stream(_session_id)`.
+- `cleanup_stale_streams()` (se llama al inicio de `start_stream`): marca `ended_at` a los que llevan >90s sin heartbeat.
+
+### 1.3 Quitar la lógica de "device limit" del login
+- Mantener `device_sessions` solo para mostrar "Mis dispositivos" y permitir cerrar sesión remota.
+- **Eliminar el bloqueo** que cierra sesión al pasar el cupo. Login es siempre libre.
+
+### 1.4 Actualizar `enforce_max_profiles`
+Leer `max_profiles` desde el plan activo del usuario (vía `premium_memberships` → `premium_plans.slug`) en vez del cap fijo 2/4.
+
+---
+
+## 2. Capa de cliente
+
+### 2.1 Hook `usePlanPermissions()`
+Devuelve el plan resuelto del usuario (`SOLO`/`DUO`/`TRIO`/`FREE`) con todos los booleanos y límites. Se consume en:
+- VastAdOverlay → `ads_free` reemplaza al check actual de `isPremium`.
+- ProfileGate / ProfileSelector → `max_profiles`.
+- VideoPlayer (start/heartbeat/end de streams) → `max_streams`.
+- PDF export → `pdf_export`.
+- Quality selector y "Priority servers" UI.
+
+### 2.2 Streaming guard en el player
+- Al montar `AnimePlayer`: llamar `start_stream`. Si `allowed === false` mostrar modal **"Estás viendo en otro dispositivo"** con la lista y opción "Detener allá y ver aquí".
+- Heartbeat cada 30s mientras el video esté reproduciéndose.
+- `end_stream` en unmount / pausa larga / cambio de página.
+
+### 2.3 Quitar `DeviceLimitModal` del flujo de login
+Solo se usará desde "Mis dispositivos" como herramienta informativa.
+
+---
+
+## 3. Admin panel (`PremiumConfigEditor`)
+Editor por plan con campos:
+- name, slug, price_monthly, price_annual, badge, accent_color, sort_order, enabled
+- max_streams, max_profiles, quality_max
+- toggles: ads_free, priority_servers, downloads_allowed, pdf_export, premium_badge
+- features[] (texto libre que ya existe)
+
+Guardar = update en `premium_plans`. Todo el frontend lo lee en caliente vía `usePlanPermissions`.
+
+---
+
+## 4. Export PDF (botón siempre visible)
+
+### 4.1 Botón visible en todos los planes
+En `Profile.tsx` (o donde esté) mostrar **Exportar PDF** siempre. Al click:
+- Si `pdf_export === false` → modal "Mejora a TRIO para exportar tu historial en PDF" con CTA premium.
+- Si `pdf_export === true` → continuar.
+
+### 4.2 Detección de entorno
+Usar `isWebView()` de `src/lib/webview.ts` (ya existe):
+- **PC / navegador normal / PWA**: descarga directa con el flujo actual (`export-history-pdf.ts`).
+- **APK WebView**: 
+  1. Subir el PDF generado a Storage (`premium-assets/pdf-exports/{user}/{timestamp}.pdf`) con expiración corta, o generar un signed URL de 10 min.
+  2. Copiar la URL al portapapeles con `navigator.clipboard.writeText`.
+  3. Toast: *"Enlace copiado al portapapeles. Ábrelo en tu navegador externo para descargar tu PDF."*
+  4. Mostrar también un modal con el enlace clickeable y botón "Copiar de nuevo".
+
+---
+
+## Detalles técnicos (resumen)
+
+```text
+DB:
+  premium_plans (+ permisos)
+  streaming_sessions (nueva)
+  RPC: start_stream / heartbeat_stream / end_stream / cleanup_stale_streams
+  enforce_max_profiles → lee max_profiles del plan
+
+Client:
+  src/lib/plan-permissions.ts    (resolver)
+  src/hooks/usePlanPermissions.ts
+  src/lib/streaming-sessions.ts  (start/heartbeat/end)
+  src/components/video/AnimePlayer.tsx  (integrar guard)
+  src/components/video/StreamLimitModal.tsx  (nuevo)
+  src/components/profiles/ProfileGate.tsx    (quitar device-limit bloqueante)
+  src/components/profiles/DeviceLimitModal.tsx  (solo informativo)
+  src/components/admin/PremiumConfigEditor.tsx (nuevos campos)
+  src/lib/export-history-pdf.ts  (rama webview→clipboard)
+  src/lib/devices.ts             (sin límite, solo registro)
+```
+
+---
+
+## Orden de implementación
+1. Migración: ampliar `premium_plans`, crear `streaming_sessions` + RPCs, actualizar `enforce_max_profiles`, seed/upsert de los 3 planes.
+2. Backend client: `plan-permissions.ts`, `streaming-sessions.ts`.
+3. Quitar bloqueo de login por dispositivos.
+4. Integrar guard de streams en el player + modal.
+5. Conectar VastAdOverlay, perfiles y demás features a `usePlanPermissions`.
+6. Rediseñar admin (`PremiumConfigEditor`) para los nuevos campos.
+7. PDF: botón siempre visible + gate + flujo APK con clipboard.
+
+¿Apruebas el plan para empezar con la migración?
