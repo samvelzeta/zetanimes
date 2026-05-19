@@ -639,51 +639,84 @@ export type Database = {
       premium_plans: {
         Row: {
           accent_color: string | null
+          ads_free: boolean
           badge: string | null
           created_at: string
+          downloads_allowed: boolean
           enabled: boolean
           features: Json
           id: string
+          max_profiles: number
+          max_streams: number
           membership_type: string
           name: string
+          pdf_export: boolean
           period: string
+          premium_badge: boolean
+          price_annual: number | null
           price_label: string
+          price_monthly: number | null
+          priority_servers: boolean
           profile_count: number
+          quality_max: string
           simultaneous_sessions: number
+          slug: string
           sort_order: number
           tier: string
           updated_at: string
         }
         Insert: {
           accent_color?: string | null
+          ads_free?: boolean
           badge?: string | null
           created_at?: string
+          downloads_allowed?: boolean
           enabled?: boolean
           features?: Json
           id?: string
+          max_profiles?: number
+          max_streams?: number
           membership_type?: string
           name: string
+          pdf_export?: boolean
           period?: string
+          premium_badge?: boolean
+          price_annual?: number | null
           price_label: string
+          price_monthly?: number | null
+          priority_servers?: boolean
           profile_count?: number
+          quality_max?: string
           simultaneous_sessions?: number
+          slug: string
           sort_order?: number
           tier?: string
           updated_at?: string
         }
         Update: {
           accent_color?: string | null
+          ads_free?: boolean
           badge?: string | null
           created_at?: string
+          downloads_allowed?: boolean
           enabled?: boolean
           features?: Json
           id?: string
+          max_profiles?: number
+          max_streams?: number
           membership_type?: string
           name?: string
+          pdf_export?: boolean
           period?: string
+          premium_badge?: boolean
+          price_annual?: number | null
           price_label?: string
+          price_monthly?: number | null
+          priority_servers?: boolean
           profile_count?: number
+          quality_max?: string
           simultaneous_sessions?: number
+          slug?: string
           sort_order?: number
           tier?: string
           updated_at?: string
@@ -924,6 +957,42 @@ export type Database = {
         }
         Relationships: []
       }
+      streaming_sessions: {
+        Row: {
+          anime_id: number | null
+          device_id: string
+          ended_at: string | null
+          episode_number: number | null
+          id: string
+          last_heartbeat_at: string
+          profile_id: string | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          anime_id?: number | null
+          device_id: string
+          ended_at?: string | null
+          episode_number?: number | null
+          id?: string
+          last_heartbeat_at?: string
+          profile_id?: string | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          anime_id?: number | null
+          device_id?: string
+          ended_at?: string | null
+          episode_number?: number | null
+          id?: string
+          last_heartbeat_at?: string
+          profile_id?: string | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1088,10 +1157,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_stale_streams: { Args: { _user_id: string }; Returns: undefined }
       delete_download_tracker: {
         Args: { _tracker_id: string }
         Returns: undefined
       }
+      end_all_streams_except: {
+        Args: { _session_id: string }
+        Returns: undefined
+      }
+      end_stream: { Args: { _session_id: string }; Returns: undefined }
+      get_user_max_profiles: { Args: { _user_id: string }; Returns: number }
+      get_user_max_streams: { Args: { _user_id: string }; Returns: number }
+      get_user_plan_slug: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1099,6 +1177,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      heartbeat_stream: { Args: { _session_id: string }; Returns: undefined }
       increment_anime_view: { Args: { _anilist_id: number }; Returns: number }
       is_device_session_valid: {
         Args: {
@@ -1115,6 +1194,15 @@ export type Database = {
       revoke_device_session: {
         Args: { _device_id: string; _user_id: string }
         Returns: undefined
+      }
+      start_stream: {
+        Args: {
+          _anime_id: number
+          _device_id: string
+          _episode_number: number
+          _profile_id: string
+        }
+        Returns: Json
       }
       touch_device_session: {
         Args: {
