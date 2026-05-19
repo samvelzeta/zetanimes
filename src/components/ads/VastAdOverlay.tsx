@@ -108,7 +108,8 @@ export default function VastAdOverlay({
   cooldownMs = 40 * 60 * 1000,
   skipAfter = 5,
 }: Props) {
-  const { user, roles, isPremium, isOwner, loading } = useAuth();
+  const { loading } = useAuth();
+  const { permissions, loading: permsLoading } = usePlanPermissions();
   const [show, setShow] = useState(false);
   const [vast, setVast] = useState<ParsedVast | null>(null);
   const [error, setError] = useState(false);
@@ -119,8 +120,8 @@ export default function VastAdOverlay({
   const videoRef = useRef<HTMLVideoElement>(null);
   const pausedVideos = useRef<HTMLVideoElement[]>([]);
   const firedEvents = useRef<Set<string>>(new Set());
-  const authPending = loading;
-  const adsExempt = isPremium || isOwner || roles.includes("premium") || roles.includes("owner");
+  const authPending = loading || permsLoading;
+  const adsExempt = permissions.ads_free;
 
   useEffect(() => {
     if (!adsExempt) return;
