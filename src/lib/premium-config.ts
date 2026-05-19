@@ -2,13 +2,24 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface PremiumPlan {
   id: string;
+  slug?: string | null;
   name: string;
   price_label: string;
-  period: string; // monthly|yearly|lifetime|custom
+  price_monthly?: number | null;
+  price_annual?: number | null;
+  period: string;
   membership_type: "monthly" | "annual" | "lifetime";
-  tier: string; // solo | duo | trio
+  tier: string;
   profile_count: number;
   simultaneous_sessions: number;
+  max_streams?: number;
+  max_profiles?: number;
+  quality_max?: "hd" | "fhd" | "4k";
+  ads_free?: boolean;
+  priority_servers?: boolean;
+  downloads_allowed?: boolean;
+  pdf_export?: boolean;
+  premium_badge?: boolean;
   features: string[];
   badge: string | null;
   accent_color: string | null;
