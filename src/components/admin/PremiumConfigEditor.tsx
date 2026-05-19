@@ -354,6 +354,51 @@ function PlanCard({ plan, onChange, onSave, onDelete }: { plan: PremiumPlan; onC
         />
       </div>
 
+      {/* Permisos dinámicos del plan */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t border-border">
+        <Field label="Slug (ID estable)">
+          <Input value={plan.slug || ""} onChange={(e) => onChange({ slug: e.target.value } as any)} placeholder="solo/duo/trio" className="h-8 text-xs" />
+        </Field>
+        <Field label="Precio mensual ($)">
+          <Input type="number" step="0.01" value={plan.price_monthly ?? ""} onChange={(e) => onChange({ price_monthly: parseFloat(e.target.value) || 0 } as any)} className="h-8 text-xs" />
+        </Field>
+        <Field label="Precio anual ($)">
+          <Input type="number" step="0.01" value={plan.price_annual ?? ""} onChange={(e) => onChange({ price_annual: parseFloat(e.target.value) || 0 } as any)} className="h-8 text-xs" />
+        </Field>
+        <Field label="Calidad máx.">
+          <select value={plan.quality_max || "hd"} onChange={(e) => onChange({ quality_max: e.target.value as any })} className="w-full h-8 bg-secondary border border-border rounded-lg px-2 text-xs">
+            <option value="hd">HD</option>
+            <option value="fhd">Full HD</option>
+            <option value="4k">4K</option>
+          </select>
+        </Field>
+        <Field label="Reproducciones simultáneas">
+          <Input type="number" min={1} value={plan.max_streams ?? 1} onChange={(e) => onChange({ max_streams: parseInt(e.target.value || "1") } as any)} className="h-8 text-xs" />
+        </Field>
+        <Field label="Perfiles permitidos">
+          <Input type="number" min={1} value={plan.max_profiles ?? 1} onChange={(e) => onChange({ max_profiles: parseInt(e.target.value || "1") } as any)} className="h-8 text-xs" />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+        {[
+          { key: "ads_free", label: "Sin anuncios" },
+          { key: "priority_servers", label: "Servidores prioritarios" },
+          { key: "downloads_allowed", label: "Descargas" },
+          { key: "pdf_export", label: "Exportar PDF" },
+          { key: "premium_badge", label: "Insignia premium" },
+        ].map((p) => (
+          <label key={p.key} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-secondary/40 border border-border">
+            <input
+              type="checkbox"
+              checked={!!(plan as any)[p.key]}
+              onChange={(e) => onChange({ [p.key]: e.target.checked } as any)}
+            />
+            {p.label}
+          </label>
+        ))}
+      </div>
+
       <div className="flex items-center justify-between">
         <label className="flex items-center gap-2 text-xs">
           <input type="checkbox" checked={plan.enabled} onChange={(e) => onChange({ enabled: e.target.checked })} />
