@@ -24,7 +24,7 @@ export async function startStream(
     console.warn("[stream] start_stream error", error);
     return { allowed: true, current: 0, limit: 1 };
   }
-  return data as StartStreamResult;
+  return data as unknown as StartStreamResult;
 }
 
 export async function heartbeatStream(sessionId: string): Promise<void> {
