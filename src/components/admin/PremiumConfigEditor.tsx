@@ -387,6 +387,9 @@ function PlanCard({ plan, onChange, onSave, onDelete }: { plan: PremiumPlan; onC
           { key: "downloads_allowed", label: "Descargas (adorno, sin lógica)" },
           { key: "pdf_export", label: "Exportar PDF" },
           { key: "premium_badge", label: "Insignia premium" },
+          { key: "multi_status_selection", label: "Selección múltiple de estados" },
+          { key: "custom_avatar_upload", label: "Subir foto personal" },
+          { key: "vip_support", label: "Soporte VIP prioritario" },
         ].map((p) => (
           <label key={p.key} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-secondary/40 border border-border">
             <input

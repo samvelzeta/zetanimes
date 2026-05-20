@@ -20,6 +20,9 @@ export interface PremiumPlan {
   downloads_allowed?: boolean;
   pdf_export?: boolean;
   premium_badge?: boolean;
+  multi_status_selection?: boolean;
+  custom_avatar_upload?: boolean;
+  vip_support?: boolean;
   features: string[];
   badge: string | null;
   accent_color: string | null;

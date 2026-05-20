@@ -14,6 +14,7 @@ import ProfileSelector from "@/components/profiles/ProfileSelector";
 import PremiumScreen from "@/components/profiles/PremiumScreen";
 import { setActiveProfileId } from "@/lib/account-profiles";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
+import SupportSection from "@/components/support/SupportSection";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
@@ -35,8 +36,8 @@ export default function Profile() {
   const handleExportPDF = async () => {
     if (!user || !profile) return;
     if (!permissions.pdf_export) {
-      toast.error("Exportar PDF está disponible en el plan TRIO", {
-        action: { label: "Mejorar", onClick: () => setShowPremiumModal(true) },
+      toast.error("Disponible al actualizar tu plan", {
+        action: { label: "Ver planes", onClick: () => setShowPremiumModal(true) },
       });
       return;
     }
@@ -99,6 +100,13 @@ export default function Profile() {
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!permissions.custom_avatar_upload) {
+      e.target.value = "";
+      toast.error("Disponible al actualizar tu plan", {
+        action: { label: "Ver planes", onClick: () => setShowPremiumModal(true) },
+      });
+      return;
+    }
     if (!isMainProfile) return toast.error("Solo el perfil principal puede subir foto desde el dispositivo");
     if (!user || !e.target.files?.[0]) return;
     const file = e.target.files[0];
@@ -191,7 +199,7 @@ export default function Profile() {
               </div>
             )}
           </div>
-          {user && isMainProfile && (
+          {user && isMainProfile && permissions.custom_avatar_upload && (
             <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/80 transition z-10">
               <Camera className="w-3.5 h-3.5 text-primary-foreground" />
               <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
@@ -298,13 +306,13 @@ export default function Profile() {
             <div className="flex-1 text-left">
               <p className="text-sm text-foreground font-bold">Exportar Historial PDF</p>
               <p className="text-[10px] text-muted-foreground">
-                {permissions.pdf_export ? "Listas + estadísticas con tu color" : "Disponible en plan TRIO"}
+                {permissions.pdf_export ? "Listas + estadísticas con tu color" : "Disponible al actualizar tu plan"}
               </p>
             </div>
             {permissions.pdf_export ? (
               <Crown className="w-3.5 h-3.5 text-primary" />
             ) : (
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/20 text-primary">TRIO</span>
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/20 text-primary">PREMIUM</span>
             )}
           </button>
         )}

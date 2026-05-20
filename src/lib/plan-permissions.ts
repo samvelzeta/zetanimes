@@ -14,6 +14,9 @@ export interface PlanPermissions {
   downloads_allowed: boolean;
   pdf_export: boolean;
   premium_badge: boolean;
+  multi_status_selection: boolean;
+  custom_avatar_upload: boolean;
+  vip_support: boolean;
 }
 
 export const FREE_PERMISSIONS: PlanPermissions = {
@@ -27,6 +30,9 @@ export const FREE_PERMISSIONS: PlanPermissions = {
   downloads_allowed: false,
   pdf_export: false,
   premium_badge: false,
+  multi_status_selection: false,
+  custom_avatar_upload: false,
+  vip_support: false,
 };
 
 export const OWNER_PERMISSIONS: PlanPermissions = {
@@ -40,6 +46,9 @@ export const OWNER_PERMISSIONS: PlanPermissions = {
   downloads_allowed: true,
   pdf_export: true,
   premium_badge: true,
+  multi_status_selection: true,
+  custom_avatar_upload: true,
+  vip_support: true,
 };
 
 function fromPlanRow(row: any): PlanPermissions {
@@ -54,6 +63,9 @@ function fromPlanRow(row: any): PlanPermissions {
     downloads_allowed: !!row.downloads_allowed,
     pdf_export: !!row.pdf_export,
     premium_badge: !!row.premium_badge,
+    multi_status_selection: !!row.multi_status_selection,
+    custom_avatar_upload: !!row.custom_avatar_upload,
+    vip_support: !!row.vip_support,
   };
 }
 
@@ -93,7 +105,7 @@ export async function resolveUserPermissions(
   if (!plan) {
     // Fallback: si el usuario es 'premium' por rol pero no hay plan, tratarlo como DUO básico
     if (roles.includes("premium")) {
-      return { ...FREE_PERMISSIONS, slug: "premium", name: "Premium", ads_free: true, max_streams: 2, max_profiles: 2 };
+      return { ...FREE_PERMISSIONS, slug: "premium", name: "Premium", ads_free: true, max_streams: 2, max_profiles: 2, multi_status_selection: true, custom_avatar_upload: true, vip_support: true, pdf_export: true };
     }
     return FREE_PERMISSIONS;
   }

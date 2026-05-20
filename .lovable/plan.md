@@ -1,156 +1,116 @@
-# Refactor del sistema Premium + Streams + PDF
+## Cambios solicitados
 
-## Problema actual
-- El sistema mezcla **sesiones de login** con **streams simultáneos** y con **perfiles**.
-- Hoy bloquea el login completo cuando se supera el "cupo de dispositivos", cuando en realidad solo debería bloquear **reproducciones activas**.
-- Los planes están medio cableados (límites fijos free=2 / premium=5) y no se reflejan dinámicamente desde el admin.
-- El botón Exportar PDF solo aparece para premium y se descarga igual en APK que en navegador.
+### A. Texto del botón Exportar PDF (rápido)
+- En `Profile.tsx`, cambiar badge "TRIO" → "Premium" y subtítulo "Disponible en plan TRIO" → "Disponible al subir de plan".
+- Eliminar toda mención pública a SOLO/DUO/TRIO en mensajes de gating (usar "Función premium" / "Disponible al actualizar tu plan"). Los nombres reales siguen existiendo en admin.
 
-## Objetivo
-1. **Separar 3 conceptos** en backend y UI:
-   - `auth_sessions` → login en N dispositivos, **sin límite por plan**.
-   - `streaming_sessions` → solo cuando hay un reproductor activo. Limitado por plan.
-   - `account_profiles` → perfiles dentro de la cuenta. Limitado por plan.
-2. **Planes 100% dinámicos** editables desde admin, con permisos booleanos que toda la app consulta.
-3. **Tres planes oficiales** (SOLO / DUO / TRIO) con los precios y permisos solicitados.
-4. **Exportar PDF** visible siempre, pero solo ejecutable si el plan lo permite. En APK WebView → copiar enlace temporal al portapapeles para abrir en navegador externo.
+### B. Nuevos permisos dinámicos en `premium_plans`
+Migración: agregar columnas booleanas con default `false`:
+- `multi_status_selection` (selección múltiple de estados de anime)
+- `custom_avatar_upload` (subir foto personal)
+- `vip_support` (soporte priorizado premium)
 
----
+Free recibe los 3 en `false`. Owner siempre `true`. Editor del admin (`PremiumConfigEditor`) muestra los 3 toggles por plan.
 
-## 1. Cambios de base de datos
+Extender `PlanPermissions` + `plan-permissions.ts` + `usePlanPermissions` para exponer estos 3 flags.
 
-### 1.1 Ampliar `premium_plans`
-Agregar columnas de permisos (todas con default seguro):
+### C. Selección múltiple de estados de anime
+- En `anime-lists.ts` / página `MyLists.tsx` / botones de cambio de estado en `AnimeDetail.tsx`:
+  - Si `multi_status_selection === false` → el usuario sólo puede tener el anime en máximo **2 listas distintas**. Al intentar añadir una 3ª, mostrar modal "Función premium — actualiza tu plan para guardar en más listas".
+  - Si `true` → sin límite.
+- Aplicar la verificación en la función que inserta en `user_anime_lists` (o equivalente) leyendo el conteo actual.
 
-```
-slug              text unique           -- 'solo' | 'duo' | 'trio' (estable)
-price_monthly     numeric
-price_annual      numeric
-max_streams       int  default 1
-max_profiles      int  default 1
-quality_max       text default 'hd'     -- 'hd' | 'fhd' | '4k'
-ads_free          bool default false
-priority_servers  bool default false
-downloads_allowed bool default false
-pdf_export        bool default false
-premium_badge     bool default false
-```
+### D. Avatar personalizado solo premium
+- En `Profile.tsx` (sección avatar): el botón cámara (overlay del círculo) sólo se renderiza si `permissions.custom_avatar_upload === true`.
+- Si `false`: ocultar el botón cámara y mostrar tooltip/hint "Disponible al actualizar tu plan". Free sigue usando avatares de personajes predefinidos (ya existe `anilist-avatars`).
+- También aplicar gate al endpoint de subida en cliente (early-return con toast).
 
-Seed inicial:
-- **SOLO** $2.99 / $14.99 — 1 stream, 2 perfiles (no simultáneos), HD, ads_free.
-- **DUO** $4.99 / $23.99 — 2 streams, 2 perfiles, FHD, ads_free, priority_servers.
-- **TRIO** $7.99 / $34.99 — 3 streams, 3 perfiles, 4K, ads_free, priority_servers, downloads_allowed, **pdf_export**, premium_badge.
+### E. Sistema de soporte (Premium VIP + Free)
 
-### 1.2 Nueva tabla `streaming_sessions`
+**DB nueva tabla `support_tickets`:**
 ```
 id uuid pk
 user_id uuid
-device_id text
-profile_id uuid null
-anime_id int
-episode_number int
-started_at timestamptz default now()
-last_heartbeat_at timestamptz default now()
-ended_at timestamptz null
+plan_slug text          -- snapshot del plan al crear
+priority text           -- 'vip' | 'standard'
+subject text null
+message text not null
+image_url text null     -- solo VIP
+status text default 'pending'  -- pending|in_progress|answered|solved|closed
+admin_response text null
+admin_id uuid null
+created_at, updated_at, responded_at
 ```
-- "Activa" = `ended_at IS NULL AND last_heartbeat_at > now() - 90s`.
-- Índices por `(user_id) WHERE ended_at IS NULL`.
 
-Funciones RPC:
-- `start_stream(_device_id, _profile_id, _anime_id, _episode)` → cierra streams del mismo device, valida límite del plan, inserta nuevo. Retorna `{ allowed, current, limit }`.
-- `heartbeat_stream(_session_id)` → update `last_heartbeat_at`.
-- `end_stream(_session_id)`.
-- `cleanup_stale_streams()` (se llama al inicio de `start_stream`): marca `ended_at` a los que llevan >90s sin heartbeat.
+RLS:
+- user puede ver/insert solo los propios.
+- admins/owner: select/update todos.
+- Trigger updated_at.
 
-### 1.3 Quitar la lógica de "device limit" del login
-- Mantener `device_sessions` solo para mostrar "Mis dispositivos" y permitir cerrar sesión remota.
-- **Eliminar el bloqueo** que cierra sesión al pasar el cupo. Login es siempre libre.
+**Bucket storage** `support-attachments` (privado, signed URL al admin).
 
-### 1.4 Actualizar `enforce_max_profiles`
-Leer `max_profiles` desde el plan activo del usuario (vía `premium_memberships` → `premium_plans.slug`) en vez del cap fijo 2/4.
+**Cliente:**
+- `src/lib/support.ts` — `createTicket`, `listMyTickets`, `listAllTicketsAdmin`, `updateTicketStatus`, `respondTicket`.
+- Validación de texto: regex permitiendo letras (incluye acentos/ñ), números, espacios y símbolos comunes `# $ % & / ( ) = ? ¡ ! * + - _ , . : ; @ " ' ¿`. Rechazar emojis y unicode raro.
+- Premium VIP: hasta 1000 chars + 1 imagen (validar + comprimir con `image-compress.ts`).
+- Free: hasta 200 chars, sin imagen, gating por permiso `vip_support === false` → cae a flujo free, queda en cola con prioridad `standard`.
 
----
+**UI usuario** (sección dentro de `Profile.tsx` "Soporte"):
+- Formulario con contador de caracteres dinámico según permiso.
+- Lista de tickets propios con estado y respuesta tipo burbujas WhatsApp.
+- Toast/alert cuando cambia el estado a `answered`/`solved` (suscripción Realtime a `support_tickets` filtrada por `user_id`).
 
-## 2. Capa de cliente
+**Admin** (`Admin.tsx` → sección Reportes dividida en 2 sub-tabs):
+- Tab 1: "Anime/Video" (lo actual de `BrokenReports`).
+- Tab 2: "Soporte" → componente nuevo `SupportTicketsAdmin.tsx`:
+  - Lista en bloques WhatsApp-style, separa VIP arriba y Free debajo.
+  - Cada ticket: user info, plan, fecha, estado, imagen, mensaje.
+  - Acciones: responder, cambiar estado (pending/in_progress/answered/solved/closed), priorizar.
+- También un panel resumido al pie del perfil del admin (visible sólo si tiene rol admin/owner) — link a la tab completa.
 
-### 2.1 Hook `usePlanPermissions()`
-Devuelve el plan resuelto del usuario (`SOLO`/`DUO`/`TRIO`/`FREE`) con todos los booleanos y límites. Se consume en:
-- VastAdOverlay → `ads_free` reemplaza al check actual de `isPremium`.
-- ProfileGate / ProfileSelector → `max_profiles`.
-- VideoPlayer (start/heartbeat/end de streams) → `max_streams`.
-- PDF export → `pdf_export`.
-- Quality selector y "Priority servers" UI.
+### F. Notificaciones al usuario
+- Realtime subscription en `Layout.tsx` (sólo si user logueado) que escucha cambios en `support_tickets` del propio user.
+- Al detectar `status` cambiado a `answered`/`solved`/`in_progress`, dispara `toast` con icono y CTA "Ver respuesta" que abre la sección soporte de Profile.
 
-### 2.2 Streaming guard en el player
-- Al montar `AnimePlayer`: llamar `start_stream`. Si `allowed === false` mostrar modal **"Estás viendo en otro dispositivo"** con la lista y opción "Detener allá y ver aquí".
-- Heartbeat cada 30s mientras el video esté reproduciéndose.
-- `end_stream` en unmount / pausa larga / cambio de página.
-
-### 2.3 Quitar `DeviceLimitModal` del flujo de login
-Solo se usará desde "Mis dispositivos" como herramienta informativa.
+### G. Memory update
+- Guardar memory `mem://features/soporte-tickets` y actualizar `mem://index.md` con la nueva regla de "no mencionar nombres de planes públicamente en gating".
 
 ---
 
-## 3. Admin panel (`PremiumConfigEditor`)
-Editor por plan con campos:
-- name, slug, price_monthly, price_annual, badge, accent_color, sort_order, enabled
-- max_streams, max_profiles, quality_max
-- toggles: ads_free, priority_servers, downloads_allowed, pdf_export, premium_badge
-- features[] (texto libre que ya existe)
+## Detalles técnicos resumidos
 
-Guardar = update en `premium_plans`. Todo el frontend lo lee en caliente vía `usePlanPermissions`.
-
----
-
-## 4. Export PDF (botón siempre visible)
-
-### 4.1 Botón visible en todos los planes
-En `Profile.tsx` (o donde esté) mostrar **Exportar PDF** siempre. Al click:
-- Si `pdf_export === false` → modal "Mejora a TRIO para exportar tu historial en PDF" con CTA premium.
-- Si `pdf_export === true` → continuar.
-
-### 4.2 Detección de entorno
-Usar `isWebView()` de `src/lib/webview.ts` (ya existe):
-- **PC / navegador normal / PWA**: descarga directa con el flujo actual (`export-history-pdf.ts`).
-- **APK WebView**: 
-  1. Subir el PDF generado a Storage (`premium-assets/pdf-exports/{user}/{timestamp}.pdf`) con expiración corta, o generar un signed URL de 10 min.
-  2. Copiar la URL al portapapeles con `navigator.clipboard.writeText`.
-  3. Toast: *"Enlace copiado al portapapeles. Ábrelo en tu navegador externo para descargar tu PDF."*
-  4. Mostrar también un modal con el enlace clickeable y botón "Copiar de nuevo".
-
----
-
-## Detalles técnicos (resumen)
-
-```text
+```
 DB:
-  premium_plans (+ permisos)
-  streaming_sessions (nueva)
-  RPC: start_stream / heartbeat_stream / end_stream / cleanup_stale_streams
-  enforce_max_profiles → lee max_profiles del plan
+  premium_plans + multi_status_selection / custom_avatar_upload / vip_support
+  support_tickets (nueva tabla + RLS + realtime)
+  storage bucket support-attachments
 
-Client:
-  src/lib/plan-permissions.ts    (resolver)
-  src/hooks/usePlanPermissions.ts
-  src/lib/streaming-sessions.ts  (start/heartbeat/end)
-  src/components/video/AnimePlayer.tsx  (integrar guard)
-  src/components/video/StreamLimitModal.tsx  (nuevo)
-  src/components/profiles/ProfileGate.tsx    (quitar device-limit bloqueante)
-  src/components/profiles/DeviceLimitModal.tsx  (solo informativo)
-  src/components/admin/PremiumConfigEditor.tsx (nuevos campos)
-  src/lib/export-history-pdf.ts  (rama webview→clipboard)
-  src/lib/devices.ts             (sin límite, solo registro)
+Client nuevo:
+  src/lib/support.ts
+  src/components/support/SupportForm.tsx
+  src/components/support/MyTicketsList.tsx
+  src/components/admin/SupportTicketsAdmin.tsx
+  src/hooks/useSupportNotifications.ts
+
+Client editado:
+  src/lib/plan-permissions.ts         (3 flags nuevos)
+  src/components/admin/PremiumConfigEditor.tsx  (3 toggles)
+  src/pages/Profile.tsx               (badge PDF, gate avatar, tab soporte)
+  src/pages/MyLists.tsx + lib/anime-lists.ts  (gate 2 estados)
+  src/pages/AnimeDetail.tsx           (gate al cambiar estado)
+  src/pages/Admin.tsx                 (split reportes)
+  src/components/Layout.tsx           (notif realtime)
 ```
 
 ---
 
 ## Orden de implementación
-1. Migración: ampliar `premium_plans`, crear `streaming_sessions` + RPCs, actualizar `enforce_max_profiles`, seed/upsert de los 3 planes.
-2. Backend client: `plan-permissions.ts`, `streaming-sessions.ts`.
-3. Quitar bloqueo de login por dispositivos.
-4. Integrar guard de streams en el player + modal.
-5. Conectar VastAdOverlay, perfiles y demás features a `usePlanPermissions`.
-6. Rediseñar admin (`PremiumConfigEditor`) para los nuevos campos.
-7. PDF: botón siempre visible + gate + flujo APK con clipboard.
+1. Migración DB (3 columnas + tabla `support_tickets` + RLS + bucket + realtime).
+2. Plan permissions + admin toggles.
+3. Texto del botón PDF y gating sin nombres de plan.
+4. Gate multi-status en listas.
+5. Gate cámara en avatar.
+6. Sistema soporte (lib + UI usuario + UI admin + realtime).
+7. Memory.
 
-¿Apruebas el plan para empezar con la migración?
+¿Apruebas para empezar?
