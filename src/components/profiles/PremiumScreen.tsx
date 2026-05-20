@@ -289,7 +289,7 @@ export default function PremiumScreen({ onClose }: Props) {
 function PanelContent({ children, direction }: { children: React.ReactNode; direction: "left" | "right" }) {
   return (
     <div
-      className="h-full min-h-[calc(100vh-6.5rem)] w-full overflow-visible"
+      className="h-full w-full overflow-visible"
       style={{ animation: `${direction === "left" ? "swapInFromLeft" : "swapInFromRight"} 0.55s cubic-bezier(0.16,1,0.3,1)` }}
     >
       {children}
