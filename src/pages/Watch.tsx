@@ -707,7 +707,6 @@ export default function Watch() {
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
           ) : displayedSources.length > 0 ? (
-            <>
             <StreamGuard animeId={anilistId} episode={selectedEp}>
               <AnimePlayer
                 sources={displayedSources}
@@ -736,7 +735,6 @@ export default function Watch() {
                   </div>
                 </div>
               )}
-              {/* Overlay only visible in fullscreen — does NOT affect playback */}
               <PlayerOverlay
                 episode={displayedEpisode}
                 totalEpisodes={totalEpisodes}
@@ -744,7 +742,6 @@ export default function Watch() {
                 onNext={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
                 containerRef={playerWrapperRef}
               />
-              {/* VAST video ad (ExoClick) — cada 2 episodios con cooldown de 40min, funciona en fullscreen */}
               <VastAdOverlay
                 episodeKey={`${anilistId}-${selectedEp}`}
                 vastUrl="https://s.magsrv.com/v1/vast.php?idzone=5929298"
