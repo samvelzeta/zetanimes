@@ -32,8 +32,18 @@ export async function toggleAnimeListSmart(params: {
   currentLists: ListType[];
   animeTitle: string;
   animeCover: string;
+  isPremium?: boolean;
 }): Promise<ListType[]> {
-  const { userId, profileId, animeId, list, currentLists, animeTitle, animeCover } = params;
+  const { userId, profileId, animeId, list, currentLists, animeTitle, animeCover, isPremium } = params;
+
+  // FREE: máximo 2 estados activos a la vez. Premium puede combinar todos.
+  const FREE_MAX = 2;
+  if (!isPremium && !currentLists.includes(list) && currentLists.length >= FREE_MAX) {
+    const err = new Error("FREE_LIST_LIMIT");
+    (err as any).code = "FREE_LIST_LIMIT";
+    throw err;
+  }
+
 
   // 1. Si ya está marcado → quitar
   if (currentLists.includes(list)) {
