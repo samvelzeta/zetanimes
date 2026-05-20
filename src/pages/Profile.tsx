@@ -305,13 +305,13 @@ export default function Profile() {
             <div className="flex-1 text-left">
               <p className="text-sm text-foreground font-bold">Exportar Historial PDF</p>
               <p className="text-[10px] text-muted-foreground">
-                {permissions.pdf_export ? "Listas + estadísticas con tu color" : "Disponible en plan TRIO"}
+                {permissions.pdf_export ? "Listas + estadísticas con tu color" : "Disponible al actualizar tu plan"}
               </p>
             </div>
             {permissions.pdf_export ? (
               <Crown className="w-3.5 h-3.5 text-primary" />
             ) : (
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/20 text-primary">TRIO</span>
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/20 text-primary">PREMIUM</span>
             )}
           </button>
         )}
