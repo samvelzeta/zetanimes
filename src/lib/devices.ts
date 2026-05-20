@@ -33,11 +33,15 @@ async function getDeviceEntitlements(userId: string, isPremium: boolean, unlimit
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   const roles = new Set(((data as any[]) || []).map((r) => r.role));
   const hasUnlimited = unlimited || roles.has("owner") || roles.has("admin");
-  const hasPremiumLimit = isPremium || hasUnlimited || roles.has("premium");
-  return {
-    unlimited: hasUnlimited,
-    limit: hasUnlimited ? 999 : hasPremiumLimit ? 5 : 1,
-  };
+  if (hasUnlimited) return { unlimited: true, limit: 999 };
+
+  // Límite dinámico = max_streams del plan activo (2 free, 2 duo, 3 trio…).
+  try {
+    const { data: streams } = await supabase.rpc("get_user_max_streams" as any, { _user_id: userId });
+    const n = typeof streams === "number" ? streams : Number(streams);
+    if (!isNaN(n) && n > 0) return { unlimited: false, limit: n };
+  } catch {}
+  return { unlimited: false, limit: 2 };
 }
 
 function consumeFreshLogin(): boolean {
@@ -187,5 +191,5 @@ export async function isCurrentDeviceSessionValid(userId: string): Promise<boole
 }
 
 export function getDeviceLimit(isPremium: boolean, isOwner = false): number {
-  return isOwner ? 999 : isPremium ? 5 : 1;
+  return isOwner ? 999 : isPremium ? 2 : 2;
 }
