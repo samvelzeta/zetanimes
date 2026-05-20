@@ -198,7 +198,7 @@ export default function Profile() {
               </div>
             )}
           </div>
-          {user && isMainProfile && (
+          {user && isMainProfile && permissions.custom_avatar_upload && (
             <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/80 transition z-10">
               <Camera className="w-3.5 h-3.5 text-primary-foreground" />
               <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
