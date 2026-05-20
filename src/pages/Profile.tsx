@@ -13,6 +13,7 @@ import { useProfiles } from "@/contexts/ProfilesContext";
 import ProfileSelector from "@/components/profiles/ProfileSelector";
 import PremiumScreen from "@/components/profiles/PremiumScreen";
 import { setActiveProfileId } from "@/lib/account-profiles";
+import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
