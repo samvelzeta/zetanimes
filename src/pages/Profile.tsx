@@ -99,6 +99,13 @@ export default function Profile() {
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!permissions.custom_avatar_upload) {
+      e.target.value = "";
+      toast.error("Disponible al actualizar tu plan", {
+        action: { label: "Ver planes", onClick: () => setShowPremiumModal(true) },
+      });
+      return;
+    }
     if (!isMainProfile) return toast.error("Solo el perfil principal puede subir foto desde el dispositivo");
     if (!user || !e.target.files?.[0]) return;
     const file = e.target.files[0];
