@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getAnimeById, getTitle, getStatusLabel, getStatusColor } from "@/lib/anilist";
 import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, HelpCircle, Eye, ChevronDown } from "lucide-react";
@@ -29,7 +29,8 @@ const SYNOPSIS_LIMIT = 200;
 export default function AnimeDetail() {
   const { id } = useParams();
   const animeId = parseInt(id || "0");
-  const { user } = useAuth();
+  const { user, isPremium } = useAuth();
+  const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeLists, setActiveLists] = useState<ListType[]>([]);
   const [loadingList, setLoadingList] = useState(false);
