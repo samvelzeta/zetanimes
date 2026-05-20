@@ -13,6 +13,7 @@ import { useProfiles } from "@/contexts/ProfilesContext";
 import ProfileSelector from "@/components/profiles/ProfileSelector";
 import PremiumScreen from "@/components/profiles/PremiumScreen";
 import { setActiveProfileId } from "@/lib/account-profiles";
+import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
@@ -29,8 +30,16 @@ export default function Profile() {
   const [showOwnProfileEditor, setShowOwnProfileEditor] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
 
+  const { permissions } = usePlanPermissions();
+
   const handleExportPDF = async () => {
     if (!user || !profile) return;
+    if (!permissions.pdf_export) {
+      toast.error("Exportar PDF está disponible en el plan TRIO", {
+        action: { label: "Mejorar", onClick: () => setShowPremiumModal(true) },
+      });
+      return;
+    }
     setExportingPdf(true);
     try {
       await exportUserHistoryToPDF(user.id, {
@@ -276,7 +285,7 @@ export default function Profile() {
           </button>
         )}
 
-        {isPremium && isMainProfile && (
+        {user && isMainProfile && (
           <button
             onClick={handleExportPDF}
             disabled={exportingPdf}
@@ -288,9 +297,15 @@ export default function Profile() {
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm text-foreground font-bold">Exportar Historial PDF</p>
-              <p className="text-[10px] text-muted-foreground">Listas + estadísticas con tu color</p>
+              <p className="text-[10px] text-muted-foreground">
+                {permissions.pdf_export ? "Listas + estadísticas con tu color" : "Disponible en plan TRIO"}
+              </p>
             </div>
-            <Crown className="w-3.5 h-3.5 text-primary" />
+            {permissions.pdf_export ? (
+              <Crown className="w-3.5 h-3.5 text-primary" />
+            ) : (
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/20 text-primary">TRIO</span>
+            )}
           </button>
         )}
 
