@@ -39,7 +39,7 @@ export default function ExpiryAlert() {
       const ms = new Date(data.expires_at).getTime() - Date.now();
       const days = Math.ceil(ms / 86_400_000);
       if (days <= 0 || days > 5) return;
-      const key = dayKey(days);
+      const key = dayKey(user.id, days);
       if (sessionStorage.getItem(key)) return;
       setExpiresAt(data.expires_at);
       setDaysLeft(days);
