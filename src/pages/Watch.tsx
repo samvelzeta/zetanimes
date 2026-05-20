@@ -708,6 +708,7 @@ export default function Watch() {
             </div>
           ) : displayedSources.length > 0 ? (
             <>
+            <StreamGuard animeId={anilistId} episode={selectedEp}>
               <AnimePlayer
                 sources={displayedSources}
                 title={`${displayTitle} - EP ${displayedEpisode}`}
@@ -751,7 +752,7 @@ export default function Watch() {
                 cooldownMs={40 * 60 * 1000}
                 skipAfter={18}
               />
-            </>
+            </StreamGuard>
           ) : (
             <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3">
               <AlertCircle className="w-10 h-10 text-muted-foreground" />
