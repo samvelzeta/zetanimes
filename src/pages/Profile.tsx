@@ -30,8 +30,16 @@ export default function Profile() {
   const [showOwnProfileEditor, setShowOwnProfileEditor] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
 
+  const { permissions } = usePlanPermissions();
+
   const handleExportPDF = async () => {
     if (!user || !profile) return;
+    if (!permissions.pdf_export) {
+      toast.error("Exportar PDF está disponible en el plan TRIO", {
+        action: { label: "Mejorar", onClick: () => setShowPremiumModal(true) },
+      });
+      return;
+    }
     setExportingPdf(true);
     try {
       await exportUserHistoryToPDF(user.id, {
