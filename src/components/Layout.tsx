@@ -23,6 +23,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <AdblockGate />
+      <ExpiryAlert />
       {isTV ? (
         <>
           {!hideNav && <TVSidebar />}
