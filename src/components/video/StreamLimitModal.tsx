@@ -30,6 +30,8 @@ export default function StreamLimitModal({ current, limit, profileId, animeId, e
     await endAllOtherStreams(null);
     const r = await startStream(profileId, animeId, episode);
     setBusy(false);
+    // Avisa a ProfileGate/devices que las sesiones cambiaron → re-chequeo en tiempo real
+    try { window.dispatchEvent(new Event("zet:device-sessions-updated")); } catch {}
     if (r.allowed && r.session_id) onResolved(r.session_id);
   };
 

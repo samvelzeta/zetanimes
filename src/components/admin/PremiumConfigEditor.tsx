@@ -383,8 +383,8 @@ function PlanCard({ plan, onChange, onSave, onDelete }: { plan: PremiumPlan; onC
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
         {[
           { key: "ads_free", label: "Sin anuncios" },
-          { key: "priority_servers", label: "Servidores prioritarios" },
-          { key: "downloads_allowed", label: "Descargas" },
+          { key: "priority_servers", label: "Servidores prioritarios (adorno)" },
+          { key: "downloads_allowed", label: "Descargas (adorno, sin lógica)" },
           { key: "pdf_export", label: "Exportar PDF" },
           { key: "premium_badge", label: "Insignia premium" },
         ].map((p) => (

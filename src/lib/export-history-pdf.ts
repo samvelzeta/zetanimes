@@ -309,18 +309,39 @@ export async function exportUserHistoryToPDF(userId: string, opts: ExportOptions
   const fileName = `zetanime-historial-${safeName}.pdf`;
 
   if (isWebView()) {
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    link.target = "_blank";
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    return;
+    // APK WebView: subir a Storage y copiar URL para abrir en navegador externo.
+    try {
+      const blob = doc.output("blob");
+      const path = `pdf-exports/${userId}/${Date.now()}-${safeName}.pdf`;
+      const { error: upErr } = await supabase.storage
+        .from("premium-assets")
+        .upload(path, blob, { contentType: "application/pdf", upsert: true });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("premium-assets").getPublicUrl(path);
+      const url = pub.publicUrl;
+      try { await navigator.clipboard.writeText(url); } catch {}
+      const { toast } = await import("sonner");
+      toast.success("Enlace copiado. Ábrelo en tu navegador para descargar el PDF.", {
+        duration: 8000,
+        action: { label: "Abrir", onClick: () => window.open(url, "_blank") },
+      });
+      return;
+    } catch (err) {
+      console.warn("[pdf-export] APK upload failed, fallback to local download", err);
+      // Fallback al método antiguo si falla el upload
+      const blob = doc.output("blob");
+      const objUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objUrl;
+      link.download = fileName;
+      link.target = "_blank";
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objUrl), 2000);
+      return;
+    }
   }
 
   doc.save(fileName);
