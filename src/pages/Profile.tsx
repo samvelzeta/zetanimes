@@ -35,8 +35,8 @@ export default function Profile() {
   const handleExportPDF = async () => {
     if (!user || !profile) return;
     if (!permissions.pdf_export) {
-      toast.error("Exportar PDF está disponible en el plan TRIO", {
-        action: { label: "Mejorar", onClick: () => setShowPremiumModal(true) },
+      toast.error("Disponible al actualizar tu plan", {
+        action: { label: "Ver planes", onClick: () => setShowPremiumModal(true) },
       });
       return;
     }
