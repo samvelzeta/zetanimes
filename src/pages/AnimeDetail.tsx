@@ -98,14 +98,14 @@ export default function AnimeDetail() {
       const { toggleAnimeListSmart } = await import("@/lib/anime-lists");
       const next = await toggleAnimeListSmart({
         userId: user.id, profileId, animeId, list, currentLists: activeLists,
-        animeTitle: title, animeCover: cover, isPremium,
+        animeTitle: title, animeCover: cover, isPremium: permissions.multi_status_selection,
       });
       setActiveLists(next);
       toast.success(wasActive ? "Eliminado de la lista" : "Agregado a la lista");
     } catch (e: any) {
       if (e?.code === "FREE_LIST_LIMIT") {
-        toast.error("Solo Premium permite más de 2 estados a la vez", {
-          action: { label: "Hazte Premium", onClick: () => navigate("/profile?premium=1") },
+        toast.error("Selección múltiple disponible al actualizar tu plan", {
+          action: { label: "Ver planes", onClick: () => navigate("/profile?premium=1") },
         });
       } else {
         toast.error("Error al actualizar lista");
