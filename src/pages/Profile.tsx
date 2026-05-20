@@ -285,7 +285,7 @@ export default function Profile() {
           </button>
         )}
 
-        {isPremium && isMainProfile && (
+        {user && isMainProfile && (
           <button
             onClick={handleExportPDF}
             disabled={exportingPdf}
@@ -297,9 +297,15 @@ export default function Profile() {
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm text-foreground font-bold">Exportar Historial PDF</p>
-              <p className="text-[10px] text-muted-foreground">Listas + estadísticas con tu color</p>
+              <p className="text-[10px] text-muted-foreground">
+                {permissions.pdf_export ? "Listas + estadísticas con tu color" : "Disponible en plan TRIO"}
+              </p>
             </div>
-            <Crown className="w-3.5 h-3.5 text-primary" />
+            {permissions.pdf_export ? (
+              <Crown className="w-3.5 h-3.5 text-primary" />
+            ) : (
+              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/20 text-primary">TRIO</span>
+            )}
           </button>
         )}
 
