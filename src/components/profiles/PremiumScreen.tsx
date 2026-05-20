@@ -193,10 +193,10 @@ export default function PremiumScreen({ onClose }: Props) {
         // === PC: layout split que hace TRUEQUE ===
         // El contenedor exterior NO scrollea — solo el panel de planes scrollea internamente,
         // así la imagen del personaje queda fija/flotando en su columna.
-        <div className="relative z-10 flex-1 overflow-hidden">
-          <div className="h-full max-w-[1580px] mx-auto px-10 py-5 grid grid-cols-[minmax(0,1.12fr)_minmax(380px,1fr)] gap-10 items-stretch">
+        <div className="relative z-10 flex-1 overflow-hidden min-h-0">
+          <div className="h-full max-w-[1580px] mx-auto px-10 py-5 grid grid-cols-[minmax(0,1.12fr)_minmax(380px,1fr)] grid-rows-[1fr] gap-10 items-stretch">
             {/* PANEL IZQUIERDO */}
-            <div className="relative h-full overflow-visible">
+            <div className="relative h-full min-h-0 overflow-hidden">
               {step === "plans" ? (
                 <PanelContent key="plans-left" direction="left">
                   <PlansPanel
@@ -229,7 +229,7 @@ export default function PremiumScreen({ onClose }: Props) {
             </div>
 
             {/* PANEL DERECHO */}
-            <div className="relative h-full overflow-visible">
+            <div className="relative h-full min-h-0 overflow-visible">
               {step === "plans" || step === "manual" ? (
                 <PanelContent key={`img-right-${step}`} direction="right">
                   <CharacterPanel url={currentImg} accent={selected?.accent_color} hoverText={currentHover} />
