@@ -8,8 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 const DISMISS_KEY = "zet:expiry-alert-dismissed";
 
-function dayKey(daysLeft: number) {
-  return `${DISMISS_KEY}:${new Date().toISOString().slice(0, 10)}:${daysLeft}`;
+function dayKey(userId: string, daysLeft: number) {
+  // Por cuenta + fecha + días restantes — así cada cuenta/sesión tiene su propia alerta
+  return `${DISMISS_KEY}:${userId}:${new Date().toISOString().slice(0, 10)}:${daysLeft}`;
 }
 
 export default function ExpiryAlert() {
