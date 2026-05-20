@@ -57,7 +57,7 @@ export default function ExpiryAlert() {
   });
 
   const close = () => {
-    sessionStorage.setItem(dayKey(daysLeft), "1");
+    if (user) sessionStorage.setItem(dayKey(user.id, daysLeft), "1");
     setOpen(false);
   };
 
