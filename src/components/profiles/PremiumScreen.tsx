@@ -191,8 +191,10 @@ export default function PremiumScreen({ onClose }: Props) {
         />
       ) : loaded ? (
         // === PC: layout split que hace TRUEQUE ===
-        <div className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar">
-          <div className="min-h-full max-w-[1580px] mx-auto px-10 py-5 grid grid-cols-[minmax(0,1.12fr)_minmax(380px,1fr)] gap-10 items-stretch">
+        // El contenedor exterior NO scrollea — solo el panel de planes scrollea internamente,
+        // así la imagen del personaje queda fija/flotando en su columna.
+        <div className="relative z-10 flex-1 overflow-hidden">
+          <div className="h-full max-w-[1580px] mx-auto px-10 py-5 grid grid-cols-[minmax(0,1.12fr)_minmax(380px,1fr)] gap-10 items-stretch">
             {/* PANEL IZQUIERDO */}
             <div className="relative h-full overflow-visible">
               {step === "plans" ? (
