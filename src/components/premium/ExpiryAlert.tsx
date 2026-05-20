@@ -8,8 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 const DISMISS_KEY = "zet:expiry-alert-dismissed";
 
-function dayKey(daysLeft: number) {
-  return `${DISMISS_KEY}:${new Date().toISOString().slice(0, 10)}:${daysLeft}`;
+function dayKey(userId: string, daysLeft: number) {
+  // Por cuenta + fecha + días restantes — así cada cuenta/sesión tiene su propia alerta
+  return `${DISMISS_KEY}:${userId}:${new Date().toISOString().slice(0, 10)}:${daysLeft}`;
 }
 
 export default function ExpiryAlert() {
@@ -38,7 +39,7 @@ export default function ExpiryAlert() {
       const ms = new Date(data.expires_at).getTime() - Date.now();
       const days = Math.ceil(ms / 86_400_000);
       if (days <= 0 || days > 5) return;
-      const key = dayKey(days);
+      const key = dayKey(user.id, days);
       if (sessionStorage.getItem(key)) return;
       setExpiresAt(data.expires_at);
       setDaysLeft(days);
@@ -56,7 +57,7 @@ export default function ExpiryAlert() {
   });
 
   const close = () => {
-    sessionStorage.setItem(dayKey(daysLeft), "1");
+    if (user) sessionStorage.setItem(dayKey(user.id, daysLeft), "1");
     setOpen(false);
   };
 
