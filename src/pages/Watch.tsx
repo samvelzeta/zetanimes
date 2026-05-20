@@ -19,6 +19,7 @@ import {
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
 import VastAdOverlay from "@/components/ads/VastAdOverlay";
 import AnimePlayer from "@/components/video/AnimePlayer";
+import StreamGuard from "@/components/video/StreamGuard";
 import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
 import { useAuth } from "@/contexts/AuthContext";
