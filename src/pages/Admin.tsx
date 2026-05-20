@@ -210,13 +210,15 @@ function PremiumTab() {
     catch (err) { console.warn("[admin] no pude borrar comprobante", err); }
   };
 
-  const approve = async (req: any, type: "annual" | "lifetime") => {
+  const approve = async (req: any, type: "monthly" | "annual" | "lifetime") => {
     setActionLoading(true);
     try {
       await supabase.from("user_roles").insert({ user_id: req.user_id, role: "premium" as any });
-      const expires = type === "annual" ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null;
+      const daysByType: Record<typeof type, number | null> = { monthly: 30, annual: 365, lifetime: null } as any;
+      const days = daysByType[type];
+      const expires = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString() : null;
       await supabase.from("premium_memberships").insert({
-        user_id: req.user_id, membership_type: type, status: "active" as any,
+        user_id: req.user_id, membership_type: type as any, status: "active" as any,
         activated_at: new Date().toISOString(), expires_at: expires,
       });
       await supabase.from("premium_requests").update({ status: "active" as any, proof_url: null }).eq("id", req.id);
@@ -306,13 +308,17 @@ function PremiumTab() {
               )}
               <div className="space-y-2">
                 <p className="text-xs font-bold text-foreground">Aprobar como:</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={() => approve(selectedReq, "monthly")} disabled={actionLoading}
+                    className="flex-1 min-w-[90px] py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                    {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />} ✓ Mensual
+                  </button>
                   <button onClick={() => approve(selectedReq, "annual")} disabled={actionLoading}
-                    className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                    className="flex-1 min-w-[90px] py-2.5 rounded-xl bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
                     {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />} ✓ Anual
                   </button>
                   <button onClick={() => approve(selectedReq, "lifetime")} disabled={actionLoading}
-                    className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                    className="flex-1 min-w-[90px] py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-1">
                     {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />} ∞ Para Siempre
                   </button>
                 </div>
