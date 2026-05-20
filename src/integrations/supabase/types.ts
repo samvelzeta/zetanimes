@@ -642,6 +642,7 @@ export type Database = {
           ads_free: boolean
           badge: string | null
           created_at: string
+          custom_avatar_upload: boolean
           downloads_allowed: boolean
           enabled: boolean
           features: Json
@@ -649,6 +650,7 @@ export type Database = {
           max_profiles: number
           max_streams: number
           membership_type: string
+          multi_status_selection: boolean
           name: string
           pdf_export: boolean
           period: string
@@ -664,12 +666,14 @@ export type Database = {
           sort_order: number
           tier: string
           updated_at: string
+          vip_support: boolean
         }
         Insert: {
           accent_color?: string | null
           ads_free?: boolean
           badge?: string | null
           created_at?: string
+          custom_avatar_upload?: boolean
           downloads_allowed?: boolean
           enabled?: boolean
           features?: Json
@@ -677,6 +681,7 @@ export type Database = {
           max_profiles?: number
           max_streams?: number
           membership_type?: string
+          multi_status_selection?: boolean
           name: string
           pdf_export?: boolean
           period?: string
@@ -692,12 +697,14 @@ export type Database = {
           sort_order?: number
           tier?: string
           updated_at?: string
+          vip_support?: boolean
         }
         Update: {
           accent_color?: string | null
           ads_free?: boolean
           badge?: string | null
           created_at?: string
+          custom_avatar_upload?: boolean
           downloads_allowed?: boolean
           enabled?: boolean
           features?: Json
@@ -705,6 +712,7 @@ export type Database = {
           max_profiles?: number
           max_streams?: number
           membership_type?: string
+          multi_status_selection?: boolean
           name?: string
           pdf_export?: boolean
           period?: string
@@ -720,6 +728,7 @@ export type Database = {
           sort_order?: number
           tier?: string
           updated_at?: string
+          vip_support?: boolean
         }
         Relationships: []
       }
@@ -989,6 +998,54 @@ export type Database = {
           last_heartbeat_at?: string
           profile_id?: string | null
           started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          admin_id: string | null
+          admin_response: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          message: string
+          plan_slug: string | null
+          priority: string
+          responded_at: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          admin_response?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          message: string
+          plan_slug?: string | null
+          priority?: string
+          responded_at?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          admin_response?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          message?: string
+          plan_slug?: string | null
+          priority?: string
+          responded_at?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
