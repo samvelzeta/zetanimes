@@ -31,6 +31,7 @@ export default function AnimeDetail() {
   const { id } = useParams();
   const animeId = parseInt(id || "0");
   const { user, isPremium } = useAuth();
+  const { permissions } = usePlanPermissions();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeLists, setActiveLists] = useState<ListType[]>([]);
