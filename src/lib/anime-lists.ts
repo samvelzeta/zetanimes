@@ -32,11 +32,12 @@ export async function toggleAnimeListSmart(params: {
   currentLists: ListType[];
   animeTitle: string;
   animeCover: string;
+  /** Si false, el usuario está limitado a 2 estados simultáneos (gate dinámico por plan). */
   isPremium?: boolean;
 }): Promise<ListType[]> {
   const { userId, profileId, animeId, list, currentLists, animeTitle, animeCover, isPremium } = params;
 
-  // FREE: máximo 2 estados activos a la vez. Premium puede combinar todos.
+  // Gate: máximo 2 estados activos a la vez cuando no hay permiso de multi-selección.
   const FREE_MAX = 2;
   if (!isPremium && !currentLists.includes(list) && currentLists.length >= FREE_MAX) {
     const err = new Error("FREE_LIST_LIMIT");
