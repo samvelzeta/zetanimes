@@ -105,7 +105,7 @@ export async function resolveUserPermissions(
   if (!plan) {
     // Fallback: si el usuario es 'premium' por rol pero no hay plan, tratarlo como DUO básico
     if (roles.includes("premium")) {
-      return { ...FREE_PERMISSIONS, slug: "premium", name: "Premium", ads_free: true, max_streams: 2, max_profiles: 2 };
+      return { ...FREE_PERMISSIONS, slug: "premium", name: "Premium", ads_free: true, max_streams: 2, max_profiles: 2, multi_status_selection: true, custom_avatar_upload: true, vip_support: true, pdf_export: true };
     }
     return FREE_PERMISSIONS;
   }
