@@ -147,15 +147,24 @@ export default function HeaderBar() {
               <div className="divide-y divide-border">
                 {notifications.filter((n) => !dismissed.has(n.id)).map((n) => {
                   const isUnread = unread.some((item) => item.id === n.id);
-                  return (
-                  <div key={n.id} className={`p-3 flex items-start gap-2 ${typeColors[n.type] || typeColors.info} border-l-2 ${isUnread ? "" : "opacity-70"}`}>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold flex items-center gap-2">{n.title}{isUnread && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}</p>
-                      <p className="text-[10px] opacity-80 mt-0.5">{n.message}</p>
+                  const Body = (
+                    <div className={`p-3 flex items-start gap-2 ${typeColors[n.type] || typeColors.info} border-l-2 ${isUnread ? "" : "opacity-70"} ${n.link ? "cursor-pointer hover:brightness-110" : ""}`}>
+                      {n.image_url && (
+                        <img src={n.image_url} alt="" className="w-10 h-14 rounded object-cover flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold flex items-center gap-2">{n.title}{isUnread && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}</p>
+                        <p className="text-[10px] opacity-80 mt-0.5">{n.message}</p>
+                      </div>
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissNotif(n.id); }} className="flex-shrink-0 hover:opacity-70"><X className="w-3 h-3" /></button>
                     </div>
-                    <button onClick={() => dismissNotif(n.id)} className="flex-shrink-0 hover:opacity-70"><X className="w-3 h-3" /></button>
-                  </div>
-                )})}
+                  );
+                  return n.link ? (
+                    <Link key={n.id} to={n.link} onClick={() => setShowNotifs(false)} className="block">{Body}</Link>
+                  ) : (
+                    <div key={n.id}>{Body}</div>
+                  );
+                })}
               </div>
             )}
           </div>
