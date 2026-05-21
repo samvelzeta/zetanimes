@@ -173,7 +173,11 @@ export default function VastAdOverlay({
     let cancelled = false;
     fetchAndParseVast(vastUrl).then((v) => {
       if (cancelled) return;
-      if (!v) { setError(true); setTimeout(() => setShow(false), 1500); return; }
+      if (!v) {
+        // No fill / parse error → cerrar silenciosamente, sin mostrar mensaje.
+        setShow(false);
+        return;
+      }
       setVast(v);
       pingUrls(v.impressions);
       markShown();
