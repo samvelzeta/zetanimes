@@ -51,6 +51,34 @@ export default function BrokenReports() {
     const update: any = { status: newStatus };
     if (newStatus === "resolved") update.resolved_at = new Date().toISOString();
     await supabase.from("broken_link_reports").update(update).eq("id", id);
+
+    // Cuando se marca como RESUELTO → notificación personal a cada reportero.
+    if (newStatus === "resolved" && r) {
+      const { data: reporters } = await supabase
+        .from("broken_link_reporters")
+        .select("user_id")
+        .eq("report_id", id);
+      const userIds = Array.from(new Set(((reporters as any[]) || []).map((x) => x.user_id))).filter(Boolean);
+      if (userIds.length > 0) {
+        const epLabel = r.episode_number ? ` (Capítulo ${r.episode_number})` : "";
+        const title = "¡Tu anime ya está disponible! 🎉";
+        const message = `"${r.anime_title || r.slug}"${epLabel} fue solucionado. Ya puedes volver a disfrutarlo desde donde lo dejaste.`;
+        const link = r.slug ? `/anime/${r.slug}` : null;
+        const rows = userIds.map((uid) => ({
+          title,
+          message,
+          type: "success",
+          target_user_id: uid,
+          image_url: r.anime_cover || null,
+          link,
+          active: true,
+        }));
+        await supabase.from("notifications").insert(rows as any);
+        // Cleanup: ya no necesitamos los reporters de un reporte resuelto.
+        await supabase.from("broken_link_reporters").delete().eq("report_id", id);
+      }
+    }
+
     setReports(prev => prev.filter(r => r.id !== id));
     await logAdminActivity({
       area: "reports", action: "status_change",
