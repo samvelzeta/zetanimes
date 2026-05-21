@@ -14,7 +14,8 @@ import ProfileSelector from "@/components/profiles/ProfileSelector";
 import PremiumScreen from "@/components/profiles/PremiumScreen";
 import { setActiveProfileId } from "@/lib/account-profiles";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
-import SupportSection from "@/components/support/SupportSection";
+// [SOPORTE PAUSADO] — sistema de tickets desactivado hasta nueva orden.
+// import SupportSection from "@/components/support/SupportSection";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();

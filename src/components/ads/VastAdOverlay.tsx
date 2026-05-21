@@ -49,16 +49,32 @@ interface ParsedVast {
   trackingEvents: Record<string, string[]>;
 }
 
+const VAST_PROXY_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vast-proxy?url=`;
+
+function viaProxy(url: string): string {
+  // Always route VAST/Wrapper fetches through our edge proxy to avoid CORS.
+  if (url.startsWith(VAST_PROXY_BASE)) return url;
+  return `${VAST_PROXY_BASE}${encodeURIComponent(url)}`;
+}
+
 async function fetchAndParseVast(url: string, depth = 0): Promise<ParsedVast | null> {
   if (depth > 3) return null;
   try {
-    const cacheBuster = url.includes("?") ? "&" : "?";
-    const res = await fetch(`${url}${cacheBuster}cb=${Date.now()}`, { credentials: "omit" });
-    if (!res.ok) return null;
+    const proxied = viaProxy(url);
+    const cacheBuster = proxied.includes("?") ? "&" : "?";
+    const res = await fetch(`${proxied}${cacheBuster}cb=${Date.now()}`, { credentials: "omit" });
+    if (!res.ok) {
+      console.warn("[VAST] proxy returned", res.status);
+      return null;
+    }
     const xmlText = await res.text();
+    if (!xmlText || xmlText.length < 20) {
+      console.warn("[VAST] empty xml");
+      return null;
+    }
     const xml = new DOMParser().parseFromString(xmlText, "application/xml");
 
-    // Wrapper -> follow VASTAdTagURI
+    // Wrapper -> follow VASTAdTagURI (also through proxy)
     const wrapperTag = xml.querySelector("VASTAdTagURI");
     if (wrapperTag?.textContent) {
       return fetchAndParseVast(wrapperTag.textContent.trim(), depth + 1);
@@ -66,7 +82,10 @@ async function fetchAndParseVast(url: string, depth = 0): Promise<ParsedVast | n
 
     // Inline -> get MediaFile
     const mediaFiles = Array.from(xml.querySelectorAll("MediaFile"));
-    if (!mediaFiles.length) return null;
+    if (!mediaFiles.length) {
+      console.warn("[VAST] no MediaFile in XML");
+      return null;
+    }
     // Prefer mp4/webm progressive
     const mf =
       mediaFiles.find((m) => /mp4|webm/i.test(m.getAttribute("type") || "")) ||
@@ -90,7 +109,8 @@ async function fetchAndParseVast(url: string, depth = 0): Promise<ParsedVast | n
     });
 
     return { mediaUrl, clickThrough, impressions, clickTracking, trackingEvents };
-  } catch {
+  } catch (e) {
+    console.warn("[VAST] fetch error", e);
     return null;
   }
 }
@@ -153,7 +173,11 @@ export default function VastAdOverlay({
     let cancelled = false;
     fetchAndParseVast(vastUrl).then((v) => {
       if (cancelled) return;
-      if (!v) { setError(true); setTimeout(() => setShow(false), 1500); return; }
+      if (!v) {
+        // No fill / parse error → cerrar silenciosamente, sin mostrar mensaje.
+        setShow(false);
+        return;
+      }
       setVast(v);
       pingUrls(v.impressions);
       markShown();
