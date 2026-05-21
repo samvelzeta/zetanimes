@@ -35,8 +35,9 @@ export default function HeaderBar() {
 
   useEffect(() => {
     const fetchNotifs = async () => {
-      const { data } = await supabase.from("notifications").select("*").eq("active", true).order("created_at", { ascending: false }).limit(10);
-      if (data) setNotifications(data);
+      // RLS ya filtra por target_user_id IS NULL OR == auth.uid()
+      const { data } = await supabase.from("notifications").select("*").eq("active", true).order("created_at", { ascending: false }).limit(20);
+      if (data) setNotifications(data as Notification[]);
     };
     fetchNotifs();
 
@@ -44,12 +45,15 @@ export default function HeaderBar() {
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "notifications" },
       (payload) => {
-        setNotifications((prev) => [payload.new as Notification, ...prev]);
+        const n = payload.new as Notification;
+        // Solo aceptar globales o dirigidas a este usuario.
+        if (n.target_user_id && n.target_user_id !== user?.id) return;
+        setNotifications((prev) => [n, ...prev]);
       }
     ).subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (user) {
