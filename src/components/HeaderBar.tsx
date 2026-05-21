@@ -12,6 +12,9 @@ interface Notification {
   message: string;
   type: string;
   created_at: string;
+  target_user_id?: string | null;
+  image_url?: string | null;
+  link?: string | null;
 }
 
 export default function HeaderBar() {
