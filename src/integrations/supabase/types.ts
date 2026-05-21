@@ -319,6 +319,35 @@ export type Database = {
         }
         Relationships: []
       }
+      broken_link_reporters: {
+        Row: {
+          created_at: string
+          id: string
+          report_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          report_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          report_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broken_link_reporters_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "broken_link_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       broken_link_reports: {
         Row: {
           anilist_id: number | null
@@ -570,7 +599,10 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          image_url: string | null
+          link: string | null
           message: string
+          target_user_id: string | null
           title: string
           type: string
         }
@@ -579,7 +611,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          image_url?: string | null
+          link?: string | null
           message: string
+          target_user_id?: string | null
           title: string
           type?: string
         }
@@ -588,7 +623,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          image_url?: string | null
+          link?: string | null
           message?: string
+          target_user_id?: string | null
           title?: string
           type?: string
         }
