@@ -545,15 +545,29 @@ export default function Watch() {
   );
 
   const handleProgress = useCallback((pct: number) => {
-    watchTimeRef.current += 1;
+    const video = document.querySelector("video") as HTMLVideoElement | null;
+    const currentTime = video?.currentTime || 0;
 
-    // Save progress every ~5 ticks
-    if (zetSlug && watchTimeRef.current % 5 === 0) {
-      const video = document.querySelector("video");
-      if (video && video.duration > 0) {
-        saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
-        persistProgress(video.currentTime, video.duration, pct >= 0.7);
+    // Sumar SOLO el tiempo real transcurrido en el video, no por número de ticks.
+    // timeupdate dispara 4-60 veces/seg, así que `+=1` daba conteos exagerados.
+    const last = lastTickTimeRef.current;
+    if (last !== null) {
+      const delta = currentTime - last;
+      // Ignorar seeks (delta grande) o retrocesos.
+      if (delta > 0 && delta < 2) {
+        watchTimeRef.current += delta;
+      }
+    }
+    lastTickTimeRef.current = currentTime;
+
+    // Guardar progreso aprox. cada 5s reales.
+    if (zetSlug && video && video.duration > 0) {
+      const sinceLastSave = Math.abs(pct - lastSavedProgressRef.current);
+      if (sinceLastSave >= 0.02 || watchTimeRef.current - (lastTickTimeRef as any)._lastSave > 5) {
+        saveVideoProgress(zetSlug, selectedEp, currentTime, video.duration);
+        persistProgress(currentTime, video.duration, pct >= 0.7);
         lastSavedProgressRef.current = pct;
+        (lastTickTimeRef as any)._lastSave = watchTimeRef.current;
       }
     }
 
