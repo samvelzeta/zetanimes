@@ -34,21 +34,22 @@ export default function ProfileGate() {
     const result = await registerCurrentDevice(user.id, isPremium, isOwner || isAdmin);
     setDeviceCheck(result);
     setDeviceChecked(true);
-    if (result.allowed) {
-      try { sessionStorage.removeItem(DEVICE_WARNING_KEY); } catch {}
-    }
   };
 
-  // Registrar dispositivo y verificar límite
+  // Registrar dispositivo y verificar límite SOLO al cambiar usuario/rol/auth,
+  // NUNCA en cada cambio de ruta (causaba que el modal reapareciera al navegar
+  // y el contador de "warnings" llevaba a un signOut automático "de la nada").
   useEffect(() => {
     checkCurrentDevice();
-  }, [user, isPremium, isOwner, isAdmin, authLoading, skip, location.pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isPremium, isOwner, isAdmin, authLoading]);
 
   useEffect(() => {
     const onDevicesUpdated = () => checkCurrentDevice();
     window.addEventListener("zet:device-sessions-updated", onDevicesUpdated);
     return () => window.removeEventListener("zet:device-sessions-updated", onDevicesUpdated);
-  }, [user, isPremium, isOwner, isAdmin, authLoading, skip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isPremium, isOwner, isAdmin, authLoading]);
 
   useEffect(() => {
     if (!user || skip) {
@@ -61,16 +62,12 @@ export default function ProfileGate() {
     setDismissedDeviceAlertPath(null);
   }, [location.pathname, location.search]);
 
+  // Solo descarta el modal en la ruta actual. NO cuenta avisos ni cierra sesión:
+  // el usuario decide cuándo cerrar sesión desde su perfil.
   const handleDeviceAlertClose = async () => {
-    const warnings = Number(sessionStorage.getItem(DEVICE_WARNING_KEY) || 0) + 1;
-    try { sessionStorage.setItem(DEVICE_WARNING_KEY, String(warnings)); } catch {}
-    if (warnings >= 3) {
-      try { sessionStorage.removeItem(DEVICE_WARNING_KEY); } catch {}
-      await signOut();
-      return;
-    }
     setDismissedDeviceAlertPath(`${location.pathname}${location.search}`);
   };
+
 
   // Refrescar perfiles cuando cambia el usuario
   useEffect(() => { if (user) refresh(); }, [user, refresh]);
