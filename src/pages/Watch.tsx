@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getEpisodeServers, sortServersByPriority,
   markEpisodeWatched, getWatchedEpisodes, setWatchedEpisodes, titleToSlug, getCachedSlug,
@@ -61,6 +61,8 @@ export default function Watch() {
   const [lang, setLang] = useState<Lang>("sub");
   const [showDebug, setShowDebug] = useState(false);
   const watchTimeRef = useRef(0);
+  const lastTickTimeRef = useRef<number | null>(null);
+  const queryClient = useQueryClient();
   const historyEntryIdRef = useRef<string | null>(null);
   const [initialTime, setInitialTime] = useState<number | undefined>(undefined);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
@@ -85,9 +87,48 @@ export default function Watch() {
     setWatchedSet(new Set(getWatchedEpisodes(watchedScope)));
   }, [watchedScope]);
 
+  // 🔄 Realtime: si el admin agrega/edita un Seeke u otro server cacheado
+  // para ESTE anime, invalidamos cache local + queries para forzar que el
+  // player se actualice y muestre Seeke en lugar del antiguo AV1.
+  useEffect(() => {
+    if (!anilistId) return;
+    const channel = supabase
+      .channel(`video-cache-${anilistId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "video_cache", filter: `anilist_id=eq.${anilistId}` },
+        () => {
+          episodeCache.clear();
+          clearRuntimeVideoCache();
+          clearSeekeEpisodeCache();
+          queryClient.invalidateQueries({ queryKey: ["video-cache"] });
+          queryClient.invalidateQueries({ queryKey: ["video-cache-opposite"] });
+          queryClient.invalidateQueries({ queryKey: ["seeke-block"] });
+          queryClient.invalidateQueries({ queryKey: ["latest-ep"] });
+          queryClient.invalidateQueries({ queryKey: ["zet-servers"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "video_cache_blocks", filter: `anilist_id=eq.${anilistId}` },
+        () => {
+          episodeCache.clear();
+          clearRuntimeVideoCache();
+          clearSeekeEpisodeCache();
+          queryClient.invalidateQueries({ queryKey: ["seeke-block"] });
+          queryClient.invalidateQueries({ queryKey: ["video-cache"] });
+          queryClient.invalidateQueries({ queryKey: ["latest-ep"] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [anilistId, queryClient]);
+
+
   useEffect(() => {
     historyEntryIdRef.current = null;
     watchTimeRef.current = 0;
+    lastTickTimeRef.current = null;
     lastSavedProgressRef.current = 0;
   }, [user?.id, anilistId, selectedEp]);
 
@@ -542,15 +583,29 @@ export default function Watch() {
   );
 
   const handleProgress = useCallback((pct: number) => {
-    watchTimeRef.current += 1;
+    const video = document.querySelector("video") as HTMLVideoElement | null;
+    const currentTime = video?.currentTime || 0;
 
-    // Save progress every ~5 ticks
-    if (zetSlug && watchTimeRef.current % 5 === 0) {
-      const video = document.querySelector("video");
-      if (video && video.duration > 0) {
-        saveVideoProgress(zetSlug, selectedEp, video.currentTime, video.duration);
-        persistProgress(video.currentTime, video.duration, pct >= 0.7);
+    // Sumar SOLO el tiempo real transcurrido en el video, no por número de ticks.
+    // timeupdate dispara 4-60 veces/seg, así que `+=1` daba conteos exagerados.
+    const last = lastTickTimeRef.current;
+    if (last !== null) {
+      const delta = currentTime - last;
+      // Ignorar seeks (delta grande) o retrocesos.
+      if (delta > 0 && delta < 2) {
+        watchTimeRef.current += delta;
+      }
+    }
+    lastTickTimeRef.current = currentTime;
+
+    // Guardar progreso aprox. cada 5s reales.
+    if (zetSlug && video && video.duration > 0) {
+      const sinceLastSave = Math.abs(pct - lastSavedProgressRef.current);
+      if (sinceLastSave >= 0.02 || watchTimeRef.current - (lastTickTimeRef as any)._lastSave > 5) {
+        saveVideoProgress(zetSlug, selectedEp, currentTime, video.duration);
+        persistProgress(currentTime, video.duration, pct >= 0.7);
         lastSavedProgressRef.current = pct;
+        (lastTickTimeRef as any)._lastSave = watchTimeRef.current;
       }
     }
 
