@@ -61,6 +61,8 @@ export default function Watch() {
   const [lang, setLang] = useState<Lang>("sub");
   const [showDebug, setShowDebug] = useState(false);
   const watchTimeRef = useRef(0);
+  const lastTickTimeRef = useRef<number | null>(null);
+  const queryClient = useQueryClient();
   const historyEntryIdRef = useRef<string | null>(null);
   const [initialTime, setInitialTime] = useState<number | undefined>(undefined);
   const playerWrapperRef = useRef<HTMLDivElement>(null);
