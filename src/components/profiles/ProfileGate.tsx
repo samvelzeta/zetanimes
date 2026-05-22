@@ -16,7 +16,7 @@ const SKIP_PATHS = ["/auth", "/reset-password", "/download"];
 
 export default function ProfileGate() {
   const location = useLocation();
-  const { user, isPremium, isOwner, isAdmin, loading: authLoading, signOut } = useAuth();
+  const { user, isPremium, isOwner, isAdmin, loading: authLoading } = useAuth();
   const { profiles, loading: profilesLoading, refresh, selectProfile } = useProfiles();
 
   const [pendingProfile, setPendingProfile] = useState<AccountProfile | null>(null);
