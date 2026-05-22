@@ -87,6 +87,44 @@ export default function Watch() {
     setWatchedSet(new Set(getWatchedEpisodes(watchedScope)));
   }, [watchedScope]);
 
+  // 🔄 Realtime: si el admin agrega/edita un Seeke u otro server cacheado
+  // para ESTE anime, invalidamos cache local + queries para forzar que el
+  // player se actualice y muestre Seeke en lugar del antiguo AV1.
+  useEffect(() => {
+    if (!anilistId) return;
+    const channel = supabase
+      .channel(`video-cache-${anilistId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "video_cache", filter: `anilist_id=eq.${anilistId}` },
+        () => {
+          episodeCache.clear();
+          clearRuntimeVideoCache();
+          clearSeekeEpisodeCache();
+          queryClient.invalidateQueries({ queryKey: ["video-cache"] });
+          queryClient.invalidateQueries({ queryKey: ["video-cache-opposite"] });
+          queryClient.invalidateQueries({ queryKey: ["seeke-block"] });
+          queryClient.invalidateQueries({ queryKey: ["latest-ep"] });
+          queryClient.invalidateQueries({ queryKey: ["zet-servers"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "video_cache_blocks", filter: `anilist_id=eq.${anilistId}` },
+        () => {
+          episodeCache.clear();
+          clearRuntimeVideoCache();
+          clearSeekeEpisodeCache();
+          queryClient.invalidateQueries({ queryKey: ["seeke-block"] });
+          queryClient.invalidateQueries({ queryKey: ["video-cache"] });
+          queryClient.invalidateQueries({ queryKey: ["latest-ep"] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [anilistId, queryClient]);
+
+
   useEffect(() => {
     historyEntryIdRef.current = null;
     watchTimeRef.current = 0;
