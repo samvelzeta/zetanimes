@@ -13,7 +13,6 @@ import {
 import { registerCurrentDevice } from "@/lib/devices";
 
 const SKIP_PATHS = ["/auth", "/reset-password", "/download"];
-const DEVICE_WARNING_KEY = "zet:device-limit-warnings";
 
 export default function ProfileGate() {
   const location = useLocation();
