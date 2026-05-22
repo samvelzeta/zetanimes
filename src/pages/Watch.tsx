@@ -90,6 +90,7 @@ export default function Watch() {
   useEffect(() => {
     historyEntryIdRef.current = null;
     watchTimeRef.current = 0;
+    lastTickTimeRef.current = null;
     lastSavedProgressRef.current = 0;
   }, [user?.id, anilistId, selectedEp]);
 
