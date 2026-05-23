@@ -58,6 +58,10 @@ function pickBestVideo(rows: CachedVideo[], requestedSlug: string) {
   return rows.find((row) => normalizeSlug(row.slug) === normalizedSlug) || rows[0] || null;
 }
 
+function hasSeekeSources(video: CachedVideo | null | undefined) {
+  return (video?.sources?.seeke?.length || 0) > 0;
+}
+
 /**
  * Busca primero en el cache global (DB). Devuelve null si no existe.
  */
@@ -71,13 +75,13 @@ export async function getCachedVideo(
   const slugKey = cacheKey(normalizedSlug, episode, lang);
   const byAnimeKey = anilistId ? animeCacheKey(anilistId, episode, lang) : null;
 
-  if (byAnimeKey && memCache.has(byAnimeKey)) {
+  if (episode === 0 && byAnimeKey && memCache.has(byAnimeKey)) {
     const cached = memCache.get(byAnimeKey)!;
-    if (cached || episode === 0) return cached;
+    return cached;
   }
-  if (memCache.has(slugKey)) {
+  if (episode === 0 && memCache.has(slugKey)) {
     const cached = memCache.get(slugKey)!;
-    if (cached || episode === 0) return cached;
+    return cached;
   }
 
   let rows: CachedVideo[] = [];
@@ -106,8 +110,21 @@ export async function getCachedVideo(
     return !error && data?.length ? data as unknown as CachedVideo[] : [];
   };
 
+  // Seeke usa una URL base por anime/idioma; si existe, SIEMPRE gana sobre
+  // cualquier HLS/embed viejo del capítulo (AV1/Zilla) que haya quedado en cache.
+  if (episode !== 0) {
+    const baseRows = await readRows(0);
+    const seekeBase = pickBestVideo(baseRows.filter(hasSeekeSources), normalizedSlug);
+    if (seekeBase) {
+      writeCache(seekeBase, normalizedSlug, episode, lang, anilistId ?? seekeBase.anilist_id);
+      if (normalizeSlug(seekeBase.slug) !== normalizedSlug) {
+        writeCache(seekeBase, seekeBase.slug, episode, lang, anilistId ?? seekeBase.anilist_id);
+      }
+      return seekeBase;
+    }
+  }
+
   rows = await readRows(episode);
-  // Seeke usa una URL base por anime/idioma; se guarda como episodio 0 y sirve para cualquier capítulo.
   if (!rows.length && episode !== 0) rows = await readRows(0);
 
   const result = pickBestVideo(rows, normalizedSlug);
