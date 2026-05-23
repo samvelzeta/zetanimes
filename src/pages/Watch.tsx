@@ -324,7 +324,7 @@ export default function Watch() {
       episodeCache.set(oppositeKey, res);
       return res;
     },
-    enabled: !!zetSlug && cachedVideoOppositeFetched && !hasAnySeekeConfig,
+    enabled: !!zetSlug && cachedVideoOppositeFetched && seekeConfigReady && !hasAnySeekeConfig,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
@@ -730,7 +730,7 @@ export default function Watch() {
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
   const isSeekeLatestLoading = hasAnySeekeConfig && !latestReady;
-  const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || loadingServers || isSeekeLatestLoading;
+  const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || !seekeConfigReady || loadingServers || isSeekeLatestLoading;
   const displayedSources = !isLoading && sortedSources.length > 0 ? sortedSources : (hasAnySeekeConfig ? [] : playerSources);
   const displayedEpisode = !isLoading && sortedSources.length > 0 ? selectedEp : playerEpisode;
   const displayedAutoNextKey = `${anilistId}-${displayedEpisode}`;
