@@ -305,7 +305,9 @@ export default function Watch() {
     ? latestForCurrentLang
     : (hasAnySeekeConfig ? (latestOpposite || 0) : av1Max);
   const isEpisodeOutsideCurrentBlocks = hasCurrentSeekeConfig && !currentSeekeBase && currentBlocks.length > 0 && !currentBlock;
-  const isEpisodeBlocked = hasAnySeekeConfig && latestReady && (maxEpisodeForLang <= 0 || selectedEp > maxEpisodeForLang || isEpisodeOutsideCurrentBlocks);
+  const oppositeCanCoverSelected = oppositeSeekeAvailableForEpisode && (latestOpposite || 0) > 0 && selectedEp <= (latestOpposite || 0);
+  const currentLangUnavailable = maxEpisodeForLang <= 0 || selectedEp > maxEpisodeForLang || isEpisodeOutsideCurrentBlocks;
+  const isEpisodeBlocked = hasAnySeekeConfig && latestReady && currentLangUnavailable && !oppositeCanCoverSelected;
   // Si Seeke no cubre el ep actual, NO usamos su URL ni caemos a AV1.
   const seekeCoversCurrent = currentSeekeAvailableForEpisode && latestForCurrentLang > 0 && selectedEp <= latestForCurrentLang;
   const seekeCoversOpposite = oppositeSeekeAvailableForEpisode && (latestOpposite || 0) > 0 && selectedEp <= (latestOpposite || 0);
