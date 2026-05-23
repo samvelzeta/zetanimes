@@ -496,6 +496,16 @@ export default function Watch() {
     selectEpisode(selectedEp + 1);
   }, [autoNextDone, autoNextKey, selectedEp, maxEpisodeForLang]);
 
+  // Si el idioma activo no tiene ese episodio en Seeke pero el otro sí, cambiar
+  // automáticamente para no caer en players AV1 ni mostrar un capítulo fantasma.
+  useEffect(() => {
+    if (!hasAnySeekeConfig || !latestReady || !oppositeCanCoverSelected) return;
+    if (currentLangUnavailable || !currentSeekeAvailableForEpisode) {
+      setLang(oppositeLang);
+      setActiveSourceIdx(0);
+    }
+  }, [hasAnySeekeConfig, latestReady, oppositeCanCoverSelected, currentLangUnavailable, currentSeekeAvailableForEpisode, oppositeLang]);
+
   // Helper: marca el episodio como visto en estado + localStorage (sólo logueado)
   const markWatchedReactive = useCallback((epSlug: string) => {
     if (!user) return; // sólo registrados
