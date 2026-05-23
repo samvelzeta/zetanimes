@@ -10,7 +10,7 @@ import {
 } from "@/lib/zetapi";
 import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
 import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform, clearRuntimeVideoCache } from "@/lib/video-cache";
-import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang } from "@/lib/video-blocks";
+import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang, listBlocks } from "@/lib/video-blocks";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
@@ -104,6 +104,7 @@ export default function Watch() {
           queryClient.invalidateQueries({ queryKey: ["video-cache"] });
           queryClient.invalidateQueries({ queryKey: ["video-cache-opposite"] });
           queryClient.invalidateQueries({ queryKey: ["seeke-block"] });
+          queryClient.invalidateQueries({ queryKey: ["seeke-blocks"] });
           queryClient.invalidateQueries({ queryKey: ["latest-ep"] });
           queryClient.invalidateQueries({ queryKey: ["zet-servers"] });
         }
@@ -116,6 +117,7 @@ export default function Watch() {
           clearRuntimeVideoCache();
           clearSeekeEpisodeCache();
           queryClient.invalidateQueries({ queryKey: ["seeke-block"] });
+          queryClient.invalidateQueries({ queryKey: ["seeke-blocks"] });
           queryClient.invalidateQueries({ queryKey: ["video-cache"] });
           queryClient.invalidateQueries({ queryKey: ["latest-ep"] });
         }
@@ -235,23 +237,42 @@ export default function Watch() {
     enabled: anilistId > 0,
     staleTime: 1000 * 60 * 5,
   });
+  const { data: currentBlocks = [], isFetched: currentBlocksFetched } = useQuery({
+    queryKey: ["seeke-blocks", anilistId, lang],
+    queryFn: () => listBlocks(anilistId, lang),
+    enabled: anilistId > 0,
+    staleTime: 1000 * 60 * 5,
+  });
+  const { data: oppositeBlocks = [], isFetched: oppositeBlocksFetched } = useQuery({
+    queryKey: ["seeke-blocks", anilistId, oppositeLang],
+    queryFn: () => listBlocks(anilistId, oppositeLang),
+    enabled: anilistId > 0,
+    staleTime: 1000 * 60 * 5,
+  });
 
   // latest_episode por idioma (combina bloques + URL única).
   const currentSeekeBase = cachedVideo?.sources?.seeke?.[0];
   const oppositeSeekeBase = cachedVideoOpposite?.sources?.seeke?.[0];
-  const { data: latestCurrent } = useQuery({
+  const hasCurrentSeekeConfig = !!currentSeekeBase || currentBlocks.length > 0;
+  const hasOppositeSeekeConfig = !!oppositeSeekeBase || oppositeBlocks.length > 0;
+  const hasAnySeekeConfig = hasCurrentSeekeConfig || hasOppositeSeekeConfig;
+  const seekeConfigReady = currentBlocksFetched && oppositeBlocksFetched;
+  const currentSeekeAvailableForEpisode = !!currentSeekeBase || !!currentBlock;
+  const oppositeSeekeAvailableForEpisode = !!oppositeSeekeBase || !!oppositeBlock;
+  const { data: latestCurrent, isFetched: latestCurrentFetched } = useQuery({
     queryKey: ["latest-ep", anilistId, lang, currentSeekeBase],
     queryFn: () => getLatestEpisodeByLang(anilistId, lang, currentSeekeBase),
-    enabled: anilistId > 0 && (!!currentBlock || !!currentSeekeBase),
+    enabled: anilistId > 0 && hasCurrentSeekeConfig,
     staleTime: 1000 * 60 * 10,
   });
-  const { data: latestOpposite } = useQuery({
+  const { data: latestOpposite, isFetched: latestOppositeFetched } = useQuery({
     queryKey: ["latest-ep", anilistId, oppositeLang, oppositeSeekeBase],
     queryFn: () => getLatestEpisodeByLang(anilistId, oppositeLang, oppositeSeekeBase),
-    enabled: anilistId > 0 && (!!oppositeBlock || !!oppositeSeekeBase),
+    enabled: anilistId > 0 && hasOppositeSeekeConfig,
     staleTime: 1000 * 60 * 10,
   });
-  // 2) Episode servers fallback. Seeke/manual siempre se pide primero; si existe URL madre Seeke no se consulta AnimeAV1.
+  // 2) Episode servers fallback. Si existe cualquier configuración Seeke para
+  // este anime, NO se consulta AV1/Zilla: Seeke manda o se bloquea el episodio.
   const { data: serverData, isLoading: loadingServers, error: serverError } = useQuery({
     queryKey: ["zet-servers", zetSlug, selectedEp, lang],
     queryFn: async () => {
@@ -260,7 +281,7 @@ export default function Watch() {
       episodeCache.set(cacheKey, res);
       return res;
     },
-    enabled: !!zetSlug && cachedVideoFetched && (!(hasCurrentSeekeBase || currentBlock) || (latestCurrent !== undefined && selectedEp > (latestCurrent || 0))),
+    enabled: !!zetSlug && cachedVideoFetched && seekeConfigReady && !hasAnySeekeConfig,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
@@ -272,10 +293,10 @@ export default function Watch() {
   // que hay más capítulos de los que realmente existen en Seeke.
   // Si no hay nada de Seeke en ningún idioma, recurrimos al techo de AniList/API.
   const latestForCurrentLang = latestCurrent ?? 0;
-  const hasAnySeekeSource = !!(currentBlock || currentSeekeBase || oppositeBlock || oppositeSeekeBase);
-  const hasSeekeForCurrentLang = !!(currentBlock || currentSeekeBase);
+  const latestReady = (!hasCurrentSeekeConfig || latestCurrentFetched) && (!hasOppositeSeekeConfig || latestOppositeFetched);
+  const hasSeekeForCurrentLang = hasCurrentSeekeConfig;
   const seekeMax = Math.max(latestCurrent || 0, latestOpposite || 0);
-  const totalEpisodes = hasAnySeekeSource ? seekeMax : baseTotalEpisodes;
+  const totalEpisodes = hasAnySeekeConfig ? seekeMax : baseTotalEpisodes;
   // Tope efectivo de navegación según el idioma actual:
   // - Con Seeke en idioma actual → estricto a su latest_episode.
   // - Sin Seeke en idioma actual pero con Seeke en el opuesto → usar el opuesto.
@@ -283,10 +304,14 @@ export default function Watch() {
   const av1Max = baseTotalEpisodes;
   const maxEpisodeForLang = hasSeekeForCurrentLang
     ? latestForCurrentLang
-    : (hasAnySeekeSource ? (latestOpposite || 0) : av1Max);
-  const isEpisodeBlocked = selectedEp > maxEpisodeForLang && maxEpisodeForLang > 0;
-  // Si Seeke ya no cubre el ep actual, NO usamos su URL (forzamos AV1 sólo si NO hay seeke en ningún idioma).
-  const seekeCoversCurrent = latestForCurrentLang > 0 ? selectedEp <= latestForCurrentLang : true;
+    : (hasAnySeekeConfig ? (latestOpposite || 0) : av1Max);
+  const isEpisodeOutsideCurrentBlocks = hasCurrentSeekeConfig && !currentSeekeBase && currentBlocks.length > 0 && !currentBlock;
+  const oppositeCanCoverSelected = oppositeSeekeAvailableForEpisode && (latestOpposite || 0) > 0 && selectedEp <= (latestOpposite || 0);
+  const currentLangUnavailable = maxEpisodeForLang <= 0 || selectedEp > maxEpisodeForLang || isEpisodeOutsideCurrentBlocks;
+  const isEpisodeBlocked = hasAnySeekeConfig && latestReady && currentLangUnavailable && !oppositeCanCoverSelected;
+  // Si Seeke no cubre el ep actual, NO usamos su URL ni caemos a AV1.
+  const seekeCoversCurrent = currentSeekeAvailableForEpisode && latestForCurrentLang > 0 && selectedEp <= latestForCurrentLang;
+  const seekeCoversOpposite = oppositeSeekeAvailableForEpisode && (latestOpposite || 0) > 0 && selectedEp <= (latestOpposite || 0);
   // Sin padding con selectedEp: si el usuario pide un ep > tope, se bloquea arriba.
   const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, 0) }, (_, i) => i + 1);
 
@@ -299,7 +324,7 @@ export default function Watch() {
       episodeCache.set(oppositeKey, res);
       return res;
     },
-    enabled: !!zetSlug && cachedVideoOppositeFetched && !hasOppositeSeekeBase && !oppositeBlock,
+    enabled: !!zetSlug && cachedVideoOppositeFetched && seekeConfigReady && !hasAnySeekeConfig,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
@@ -357,20 +382,22 @@ export default function Watch() {
     if (seekeCoversCurrent) {
       addBlock(currentBlock, lang);
       addDb(cachedVideo, lang, !!currentBlock);
-    } else if (cachedVideo) {
+    } else if (!hasAnySeekeConfig && cachedVideo) {
       // Solo añadimos fuentes NO-seeke del DB cache (HLS/MP4/embed manuales).
       addDb({ ...cachedVideo, sources: { ...cachedVideo.sources, seeke: [] } } as any, lang, true);
     }
-    if (lang === "latino") {
+    if (!hasAnySeekeConfig && lang === "latino") {
       (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
         name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
       }));
     }
     addApi(serverData, lang);
 
-    addBlock(oppositeBlock, oppositeLang);
-    addDb(cachedVideoOpposite, oppositeLang, !!oppositeBlock);
-    if (oppositeLang === "latino") {
+    if (!hasAnySeekeConfig || seekeCoversOpposite) {
+      addBlock(oppositeBlock, oppositeLang);
+      addDb(cachedVideoOpposite, oppositeLang, !!oppositeBlock);
+    }
+    if (!hasAnySeekeConfig && oppositeLang === "latino") {
       (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
         name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
       }));
@@ -378,7 +405,7 @@ export default function Watch() {
     addApi(oppositeServerData, oppositeLang);
 
     return sources.sort((a, b) => sourcePriority(a) - sourcePriority(b));
-  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent]);
+  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent, seekeCoversOpposite, hasAnySeekeConfig]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
   // Embeds reales por idioma (después del dedup global de appendUniqueSource).
@@ -469,6 +496,16 @@ export default function Watch() {
     });
     selectEpisode(selectedEp + 1);
   }, [autoNextDone, autoNextKey, selectedEp, maxEpisodeForLang]);
+
+  // Si el idioma activo no tiene ese episodio en Seeke pero el otro sí, cambiar
+  // automáticamente para no caer en players AV1 ni mostrar un capítulo fantasma.
+  useEffect(() => {
+    if (!hasAnySeekeConfig || !latestReady || !oppositeCanCoverSelected) return;
+    if (currentLangUnavailable || !currentSeekeAvailableForEpisode) {
+      setLang(oppositeLang);
+      setActiveSourceIdx(0);
+    }
+  }, [hasAnySeekeConfig, latestReady, oppositeCanCoverSelected, currentLangUnavailable, currentSeekeAvailableForEpisode, oppositeLang]);
 
   // Helper: marca el episodio como visto en estado + localStorage (sólo logueado)
   const markWatchedReactive = useCallback((epSlug: string) => {
@@ -692,8 +729,9 @@ export default function Watch() {
   };
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
-  const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || loadingServers;
-  const displayedSources = !isLoading && sortedSources.length > 0 ? sortedSources : playerSources;
+  const isSeekeLatestLoading = hasAnySeekeConfig && !latestReady;
+  const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || !seekeConfigReady || loadingServers || isSeekeLatestLoading;
+  const displayedSources = !isLoading && sortedSources.length > 0 ? sortedSources : (hasAnySeekeConfig ? [] : playerSources);
   const displayedEpisode = !isLoading && sortedSources.length > 0 ? selectedEp : playerEpisode;
   const displayedAutoNextKey = `${anilistId}-${displayedEpisode}`;
   const isEpisodeSwitching = isLoading && playerSources.length > 0;
@@ -757,7 +795,7 @@ export default function Watch() {
                 El episodio {selectedEp} todavía no se ha emitido o cargado para este idioma. Último disponible: <span className="text-primary font-bold">EP {maxEpisodeForLang}</span>.
               </p>
             </div>
-          ) : isLoading && playerSources.length === 0 ? (
+          ) : isLoading && (playerSources.length === 0 || hasAnySeekeConfig) ? (
             <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>

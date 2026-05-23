@@ -95,11 +95,11 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
   return res.data;
 }
 
-const SEEKE_CACHE_VERSION = "v4";
+const SEEKE_CACHE_VERSION = "v5";
 const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
 type SeekeResolved = { embed: string; episode: number; cached?: boolean; subtitles?: ZetSubtitle[]; latest_episode?: number };
 const seekeMemoryCache = new Map<string, SeekeResolved & { expiresAt: number }>();
-const SEEKE_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
+const SEEKE_CACHE_TTL = 1000 * 60 * 60 * 24 * 3;
 // Cache corto del último latest_episode visto por (baseUrl, ep) — solo
 // para refresco automático sin spamear la VPS. El backend valida cada 6h.
 const LATEST_EP_TTL = 1000 * 60 * 30; // 30 min
@@ -227,10 +227,15 @@ async function refreshLatestEpisode(baseUrl: string, epNumber: number): Promise<
  * Devuelve `undefined` si la VPS aún no ha resuelto el dato.
  */
 export async function getLatestEpisodeForBase(baseUrl: string, hintEp = 1): Promise<number | undefined> {
-  // Si ya tenemos algo cacheado, lo devolvemos rápido y refrescamos en background.
+  // Para disponibilidad NO confiamos ciegamente en cache local: latest_episode
+  // manda desde Seeke/VPS para bloquear capítulos que AniList marque como total
+  // pero aún no existan realmente.
+  const freshLatest = await refreshLatestEpisode(baseUrl, hintEp);
+  if (freshLatest) return freshLatest;
+
+  // Si el refresco ligero falla, usa el último dato cacheado como respaldo.
   for (const [key, value] of seekeMemoryCache.entries()) {
     if (key.includes(baseUrl.trim()) && value.latest_episode) {
-      refreshLatestEpisode(baseUrl, hintEp).catch(() => {});
       return value.latest_episode;
     }
   }

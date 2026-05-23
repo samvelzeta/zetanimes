@@ -379,11 +379,12 @@ export default function VideoManager() {
     )) return;
     setClearingCache(true);
     try {
-      // Borra todo lo que no sea episode=0 (los seeke base viven en episode=0).
-      const { error, count } = await supabase
-        .from("video_cache")
-        .delete({ count: "exact" })
-        .neq("episode", 0);
+      // Borra todo lo que no sea episode=0. Si hay anime seleccionado, limpia
+      // ese anime por ID y por slug para arrastrar caches viejos sin anilist_id.
+      const query = supabase.from("video_cache").delete({ count: "exact" }).neq("episode", 0);
+      const { error, count } = selected
+        ? await query.or(`anilist_id.eq.${selected.id},slug.eq.${selected.slug}`)
+        : await query;
 
       if (error) {
         toast.error("Error: " + error.message);
@@ -438,7 +439,7 @@ export default function VideoManager() {
         const failed = results.find((res) => !res.success);
         if (failed) throw new Error(failed.error || "no se pudo borrar");
       } else {
-        const res = await deleteCachedVideo(selected.slug, ep, lang);
+        const res = await deleteCachedVideo(selected.slug, ep, lang, undefined, selected.id);
         if (!res.success) throw new Error(res.error || "no se pudo borrar");
       }
 
