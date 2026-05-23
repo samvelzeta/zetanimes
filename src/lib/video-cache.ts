@@ -243,13 +243,16 @@ export async function deleteCachedVideo(
   slug: string,
   episode: number,
   lang: string,
-  id?: string
+  id?: string,
+  anilistId?: number
 ): Promise<{ success: boolean; error?: string }> {
   const normalizedSlug = normalizeSlug(slug);
   let query = supabase.from("video_cache").delete().select("slug, anilist_id");
 
   if (id) {
     query = query.eq("id", id);
+  } else if (anilistId) {
+    query = query.eq("anilist_id", anilistId).eq("episode", episode).eq("lang", lang);
   } else {
     query = query.eq("slug", normalizedSlug).eq("episode", episode).eq("lang", lang);
   }
@@ -263,6 +266,7 @@ export async function deleteCachedVideo(
   (data || []).forEach((row) => {
     clearCache(row.slug || normalizedSlug, episode, lang, row.anilist_id);
   });
+  clearCache(normalizedSlug, episode, lang, anilistId);
 
   return { success: true };
 }
