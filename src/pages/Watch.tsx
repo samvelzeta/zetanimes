@@ -10,7 +10,7 @@ import {
 } from "@/lib/zetapi";
 import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
 import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform, clearRuntimeVideoCache } from "@/lib/video-cache";
-import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang } from "@/lib/video-blocks";
+import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang, listBlocks } from "@/lib/video-blocks";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
@@ -235,20 +235,35 @@ export default function Watch() {
     enabled: anilistId > 0,
     staleTime: 1000 * 60 * 5,
   });
+  const { data: currentBlocks = [] } = useQuery({
+    queryKey: ["seeke-blocks", anilistId, lang],
+    queryFn: () => listBlocks(anilistId, lang),
+    enabled: anilistId > 0,
+    staleTime: 1000 * 60 * 5,
+  });
+  const { data: oppositeBlocks = [] } = useQuery({
+    queryKey: ["seeke-blocks", anilistId, oppositeLang],
+    queryFn: () => listBlocks(anilistId, oppositeLang),
+    enabled: anilistId > 0,
+    staleTime: 1000 * 60 * 5,
+  });
 
   // latest_episode por idioma (combina bloques + URL única).
   const currentSeekeBase = cachedVideo?.sources?.seeke?.[0];
   const oppositeSeekeBase = cachedVideoOpposite?.sources?.seeke?.[0];
-  const { data: latestCurrent } = useQuery({
+  const hasCurrentSeekeConfig = !!currentSeekeBase || currentBlocks.length > 0;
+  const hasOppositeSeekeConfig = !!oppositeSeekeBase || oppositeBlocks.length > 0;
+  const hasAnySeekeConfig = hasCurrentSeekeConfig || hasOppositeSeekeConfig;
+  const { data: latestCurrent, isFetched: latestCurrentFetched } = useQuery({
     queryKey: ["latest-ep", anilistId, lang, currentSeekeBase],
     queryFn: () => getLatestEpisodeByLang(anilistId, lang, currentSeekeBase),
-    enabled: anilistId > 0 && (!!currentBlock || !!currentSeekeBase),
+    enabled: anilistId > 0 && hasCurrentSeekeConfig,
     staleTime: 1000 * 60 * 10,
   });
-  const { data: latestOpposite } = useQuery({
+  const { data: latestOpposite, isFetched: latestOppositeFetched } = useQuery({
     queryKey: ["latest-ep", anilistId, oppositeLang, oppositeSeekeBase],
     queryFn: () => getLatestEpisodeByLang(anilistId, oppositeLang, oppositeSeekeBase),
-    enabled: anilistId > 0 && (!!oppositeBlock || !!oppositeSeekeBase),
+    enabled: anilistId > 0 && hasOppositeSeekeConfig,
     staleTime: 1000 * 60 * 10,
   });
   // 2) Episode servers fallback. Seeke/manual siempre se pide primero; si existe URL madre Seeke no se consulta AnimeAV1.
