@@ -104,6 +104,7 @@ export default function Watch() {
           queryClient.invalidateQueries({ queryKey: ["video-cache"] });
           queryClient.invalidateQueries({ queryKey: ["video-cache-opposite"] });
           queryClient.invalidateQueries({ queryKey: ["seeke-block"] });
+          queryClient.invalidateQueries({ queryKey: ["seeke-blocks"] });
           queryClient.invalidateQueries({ queryKey: ["latest-ep"] });
           queryClient.invalidateQueries({ queryKey: ["zet-servers"] });
         }
@@ -116,6 +117,7 @@ export default function Watch() {
           clearRuntimeVideoCache();
           clearSeekeEpisodeCache();
           queryClient.invalidateQueries({ queryKey: ["seeke-block"] });
+          queryClient.invalidateQueries({ queryKey: ["seeke-blocks"] });
           queryClient.invalidateQueries({ queryKey: ["video-cache"] });
           queryClient.invalidateQueries({ queryKey: ["latest-ep"] });
         }
@@ -377,11 +379,11 @@ export default function Watch() {
     if (seekeCoversCurrent) {
       addBlock(currentBlock, lang);
       addDb(cachedVideo, lang, !!currentBlock);
-    } else if (cachedVideo) {
+    } else if (!hasAnySeekeConfig && cachedVideo) {
       // Solo añadimos fuentes NO-seeke del DB cache (HLS/MP4/embed manuales).
       addDb({ ...cachedVideo, sources: { ...cachedVideo.sources, seeke: [] } } as any, lang, true);
     }
-    if (lang === "latino") {
+    if (!hasAnySeekeConfig && lang === "latino") {
       (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
         name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
       }));
@@ -392,7 +394,7 @@ export default function Watch() {
       addBlock(oppositeBlock, oppositeLang);
       addDb(cachedVideoOpposite, oppositeLang, !!oppositeBlock);
     }
-    if (oppositeLang === "latino") {
+    if (!hasAnySeekeConfig && oppositeLang === "latino") {
       (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
         name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
       }));
