@@ -237,13 +237,13 @@ export default function Watch() {
     enabled: anilistId > 0,
     staleTime: 1000 * 60 * 5,
   });
-  const { data: currentBlocks = [] } = useQuery({
+  const { data: currentBlocks = [], isFetched: currentBlocksFetched } = useQuery({
     queryKey: ["seeke-blocks", anilistId, lang],
     queryFn: () => listBlocks(anilistId, lang),
     enabled: anilistId > 0,
     staleTime: 1000 * 60 * 5,
   });
-  const { data: oppositeBlocks = [] } = useQuery({
+  const { data: oppositeBlocks = [], isFetched: oppositeBlocksFetched } = useQuery({
     queryKey: ["seeke-blocks", anilistId, oppositeLang],
     queryFn: () => listBlocks(anilistId, oppositeLang),
     enabled: anilistId > 0,
@@ -256,6 +256,7 @@ export default function Watch() {
   const hasCurrentSeekeConfig = !!currentSeekeBase || currentBlocks.length > 0;
   const hasOppositeSeekeConfig = !!oppositeSeekeBase || oppositeBlocks.length > 0;
   const hasAnySeekeConfig = hasCurrentSeekeConfig || hasOppositeSeekeConfig;
+  const seekeConfigReady = currentBlocksFetched && oppositeBlocksFetched;
   const currentSeekeAvailableForEpisode = !!currentSeekeBase || !!currentBlock;
   const oppositeSeekeAvailableForEpisode = !!oppositeSeekeBase || !!oppositeBlock;
   const { data: latestCurrent, isFetched: latestCurrentFetched } = useQuery({
@@ -280,7 +281,7 @@ export default function Watch() {
       episodeCache.set(cacheKey, res);
       return res;
     },
-    enabled: !!zetSlug && cachedVideoFetched && !hasAnySeekeConfig,
+    enabled: !!zetSlug && cachedVideoFetched && seekeConfigReady && !hasAnySeekeConfig,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
