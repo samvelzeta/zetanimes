@@ -716,8 +716,9 @@ export default function Watch() {
   };
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
-  const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || loadingServers;
-  const displayedSources = !isLoading && sortedSources.length > 0 ? sortedSources : playerSources;
+  const isSeekeLatestLoading = hasAnySeekeConfig && !latestReady;
+  const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || loadingServers || isSeekeLatestLoading;
+  const displayedSources = !isLoading && sortedSources.length > 0 ? sortedSources : (hasAnySeekeConfig ? [] : playerSources);
   const displayedEpisode = !isLoading && sortedSources.length > 0 ? selectedEp : playerEpisode;
   const displayedAutoNextKey = `${anilistId}-${displayedEpisode}`;
   const isEpisodeSwitching = isLoading && playerSources.length > 0;
@@ -781,7 +782,7 @@ export default function Watch() {
                 El episodio {selectedEp} todavía no se ha emitido o cargado para este idioma. Último disponible: <span className="text-primary font-bold">EP {maxEpisodeForLang}</span>.
               </p>
             </div>
-          ) : isLoading && playerSources.length === 0 ? (
+          ) : isLoading && (playerSources.length === 0 || hasAnySeekeConfig) ? (
             <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
