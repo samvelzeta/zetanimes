@@ -438,7 +438,7 @@ export default function VideoManager() {
         const failed = results.find((res) => !res.success);
         if (failed) throw new Error(failed.error || "no se pudo borrar");
       } else {
-        const res = await deleteCachedVideo(selected.slug, ep, lang);
+        const res = await deleteCachedVideo(selected.slug, ep, lang, undefined, selected.id);
         if (!res.success) throw new Error(res.error || "no se pudo borrar");
       }
 
