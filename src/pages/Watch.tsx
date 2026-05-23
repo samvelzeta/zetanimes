@@ -306,6 +306,7 @@ export default function Watch() {
   const isEpisodeBlocked = hasAnySeekeConfig && latestReady && (maxEpisodeForLang <= 0 || selectedEp > maxEpisodeForLang || isEpisodeOutsideCurrentBlocks);
   // Si Seeke no cubre el ep actual, NO usamos su URL ni caemos a AV1.
   const seekeCoversCurrent = currentSeekeAvailableForEpisode && latestForCurrentLang > 0 && selectedEp <= latestForCurrentLang;
+  const seekeCoversOpposite = oppositeSeekeAvailableForEpisode && (latestOpposite || 0) > 0 && selectedEp <= (latestOpposite || 0);
   // Sin padding con selectedEp: si el usuario pide un ep > tope, se bloquea arriba.
   const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, 0) }, (_, i) => i + 1);
 
@@ -318,7 +319,7 @@ export default function Watch() {
       episodeCache.set(oppositeKey, res);
       return res;
     },
-    enabled: !!zetSlug && cachedVideoOppositeFetched && !hasOppositeSeekeBase && !oppositeBlock,
+    enabled: !!zetSlug && cachedVideoOppositeFetched && !hasAnySeekeConfig,
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
@@ -387,8 +388,10 @@ export default function Watch() {
     }
     addApi(serverData, lang);
 
-    addBlock(oppositeBlock, oppositeLang);
-    addDb(cachedVideoOpposite, oppositeLang, !!oppositeBlock);
+    if (!hasAnySeekeConfig || seekeCoversOpposite) {
+      addBlock(oppositeBlock, oppositeLang);
+      addDb(cachedVideoOpposite, oppositeLang, !!oppositeBlock);
+    }
     if (oppositeLang === "latino") {
       (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
         name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
@@ -397,7 +400,7 @@ export default function Watch() {
     addApi(oppositeServerData, oppositeLang);
 
     return sources.sort((a, b) => sourcePriority(a) - sourcePriority(b));
-  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent]);
+  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent, seekeCoversOpposite, hasAnySeekeConfig]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
   // Embeds reales por idioma (después del dedup global de appendUniqueSource).
