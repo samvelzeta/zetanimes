@@ -124,7 +124,7 @@ function StatsTab() {
     const load = async () => {
       const [{ count: users }, { count: premium }, { count: episodes }, { count: notifs }, { count: latino }] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "premium"),
+        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("subscription_status", "active"),
         supabase.from("watch_history").select("*", { count: "exact", head: true }).eq("completed", true),
         supabase.from("notifications").select("*", { count: "exact", head: true }).eq("active", true),
         supabase.from("latino_episodes" as any).select("*", { count: "exact", head: true }).eq("status", "uploaded"),
@@ -189,148 +189,181 @@ function ProofImage({ path }: { path: string }) {
   );
 }
 
-// ========== PREMIUM ==========
+// ========== PREMIUM (gestión manual de suscripciones) ==========
 function PremiumTab() {
-  const [requests, setRequests] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [searchQ, setSearchQ] = useState("");
-  const [selectedReq, setSelectedReq] = useState<any | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [actionLoading, setActionLoading] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [planType, setPlanType] = useState<"basico" | "solo" | "duo">("solo");
+  const [days, setDays] = useState<number>(365);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    supabase.from("premium_requests").select("*").order("created_at", { ascending: false }).then(({ data }) => {
-      if (data) setRequests(data);
-    });
-  }, []);
-
-  // Borrar comprobante del Storage para liberar espacio (Fase 3 optimización)
-  const cleanupProof = async (proof_url?: string | null) => {
-    if (!proof_url) return;
-    try { await supabase.storage.from("premium-proofs").remove([proof_url]); }
-    catch (err) { console.warn("[admin] no pude borrar comprobante", err); }
+  const load = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, username, display_name, subscription_status, plan_type, subscription_email, subscription_expires_at, subscription_updated_at")
+      .order("subscription_updated_at", { ascending: false })
+      .limit(200);
+    setUsers((data as any[]) || []);
   };
 
-  const approve = async (req: any, type: "monthly" | "annual" | "lifetime") => {
-    setActionLoading(true);
+  useEffect(() => { load(); }, []);
+
+  const applyUpdate = async (status: "active" | "inactive" | "expired") => {
+    if (!editing) return;
+    setSaving(true);
     try {
-      await supabase.from("user_roles").insert({ user_id: req.user_id, role: "premium" as any });
-      const daysByType: Record<typeof type, number | null> = { monthly: 30, annual: 365, lifetime: null } as any;
-      const days = daysByType[type];
-      const expires = days ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString() : null;
-      await supabase.from("premium_memberships").insert({
-        user_id: req.user_id, membership_type: type as any, status: "active" as any,
-        activated_at: new Date().toISOString(), expires_at: expires,
-      });
-      await supabase.from("premium_requests").update({ status: "active" as any, proof_url: null }).eq("id", req.id);
-      await supabase.from("notifications").insert({
-        title: "🎉 ¡Premium Activado!",
-        message: `Tu membresía ${type === "annual" ? "Anual" : "Para Siempre"} ha sido aprobada. ¡Disfruta de todos los beneficios!`,
-        type: "success",
-      });
-      await cleanupProof(req.proof_url);
+      const expires =
+        status === "active"
+          ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+          : null;
+      await supabase
+        .from("profiles")
+        .update({
+          subscription_status: status,
+          plan_type: status === "active" ? planType : null,
+          subscription_expires_at: expires,
+          subscription_updated_at: new Date().toISOString(),
+        } as any)
+        .eq("user_id", editing.user_id);
       await logAdminActivity({
-        area: "payments", action: "create",
-        summary: `Aprobó Premium ${type} a ${req.username || req.email || req.user_id}`,
-        target_type: "user", target_id: req.user_id,
+        area: "payments",
+        action: status === "active" ? "create" : "delete",
+        summary: `${status === "active" ? "Activó" : "Desactivó"} Premium ${status === "active" ? planType : ""} de ${editing.username || editing.user_id}`,
+        target_type: "user",
+        target_id: editing.user_id,
       });
-      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "active", proof_url: null } : r));
-      setSelectedReq(null);
-      toast.success("Premium activado y comprobante liberado");
+      toast.success(status === "active" ? "Premium activado" : "Premium desactivado");
+      setEditing(null);
+      await load();
     } catch (e: any) {
       toast.error("Error: " + e.message);
     }
-    setActionLoading(false);
+    setSaving(false);
   };
 
-  const reject = async (req: any) => {
-    if (!rejectReason.trim()) return toast.error("Escribe un motivo de rechazo");
-    setActionLoading(true);
-    try {
-      await supabase.from("premium_requests").update({ status: "rejected" as any, notes: rejectReason, proof_url: null }).eq("id", req.id);
-      await cleanupProof(req.proof_url);
-      await logAdminActivity({
-        area: "payments", action: "delete",
-        summary: `Rechazó Premium de ${req.username || req.email || req.user_id}: ${rejectReason}`,
-        target_type: "user", target_id: req.user_id,
-      });
-      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: "rejected", proof_url: null } : r));
-      setSelectedReq(null);
-      setRejectReason("");
-      toast.info("Solicitud rechazada y comprobante liberado");
-    } catch (e: any) {
-      toast.error("Error: " + e.message);
-    }
-    setActionLoading(false);
-  };
-
-  const filtered = requests.filter((r) => !searchQ || r.email?.includes(searchQ) || r.username?.includes(searchQ));
+  const filtered = users.filter(
+    (u) =>
+      !searchQ ||
+      u.username?.toLowerCase().includes(searchQ.toLowerCase()) ||
+      u.display_name?.toLowerCase().includes(searchQ.toLowerCase()) ||
+      u.subscription_email?.toLowerCase().includes(searchQ.toLowerCase())
+  );
 
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-secondary/60 p-4">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Las suscripciones ahora se activan automáticamente vía <strong>Ko-fi + Make.com → edge function <code>kofi-webhook</code></strong>.
+          Aquí solo necesitas intervenir si quieres ajustar manualmente un usuario (regalo, error, etc.).
+        </p>
+      </div>
+
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Buscar usuario..." className="pl-10 h-10 bg-secondary border-primary/30 rounded-xl" />
+        <Input
+          value={searchQ}
+          onChange={(e) => setSearchQ(e.target.value)}
+          placeholder="Buscar por usuario o email..."
+          className="pl-10 h-10 bg-secondary border-primary/30 rounded-xl"
+        />
       </div>
-      {filtered.map((req) => (
-        <div key={req.id} className="bg-secondary rounded-xl p-4 border border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-foreground">{req.email || req.username}</p>
-              <p className="text-[10px] text-muted-foreground">{req.membership_type === "annual" ? "1 Año" : "Para Siempre"} · {req.status}</p>
-            </div>
-            {req.status === "pending" && (
-              <button onClick={() => setSelectedReq(req)} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold">Revisar</button>
-            )}
+
+      {filtered.map((u) => (
+        <div
+          key={u.user_id}
+          className="bg-secondary rounded-xl p-4 border border-border flex items-center justify-between"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-foreground truncate">
+              {u.display_name || u.username}
+            </p>
+            <p className="text-[10px] text-muted-foreground truncate">
+              {u.subscription_email || "sin email Ko-fi"} ·{" "}
+              <span
+                className={
+                  u.subscription_status === "active" ? "text-green-400" : "text-muted-foreground"
+                }
+              >
+                {u.subscription_status}
+              </span>
+              {u.plan_type ? ` · ${u.plan_type}` : ""}
+              {u.subscription_expires_at
+                ? ` · vence ${new Date(u.subscription_expires_at).toLocaleDateString()}`
+                : ""}
+            </p>
           </div>
-          {req.notes && <p className="text-[10px] text-muted-foreground mt-1">Nota: {req.notes}</p>}
+          <button
+            onClick={() => {
+              setEditing(u);
+              setPlanType((u.plan_type as any) || "solo");
+              setDays(365);
+            }}
+            className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold"
+          >
+            Editar
+          </button>
         </div>
       ))}
-      {filtered.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No hay solicitudes</p>}
+      {filtered.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">Sin usuarios</p>
+      )}
 
-      {selectedReq && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setSelectedReq(null)}>
-          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-black text-foreground flex items-center gap-2"><Crown className="w-4 h-4 text-primary" /> Revisar Solicitud</h2>
-                <button onClick={() => setSelectedReq(null)} className="text-muted-foreground hover:text-foreground">✕</button>
-              </div>
-              <div className="bg-secondary rounded-xl p-3 border border-border space-y-1">
-                <p className="text-sm font-bold text-foreground">{selectedReq.email || selectedReq.username}</p>
-                <p className="text-xs text-muted-foreground">Plan solicitado: <span className="text-primary font-bold">{selectedReq.membership_type === "annual" ? "1 Año" : "Para Siempre"}</span></p>
-                {selectedReq.notes && <p className="text-xs text-muted-foreground">Mensaje: {selectedReq.notes}</p>}
-                <p className="text-[10px] text-muted-foreground">{new Date(selectedReq.created_at).toLocaleString()}</p>
-              </div>
-              {selectedReq.proof_url ? (
-                <ProofImage path={selectedReq.proof_url} />
-              ) : (
-                <p className="text-xs text-muted-foreground italic">Sin comprobante adjunto</p>
-              )}
-              <div className="space-y-2">
-                <p className="text-xs font-bold text-foreground">Aprobar como:</p>
-                <div className="flex gap-2 flex-wrap">
-                  <button onClick={() => approve(selectedReq, "monthly")} disabled={actionLoading}
-                    className="flex-1 min-w-[90px] py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
-                    {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />} ✓ Mensual
-                  </button>
-                  <button onClick={() => approve(selectedReq, "annual")} disabled={actionLoading}
-                    className="flex-1 min-w-[90px] py-2.5 rounded-xl bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
-                    {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />} ✓ Anual
-                  </button>
-                  <button onClick={() => approve(selectedReq, "lifetime")} disabled={actionLoading}
-                    className="flex-1 min-w-[90px] py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-1">
-                    {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />} ∞ Para Siempre
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2 pt-2 border-t border-border">
-                <p className="text-xs font-bold text-foreground">Rechazar:</p>
-                <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Motivo del rechazo..." className="w-full h-16 bg-secondary border border-border rounded-xl p-3 text-xs text-foreground resize-none" />
-                <button onClick={() => reject(selectedReq)} disabled={actionLoading || !rejectReason.trim()}
-                  className="w-full py-2.5 rounded-xl bg-destructive text-white text-xs font-bold hover:bg-destructive/90 transition disabled:opacity-50 flex items-center justify-center gap-1">
-                  {actionLoading && <Loader2 className="w-3 h-3 animate-spin" />} ✗ Rechazar
-                </button>
-              </div>
+      {editing && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-black text-foreground flex items-center gap-2">
+                <Crown className="w-4 h-4 text-primary" /> Editar suscripción
+              </h2>
+              <button onClick={() => setEditing(null)} className="text-muted-foreground">✕</button>
+            </div>
+            <p className="text-sm font-bold text-foreground">{editing.display_name || editing.username}</p>
+
+            <div>
+              <label className="text-[10px] text-primary mb-1 block">Plan</label>
+              <select
+                value={planType}
+                onChange={(e) => setPlanType(e.target.value as any)}
+                className="w-full h-10 bg-secondary border border-primary/30 rounded-xl px-3 text-sm text-foreground"
+              >
+                <option value="basico">Básico ($5/año)</option>
+                <option value="solo">Solo ($8/año)</option>
+                <option value="duo">Dúo ($10/año)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[10px] text-primary mb-1 block">Duración (días)</label>
+              <Input
+                type="number"
+                value={days}
+                onChange={(e) => setDays(parseInt(e.target.value) || 365)}
+                className="h-10 bg-secondary border-primary/30 rounded-xl"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => applyUpdate("active")}
+                disabled={saving}
+                className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                {saving && <Loader2 className="w-3 h-3 animate-spin" />} Activar
+              </button>
+              <button
+                onClick={() => applyUpdate("inactive")}
+                disabled={saving}
+                className="flex-1 py-2.5 rounded-xl bg-destructive text-white text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                {saving && <Loader2 className="w-3 h-3 animate-spin" />} Desactivar
+              </button>
             </div>
           </div>
         </div>
@@ -339,52 +372,19 @@ function PremiumTab() {
   );
 }
 
-// ========== PAYMENT (datos bancarios + editor completo del modal premium) ==========
+// ========== PAYMENT (info estática Ko-fi) ==========
 function PaymentTab() {
-  const [info, setInfo] = useState({ bank_name: "", account_holder: "", account_number: "", price_annual: "", price_lifetime: "", instructions: "" });
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    supabase.from("admin_payment_info").select("*").limit(1).single().then(({ data }) => {
-      if (data) setInfo({ bank_name: data.bank_name || "", account_holder: data.account_holder || "", account_number: data.account_number || "", price_annual: data.price_annual || "", price_lifetime: data.price_lifetime || "", instructions: data.instructions || "" });
-    });
-  }, []);
-
-  const save = async () => {
-    setLoading(true);
-    const { data: existing } = await supabase.from("admin_payment_info").select("id").limit(1).single();
-    if (existing) await supabase.from("admin_payment_info").update(info).eq("id", existing.id);
-    setLoading(false);
-    toast.success("Info de pago guardada");
-  };
-
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><CreditCard className="w-4 h-4 text-green-400" /> Datos bancarios para transferencia</h3>
-        {[
-          { key: "bank_name", label: "Banco / Plataforma" },
-          { key: "account_holder", label: "Titular de la cuenta" },
-          { key: "account_number", label: "Cuenta / CLABE / CBU" },
-          { key: "price_annual", label: "Precio 1 año (legacy)" },
-          { key: "price_lifetime", label: "Precio Para Siempre (legacy)" },
-        ].map((f) => (
-          <div key={f.key}>
-            <label className="text-[10px] text-primary mb-1 block">{f.label}</label>
-            <Input value={(info as any)[f.key]} onChange={(e) => setInfo({ ...info, [f.key]: e.target.value })} className="h-10 bg-secondary border-primary/30 rounded-xl" />
-          </div>
-        ))}
-        <div>
-          <label className="text-[10px] text-primary mb-1 block">Instrucciones</label>
-          <textarea value={info.instructions} onChange={(e) => setInfo({ ...info, instructions: e.target.value })} className="w-full h-24 bg-secondary border border-primary/30 rounded-xl p-3 text-sm text-foreground resize-none" />
-        </div>
-        <button onClick={save} disabled={loading} className="px-5 py-2.5 rounded-xl bg-green-600 text-white font-bold text-sm hover:bg-green-700 transition flex items-center gap-2">
-          {loading && <Loader2 className="w-4 h-4 animate-spin" />} Guardar datos bancarios
-        </button>
-      </section>
-
-      <div className="pt-6 border-t-2 border-primary/30">
-        <PremiumConfigEditor />
+    <div className="space-y-6">
+      <PremiumConfigEditor />
+      <div className="rounded-xl border border-border bg-secondary/60 p-5 space-y-2">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+          <CreditCard className="w-4 h-4 text-green-400" /> Método de pago
+        </h3>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Todos los pagos pasan por <a href="https://ko-fi.com/zetanimes" target="_blank" rel="noopener noreferrer" className="text-primary font-bold hover:underline">ko-fi.com/zetanimes</a>.
+          No hace falta configurar datos bancarios aquí — Ko-fi gestiona el cobro y Make.com activa el premium automáticamente.
+        </p>
       </div>
     </div>
   );
