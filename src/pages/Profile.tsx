@@ -209,9 +209,14 @@ export default function Profile() {
         </div>
         <h1 className="text-lg font-black text-foreground mt-4">{displayName}</h1>
         {isMainProfile && <p className="text-xs text-muted-foreground">{user.email}</p>}
-        {isPremium && isMainProfile && (
-          <span className="mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-xs font-bold text-primary-foreground">
-            <Crown className="w-3 h-3" /> PREMIUM
+        {isMainProfile && (profile?.subscription_status === "active" || isOwner) && (
+          <span className="mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-xs font-black text-primary-foreground shadow-lg shadow-primary/40">
+            <BadgeCheck className="w-3.5 h-3.5" />
+            VIP
+            {profile?.plan_type && (
+              <span className="ml-1 opacity-90 capitalize">· {profile.plan_type === "duo" ? "Dúo" : profile.plan_type === "solo" ? "Solo" : "Básico"}</span>
+            )}
+            {isOwner && !profile?.plan_type && <span className="ml-1 opacity-90">· Owner</span>}
           </span>
         )}
 
