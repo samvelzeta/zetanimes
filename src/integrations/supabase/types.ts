@@ -131,39 +131,6 @@ export type Database = {
         }
         Relationships: []
       }
-      admin_payment_info: {
-        Row: {
-          account_holder: string | null
-          account_number: string | null
-          bank_name: string | null
-          id: string
-          instructions: string | null
-          price_annual: string | null
-          price_lifetime: string | null
-          updated_at: string
-        }
-        Insert: {
-          account_holder?: string | null
-          account_number?: string | null
-          bank_name?: string | null
-          id?: string
-          instructions?: string | null
-          price_annual?: string | null
-          price_lifetime?: string | null
-          updated_at?: string
-        }
-        Update: {
-          account_holder?: string | null
-          account_number?: string | null
-          bank_name?: string | null
-          id?: string
-          instructions?: string | null
-          price_annual?: string | null
-          price_lifetime?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       anime_download_tracker: {
         Row: {
           added_by: string | null
@@ -632,249 +599,6 @@ export type Database = {
         }
         Relationships: []
       }
-      premium_memberships: {
-        Row: {
-          activated_at: string | null
-          activation_key: string | null
-          created_at: string
-          expires_at: string | null
-          id: string
-          membership_type: Database["public"]["Enums"]["membership_type"]
-          plan_tier: string | null
-          simultaneous_sessions: number | null
-          status: Database["public"]["Enums"]["membership_status"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          activated_at?: string | null
-          activation_key?: string | null
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          membership_type: Database["public"]["Enums"]["membership_type"]
-          plan_tier?: string | null
-          simultaneous_sessions?: number | null
-          status?: Database["public"]["Enums"]["membership_status"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          activated_at?: string | null
-          activation_key?: string | null
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          membership_type?: Database["public"]["Enums"]["membership_type"]
-          plan_tier?: string | null
-          simultaneous_sessions?: number | null
-          status?: Database["public"]["Enums"]["membership_status"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      premium_plans: {
-        Row: {
-          accent_color: string | null
-          ads_free: boolean
-          badge: string | null
-          created_at: string
-          custom_avatar_upload: boolean
-          downloads_allowed: boolean
-          enabled: boolean
-          features: Json
-          id: string
-          max_profiles: number
-          max_streams: number
-          membership_type: string
-          multi_status_selection: boolean
-          name: string
-          pdf_export: boolean
-          period: string
-          premium_badge: boolean
-          price_annual: number | null
-          price_label: string
-          price_monthly: number | null
-          priority_servers: boolean
-          profile_count: number
-          quality_max: string
-          simultaneous_sessions: number
-          slug: string
-          sort_order: number
-          tier: string
-          updated_at: string
-          vip_support: boolean
-        }
-        Insert: {
-          accent_color?: string | null
-          ads_free?: boolean
-          badge?: string | null
-          created_at?: string
-          custom_avatar_upload?: boolean
-          downloads_allowed?: boolean
-          enabled?: boolean
-          features?: Json
-          id?: string
-          max_profiles?: number
-          max_streams?: number
-          membership_type?: string
-          multi_status_selection?: boolean
-          name: string
-          pdf_export?: boolean
-          period?: string
-          premium_badge?: boolean
-          price_annual?: number | null
-          price_label: string
-          price_monthly?: number | null
-          priority_servers?: boolean
-          profile_count?: number
-          quality_max?: string
-          simultaneous_sessions?: number
-          slug: string
-          sort_order?: number
-          tier?: string
-          updated_at?: string
-          vip_support?: boolean
-        }
-        Update: {
-          accent_color?: string | null
-          ads_free?: boolean
-          badge?: string | null
-          created_at?: string
-          custom_avatar_upload?: boolean
-          downloads_allowed?: boolean
-          enabled?: boolean
-          features?: Json
-          id?: string
-          max_profiles?: number
-          max_streams?: number
-          membership_type?: string
-          multi_status_selection?: boolean
-          name?: string
-          pdf_export?: boolean
-          period?: string
-          premium_badge?: boolean
-          price_annual?: number | null
-          price_label?: string
-          price_monthly?: number | null
-          priority_servers?: boolean
-          profile_count?: number
-          quality_max?: string
-          simultaneous_sessions?: number
-          slug?: string
-          sort_order?: number
-          tier?: string
-          updated_at?: string
-          vip_support?: boolean
-        }
-        Relationships: []
-      }
-      premium_requests: {
-        Row: {
-          created_at: string
-          email: string | null
-          id: string
-          membership_type: Database["public"]["Enums"]["membership_type"]
-          notes: string | null
-          proof_url: string | null
-          reviewed_by: string | null
-          status: Database["public"]["Enums"]["membership_status"]
-          updated_at: string
-          user_id: string
-          username: string | null
-        }
-        Insert: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          membership_type: Database["public"]["Enums"]["membership_type"]
-          notes?: string | null
-          proof_url?: string | null
-          reviewed_by?: string | null
-          status?: Database["public"]["Enums"]["membership_status"]
-          updated_at?: string
-          user_id: string
-          username?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          membership_type?: Database["public"]["Enums"]["membership_type"]
-          notes?: string | null
-          proof_url?: string | null
-          reviewed_by?: string | null
-          status?: Database["public"]["Enums"]["membership_status"]
-          updated_at?: string
-          user_id?: string
-          username?: string | null
-        }
-        Relationships: []
-      }
-      premium_settings: {
-        Row: {
-          alt_payment_url: string | null
-          background_image_url: string | null
-          character_hover_text_1: string | null
-          character_hover_text_2: string | null
-          character_hover_text_3: string | null
-          character_image_url: string | null
-          character3_image_url: string | null
-          checkout_character_image_url: string | null
-          companion_prompt: string | null
-          description: string | null
-          id: string
-          layout_mode: string
-          show_proof_form: boolean
-          stripe_enabled: boolean
-          stripe_payment_url: string | null
-          subtitle: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          alt_payment_url?: string | null
-          background_image_url?: string | null
-          character_hover_text_1?: string | null
-          character_hover_text_2?: string | null
-          character_hover_text_3?: string | null
-          character_image_url?: string | null
-          character3_image_url?: string | null
-          checkout_character_image_url?: string | null
-          companion_prompt?: string | null
-          description?: string | null
-          id?: string
-          layout_mode?: string
-          show_proof_form?: boolean
-          stripe_enabled?: boolean
-          stripe_payment_url?: string | null
-          subtitle?: string
-          title?: string
-          updated_at?: string
-        }
-        Update: {
-          alt_payment_url?: string | null
-          background_image_url?: string | null
-          character_hover_text_1?: string | null
-          character_hover_text_2?: string | null
-          character_hover_text_3?: string | null
-          character_image_url?: string | null
-          character3_image_url?: string | null
-          checkout_character_image_url?: string | null
-          companion_prompt?: string | null
-          description?: string | null
-          id?: string
-          layout_mode?: string
-          show_proof_form?: boolean
-          stripe_enabled?: boolean
-          stripe_payment_url?: string | null
-          subtitle?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -882,6 +606,11 @@ export type Database = {
           display_name: string | null
           id: string
           last_seen_notification_id: string | null
+          plan_type: string | null
+          subscription_email: string | null
+          subscription_expires_at: string | null
+          subscription_status: string
+          subscription_updated_at: string | null
           updated_at: string
           user_id: string
           username: string
@@ -892,6 +621,11 @@ export type Database = {
           display_name?: string | null
           id?: string
           last_seen_notification_id?: string | null
+          plan_type?: string | null
+          subscription_email?: string | null
+          subscription_expires_at?: string | null
+          subscription_status?: string
+          subscription_updated_at?: string | null
           updated_at?: string
           user_id: string
           username: string
@@ -902,6 +636,11 @@ export type Database = {
           display_name?: string | null
           id?: string
           last_seen_notification_id?: string | null
+          plan_type?: string | null
+          subscription_email?: string | null
+          subscription_expires_at?: string | null
+          subscription_status?: string
+          subscription_updated_at?: string | null
           updated_at?: string
           user_id?: string
           username?: string

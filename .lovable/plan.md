@@ -1,116 +1,68 @@
-## Cambios solicitados
 
-### A. Texto del botón Exportar PDF (rápido)
-- En `Profile.tsx`, cambiar badge "TRIO" → "Premium" y subtítulo "Disponible en plan TRIO" → "Disponible al subir de plan".
-- Eliminar toda mención pública a SOLO/DUO/TRIO en mensajes de gating (usar "Función premium" / "Disponible al actualizar tu plan"). Los nombres reales siguen existiendo en admin.
+## Reemplazo total del sistema premium
 
-### B. Nuevos permisos dinámicos en `premium_plans`
-Migración: agregar columnas booleanas con default `false`:
-- `multi_status_selection` (selección múltiple de estados de anime)
-- `custom_avatar_upload` (subir foto personal)
-- `vip_support` (soporte priorizado premium)
+### 1. Base de datos (migración)
 
-Free recibe los 3 en `false`. Owner siempre `true`. Editor del admin (`PremiumConfigEditor`) muestra los 3 toggles por plan.
+**Añadir a `profiles`:**
+- `subscription_status text default 'inactive'` (valores: `active` | `inactive` | `expired`)
+- `plan_type text` (`basico` | `solo` | `duo`)
+- `subscription_email text` (email que usó en Ko-fi, puede diferir del email auth)
+- `subscription_expires_at timestamptz`
+- `subscription_updated_at timestamptz default now()`
 
-Extender `PlanPermissions` + `plan-permissions.ts` + `usePlanPermissions` para exponer estos 3 flags.
+**Borrar (drop):**
+- Tablas: `premium_memberships`, `premium_requests`, `premium_plans`, `premium_settings`, `admin_payment_info`
+- Bucket: `premium-proofs`
+- Funciones: `get_user_plan_slug`, `get_user_max_streams`, `get_user_max_profiles` → reescritas para leer de `profiles`
 
-### C. Selección múltiple de estados de anime
-- En `anime-lists.ts` / página `MyLists.tsx` / botones de cambio de estado en `AnimeDetail.tsx`:
-  - Si `multi_status_selection === false` → el usuario sólo puede tener el anime en máximo **2 listas distintas**. Al intentar añadir una 3ª, mostrar modal "Función premium — actualiza tu plan para guardar en más listas".
-  - Si `true` → sin límite.
-- Aplicar la verificación en la función que inserta en `user_anime_lists` (o equivalente) leyendo el conteo actual.
+**Reescribir helpers SQL:** las 3 funciones anteriores ahora derivan de `profiles.subscription_status='active'` + `plan_type`.
 
-### D. Avatar personalizado solo premium
-- En `Profile.tsx` (sección avatar): el botón cámara (overlay del círculo) sólo se renderiza si `permissions.custom_avatar_upload === true`.
-- Si `false`: ocultar el botón cámara y mostrar tooltip/hint "Disponible al actualizar tu plan". Free sigue usando avatares de personajes predefinidos (ya existe `anilist-avatars`).
-- También aplicar gate al endpoint de subida en cliente (early-return con toast).
+**RLS nueva en profiles:** política `service_role bypass` ya existe por defecto en Supabase; añado política explícita para que `service_role` haga UPSERT sin restricción (no la necesita pero la dejo documentada).
 
-### E. Sistema de soporte (Premium VIP + Free)
+### 2. Edge Function nueva: `kofi-webhook`
 
-**DB nueva tabla `support_tickets`:**
-```
-id uuid pk
-user_id uuid
-plan_slug text          -- snapshot del plan al crear
-priority text           -- 'vip' | 'standard'
-subject text null
-message text not null
-image_url text null     -- solo VIP
-status text default 'pending'  -- pending|in_progress|answered|solved|closed
-admin_response text null
-admin_id uuid null
-created_at, updated_at, responded_at
-```
+- Recibe POST de Make.com con `{ email, plan_type, status, expires_at }`.
+- Verifica un secret `KOFI_WEBHOOK_SECRET` en header `x-webhook-secret`.
+- Busca usuario por `email` en `auth.users` (vía service role).
+- UPSERT en `profiles` los 5 campos de suscripción.
+- `verify_jwt = false` en config.toml.
 
-RLS:
-- user puede ver/insert solo los propios.
-- admins/owner: select/update todos.
-- Trigger updated_at.
+### 3. Frontend — pricing
 
-**Bucket storage** `support-attachments` (privado, signed URL al admin).
+**Eliminar/limpiar:**
+- `PremiumScreen.tsx`, `PremiumConfigEditor.tsx`, `ExpiryAlert.tsx`, `premium-config.ts`, todo el flujo de comprobantes.
+- Sección "Revisión Premium" en `Admin.tsx`.
+- Hooks/lib: `plan-permissions.ts` y `usePlanPermissions.ts` se simplifican a leer `subscription_status` y mapear a permisos hardcodeados por `plan_type`.
 
-**Cliente:**
-- `src/lib/support.ts` — `createTicket`, `listMyTickets`, `listAllTicketsAdmin`, `updateTicketStatus`, `respondTicket`.
-- Validación de texto: regex permitiendo letras (incluye acentos/ñ), números, espacios y símbolos comunes `# $ % & / ( ) = ? ¡ ! * + - _ , . : ; @ " ' ¿`. Rechazar emojis y unicode raro.
-- Premium VIP: hasta 1000 chars + 1 imagen (validar + comprimir con `image-compress.ts`).
-- Free: hasta 200 chars, sin imagen, gating por permiso `vip_support === false` → cae a flujo free, queda en cola con prioridad `standard`.
+**Nueva página `Premium.tsx`** (reemplaza ruta actual): 3 cards
+- Básico $5/año — botón → `window.open('https://ko-fi.com/zetanimes', '_blank')`
+- Solo $8/año — idem
+- Dúo $10/año — idem
 
-**UI usuario** (sección dentro de `Profile.tsx` "Soporte"):
-- Formulario con contador de caracteres dinámico según permiso.
-- Lista de tickets propios con estado y respuesta tipo burbujas WhatsApp.
-- Toast/alert cuando cambia el estado a `answered`/`solved` (suscripción Realtime a `support_tickets` filtrada por `user_id`).
+### 4. Perfil — badge VIP
 
-**Admin** (`Admin.tsx` → sección Reportes dividida en 2 sub-tabs):
-- Tab 1: "Anime/Video" (lo actual de `BrokenReports`).
-- Tab 2: "Soporte" → componente nuevo `SupportTicketsAdmin.tsx`:
-  - Lista en bloques WhatsApp-style, separa VIP arriba y Free debajo.
-  - Cada ticket: user info, plan, fecha, estado, imagen, mensaje.
-  - Acciones: responder, cambiar estado (pending/in_progress/answered/solved/closed), priorizar.
-- También un panel resumido al pie del perfil del admin (visible sólo si tiene rol admin/owner) — link a la tab completa.
+En `Profile.tsx`, si `profile.subscription_status === 'active'`:
+- Badge "VIP" + texto del `plan_type` ("Básico" / "Solo" / "Dúo").
 
-### F. Notificaciones al usuario
-- Realtime subscription en `Layout.tsx` (sólo si user logueado) que escucha cambios en `support_tickets` del propio user.
-- Al detectar `status` cambiado a `answered`/`solved`/`in_progress`, dispara `toast` con icono y CTA "Ver respuesta" que abre la sección soporte de Profile.
-
-### G. Memory update
-- Guardar memory `mem://features/soporte-tickets` y actualizar `mem://index.md` con la nueva regla de "no mencionar nombres de planes públicamente en gating".
-
----
-
-## Detalles técnicos resumidos
+### 5. Permisos por plan (hardcoded)
 
 ```
-DB:
-  premium_plans + multi_status_selection / custom_avatar_upload / vip_support
-  support_tickets (nueva tabla + RLS + realtime)
-  storage bucket support-attachments
-
-Client nuevo:
-  src/lib/support.ts
-  src/components/support/SupportForm.tsx
-  src/components/support/MyTicketsList.tsx
-  src/components/admin/SupportTicketsAdmin.tsx
-  src/hooks/useSupportNotifications.ts
-
-Client editado:
-  src/lib/plan-permissions.ts         (3 flags nuevos)
-  src/components/admin/PremiumConfigEditor.tsx  (3 toggles)
-  src/pages/Profile.tsx               (badge PDF, gate avatar, tab soporte)
-  src/pages/MyLists.tsx + lib/anime-lists.ts  (gate 2 estados)
-  src/pages/AnimeDetail.tsx           (gate al cambiar estado)
-  src/pages/Admin.tsx                 (split reportes)
-  src/components/Layout.tsx           (notif realtime)
+basico → ads_free, max_streams=1, max_profiles=2
+solo   → ads_free, max_streams=2, max_profiles=3, downloads, pdf
+duo    → ads_free, max_streams=3, max_profiles=5, downloads, pdf, vip_support, custom_avatar
+inactive/null → free
 ```
 
----
+### 6. Datos técnicos para Make.com (al final, en chat)
 
-## Orden de implementación
-1. Migración DB (3 columnas + tabla `support_tickets` + RLS + bucket + realtime).
-2. Plan permissions + admin toggles.
-3. Texto del botón PDF y gating sin nombres de plan.
-4. Gate multi-status en listas.
-5. Gate cámara en avatar.
-6. Sistema soporte (lib + UI usuario + UI admin + realtime).
-7. Memory.
+- Project Ref, Project URL, anon key (públicos, ya los tienes).
+- **Service role key:** te indico paso a paso cómo copiarla desde el panel — NO la pego en el chat por seguridad.
+- Nombre tabla (`profiles`) + columnas exactas.
+- URL del webhook + ejemplo de payload + secret a configurar.
 
-¿Apruebas para empezar?
+### Riesgos importantes
+- **Se pierden todas las membresías activas actuales** y los comprobantes guardados. Los usuarios premium actuales quedan en `inactive` hasta que pasen por Ko-fi de nuevo, o los reactives manualmente.
+- El sistema de revisión manual desaparece por completo.
+- Si Make.com falla, no hay UI de respaldo para activar premium (puedes hacerlo a mano con SQL).
+
+¿Apruebas para ejecutar?

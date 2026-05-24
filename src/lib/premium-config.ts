@@ -1,97 +1,24 @@
-import { supabase } from "@/integrations/supabase/client";
-
+// [DEPRECATED] El sistema de planes/configuración premium dinámica fue eliminado.
+// Mantengo tipos vacíos por compatibilidad con cualquier import residual.
 export interface PremiumPlan {
   id: string;
-  slug?: string | null;
+  slug?: string;
   name: string;
   price_label: string;
-  price_monthly?: number | null;
-  price_annual?: number | null;
-  period: string;
-  membership_type: "monthly" | "annual" | "lifetime";
-  tier: string;
-  profile_count: number;
-  simultaneous_sessions: number;
-  max_streams?: number;
-  max_profiles?: number;
-  quality_max?: "hd" | "fhd" | "4k";
-  ads_free?: boolean;
-  priority_servers?: boolean;
-  downloads_allowed?: boolean;
-  pdf_export?: boolean;
-  premium_badge?: boolean;
-  multi_status_selection?: boolean;
-  custom_avatar_upload?: boolean;
-  vip_support?: boolean;
   features: string[];
-  badge: string | null;
-  accent_color: string | null;
-  sort_order: number;
-  enabled: boolean;
+  badge?: string | null;
+  accent_color?: string | null;
+  enabled?: boolean;
 }
-
 export interface PremiumSettings {
   id: string;
-  title: string;
-  subtitle: string;
-  description: string | null;
-  character_image_url: string | null;
-  checkout_character_image_url: string | null;
-  character3_image_url: string | null;
-  character_hover_text_1: string | null;
-  character_hover_text_2: string | null;
-  character_hover_text_3: string | null;
-  companion_prompt: string | null;
-  background_image_url: string | null;
-  alt_payment_url: string | null;
-  stripe_enabled: boolean;
-  stripe_payment_url: string | null;
-  layout_mode: "lateral" | "background";
-  show_proof_form: boolean;
+  title?: string;
+  subtitle?: string;
 }
 
-export async function listPremiumPlans(includeDisabled = false): Promise<PremiumPlan[]> {
-  let q = supabase.from("premium_plans" as any).select("*").order("sort_order");
-  if (!includeDisabled) q = q.eq("enabled", true);
-  const { data } = await q;
-  return ((data as any[]) || []).map((r) => ({
-    ...r,
-    features: Array.isArray(r.features) ? r.features : [],
-  })) as PremiumPlan[];
-}
-
-export async function getPremiumSettings(): Promise<PremiumSettings | null> {
-  const { data } = await supabase.from("premium_settings" as any).select("*").limit(1).maybeSingle();
-  return (data as any) || null;
-}
-
-export async function savePremiumSettings(patch: Partial<PremiumSettings>): Promise<void> {
-  const current = await getPremiumSettings();
-  if (current) {
-    await supabase.from("premium_settings" as any).update(patch).eq("id", current.id);
-  } else {
-    await supabase.from("premium_settings" as any).insert(patch as any);
-  }
-}
-
-export async function upsertPlan(plan: Partial<PremiumPlan>): Promise<void> {
-  if (plan.id) {
-    const { id, ...rest } = plan;
-    await supabase.from("premium_plans" as any).update(rest as any).eq("id", id);
-  } else {
-    await supabase.from("premium_plans" as any).insert(plan as any);
-  }
-}
-
-export async function deletePlan(id: string): Promise<void> {
-  await supabase.from("premium_plans" as any).delete().eq("id", id);
-}
-
-export async function uploadPremiumAsset(file: File, kind: "character" | "background" | "character2" | "character3"): Promise<string> {
-  const ext = file.name.split(".").pop() || "png";
-  const path = `${kind}-${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from("premium-assets").upload(path, file, { upsert: true, contentType: file.type });
-  if (error) throw error;
-  const { data } = supabase.storage.from("premium-assets").getPublicUrl(path);
-  return `${data.publicUrl}?t=${Date.now()}`;
-}
+export async function listPremiumPlans(): Promise<PremiumPlan[]> { return []; }
+export async function getPremiumSettings(): Promise<PremiumSettings | null> { return null; }
+export async function savePremiumSettings(): Promise<void> {}
+export async function upsertPlan(): Promise<void> {}
+export async function deletePlan(): Promise<void> {}
+export async function uploadPremiumAsset(): Promise<string> { return ""; }
