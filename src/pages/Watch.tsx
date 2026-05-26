@@ -731,7 +731,9 @@ export default function Watch() {
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
   const isSeekeLatestLoading = hasAnySeekeConfig && !latestReady;
   const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || !seekeConfigReady || loadingServers || isSeekeLatestLoading;
-  const displayedSources = !isLoading && sortedSources.length > 0 ? sortedSources : (hasAnySeekeConfig ? [] : playerSources);
+  // IMPORTANT: keep previous playerSources mounted while loading the next episode
+  // so the iframe DOM node (and thus fullscreen state) is preserved.
+  const displayedSources = !isLoading && sortedSources.length > 0 ? sortedSources : playerSources;
   const displayedEpisode = !isLoading && sortedSources.length > 0 ? selectedEp : playerEpisode;
   const displayedAutoNextKey = `${anilistId}-${displayedEpisode}`;
   const isEpisodeSwitching = isLoading && playerSources.length > 0;
