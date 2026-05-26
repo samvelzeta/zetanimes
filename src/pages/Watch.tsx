@@ -797,7 +797,7 @@ export default function Watch() {
                 El episodio {selectedEp} todavía no se ha emitido o cargado para este idioma. Último disponible: <span className="text-primary font-bold">EP {maxEpisodeForLang}</span>.
               </p>
             </div>
-          ) : isLoading && (playerSources.length === 0 || hasAnySeekeConfig) ? (
+          ) : isLoading && playerSources.length === 0 ? (
             <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
