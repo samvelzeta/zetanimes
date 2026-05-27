@@ -1,34 +1,15 @@
-// Webhook que recibe pagos confirmados desde Ko-fi (directo o vía Make.com).
+// Webhook que recibe pagos confirmados desde Ko-fi (vía Make.com o directo).
 // Activa/actualiza la suscripción del usuario en la tabla `profiles` según el email.
 //
-// === ACEPTA DOS FORMATOS ===
+// Formatos aceptados:
+//  1) Ko-fi nativo: { type: "Shop Order"|"Subscription"|"Donation", email, amount, tier_name, ... }
+//  2) Simple:       { email, plan_type: "basico"|"solo"|"duo", status?, days? }
 //
-// 1) Formato nativo Ko-fi (lo que Ko-fi envía a Make):
-//    {
-//      "type": "Subscription",
-//      "email": "jo.example@example.com",
-//      "amount": "8.00",
-//      "tier_name": "Solo",                  // opcional
-//      "is_subscription_payment": true,
-//      "is_first_subscription_payment": true,
-//      ...otros campos Ko-fi (se ignoran)
-//    }
+// Mapeo monto USD → plan: 5 → basico, 8 → solo, 10 → duo
+// Header de auth: x-bridge-secret (preferido) o x-webhook-secret
 //
-// 2) Formato simplificado (si prefieres mapear en Make antes):
-//    {
-//      "email": "user@correo.com",
-//      "plan_type": "basico" | "solo" | "duo",
-//      "status": "active" | "inactive" | "expired",   // default: active
-//      "days": 365                                    // opcional, default 365
-//    }
-//
-// === MAPEO DE PLAN POR MONTO (USD) ===
-//   5.00 → basico  | 8.00 → solo  | 10.00 → duo
-//   El tier_name también se acepta (Basico/Solo/Duo, case-insensitive).
-//
-// === HEADERS ===
-//   x-bridge-secret: <KOFI_WEBHOOK_SECRET>   (preferido — el que tienes en Make)
-//   x-webhook-secret: <KOFI_WEBHOOK_SECRET>  (alternativo, retrocompatible)
+// IMPORTANTE: el email se busca en auth.users (no hay columna email en profiles),
+// y la actualización se hace en profiles.user_id.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -42,8 +23,8 @@ const corsHeaders = {
 const ALLOWED_PLANS = new Set(["basico", "solo", "duo"]);
 const ALLOWED_STATUS = new Set(["active", "inactive", "expired"]);
 
-// Mapa monto USD → plan
 function planFromAmount(amount: number): string | null {
+  if (!isFinite(amount) || amount <= 0) return null;
   if (amount >= 10) return "duo";
   if (amount >= 8) return "solo";
   if (amount >= 5) return "basico";
@@ -71,44 +52,68 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
   const secret = Deno.env.get("KOFI_WEBHOOK_SECRET");
-  if (!secret) return json({ error: "webhook secret not configured" }, 500);
+  if (!secret) {
+    console.error("[kofi-webhook] KOFI_WEBHOOK_SECRET no configurado");
+    return json({ error: "webhook secret not configured" }, 500);
+  }
 
   const provided =
     req.headers.get("x-bridge-secret") ?? req.headers.get("x-webhook-secret");
-  if (provided !== secret) return json({ error: "unauthorized" }, 401);
-
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "invalid json" }, 400);
+  if (provided !== secret) {
+    console.warn("[kofi-webhook] Secret inválido o ausente");
+    return json({ error: "unauthorized" }, 401);
   }
+
+  // ---- Parse body (acepta JSON directo o Ko-fi clásico con form-data "data") ----
+  let body: any;
+  const raw = await req.text();
+  console.log("[kofi-webhook] RAW BODY:", raw);
+
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    // Ko-fi clásico envía application/x-www-form-urlencoded con campo "data" = JSON string
+    try {
+      const params = new URLSearchParams(raw);
+      const dataField = params.get("data");
+      if (dataField) body = JSON.parse(dataField);
+      else throw new Error("no data field");
+    } catch (e) {
+      console.error("[kofi-webhook] JSON inválido:", e);
+      return json({ error: "invalid json", raw_preview: raw.slice(0, 200) }, 400);
+    }
+  }
+
+  console.log("[kofi-webhook] PARSED BODY:", JSON.stringify(body));
 
   // ---- Detectar formato ----
   const isKofiNative =
     typeof body?.type === "string" ||
     typeof body?.kofi_transaction_id === "string" ||
-    body?.is_subscription_payment !== undefined;
+    body?.is_subscription_payment !== undefined ||
+    body?.shop_items !== undefined;
 
-  let email = "";
+  let email = String(body?.email || "").trim().toLowerCase();
   let planType = "";
   let status: "active" | "inactive" | "expired" = "active";
   let days = 365;
 
   if (isKofiNative) {
-    email = String(body?.email || "").trim().toLowerCase();
     const amountNum = Number(body?.amount ?? 0);
-    planType =
-      planFromTier(body?.tier_name) ??
-      planFromAmount(amountNum) ??
-      "";
+    const tier = body?.tier_name ?? body?.tier ?? null;
+    planType = planFromTier(tier) ?? planFromAmount(amountNum) ?? "";
 
-    // Ko-fi: solo procesamos suscripciones o donaciones que mapean a un plan
     const t = String(body?.type || "").toLowerCase();
-    if (t && t !== "subscription" && t !== "donation" && t !== "shop order") {
+    console.log(`[kofi-webhook] type=${t} amount=${amountNum} tier=${tier} plan=${planType} email=${email}`);
+
+    // Aceptamos Shop Order, Subscription y Donation (si mapea a plan)
+    const allowedTypes = ["shop order", "subscription", "donation", ""];
+    if (!allowedTypes.includes(t)) {
+      console.log(`[kofi-webhook] ignorado: type=${t} no soportado`);
       return json({ ok: true, ignored: true, reason: `type=${t}` });
     }
     if (!planType) {
+      console.log(`[kofi-webhook] ignorado: amount=${body?.amount} no mapea a plan`);
       return json({
         ok: true,
         ignored: true,
@@ -117,13 +122,15 @@ Deno.serve(async (req) => {
     }
     status = "active";
   } else {
-    email = String(body?.email || "").trim().toLowerCase();
     planType = String(body?.plan_type || "").trim().toLowerCase();
     status = (String(body?.status || "active").trim().toLowerCase()) as typeof status;
     if (Number(body?.days) > 0) days = Number(body.days);
   }
 
-  if (!email) return json({ error: "email required" }, 400);
+  if (!email) {
+    console.error("[kofi-webhook] email vacío en payload");
+    return json({ error: "email required", received: body }, 400);
+  }
   if (!ALLOWED_STATUS.has(status)) return json({ error: "invalid status" }, 400);
   if (status === "active" && !ALLOWED_PLANS.has(planType)) {
     return json(
@@ -139,42 +146,77 @@ Deno.serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // ---- Buscar usuario por email (paginado, hasta ~10k usuarios) ----
+  // ---- Buscar user_id por email en auth.users (paginado) ----
   let userId: string | null = null;
-  for (let page = 1; page <= 10 && !userId; page++) {
+  let totalScanned = 0;
+  for (let page = 1; page <= 20 && !userId; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
     if (error) {
+      console.error("[kofi-webhook] error listUsers:", error.message);
       return json({ error: "auth lookup failed", detail: error.message }, 500);
     }
+    totalScanned += data.users.length;
     const found = data.users.find((u) => (u.email || "").toLowerCase() === email);
-    if (found) userId = found.id;
+    if (found) {
+      userId = found.id;
+      console.log(`[kofi-webhook] usuario encontrado user_id=${userId} email=${email}`);
+    }
     if (data.users.length < 1000) break;
   }
 
   if (!userId) {
-    return json({ error: "user not found for that email", email }, 404);
+    console.warn(`[kofi-webhook] USUARIO NO ENCONTRADO email=${email} (escaneados=${totalScanned})`);
+    return json(
+      {
+        error: "user not found for that email",
+        email,
+        hint: "El usuario debe haberse registrado previamente en ZetAnimes con ese email.",
+        scanned_users: totalScanned,
+      },
+      404
+    );
   }
 
-  // ---- Actualizar suscripción ----
+  // ---- Actualizar suscripción en profiles ----
   const expiresAt =
     status === "active"
       ? new Date(Date.now() + days * 86_400_000).toISOString()
       : null;
 
-  const { error: upErr } = await admin
+  const updatePayload = {
+    subscription_status: status,
+    plan_type: status === "active" ? planType : null,
+    subscription_email: email,
+    subscription_expires_at: expiresAt,
+    subscription_updated_at: new Date().toISOString(),
+  };
+
+  console.log("[kofi-webhook] UPDATE profiles SET", JSON.stringify(updatePayload), "WHERE user_id =", userId);
+
+  const { data: updated, error: upErr } = await admin
     .from("profiles")
-    .update({
-      subscription_status: status,
-      plan_type: status === "active" ? planType : null,
-      subscription_email: email,
-      subscription_expires_at: expiresAt,
-      subscription_updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
+    .update(updatePayload)
+    .eq("user_id", userId)
+    .select("user_id, subscription_status, plan_type, subscription_expires_at");
 
   if (upErr) {
-    return json({ error: "update failed", detail: upErr.message }, 500);
+    console.error("[kofi-webhook] UPDATE falló:", upErr.message);
+    return json({ error: "update failed", detail: upErr.message, user_id: userId }, 500);
   }
+
+  if (!updated || updated.length === 0) {
+    console.error(`[kofi-webhook] UPDATE no afectó filas. ¿Falta row en profiles para user_id=${userId}?`);
+    return json(
+      {
+        error: "no profile row updated",
+        user_id: userId,
+        hint: "No existe fila en `profiles` para este user_id. Verifica el trigger handle_new_user.",
+      },
+      500
+    );
+  }
+
+  console.log("[kofi-webhook] ✅ ÉXITO:", JSON.stringify(updated[0]));
 
   return json({
     ok: true,
@@ -184,5 +226,6 @@ Deno.serve(async (req) => {
     plan_type: status === "active" ? planType : null,
     expires_at: expiresAt,
     source: isKofiNative ? "kofi-native" : "simple",
+    updated: updated[0],
   });
 });
