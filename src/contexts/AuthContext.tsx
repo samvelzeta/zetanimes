@@ -166,10 +166,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, rolesLoaded]);
 
   const effectiveLoading = loading || (!!user && !rolesLoaded);
-  const isPremium = roles.includes("premium") || roles.includes("owner");
   const isOwner = roles.includes("owner");
   // Owner es siempre admin también; admin explícito tiene acceso al panel pero NO a áreas owner-only.
   const isAdmin = isOwner || roles.includes("admin");
+  // Premium se determina por:
+  //  - rol "premium" / "owner" (legacy / manual)
+  //  - subscription_status === 'active' en profiles (activado por kofi-webhook)
+  //    con plan_type válido y no expirado.
+  const subActive = (() => {
+    const status = (profile as any)?.subscription_status;
+    const plan = (profile as any)?.plan_type;
+    const exp = (profile as any)?.subscription_expires_at;
+    if (status !== "active" || !plan) return false;
+    if (exp && new Date(exp).getTime() <= Date.now()) return false;
+    return true;
+  })();
+  const isPremium = isOwner || roles.includes("premium") || subActive;
 
   const signOut = async () => {
     await supabase.auth.signOut();
