@@ -118,6 +118,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [user, roles]);
 
+  // Realtime: kofi-webhook actualiza profiles.subscription_status / plan_type.
+  // Escuchamos cambios en MI fila de profiles para que el badge premium se active al instante.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`profile-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
+        (payload) => { setProfile(payload.new as any); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   useEffect(() => {
     if (!user || !rolesLoaded) return;
     const currentDeviceId = getDeviceId();
