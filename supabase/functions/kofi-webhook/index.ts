@@ -24,7 +24,9 @@ const ALLOWED_PLANS = new Set(["basico", "solo", "duo"]);
 const ALLOWED_STATUS = new Set(["active", "inactive", "expired"]);
 
 function planFromAmount(amount: number): string | null {
-  if (!isFinite(amount) || amount <= 0) return null;
+  if (!isFinite(amount)) return null;
+  // Caso especial de prueba: monto 0 → basico (Shop Order de Ko-fi gratis para verificar el flujo)
+  if (amount === 0) return "basico";
   if (amount >= 10) return "duo";
   if (amount >= 8) return "solo";
   if (amount >= 5) return "basico";
