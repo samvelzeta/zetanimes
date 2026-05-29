@@ -186,7 +186,9 @@ export async function isCurrentDeviceSessionValid(userId: string): Promise<boole
     await touchCurrentDevice(userId);
     return true;
   }
-  return !data.revoked_at;
+  // No expulsar automáticamente por una marca vieja de revoked_at: el gate de dispositivos
+  // vuelve a registrar si hay cupo, y si no hay cupo muestra el modal para gestionar.
+  return true;
 }
 
 export function getDeviceLimit(isPremium: boolean, isOwner = false, planLimit?: number): number {
