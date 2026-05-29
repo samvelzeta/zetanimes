@@ -97,5 +97,13 @@ export async function resolveUserPermissions(
   if (status !== "active" || !planType) return FREE_PERMISSIONS;
   if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) return FREE_PERMISSIONS;
 
-  return PLAN_BY_TYPE[planType] || FREE_PERMISSIONS;
+  const { data: plan } = await supabase
+    .from("premium_plan_configs" as any)
+    .select("*")
+    .eq("slug", planType)
+    .eq("enabled", true)
+    .maybeSingle();
+
+  if (!plan) return FREE_PERMISSIONS;
+  return permissionsFromConfig((plan as unknown) as PremiumPlanConfig);
 }
