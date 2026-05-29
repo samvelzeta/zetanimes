@@ -90,7 +90,7 @@ export async function listPremiumPlans(includeDisabled = false): Promise<Premium
   if (!includeDisabled) query = query.eq("enabled", true);
   const { data, error } = await query;
   if (error) throw error;
-  return ((data as PremiumPlanConfig[]) || []).map((plan) => ({ ...plan, features: buildPlanFeatures(plan) }));
+  return (((data as unknown) as PremiumPlanConfig[]) || []).map((plan) => ({ ...plan, features: buildPlanFeatures(plan) }));
 }
 
 export async function savePremiumPlan(plan: PremiumPlanConfig): Promise<void> {
