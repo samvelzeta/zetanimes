@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Trash2, AlertTriangle, CheckCircle, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { logAdminActivity } from "@/lib/admin-log";
+import { planLabel } from "@/lib/premium-config";
 
 type ReportStatus = "pending" | "fixing" | "resolved";
 
@@ -17,6 +18,9 @@ interface Report {
   report_count: number;
   status: string;
   reason: string | null;
+  highest_plan_slug: string | null;
+  highest_priority_label: string | null;
+  priority_score: number;
   first_reported_at: string;
   last_reported_at: string;
 }
@@ -40,6 +44,7 @@ export default function BrokenReports() {
       .from("broken_link_reports")
       .select("*")
       .eq("status", activeStatus)
+      .order("priority_score", { ascending: false })
       .order("report_count", { ascending: false })
       .limit(100);
     setReports((data as Report[]) || []);
@@ -130,6 +135,11 @@ export default function BrokenReports() {
                   {r.report_type === "full" ? "Anime completo" : `Capítulo ${r.episode_number}`}
                   {" · "}<span className="text-primary font-bold">{r.report_count} reporte{r.report_count > 1 ? "s" : ""}</span>
                 </p>
+                {r.highest_plan_slug && (
+                  <span className="mt-1 inline-flex px-2 py-0.5 rounded-full bg-primary/15 border border-primary/30 text-[9px] font-black text-primary uppercase">
+                    Prioridad {r.highest_priority_label || planLabel(r.highest_plan_slug)}
+                  </span>
+                )}
                 <p className="text-[10px] text-muted-foreground font-mono">{r.slug}</p>
                 <p className="text-[10px] text-muted-foreground">Último: {new Date(r.last_reported_at).toLocaleString()}</p>
                 {r.reason && (
