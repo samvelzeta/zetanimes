@@ -189,6 +189,8 @@ export async function isCurrentDeviceSessionValid(userId: string): Promise<boole
   return !data.revoked_at;
 }
 
-export function getDeviceLimit(isPremium: boolean, isOwner = false): number {
-  return isOwner ? 999 : isPremium ? 2 : 2;
+export function getDeviceLimit(isPremium: boolean, isOwner = false, planLimit?: number): number {
+  if (isOwner) return 999;
+  if (typeof planLimit === "number" && planLimit > 0) return planLimit;
+  return isPremium ? 1 : 1;
 }
