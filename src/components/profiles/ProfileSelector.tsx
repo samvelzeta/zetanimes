@@ -11,6 +11,7 @@ import {
 } from "@/lib/account-profiles";
 import { fetchAvatarOptions, searchAvatars, type AvatarOption } from "@/lib/anilist-avatars";
 import { toast } from "sonner";
+import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 
 interface Props {
   manageMode?: boolean;
@@ -29,13 +30,14 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
   const navigate = useNavigate();
   const { user, isPremium, isOwner } = useAuth();
   const { profiles, refresh, selectProfile } = useProfiles();
+  const { permissions } = usePlanPermissions();
 
   const [editing, setEditing] = useState<AccountProfile | null>(null);
   const [creating, setCreating] = useState(false);
   const [manage, setManage] = useState(manageMode);
   const isSelectionMode = !manage && !manageMode;
 
-  const maxProfiles = getMaxProfiles(isPremium || isOwner);
+  const maxProfiles = getMaxProfiles(isPremium || isOwner, permissions.max_profiles);
   const selfEditOnly = Boolean(editableProfileId);
   const visibleProfiles = selfEditOnly ? profiles.filter((p) => p.id === editableProfileId) : profiles;
   const canCreate = manage && !selfEditOnly && profiles.length < maxProfiles;
