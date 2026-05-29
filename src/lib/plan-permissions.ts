@@ -3,6 +3,7 @@
 //   plan_type ('basico' | 'solo' | 'duo')
 // Activación vía Ko-fi + webhook Make.com → edge function `kofi-webhook`.
 import { supabase } from "@/integrations/supabase/client";
+import { type PremiumPlanConfig } from "@/lib/premium-config";
 
 export interface PlanPermissions {
   slug: string;
@@ -13,6 +14,7 @@ export interface PlanPermissions {
   ads_free: boolean;
   priority_servers: boolean;
   downloads_allowed: boolean;
+  priority_support: boolean;
   pdf_export: boolean;
   premium_badge: boolean;
   multi_status_selection: boolean;
@@ -29,6 +31,7 @@ export const FREE_PERMISSIONS: PlanPermissions = {
   ads_free: false,
   priority_servers: false,
   downloads_allowed: false,
+  priority_support: false,
   pdf_export: false,
   premium_badge: false,
   multi_status_selection: false,
@@ -45,6 +48,7 @@ export const OWNER_PERMISSIONS: PlanPermissions = {
   ads_free: true,
   priority_servers: true,
   downloads_allowed: true,
+  priority_support: true,
   pdf_export: true,
   premium_badge: true,
   multi_status_selection: true,
@@ -52,59 +56,26 @@ export const OWNER_PERMISSIONS: PlanPermissions = {
   vip_support: true,
 };
 
-const BASICO: PlanPermissions = {
-  slug: "basico",
-  name: "Básico",
-  max_streams: 1,
-  max_profiles: 2,
-  quality_max: "fhd",
-  ads_free: true,
-  priority_servers: false,
-  downloads_allowed: false,
-  pdf_export: false,
-  premium_badge: true,
-  multi_status_selection: false,
-  custom_avatar_upload: false,
-  vip_support: false,
-};
+export const PLAN_BY_TYPE: Record<string, PlanPermissions> = {};
 
-const SOLO: PlanPermissions = {
-  slug: "solo",
-  name: "Plan Solo",
-  max_streams: 2,
-  max_profiles: 3,
-  quality_max: "fhd",
-  ads_free: true,
-  priority_servers: true,
-  downloads_allowed: true,
-  pdf_export: true,
-  premium_badge: true,
-  multi_status_selection: true,
-  custom_avatar_upload: true,
-  vip_support: false,
-};
-
-const DUO: PlanPermissions = {
-  slug: "duo",
-  name: "Plan Dúo",
-  max_streams: 3,
-  max_profiles: 5,
-  quality_max: "4k",
-  ads_free: true,
-  priority_servers: true,
-  downloads_allowed: true,
-  pdf_export: true,
-  premium_badge: true,
-  multi_status_selection: true,
-  custom_avatar_upload: true,
-  vip_support: true,
-};
-
-export const PLAN_BY_TYPE: Record<string, PlanPermissions> = {
-  basico: BASICO,
-  solo: SOLO,
-  duo: DUO,
-};
+function permissionsFromConfig(plan: PremiumPlanConfig): PlanPermissions {
+  return {
+    slug: plan.slug,
+    name: plan.name,
+    max_streams: plan.streams_enabled ? plan.max_streams : 1,
+    max_profiles: plan.profiles_enabled ? plan.max_profiles : 1,
+    quality_max: plan.quality_enabled ? plan.quality_max : "hd",
+    ads_free: plan.ads_free,
+    priority_servers: plan.priority_servers,
+    downloads_allowed: plan.downloads_allowed,
+    priority_support: plan.priority_support,
+    pdf_export: plan.pdf_export,
+    premium_badge: true,
+    multi_status_selection: plan.multi_status_selection,
+    custom_avatar_upload: plan.custom_avatar_upload,
+    vip_support: plan.vip_support,
+  };
+}
 
 export async function resolveUserPermissions(
   userId: string | null | undefined,
