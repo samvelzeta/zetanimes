@@ -12,6 +12,8 @@ interface UserRow {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  subscription_status: string | null;
+  plan_type: string | null;
   roles: AppRole[];
 }
 
@@ -31,7 +33,7 @@ export default function RoleManager() {
   const load = async () => {
     setLoading(true);
     const [{ data: profiles }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("user_id, username, display_name, avatar_url").order("created_at", { ascending: false }).limit(500),
+      supabase.from("profiles").select("user_id, username, display_name, avatar_url, subscription_status, plan_type").order("created_at", { ascending: false }).limit(500),
       supabase.from("user_roles").select("user_id, role"),
     ]);
     const rolesMap = new Map<string, AppRole[]>();
@@ -45,6 +47,8 @@ export default function RoleManager() {
       username: p.username,
       display_name: p.display_name,
       avatar_url: p.avatar_url,
+      subscription_status: p.subscription_status,
+      plan_type: p.plan_type,
       roles: rolesMap.get(p.user_id) || ["user"],
     }));
     setUsers(combined);
@@ -127,6 +131,7 @@ export default function RoleManager() {
             const isOwner = u.roles.includes("owner");
             const isAdmin = u.roles.includes("admin");
             const isPremium = u.roles.includes("premium");
+            const isSubscribed = u.subscription_status === "active" && !!u.plan_type;
             const busy = busyId === u.user_id;
             return (
               <div key={u.user_id} className="bg-secondary rounded-xl p-3 border border-border">
@@ -150,6 +155,11 @@ export default function RoleManager() {
                         {r}
                       </span>
                     ))}
+                    {isSubscribed && !isPremium && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-purple-500/20 text-purple-300 border-purple-500/40">
+                        premium · {u.plan_type}
+                      </span>
+                    )}
                   </div>
                 </div>
 
