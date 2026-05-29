@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlanPermissions } from "@/hooks/usePlanPermissions";
+import { planLabel, planPriority } from "@/lib/premium-config";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -14,6 +16,7 @@ interface Props {
 
 export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, animeCover, anilistId }: Props) {
   const { user } = useAuth();
+  const { permissions } = usePlanPermissions();
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [reason, setReason] = useState("");
@@ -25,12 +28,15 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
     try {
       const epNum = type === "full" ? null : episodeNumber;
       const reasonText = reason.trim();
+      const reporterPlan = permissions.slug === "free" ? null : permissions.slug;
+      const reporterPriority = planPriority(reporterPlan);
+      const reporterLabel = reporterPlan ? planLabel(reporterPlan) : null;
       let reportId: string | null = null;
 
       // Look up existing aggregated report.
       let q = supabase
         .from("broken_link_reports")
-        .select("id, report_count")
+        .select("id, report_count, priority_score")
         .eq("slug", slug)
         .eq("report_type", type);
       q = epNum === null ? q.is("episode_number", null) : q.eq("episode_number", epNum);
@@ -52,6 +58,9 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
               last_reported_at: new Date().toISOString(),
               reason: reasonText,
               status: "pending", // re-abre si estaba "resolved" y vuelve a fallar
+              priority_score: Math.max((existing as any).priority_score || 0, reporterPriority),
+              highest_plan_slug: reporterPriority >= ((existing as any).priority_score || 0) ? reporterPlan : undefined,
+              highest_priority_label: reporterPriority >= ((existing as any).priority_score || 0) ? reporterLabel : undefined,
             } as any)
             .eq("id", existing.id);
         }
@@ -63,6 +72,9 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
             slug, episode_number: epNum, report_type: type,
             anime_title: animeTitle, anime_cover: animeCover, anilist_id: anilistId,
             reason: reasonText,
+            highest_plan_slug: reporterPlan,
+            highest_priority_label: reporterLabel,
+            priority_score: reporterPriority,
           } as any)
           .select("id")
           .single();
@@ -72,7 +84,7 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
       // Track this reporter (idempotent thanks to UNIQUE(report_id,user_id)).
       if (reportId) {
         await supabase.from("broken_link_reporters")
-          .insert({ report_id: reportId, user_id: user.id } as any);
+          .insert({ report_id: reportId, user_id: user.id, plan_slug: reporterPlan, priority_label: reporterLabel, priority_score: reporterPriority } as any);
       }
 
       toast.success("Reporte enviado. Te avisaremos cuando lo solucionemos.");

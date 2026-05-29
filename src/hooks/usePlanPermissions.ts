@@ -7,7 +7,7 @@ import {
 } from "@/lib/plan-permissions";
 
 export function usePlanPermissions() {
-  const { user, roles, loading } = useAuth();
+  const { user, profile, roles, loading } = useAuth();
   const [permissions, setPermissions] = useState<PlanPermissions>(FREE_PERMISSIONS);
   const [ready, setReady] = useState(false);
 
@@ -29,7 +29,7 @@ export function usePlanPermissions() {
     return () => {
       cancel = true;
     };
-  }, [user, roles.join(","), loading]);
+  }, [user, profile?.subscription_status, profile?.plan_type, profile?.subscription_expires_at, roles.join(","), loading]);
 
   return { permissions, ready, loading: loading || !ready };
 }

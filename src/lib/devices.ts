@@ -86,13 +86,6 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean, 
     .limit(1);
 
   const currentRecord = currentRows?.[0] as DeviceSession | undefined;
-  const wasRevoked = !!currentRecord?.revoked_at;
-  const canRestoreRevokedDevice = wasRevoked && (entitlements.unlimited || consumeFreshLogin());
-
-  if (wasRevoked && !canRestoreRevokedDevice) {
-    return { allowed: false, limit, current: 0, isCurrent: true, revoked: true };
-  }
-
   // 1) Listar sesiones activas (últimas N horas)
   const cutoff = new Date(Date.now() - INACTIVE_HOURS * 60 * 60 * 1000).toISOString();
   const { data: active } = await supabase
@@ -104,6 +97,12 @@ export async function registerCurrentDevice(userId: string, isPremium: boolean, 
 
   const list = active || [];
   const exists = list.find((d) => d.device_id === info.deviceId);
+  const wasRevoked = !!currentRecord?.revoked_at;
+  const canRestoreRevokedDevice = wasRevoked && (entitlements.unlimited || consumeFreshLogin() || list.length < limit);
+
+  if (wasRevoked && !canRestoreRevokedDevice) {
+    return { allowed: false, limit, current: list.length, isCurrent: true, revoked: true };
+  }
 
   if (exists) {
     if (!entitlements.unlimited && list.length > limit) {
@@ -187,9 +186,13 @@ export async function isCurrentDeviceSessionValid(userId: string): Promise<boole
     await touchCurrentDevice(userId);
     return true;
   }
-  return !data.revoked_at;
+  // No expulsar automáticamente por una marca vieja de revoked_at: el gate de dispositivos
+  // vuelve a registrar si hay cupo, y si no hay cupo muestra el modal para gestionar.
+  return true;
 }
 
-export function getDeviceLimit(isPremium: boolean, isOwner = false): number {
-  return isOwner ? 999 : isPremium ? 2 : 2;
+export function getDeviceLimit(isPremium: boolean, isOwner = false, planLimit?: number): number {
+  if (isOwner) return 999;
+  if (typeof planLimit === "number" && planLimit > 0) return planLimit;
+  return isPremium ? 1 : 1;
 }

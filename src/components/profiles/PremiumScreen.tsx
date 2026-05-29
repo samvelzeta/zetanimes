@@ -1,7 +1,8 @@
 // Modal de suscripción ZetAnime — 3 planes con pago vía Ko-fi.
 // El webhook de Make.com activa automáticamente la membresía al recibir el pago.
 import { Crown, Check, X, ExternalLink, Sparkles } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { listPremiumPlans, type PremiumPlan } from "@/lib/premium-config";
 
 interface Props {
   onClose: () => void;
@@ -9,63 +10,17 @@ interface Props {
 
 const KOFI_URL = "https://ko-fi.com/zetanimes";
 
-interface Plan {
-  slug: "basico" | "solo" | "duo";
-  name: string;
-  price: string;
-  accent: string;
-  badge?: string;
-  features: string[];
-}
-
-const PLANS: Plan[] = [
-  {
-    slug: "basico",
-    name: "Básico",
-    price: "$5/año",
-    accent: "#22C55E",
-    features: [
-      "Sin anuncios",
-      "Calidad Full HD",
-      "1 dispositivo simultáneo",
-      "2 perfiles por cuenta",
-    ],
-  },
-  {
-    slug: "solo",
-    name: "Plan Solo",
-    price: "$8/año",
-    accent: "#3B82F6",
-    badge: "Popular",
-    features: [
-      "Todo lo del Básico",
-      "2 dispositivos simultáneos",
-      "3 perfiles por cuenta",
-      "Servidores prioritarios",
-      "Descargas y export PDF",
-    ],
-  },
-  {
-    slug: "duo",
-    name: "Plan Dúo",
-    price: "$10/año",
-    accent: "#A855F7",
-    badge: "Mejor valor",
-    features: [
-      "Todo lo del Solo",
-      "Calidad 4K",
-      "3 dispositivos simultáneos",
-      "5 perfiles por cuenta",
-      "Soporte VIP prioritario",
-    ],
-  },
-];
-
 export default function PremiumScreen({ onClose }: Props) {
+  const [plans, setPlans] = useState<PremiumPlan[]>([]);
+
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  useEffect(() => {
+    listPremiumPlans(false).then(setPlans).catch(() => setPlans([]));
   }, []);
 
   const openKofi = () => {
@@ -118,33 +73,33 @@ export default function PremiumScreen({ onClose }: Props) {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {PLANS.map((plan) => (
+          {plans.map((plan) => (
             <div
               key={plan.slug}
               className="group relative rounded-2xl border-2 p-5 pt-7 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1"
               style={{
-                borderColor: plan.accent + "55",
-                boxShadow: `0 12px 32px ${plan.accent}22`,
+                borderColor: plan.accent_color + "55",
+                boxShadow: `0 12px 32px ${plan.accent_color}22`,
               }}
             >
               {plan.badge && (
                 <span
                   className="absolute top-0 right-4 -translate-y-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-lg z-10"
-                  style={{ background: plan.accent, boxShadow: `0 4px 12px ${plan.accent}88` }}
+                   style={{ background: plan.accent_color, boxShadow: `0 4px 12px ${plan.accent_color}88` }}
                 >
                   {plan.badge}
                 </span>
               )}
               <h3 className="text-lg font-black mb-1 text-foreground">{plan.name}</h3>
-              <p className="text-3xl font-black mb-4" style={{ color: plan.accent }}>
-                {plan.price}
+              <p className="text-3xl font-black mb-4" style={{ color: plan.accent_color }}>
+                {plan.price_label}
               </p>
               <ul className="space-y-2 mb-5 text-[13px]">
                 {plan.features.map((f, idx) => (
                   <li key={idx} className="flex items-start gap-2">
                     <Check
                       className="w-4 h-4 mt-0.5 flex-shrink-0"
-                      style={{ color: plan.accent }}
+                       style={{ color: plan.accent_color }}
                     />
                     <span className="text-foreground/90 leading-snug">{f}</span>
                   </li>
@@ -153,7 +108,7 @@ export default function PremiumScreen({ onClose }: Props) {
               <button
                 onClick={openKofi}
                 className="w-full py-3 rounded-xl font-black text-sm text-white transition hover:opacity-90 flex items-center justify-center gap-2"
-                style={{ background: plan.accent, boxShadow: `0 6px 18px ${plan.accent}66` }}
+                 style={{ background: plan.accent_color, boxShadow: `0 6px 18px ${plan.accent_color}66` }}
               >
                 Pagar con Ko-fi
                 <ExternalLink className="w-4 h-4" />

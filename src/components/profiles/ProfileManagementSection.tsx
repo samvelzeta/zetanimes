@@ -7,10 +7,12 @@ import { getDeviceLimit, listMyDevices, revokeAllDevices, revokeDevice, type Dev
 import { getDeviceId } from "@/lib/device-id";
 import { getMaxProfiles } from "@/lib/account-profiles";
 import ProfileSelector from "./ProfileSelector";
+import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 
 export default function ProfileManagementSection() {
   const { user, isPremium, isOwner, isAdmin, signOut } = useAuth();
   const { profiles, refresh } = useProfiles();
+  const { permissions } = usePlanPermissions();
   const [showProfileMgmt, setShowProfileMgmt] = useState(false);
   const [devices, setDevices] = useState<DeviceSession[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(false);
@@ -18,8 +20,8 @@ export default function ProfileManagementSection() {
   const currentDeviceId = getDeviceId();
   const premiumAccess = isPremium || isOwner;
   const unlimitedDevices = isOwner || isAdmin;
-  const deviceLimit = getDeviceLimit(isPremium, unlimitedDevices);
-  const maxProfiles = getMaxProfiles(premiumAccess);
+  const deviceLimit = getDeviceLimit(isPremium, unlimitedDevices, permissions.max_streams);
+  const maxProfiles = getMaxProfiles(premiumAccess, permissions.max_profiles);
   const profilesWithPin = profiles.filter((p) => p.pin_enabled).length;
 
   useEffect(() => { if (user) loadDevices(); }, [user]);
@@ -87,7 +89,7 @@ export default function ProfileManagementSection() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-foreground">Dispositivos conectados ({devices.length}/{deviceLimit})</p>
-            <p className="text-[10px] text-muted-foreground">{unlimitedDevices ? "Admin · sin bloqueo" : premiumAccess ? "Premium · 5 dispositivos" : "Gratis · 1 dispositivo"}</p>
+            <p className="text-[10px] text-muted-foreground">{unlimitedDevices ? "Admin · sin bloqueo" : premiumAccess ? `${permissions.name} · ${deviceLimit} dispositivo${deviceLimit === 1 ? "" : "s"}` : "Gratis · 1 dispositivo"}</p>
           </div>
           {devices.length > 0 && (
             <div className="flex items-center gap-1.5">

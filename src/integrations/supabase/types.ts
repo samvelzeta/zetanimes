@@ -290,18 +290,27 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          plan_slug: string | null
+          priority_label: string | null
+          priority_score: number
           report_id: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          plan_slug?: string | null
+          priority_label?: string | null
+          priority_score?: number
           report_id: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          plan_slug?: string | null
+          priority_label?: string | null
+          priority_score?: number
           report_id?: string
           user_id?: string
         }
@@ -323,8 +332,11 @@ export type Database = {
           created_at: string
           episode_number: number | null
           first_reported_at: string
+          highest_plan_slug: string | null
+          highest_priority_label: string | null
           id: string
           last_reported_at: string
+          priority_score: number
           reason: string | null
           report_count: number
           report_type: string
@@ -340,8 +352,11 @@ export type Database = {
           created_at?: string
           episode_number?: number | null
           first_reported_at?: string
+          highest_plan_slug?: string | null
+          highest_priority_label?: string | null
           id?: string
           last_reported_at?: string
+          priority_score?: number
           reason?: string | null
           report_count?: number
           report_type?: string
@@ -357,8 +372,11 @@ export type Database = {
           created_at?: string
           episode_number?: number | null
           first_reported_at?: string
+          highest_plan_slug?: string | null
+          highest_priority_label?: string | null
           id?: string
           last_reported_at?: string
+          priority_score?: number
           reason?: string | null
           report_count?: number
           report_type?: string
@@ -596,6 +614,114 @@ export type Database = {
           target_user_id?: string | null
           title?: string
           type?: string
+        }
+        Relationships: []
+      }
+      premium_plan_configs: {
+        Row: {
+          accent_color: string
+          ads_free: boolean
+          badge: string | null
+          custom_avatar_upload: boolean
+          downloads_allowed: boolean
+          enabled: boolean
+          inherited_from: string | null
+          max_profiles: number
+          max_streams: number
+          multi_status_selection: boolean
+          name: string
+          pdf_export: boolean
+          price_label: string
+          priority_servers: boolean
+          priority_support: boolean
+          profiles_enabled: boolean
+          quality_enabled: boolean
+          quality_label: string
+          quality_max: string
+          show_ads_free: boolean
+          show_downloads: boolean
+          show_pdf_export: boolean
+          show_priority_servers: boolean
+          show_priority_support: boolean
+          show_profiles: boolean
+          show_quality: boolean
+          show_streams: boolean
+          show_vip_support: boolean
+          slug: string
+          sort_order: number
+          streams_enabled: boolean
+          updated_at: string
+          vip_support: boolean
+        }
+        Insert: {
+          accent_color?: string
+          ads_free?: boolean
+          badge?: string | null
+          custom_avatar_upload?: boolean
+          downloads_allowed?: boolean
+          enabled?: boolean
+          inherited_from?: string | null
+          max_profiles?: number
+          max_streams?: number
+          multi_status_selection?: boolean
+          name: string
+          pdf_export?: boolean
+          price_label: string
+          priority_servers?: boolean
+          priority_support?: boolean
+          profiles_enabled?: boolean
+          quality_enabled?: boolean
+          quality_label?: string
+          quality_max?: string
+          show_ads_free?: boolean
+          show_downloads?: boolean
+          show_pdf_export?: boolean
+          show_priority_servers?: boolean
+          show_priority_support?: boolean
+          show_profiles?: boolean
+          show_quality?: boolean
+          show_streams?: boolean
+          show_vip_support?: boolean
+          slug: string
+          sort_order?: number
+          streams_enabled?: boolean
+          updated_at?: string
+          vip_support?: boolean
+        }
+        Update: {
+          accent_color?: string
+          ads_free?: boolean
+          badge?: string | null
+          custom_avatar_upload?: boolean
+          downloads_allowed?: boolean
+          enabled?: boolean
+          inherited_from?: string | null
+          max_profiles?: number
+          max_streams?: number
+          multi_status_selection?: boolean
+          name?: string
+          pdf_export?: boolean
+          price_label?: string
+          priority_servers?: boolean
+          priority_support?: boolean
+          profiles_enabled?: boolean
+          quality_enabled?: boolean
+          quality_label?: string
+          quality_max?: string
+          show_ads_free?: boolean
+          show_downloads?: boolean
+          show_pdf_export?: boolean
+          show_priority_servers?: boolean
+          show_priority_support?: boolean
+          show_profiles?: boolean
+          show_quality?: boolean
+          show_streams?: boolean
+          show_vip_support?: boolean
+          slug?: string
+          sort_order?: number
+          streams_enabled?: boolean
+          updated_at?: string
+          vip_support?: boolean
         }
         Relationships: []
       }

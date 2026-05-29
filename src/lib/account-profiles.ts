@@ -19,7 +19,8 @@ export const MAX_PROFILES_PREMIUM = 3;
 /** @deprecated usar getMaxProfiles(isPremium) */
 export const MAX_PROFILES = MAX_PROFILES_PREMIUM;
 
-export function getMaxProfiles(isPremium: boolean): number {
+export function getMaxProfiles(isPremium: boolean, planLimit?: number): number {
+  if (typeof planLimit === "number" && planLimit > 0) return planLimit;
   return isPremium ? MAX_PROFILES_PREMIUM : MAX_PROFILES_FREE;
 }
 
