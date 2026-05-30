@@ -20,6 +20,7 @@ export interface PlanPermissions {
   multi_status_selection: boolean;
   custom_avatar_upload: boolean;
   vip_support: boolean;
+  uninterrupted_fullscreen: boolean;
 }
 
 export const FREE_PERMISSIONS: PlanPermissions = {
