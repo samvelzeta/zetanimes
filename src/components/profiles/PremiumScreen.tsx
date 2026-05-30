@@ -13,6 +13,7 @@ const KOFI_URL = "https://ko-fi.com/zetanimes";
 
 export default function PremiumScreen({ onClose }: Props) {
   const [plans, setPlans] = useState<PremiumPlan[]>([]);
+  const [bgUrl, setBgUrl] = useState<string>("");
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -22,6 +23,8 @@ export default function PremiumScreen({ onClose }: Props) {
 
   useEffect(() => {
     listPremiumPlans(false).then(setPlans).catch(() => setPlans([]));
+    supabase.from("app_settings").select("value").eq("key", "premium_bg_url").maybeSingle()
+      .then(({ data }) => setBgUrl((data?.value as string) || ""));
   }, []);
 
   const openKofi = () => {
