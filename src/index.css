@@ -199,6 +199,10 @@ body { overflow-x: clip; }
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+@keyframes zet-bolt-pulse {
+  0%, 100% { opacity: 0.18; transform: scale(0.95); filter: brightness(0.85); }
+  50%      { opacity: 0.55; transform: scale(1.04); filter: brightness(1.4); }
+}
 
 /* ============ Glassmorphism header ============ */
 .glass-header {
