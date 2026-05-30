@@ -378,6 +378,7 @@ function PaymentTab() {
   return (
     <div className="space-y-6">
       <PremiumConfigEditor />
+      <PremiumBackgroundUploader />
       <div className="rounded-xl border border-border bg-secondary/60 p-5 space-y-2">
         <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
           <CreditCard className="w-4 h-4 text-green-400" /> Método de pago
