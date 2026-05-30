@@ -24,6 +24,7 @@ const FEATURE_SWITCHES: { key: BoolKey; label: string; helper: string }[] = [
   { key: "priority_servers", label: "Servidores prioritarios", helper: "Déjalo apagado si no lo ofreces." },
   { key: "multi_status_selection", label: "Multiestado en listas", helper: "Permite más estados simultáneos." },
   { key: "custom_avatar_upload", label: "Avatar propio", helper: "Permite subir foto desde el dispositivo." },
+  { key: "uninterrupted_fullscreen", label: "Pantalla completa ininterrumpida", helper: "Al cambiar de episodio NO sale de pantalla completa y NO muestra anuncios." },
 ];
 
 function syncVisibility(plan: PremiumPlanConfig, key: BoolKey, value: boolean): PremiumPlanConfig {
