@@ -33,7 +33,8 @@ export default function PremiumBackgroundUploader() {
   const handleFile = async (file: File) => {
     setUploading(true);
     try {
-      const blob = await compressImageToWebp(file, { maxDim: 1920, quality: 0.85 });
+      const compressed = await compressToWebp(file, { maxWidthOrHeight: 1920, quality: 0.85, maxSizeMB: 1.5 });
+      const blob = compressed;
       const path = `premium-bg/bg-${Date.now()}.webp`;
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, blob, {
         contentType: "image/webp",
