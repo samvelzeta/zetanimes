@@ -53,6 +53,7 @@ export default function Watch() {
   const navigate = useNavigate();
   const epParam = Number(searchParams.get("ep") || 1);
   const { user } = useAuth();
+  const { permissions } = usePlanPermissions();
   const { activeProfile } = useProfiles();
   const profileId = activeProfile?.id ?? null;
   const watchedScope = user?.id && profileId ? `${user.id}:${profileId}` : null;
