@@ -39,6 +39,7 @@ function syncVisibility(plan: PremiumPlanConfig, key: BoolKey, value: boolean): 
     priority_support: "show_priority_support",
     vip_support: "show_vip_support",
     priority_servers: "show_priority_servers",
+    uninterrupted_fullscreen: "show_uninterrupted_fullscreen",
   };
   const showKey = visibilityMap[key];
   if (showKey) (next as any)[showKey] = value;
