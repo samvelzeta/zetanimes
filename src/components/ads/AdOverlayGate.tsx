@@ -105,14 +105,26 @@ export default function AdOverlayGate({
         Publicidad — Apoya ZetAnime
       </p>
 
-      {/* Anuncio 300x250 */}
+      {/* Anuncio rotativo */}
       <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
-        <AdsterraBanner
-          adKey="b411f21fa26a4e8427eb13433959b4e8"
-          width={300}
-          height={250}
-          uid={`overlay-${episodeKey}`}
-        />
+        {(() => {
+          const rotation = [
+            { key: "b411f21fa26a4e8427eb13433959b4e8", w: 300, h: 250 },
+            { key: "ab525e23c9a041206c6d3096e5581274", w: 160, h: 300 },
+            { key: "1d178d24c436e987f0076c89491f7ba5", w: 728, h: 90 },
+          ];
+          let h = 0;
+          for (let i = 0; i < episodeKey.length; i++) h = (h * 31 + episodeKey.charCodeAt(i)) >>> 0;
+          const ad = rotation[h % rotation.length];
+          return (
+            <AdsterraBanner
+              adKey={ad.key}
+              width={ad.w}
+              height={ad.h}
+              uid={`overlay-${episodeKey}-${ad.key.slice(0, 6)}`}
+            />
+          );
+        })()}
       </div>
 
       {/* Botón cerrar */}
