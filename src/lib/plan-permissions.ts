@@ -38,6 +38,7 @@ export const FREE_PERMISSIONS: PlanPermissions = {
   multi_status_selection: false,
   custom_avatar_upload: false,
   vip_support: false,
+  uninterrupted_fullscreen: false,
 };
 
 export const OWNER_PERMISSIONS: PlanPermissions = {
