@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { compressImageToWebp } from "@/lib/image-compress";
+import { compressToWebp } from "@/lib/image-compress";
 
 const SETTINGS_KEY = "premium_bg_url";
 const BUCKET = "premium-assets";
