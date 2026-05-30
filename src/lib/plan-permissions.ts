@@ -56,6 +56,7 @@ export const OWNER_PERMISSIONS: PlanPermissions = {
   multi_status_selection: true,
   custom_avatar_upload: true,
   vip_support: true,
+  uninterrupted_fullscreen: true,
 };
 
 export const PLAN_BY_TYPE: Record<string, PlanPermissions> = {};
