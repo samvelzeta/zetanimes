@@ -33,7 +33,13 @@ export default function PremiumScreen({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-[120] bg-background/95 backdrop-blur-xl flex flex-col overflow-y-auto">
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary pointer-events-none" />
+      {bgUrl && (
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-25 pointer-events-none"
+          style={{ backgroundImage: `url(${bgUrl})` }}
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/85 to-secondary/90 pointer-events-none" />
       <div
         className="pointer-events-none absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full opacity-30 blur-3xl"
         style={{ background: "radial-gradient(circle, hsl(var(--primary)/.5), transparent 70%)" }}
