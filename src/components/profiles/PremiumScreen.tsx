@@ -3,6 +3,7 @@
 import { Crown, Check, X, ExternalLink, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { listPremiumPlans, type PremiumPlan } from "@/lib/premium-config";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   onClose: () => void;
