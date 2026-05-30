@@ -3,8 +3,5 @@ project_id = "whrcwifudxqbrwgvhnud"
 [functions.subtitle-proxy]
 verify_jwt = false
 
-[functions.vast-proxy]
-verify_jwt = false
-
 [functions.kofi-webhook]
 verify_jwt = false

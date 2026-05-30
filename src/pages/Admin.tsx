@@ -21,6 +21,7 @@ import EpisodeCountManager from "@/components/admin/EpisodeCountManager";
 import RoleManager from "@/components/admin/RoleManager";
 import ActivityLogTab from "@/components/admin/ActivityLogTab";
 import PremiumConfigEditor from "@/components/admin/PremiumConfigEditor";
+import PremiumBackgroundUploader from "@/components/admin/PremiumBackgroundUploader";
 import RankingOverridesAdmin from "@/components/admin/RankingOverridesAdmin";
 import { logAdminActivity } from "@/lib/admin-log";
 
@@ -377,6 +378,7 @@ function PaymentTab() {
   return (
     <div className="space-y-6">
       <PremiumConfigEditor />
+      <PremiumBackgroundUploader />
       <div className="rounded-xl border border-border bg-secondary/60 p-5 space-y-2">
         <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
           <CreditCard className="w-4 h-4 text-green-400" /> Método de pago

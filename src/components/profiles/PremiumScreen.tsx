@@ -3,6 +3,7 @@
 import { Crown, Check, X, ExternalLink, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { listPremiumPlans, type PremiumPlan } from "@/lib/premium-config";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   onClose: () => void;
@@ -12,6 +13,7 @@ const KOFI_URL = "https://ko-fi.com/zetanimes";
 
 export default function PremiumScreen({ onClose }: Props) {
   const [plans, setPlans] = useState<PremiumPlan[]>([]);
+  const [bgUrl, setBgUrl] = useState<string>("");
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -21,6 +23,8 @@ export default function PremiumScreen({ onClose }: Props) {
 
   useEffect(() => {
     listPremiumPlans(false).then(setPlans).catch(() => setPlans([]));
+    supabase.from("app_settings").select("value").eq("key", "premium_bg_url").maybeSingle()
+      .then(({ data }) => setBgUrl((data?.value as string) || ""));
   }, []);
 
   const openKofi = () => {
@@ -29,7 +33,13 @@ export default function PremiumScreen({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-[120] bg-background/95 backdrop-blur-xl flex flex-col overflow-y-auto">
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary pointer-events-none" />
+      {bgUrl && (
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-25 pointer-events-none"
+          style={{ backgroundImage: `url(${bgUrl})` }}
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/85 to-secondary/90 pointer-events-none" />
       <div
         className="pointer-events-none absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full opacity-30 blur-3xl"
         style={{ background: "radial-gradient(circle, hsl(var(--primary)/.5), transparent 70%)" }}

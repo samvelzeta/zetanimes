@@ -646,10 +646,12 @@ export type Database = {
           show_profiles: boolean
           show_quality: boolean
           show_streams: boolean
+          show_uninterrupted_fullscreen: boolean
           show_vip_support: boolean
           slug: string
           sort_order: number
           streams_enabled: boolean
+          uninterrupted_fullscreen: boolean
           updated_at: string
           vip_support: boolean
         }
@@ -681,10 +683,12 @@ export type Database = {
           show_profiles?: boolean
           show_quality?: boolean
           show_streams?: boolean
+          show_uninterrupted_fullscreen?: boolean
           show_vip_support?: boolean
           slug: string
           sort_order?: number
           streams_enabled?: boolean
+          uninterrupted_fullscreen?: boolean
           updated_at?: string
           vip_support?: boolean
         }
@@ -716,10 +720,12 @@ export type Database = {
           show_profiles?: boolean
           show_quality?: boolean
           show_streams?: boolean
+          show_uninterrupted_fullscreen?: boolean
           show_vip_support?: boolean
           slug?: string
           sort_order?: number
           streams_enabled?: boolean
+          uninterrupted_fullscreen?: boolean
           updated_at?: string
           vip_support?: boolean
         }

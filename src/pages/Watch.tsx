@@ -17,12 +17,13 @@ import {
   Globe, Bug, ChevronDown, List,
 } from "lucide-react";
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
-import VastAdOverlay from "@/components/ads/VastAdOverlay";
+import AdOverlayGate from "@/components/ads/AdOverlayGate";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import StreamGuard from "@/components/video/StreamGuard";
 import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
@@ -52,6 +53,7 @@ export default function Watch() {
   const navigate = useNavigate();
   const epParam = Number(searchParams.get("ep") || 1);
   const { user } = useAuth();
+  const { permissions } = usePlanPermissions();
   const { activeProfile } = useProfiles();
   const profileId = activeProfile?.id ?? null;
   const watchedScope = user?.id && profileId ? `${user.id}:${profileId}` : null;
@@ -477,6 +479,11 @@ export default function Watch() {
 
   // Use replace instead of push for episode navigation (fixes back button)
   const selectEpisode = (epNumber: number) => {
+    // Premium: pantalla completa ininterrumpida — re-reclamamos fullscreen sobre el wrapper
+    // dentro del gesto del usuario para que el navegador no la cancele.
+    if (permissions.uninterrupted_fullscreen && document.fullscreenElement && playerWrapperRef.current) {
+      try { playerWrapperRef.current.requestFullscreen?.().catch(() => undefined); } catch { void 0; }
+    }
     setSelectedEp(epNumber);
     setActiveSourceIdx(0);
     navigate(`/watch/${id}?ep=${epNumber}`, { replace: true });
@@ -837,12 +844,10 @@ export default function Watch() {
                 onNext={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
                 containerRef={playerWrapperRef}
               />
-              <VastAdOverlay
+              <AdOverlayGate
                 episodeKey={`${anilistId}-${selectedEp}`}
-                vastUrl="https://s.magsrv.com/v1/vast.php?idzone=5929298"
-                everyN={2}
-                cooldownMs={40 * 60 * 1000}
-                skipAfter={18}
+                everyN={1}
+                countdownSecs={5}
               />
             </StreamGuard>
           ) : (

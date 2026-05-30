@@ -23,7 +23,19 @@ function EpisodeAdSlot() {
 
 function EpisodeSkeleton() {
   return (
-    <div className="animate-pulse flex-shrink-0 w-[280px] h-[140px] bg-secondary rounded-2xl" />
+    <div className="relative flex-shrink-0 w-[280px] h-[140px] bg-secondary rounded-2xl overflow-hidden animate-pulse">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <svg
+          viewBox="0 0 24 24"
+          className="w-12 h-12 opacity-30 animate-[zet-bolt-pulse_1.8s_ease-in-out_infinite]"
+          fill="currentColor"
+          style={{ color: "hsl(var(--muted-foreground))" }}
+          aria-hidden
+        >
+          <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
+        </svg>
+      </div>
+    </div>
   );
 }
 

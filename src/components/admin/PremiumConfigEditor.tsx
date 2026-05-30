@@ -7,7 +7,8 @@ import { listPremiumPlans, savePremiumPlan, type PremiumPlanConfig } from "@/lib
 type BoolKey = keyof Pick<PremiumPlanConfig,
   "enabled" | "ads_free" | "quality_enabled" | "streams_enabled" | "profiles_enabled" |
   "pdf_export" | "downloads_allowed" | "priority_support" | "vip_support" |
-  "priority_servers" | "multi_status_selection" | "custom_avatar_upload"
+  "priority_servers" | "multi_status_selection" | "custom_avatar_upload" |
+  "uninterrupted_fullscreen"
 >;
 
 const FEATURE_SWITCHES: { key: BoolKey; label: string; helper: string }[] = [
@@ -23,6 +24,7 @@ const FEATURE_SWITCHES: { key: BoolKey; label: string; helper: string }[] = [
   { key: "priority_servers", label: "Servidores prioritarios", helper: "Déjalo apagado si no lo ofreces." },
   { key: "multi_status_selection", label: "Multiestado en listas", helper: "Permite más estados simultáneos." },
   { key: "custom_avatar_upload", label: "Avatar propio", helper: "Permite subir foto desde el dispositivo." },
+  { key: "uninterrupted_fullscreen", label: "Pantalla completa ininterrumpida", helper: "Al cambiar de episodio NO sale de pantalla completa y NO muestra anuncios." },
 ];
 
 function syncVisibility(plan: PremiumPlanConfig, key: BoolKey, value: boolean): PremiumPlanConfig {
@@ -37,6 +39,7 @@ function syncVisibility(plan: PremiumPlanConfig, key: BoolKey, value: boolean): 
     priority_support: "show_priority_support",
     vip_support: "show_vip_support",
     priority_servers: "show_priority_servers",
+    uninterrupted_fullscreen: "show_uninterrupted_fullscreen",
   };
   const showKey = visibilityMap[key];
   if (showKey) (next as any)[showKey] = value;

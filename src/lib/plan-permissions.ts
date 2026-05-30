@@ -20,6 +20,7 @@ export interface PlanPermissions {
   multi_status_selection: boolean;
   custom_avatar_upload: boolean;
   vip_support: boolean;
+  uninterrupted_fullscreen: boolean;
 }
 
 export const FREE_PERMISSIONS: PlanPermissions = {
@@ -37,6 +38,7 @@ export const FREE_PERMISSIONS: PlanPermissions = {
   multi_status_selection: false,
   custom_avatar_upload: false,
   vip_support: false,
+  uninterrupted_fullscreen: false,
 };
 
 export const OWNER_PERMISSIONS: PlanPermissions = {
@@ -54,6 +56,7 @@ export const OWNER_PERMISSIONS: PlanPermissions = {
   multi_status_selection: true,
   custom_avatar_upload: true,
   vip_support: true,
+  uninterrupted_fullscreen: true,
 };
 
 export const PLAN_BY_TYPE: Record<string, PlanPermissions> = {};
@@ -74,6 +77,7 @@ function permissionsFromConfig(plan: PremiumPlanConfig): PlanPermissions {
     multi_status_selection: plan.multi_status_selection,
     custom_avatar_upload: plan.custom_avatar_upload,
     vip_support: plan.vip_support,
+    uninterrupted_fullscreen: plan.uninterrupted_fullscreen,
   };
 }
 
