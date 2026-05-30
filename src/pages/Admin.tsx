@@ -21,6 +21,7 @@ import EpisodeCountManager from "@/components/admin/EpisodeCountManager";
 import RoleManager from "@/components/admin/RoleManager";
 import ActivityLogTab from "@/components/admin/ActivityLogTab";
 import PremiumConfigEditor from "@/components/admin/PremiumConfigEditor";
+import PremiumBackgroundUploader from "@/components/admin/PremiumBackgroundUploader";
 import RankingOverridesAdmin from "@/components/admin/RankingOverridesAdmin";
 import { logAdminActivity } from "@/lib/admin-log";
 
