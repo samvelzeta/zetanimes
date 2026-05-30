@@ -23,6 +23,7 @@ import StreamGuard from "@/components/video/StreamGuard";
 import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
