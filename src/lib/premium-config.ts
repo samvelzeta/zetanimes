@@ -35,6 +35,8 @@ export interface PremiumPlanConfig {
   show_priority_servers: boolean;
   multi_status_selection: boolean;
   custom_avatar_upload: boolean;
+  uninterrupted_fullscreen: boolean;
+  show_uninterrupted_fullscreen: boolean;
   inherited_from: PremiumPlanSlug | null;
   updated_at?: string;
 }
