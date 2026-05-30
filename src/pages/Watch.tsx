@@ -837,12 +837,10 @@ export default function Watch() {
                 onNext={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
                 containerRef={playerWrapperRef}
               />
-              <VastAdOverlay
+              <AdOverlayGate
                 episodeKey={`${anilistId}-${selectedEp}`}
-                vastUrl="https://s.magsrv.com/v1/vast.php?idzone=5929298"
-                everyN={2}
-                cooldownMs={40 * 60 * 1000}
-                skipAfter={18}
+                everyN={1}
+                countdownSecs={5}
               />
             </StreamGuard>
           ) : (
