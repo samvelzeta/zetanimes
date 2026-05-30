@@ -7,7 +7,8 @@ import { listPremiumPlans, savePremiumPlan, type PremiumPlanConfig } from "@/lib
 type BoolKey = keyof Pick<PremiumPlanConfig,
   "enabled" | "ads_free" | "quality_enabled" | "streams_enabled" | "profiles_enabled" |
   "pdf_export" | "downloads_allowed" | "priority_support" | "vip_support" |
-  "priority_servers" | "multi_status_selection" | "custom_avatar_upload"
+  "priority_servers" | "multi_status_selection" | "custom_avatar_upload" |
+  "uninterrupted_fullscreen"
 >;
 
 const FEATURE_SWITCHES: { key: BoolKey; label: string; helper: string }[] = [
