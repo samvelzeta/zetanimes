@@ -77,6 +77,7 @@ function permissionsFromConfig(plan: PremiumPlanConfig): PlanPermissions {
     multi_status_selection: plan.multi_status_selection,
     custom_avatar_upload: plan.custom_avatar_upload,
     vip_support: plan.vip_support,
+    uninterrupted_fullscreen: plan.uninterrupted_fullscreen,
   };
 }
 
