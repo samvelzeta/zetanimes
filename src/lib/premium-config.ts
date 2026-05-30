@@ -81,6 +81,7 @@ export function buildPlanFeatures(plan: PremiumPlanConfig): string[] {
   if (plan.pdf_export && plan.show_pdf_export) features.push("Descargas y export PDF");
   if (plan.downloads_allowed && plan.show_downloads) features.push("Descargas habilitadas");
   if (plan.vip_support && plan.show_vip_support) features.push("Soporte VIP prioritario");
+  if (plan.uninterrupted_fullscreen && plan.show_uninterrupted_fullscreen) features.push("Pantalla completa ininterrumpida al cambiar de episodio");
   return features;
 }
 
