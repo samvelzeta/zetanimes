@@ -479,6 +479,11 @@ export default function Watch() {
 
   // Use replace instead of push for episode navigation (fixes back button)
   const selectEpisode = (epNumber: number) => {
+    // Premium: pantalla completa ininterrumpida — re-reclamamos fullscreen sobre el wrapper
+    // dentro del gesto del usuario para que el navegador no la cancele.
+    if (permissions.uninterrupted_fullscreen && document.fullscreenElement && playerWrapperRef.current) {
+      try { playerWrapperRef.current.requestFullscreen?.().catch(() => undefined); } catch { void 0; }
+    }
     setSelectedEp(epNumber);
     setActiveSourceIdx(0);
     navigate(`/watch/${id}?ep=${epNumber}`, { replace: true });
