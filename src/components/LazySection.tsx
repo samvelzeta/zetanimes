@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   children: ReactNode;
@@ -46,7 +47,7 @@ export default function LazySection({
   return (
     <div ref={ref} style={!mounted && !skipPlaceholder ? { minHeight } : undefined}>
       {mounted ? children : skipPlaceholder ? null : (
-        <div className={`mx-4 my-4 rounded-xl bg-secondary/40 animate-pulse ${placeholderClassName}`} style={{ height: typeof minHeight === "number" ? minHeight - 32 : minHeight }} />
+        <Skeleton bolt className={`mx-4 my-4 rounded-xl bg-secondary/40 ${placeholderClassName}`} style={{ height: typeof minHeight === "number" ? minHeight - 32 : minHeight }} />
       )}
     </div>
   );
