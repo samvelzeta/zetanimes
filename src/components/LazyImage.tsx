@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -28,7 +29,7 @@ export default function LazyImage({
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {!loaded && (
-        <div className={`absolute inset-0 bg-secondary animate-pulse ${placeholderClassName}`} />
+        <Skeleton bolt className={`absolute inset-0 bg-secondary rounded-none ${placeholderClassName}`} />
       )}
       <img
         src={src}
