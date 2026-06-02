@@ -13,7 +13,7 @@ import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform, clearRuntime
 import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang, listBlocks } from "@/lib/video-blocks";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
-  Eye, EyeOff, ChevronLeft, Loader2, AlertCircle,
+  Eye, EyeOff, ChevronLeft, AlertCircle,
   Globe, Bug, ChevronDown, List,
 } from "lucide-react";
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
 import { resolveEpisodeCount } from "@/lib/episode-count";
 
@@ -479,9 +480,14 @@ export default function Watch() {
 
   // Use replace instead of push for episode navigation (fixes back button)
   const selectEpisode = (epNumber: number) => {
-    // Premium: pantalla completa ininterrumpida — re-reclamamos fullscreen sobre el wrapper
-    // dentro del gesto del usuario para que el navegador no la cancele.
-    if (permissions.uninterrupted_fullscreen && document.fullscreenElement && playerWrapperRef.current) {
+    const doc = document as Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => Promise<void> };
+    const hasFullscreen = Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
+
+    if (!permissions.uninterrupted_fullscreen && hasFullscreen) {
+      try { document.exitFullscreen?.().catch(() => undefined); } catch { void 0; }
+      try { doc.webkitExitFullscreen?.().catch(() => undefined); } catch { void 0; }
+    } else if (permissions.uninterrupted_fullscreen && hasFullscreen && playerWrapperRef.current && document.fullscreenElement !== playerWrapperRef.current) {
+      // Premium: mantener pantalla completa sobre el wrapper antes de cambiar el episodio.
       try { playerWrapperRef.current.requestFullscreen?.().catch(() => undefined); } catch { void 0; }
     }
     setSelectedEp(epNumber);
@@ -805,9 +811,7 @@ export default function Watch() {
               </p>
             </div>
           ) : isLoading && playerSources.length === 0 ? (
-            <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            </div>
+            <Skeleton bolt className="aspect-video bg-secondary rounded-xl" />
           ) : displayedSources.length > 0 ? (
             <StreamGuard animeId={anilistId} episode={selectedEp}>
               <AnimePlayer
@@ -832,7 +836,11 @@ export default function Watch() {
               {isEpisodeSwitching && (
                 <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-background/45 backdrop-blur-[2px]">
                   <div className="flex items-center gap-3 rounded-lg border border-primary/35 bg-background/90 px-4 py-3 shadow-[0_0_28px_hsl(var(--primary)/0.35)]">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="relative flex h-8 w-8 items-center justify-center rounded-md bg-secondary/80">
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 opacity-60 animate-[zet-bolt-pulse_1.8s_ease-in-out_infinite]" fill="currentColor" style={{ color: "hsl(var(--muted-foreground))" }} aria-hidden>
+                        <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
+                      </svg>
+                    </span>
                     <span className="text-sm font-bold text-foreground">Cargando EP {selectedEp}</span>
                   </div>
                 </div>
