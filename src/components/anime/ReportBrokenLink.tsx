@@ -20,10 +20,11 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [reason, setReason] = useState("");
+  const reasonLength = reason.trim().length;
 
   const report = async (type: "episode" | "full") => {
     if (!user) return toast.error("Inicia sesión para reportar");
-    if (reason.trim().length < 500) return toast.error(`Describe el problema con al menos 500 caracteres (llevas ${reason.trim().length})`);
+    if (reasonLength > 200) return toast.error("Máximo 200 caracteres");
     setSending(true);
     try {
       const epNum = type === "full" ? null : episodeNumber;
@@ -116,31 +117,31 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
               <div>
                 <label className="text-[11px] font-bold text-foreground block mb-1.5">
                   Describe el problema <span className="text-destructive">*</span>
-                  <span className="text-muted-foreground font-normal ml-1">(mínimo 500 caracteres)</span>
+                  <span className="text-muted-foreground font-normal ml-1">(máximo 200 caracteres)</span>
                 </label>
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="Explica con detalle qué sucede: ¿pantalla negra, audio sin video, error específico, no carga, idioma equivocado, subtítulos rotos, etc.? Cuanto más detalle nos des, más rápido lo solucionamos."
+                  placeholder="Describe el problema: pantalla negra, audio sin video, no carga, idioma equivocado, subtítulos rotos, etc."
                   className="w-full h-40 bg-secondary border border-border rounded-xl p-3 text-xs text-foreground resize-none focus:border-primary outline-none"
-                  maxLength={3000}
+                  maxLength={200}
                 />
                 <div className="flex justify-end mt-1">
-                  <span className={`text-[10px] font-mono ${reason.trim().length >= 500 ? "text-green-500" : "text-muted-foreground"}`}>
-                    {reason.trim().length}/500
+                  <span className={`text-[10px] font-mono ${reasonLength >= 180 ? "text-destructive" : "text-muted-foreground"}`}>
+                    {reasonLength}/200
                   </span>
                 </div>
               </div>
 
               <p className="text-xs text-muted-foreground">¿Qué deseas reportar?</p>
 
-              <button onClick={() => report("episode")} disabled={sending || reason.trim().length < 500}
+              <button onClick={() => report("episode")} disabled={sending || reasonLength > 200}
                 className="w-full py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm font-bold hover:bg-destructive/20 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                 {sending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Capítulo {episodeNumber} no funciona
               </button>
 
-              <button onClick={() => report("full")} disabled={sending || reason.trim().length < 500}
+              <button onClick={() => report("full")} disabled={sending || reasonLength > 200}
                 className="w-full py-3 rounded-xl bg-yellow-600/10 border border-yellow-600/30 text-yellow-400 text-sm font-bold hover:bg-yellow-600/20 transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
                 {sending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Anime completo no funciona
