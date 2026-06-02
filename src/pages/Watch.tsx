@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
 import { resolveEpisodeCount } from "@/lib/episode-count";
 
@@ -479,9 +480,14 @@ export default function Watch() {
 
   // Use replace instead of push for episode navigation (fixes back button)
   const selectEpisode = (epNumber: number) => {
-    // Premium: pantalla completa ininterrumpida — re-reclamamos fullscreen sobre el wrapper
-    // dentro del gesto del usuario para que el navegador no la cancele.
-    if (permissions.uninterrupted_fullscreen && document.fullscreenElement && playerWrapperRef.current) {
+    const doc = document as Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => Promise<void> };
+    const hasFullscreen = Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
+
+    if (!permissions.uninterrupted_fullscreen && hasFullscreen) {
+      try { document.exitFullscreen?.().catch(() => undefined); } catch { void 0; }
+      try { doc.webkitExitFullscreen?.().catch(() => undefined); } catch { void 0; }
+    } else if (permissions.uninterrupted_fullscreen && hasFullscreen && playerWrapperRef.current && document.fullscreenElement !== playerWrapperRef.current) {
+      // Premium: mantener pantalla completa sobre el wrapper antes de cambiar el episodio.
       try { playerWrapperRef.current.requestFullscreen?.().catch(() => undefined); } catch { void 0; }
     }
     setSelectedEp(epNumber);
