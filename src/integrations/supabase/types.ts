@@ -1123,6 +1123,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_user_subscription: {
+        Args: {
+          _expires_at?: string
+          _plan_type?: string
+          _status: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       cleanup_stale_streams: { Args: { _user_id: string }; Returns: undefined }
       delete_download_tracker: {
         Args: { _tracker_id: string }
