@@ -402,25 +402,6 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, [inWebView]);
 
-  // Si un servidor externo intenta poner su iframe/video en fullscreen nativo,
-  // lo cambiamos al contenedor del player para que los overlays internos (VAST) sigan visibles.
-  useEffect(() => {
-    const onFsChange = async () => {
-      const host = containerRef.current;
-      const fullscreenEl = document.fullscreenElement as HTMLElement | null;
-      if (!host || !fullscreenEl || fullscreenEl === host || !host.contains(fullscreenEl)) return;
-      if (fullscreenEl.tagName !== "IFRAME" && fullscreenEl.tagName !== "VIDEO") return;
-      try {
-        await document.exitFullscreen();
-        await host.requestFullscreen?.();
-      } catch {
-        void 0;
-      }
-    };
-    document.addEventListener("fullscreenchange", onFsChange);
-    return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, []);
-
   // ── Custom SRT renderer: lee el .srt, lo parsea y lo pinta sobre el video ──
   useEffect(() => {
     const preferred = getPreferredSubtitle(effectiveSubtitles);
@@ -838,7 +819,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     >
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
-          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+          <Zap className="w-12 h-12 text-muted-foreground/50 fill-current animate-[zet-bolt-pulse_1.8s_ease-in-out_infinite]" />
         </div>
       )}
 
