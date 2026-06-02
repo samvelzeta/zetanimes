@@ -73,6 +73,16 @@ export default function AdOverlayGate({
     }
   }, [episodeKey, isPremium, loading, everyN, countdownSecs]);
 
+  // Free: si el anuncio toca mientras el player está en fullscreen, salimos primero.
+  // Así no queda la pantalla negra ni un fullscreen a medias del iframe anterior.
+  useEffect(() => {
+    if (!show || isPremium) return;
+    const doc = document as Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => Promise<void> };
+    if (!document.fullscreenElement && !doc.webkitFullscreenElement) return;
+    try { document.exitFullscreen?.().catch(() => undefined); } catch { void 0; }
+    try { doc.webkitExitFullscreen?.().catch(() => undefined); } catch { void 0; }
+  }, [show, isPremium]);
+
   // Tick del contador
   useEffect(() => {
     if (!show || secs <= 0) return;
