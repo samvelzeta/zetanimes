@@ -218,15 +218,13 @@ function PremiumTab() {
         status === "active"
           ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
           : null;
-      await supabase
-        .from("profiles")
-        .update({
-          subscription_status: status,
-          plan_type: status === "active" ? planType : null,
-          subscription_expires_at: expires,
-          subscription_updated_at: new Date().toISOString(),
-        } as any)
-        .eq("user_id", editing.user_id);
+      const { error } = await supabase.rpc("admin_set_user_subscription" as any, {
+        _user_id: editing.user_id,
+        _status: status,
+        _plan_type: status === "active" ? planType : null,
+        _expires_at: expires,
+      });
+      if (error) throw error;
       await logAdminActivity({
         area: "payments",
         action: status === "active" ? "create" : "delete",
@@ -235,6 +233,13 @@ function PremiumTab() {
         target_id: editing.user_id,
       });
       toast.success(status === "active" ? "Premium activado" : "Premium desactivado");
+      setUsers((prev) => prev.map((u) => u.user_id === editing.user_id ? {
+        ...u,
+        subscription_status: status,
+        plan_type: status === "active" ? planType : null,
+        subscription_expires_at: expires,
+        subscription_updated_at: new Date().toISOString(),
+      } : u));
       setEditing(null);
       await load();
     } catch (e: any) {
