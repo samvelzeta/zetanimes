@@ -59,9 +59,8 @@ export default function AdOverlayGate({
     }
   }, [episodeKey, isPremium, loading, everyN, countdownSecs]);
 
-  // Estilo YouTube: el anuncio NO sale de fullscreen. Se pinta como overlay sobre
-  // el contenedor maestro (fixed + z-index máximo cuando hay fullscreen activo).
-  // Esto evita el bug de la "pantalla negra" y mantiene la orientación bloqueada.
+  // Estilo YouTube: el anuncio NO sale de fullscreen. Se pinta como capa absoluta
+  // dentro del contenedor maestro para mantener video, controles y orientación.
 
   // Tick del contador
   useEffect(() => {
