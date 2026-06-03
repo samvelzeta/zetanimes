@@ -26,7 +26,7 @@ export default function StreamGuard({ animeId, episode, children }: Props) {
 
   // start
   useEffect(() => {
-    if (loading || !user || animeId == null) return;
+    if (loading || !user?.id || animeId == null) return;
     let cancel = false;
     setStarting(true);
     (async () => {
