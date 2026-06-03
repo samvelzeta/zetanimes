@@ -2,8 +2,7 @@
 // Muestra Adsterra 300x250, bloquea clicks al video, y un botón "Cerrar en Xs" deshabilitado
 // hasta que termina el contador. Aparece cada N episodios consumidos.
 // Premium queda exento por completo.
-// IMPORTANTE: en fullscreen usa position:fixed con z-index máximo para que se vea por encima
-// del video que está en pantalla completa.
+// IMPORTANTE: vive montado dentro del contenedor maestro; se muestra/oculta con display.
 import { useEffect, useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,14 +25,14 @@ function getCounter(): { count: number; lastKey: string } {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch { void 0; }
   return { count: 0, lastKey: "" };
 }
 
 function setCounter(v: { count: number; lastKey: string }) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(v));
-  } catch {}
+  } catch { void 0; }
 }
 
 export default function AdOverlayGate({
@@ -45,19 +44,6 @@ export default function AdOverlayGate({
   const { isPremium, loading } = useAuth();
   const [show, setShow] = useState(false);
   const [secs, setSecs] = useState(countdownSecs);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  // Detectar fullscreen para usar position:fixed con z-index máximo
-  // y aparecer por ENCIMA del video aunque esté en pantalla completa.
-  useEffect(() => {
-    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onFs);
-    document.addEventListener("webkitfullscreenchange", onFs as any);
-    return () => {
-      document.removeEventListener("fullscreenchange", onFs);
-      document.removeEventListener("webkitfullscreenchange", onFs as any);
-    };
-  }, []);
 
   // Decide si mostrar al cambiar de episodio
   useEffect(() => {
@@ -73,9 +59,8 @@ export default function AdOverlayGate({
     }
   }, [episodeKey, isPremium, loading, everyN, countdownSecs]);
 
-  // Estilo YouTube: el anuncio NO sale de fullscreen. Se pinta como overlay sobre
-  // el contenedor maestro (fixed + z-index máximo cuando hay fullscreen activo).
-  // Esto evita el bug de la "pantalla negra" y mantiene la orientación bloqueada.
+  // Estilo YouTube: el anuncio NO sale de fullscreen. Se pinta como capa absoluta
+  // dentro del contenedor maestro para mantener video, controles y orientación.
 
   // Tick del contador
   useEffect(() => {
@@ -84,25 +69,37 @@ export default function AdOverlayGate({
     return () => clearTimeout(t);
   }, [show, secs]);
 
-  if (isPremium || !show) return null;
+  useEffect(() => {
+    const video = document.querySelector("#zet-player-container video") as HTMLVideoElement | null;
+    if (!video || !show || isPremium) return;
+    const pauseBehindAd = () => video.pause();
+    pauseBehindAd();
+    video.addEventListener("play", pauseBehindAd);
+    return () => video.removeEventListener("play", pauseBehindAd);
+  }, [show, isPremium]);
 
   const canClose = secs <= 0;
 
   const handleClose = () => {
     if (!canClose) return;
     setShow(false);
+    window.setTimeout(() => {
+      const video = document.querySelector("#zet-player-container video") as HTMLVideoElement | null;
+      video?.play().catch(() => undefined);
+    }, 0);
     onClosed?.();
   };
 
-  // En fullscreen → fixed con z-index máximo (por encima del video fullscreen).
-  // En modo normal → absolute dentro del player.
-  const positionClass = isFullscreen
-    ? "fixed inset-0 z-[2147483647]"
-    : "absolute inset-0 z-[60]";
+  // Siempre vive dentro del contenedor maestro del player. Se oculta por CSS,
+  // no desmontando el DOM, para no romper fullscreen ni dejar capas huérfanas.
+  const positionClass = "absolute inset-0 z-[60]";
 
   return (
     <div
-      className={`${positionClass} bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 p-3`}
+      id="zet-ad-overlay"
+      aria-hidden={!show || isPremium}
+      className={`${positionClass} bg-background/95 backdrop-blur-sm flex-col items-center justify-center gap-4 p-3`}
+      style={{ display: show && !isPremium ? "flex" : "none" }}
       onClick={(e) => e.stopPropagation()}
     >
       <p className="text-[10px] uppercase tracking-widest text-white/50">
@@ -110,8 +107,8 @@ export default function AdOverlayGate({
       </p>
 
       {/* Anuncio rotativo */}
-      <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
-        {(() => {
+      <div className="bg-secondary/50 border border-border rounded-lg overflow-hidden">
+        {!isPremium && (() => {
           const rotation = [
             { key: "b411f21fa26a4e8427eb13433959b4e8", w: 300, h: 250 },
             { key: "ab525e23c9a041206c6d3096e5581274", w: 160, h: 300 },

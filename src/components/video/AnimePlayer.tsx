@@ -40,6 +40,7 @@ interface Props {
   totalEpisodes?: number;
   onSelectEpisode?: (ep: number) => void;
   subtitles?: PlayerSubtitle[];
+  fullscreenContainerRef?: React.RefObject<HTMLElement>;
 }
 
 type SourceType = "hls" | "mp4" | "embed" | "html" | "seeke";
@@ -134,7 +135,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   return classified;
 }
 
-export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, subtitles = EMPTY_PLAYER_SUBTITLES }: Props) {
+export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, subtitles = EMPTY_PLAYER_SUBTITLES, fullscreenContainerRef }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -383,10 +384,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     };
   }, [currentSource, onProgress, onSeeked, onAutoNext, canNext, autoNextAlreadyTriggered]);
 
+  const getFullscreenTarget = useCallback(() => fullscreenContainerRef?.current || containerRef.current, [fullscreenContainerRef]);
+
   // Fullscreen: lock landscape on mobile/webview
   useEffect(() => {
     const onFsChange = () => {
-      const isFull = !!document.fullscreenElement;
+      const target = getFullscreenTarget();
+      const active = document.fullscreenElement;
+      const isFull = !!active && !!target && (active === target || active.contains(target) || target.contains(active));
       setIsFullscreen(isFull);
       const orientation = screen.orientation as ScreenOrientation & {
         lock?: (orientation: OrientationLockType) => Promise<void>;
@@ -400,7 +405,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [inWebView]);
+  }, [inWebView, getFullscreenTarget]);
 
   // ── Custom SRT renderer: lee el .srt, lo parsea y lo pinta sobre el video ──
   useEffect(() => {
@@ -631,10 +636,22 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   };
 
   const toggleFullscreen = () => {
-    const el = containerRef.current;
+    const el = getFullscreenTarget();
     if (!el) return;
-    if (document.fullscreenElement) document.exitFullscreen();
-    else el.requestFullscreen();
+    const orientation = screen.orientation as ScreenOrientation & {
+      lock?: (orientation: OrientationLockType) => Promise<void>;
+      unlock?: () => void;
+    };
+    if (document.fullscreenElement) {
+      try { orientation.unlock?.(); } catch { void 0; }
+      document.exitFullscreen();
+    } else {
+      el.requestFullscreen?.().then(() => {
+        if (inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+          try { orientation.lock?.("landscape").catch(() => undefined); } catch { void 0; }
+        }
+      }).catch(() => undefined);
+    }
   };
 
   const seekTo = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -669,6 +686,16 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setShowControls(true);
     scheduleControlsHide();
   }, [scheduleControlsHide]);
+
+  // Listener perpetuo en el contenedor maestro: al cambiar capítulo el mousemove
+  // sigue vivo aunque el video interno reinicie su stream.
+  useEffect(() => {
+    const target = getFullscreenTarget();
+    if (!target || isMobileLike) return;
+    const reveal = () => showControlsTemp();
+    target.addEventListener("mousemove", reveal);
+    return () => target.removeEventListener("mousemove", reveal);
+  }, [getFullscreenTarget, isMobileLike, showControlsTemp]);
 
   const toggleControls = useCallback(() => {
     setShowControls((visible) => {
