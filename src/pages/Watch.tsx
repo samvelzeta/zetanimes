@@ -20,7 +20,6 @@ import AdsterraBanner from "@/components/ads/AdsterraBanner";
 import AdOverlayGate from "@/components/ads/AdOverlayGate";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import StreamGuard from "@/components/video/StreamGuard";
-import PlayerOverlay from "@/components/video/PlayerOverlay";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
@@ -803,7 +802,8 @@ export default function Watch() {
           {/* Wrapper del player con borde + brillo naranja, encima de las tuercas */}
           <div
             ref={playerWrapperRef}
-            className="relative z-10 rounded-xl overflow-hidden border-2 border-primary/40"
+            id="zet-player-container"
+            className="zet-player-container relative z-10 aspect-video bg-black rounded-xl overflow-hidden border-2 border-primary/40 select-none"
             style={{
               boxShadow:
                 "0 0 0 1px hsl(var(--primary) / 0.15), 0 0 22px hsl(var(--primary) / 0.45), 0 0 50px hsl(var(--primary) / 0.25)",
@@ -839,6 +839,7 @@ export default function Watch() {
                 totalEpisodes={totalEpisodes}
                 onSelectEpisode={(n) => selectEpisode(n)}
                 subtitles={activeSubtitles}
+                fullscreenContainerRef={playerWrapperRef}
               />
               {isEpisodeSwitching && (
                 <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-background/45 backdrop-blur-[2px]">
@@ -852,13 +853,6 @@ export default function Watch() {
                   </div>
                 </div>
               )}
-              <PlayerOverlay
-                episode={displayedEpisode}
-                totalEpisodes={totalEpisodes}
-                onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
-                onNext={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
-                containerRef={playerWrapperRef}
-              />
               <AdOverlayGate
                 episodeKey={`${anilistId}-${selectedEp}`}
                 everyN={1}
