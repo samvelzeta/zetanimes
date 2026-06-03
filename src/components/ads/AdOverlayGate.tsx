@@ -73,15 +73,9 @@ export default function AdOverlayGate({
     }
   }, [episodeKey, isPremium, loading, everyN, countdownSecs]);
 
-  // Free: si el anuncio toca mientras el player está en fullscreen, salimos primero.
-  // Así no queda la pantalla negra ni un fullscreen a medias del iframe anterior.
-  useEffect(() => {
-    if (!show || isPremium) return;
-    const doc = document as Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => Promise<void> };
-    if (!document.fullscreenElement && !doc.webkitFullscreenElement) return;
-    try { document.exitFullscreen?.().catch(() => undefined); } catch { void 0; }
-    try { doc.webkitExitFullscreen?.().catch(() => undefined); } catch { void 0; }
-  }, [show, isPremium]);
+  // Estilo YouTube: el anuncio NO sale de fullscreen. Se pinta como overlay sobre
+  // el contenedor maestro (fixed + z-index máximo cuando hay fullscreen activo).
+  // Esto evita el bug de la "pantalla negra" y mantiene la orientación bloqueada.
 
   // Tick del contador
   useEffect(() => {
