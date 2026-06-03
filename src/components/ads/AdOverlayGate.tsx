@@ -25,14 +25,14 @@ function getCounter(): { count: number; lastKey: string } {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch { void 0; }
   return { count: 0, lastKey: "" };
 }
 
 function setCounter(v: { count: number; lastKey: string }) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(v));
-  } catch {}
+  } catch { void 0; }
 }
 
 export default function AdOverlayGate({
