@@ -756,12 +756,13 @@ export default function Watch() {
   const displayedEpisode = !isLoading && sortedSources.length > 0 ? selectedEp : playerEpisode;
   const displayedAutoNextKey = `${anilistId}-${displayedEpisode}`;
   const isEpisodeSwitching = isLoading && playerSources.length > 0;
+  const sortedSourcesKey = sortedSources.map((source) => `${source.type || ""}|${source.embed}|${source.episode ?? ""}|${source.lang}`).join("¶");
 
   useEffect(() => {
     if (sortedSources.length === 0 || isLoading) return;
     setPlayerSources(sortedSources);
     setPlayerEpisode(selectedEp);
-  }, [sortedSources, isLoading, selectedEp]);
+  }, [sortedSourcesKey, isLoading, selectedEp]);
 
   // Tuerca decorativa SVG (estática, mitad visible en esquina)
   const CornerNut = ({ className }: { className: string }) => (
