@@ -45,19 +45,6 @@ export default function AdOverlayGate({
   const { isPremium, loading } = useAuth();
   const [show, setShow] = useState(false);
   const [secs, setSecs] = useState(countdownSecs);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  // Detectar fullscreen para usar position:fixed con z-index máximo
-  // y aparecer por ENCIMA del video aunque esté en pantalla completa.
-  useEffect(() => {
-    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onFs);
-    document.addEventListener("webkitfullscreenchange", onFs as any);
-    return () => {
-      document.removeEventListener("fullscreenchange", onFs);
-      document.removeEventListener("webkitfullscreenchange", onFs as any);
-    };
-  }, []);
 
   // Decide si mostrar al cambiar de episodio
   useEffect(() => {
