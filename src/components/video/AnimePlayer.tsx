@@ -384,10 +384,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     };
   }, [currentSource, onProgress, onSeeked, onAutoNext, canNext, autoNextAlreadyTriggered]);
 
+  const getFullscreenTarget = useCallback(() => fullscreenContainerRef?.current || containerRef.current, [fullscreenContainerRef]);
+
   // Fullscreen: lock landscape on mobile/webview
   useEffect(() => {
     const onFsChange = () => {
-      const isFull = !!document.fullscreenElement;
+      const target = getFullscreenTarget();
+      const active = document.fullscreenElement;
+      const isFull = !!active && !!target && (active === target || active.contains(target) || target.contains(active));
       setIsFullscreen(isFull);
       const orientation = screen.orientation as ScreenOrientation & {
         lock?: (orientation: OrientationLockType) => Promise<void>;
@@ -401,7 +405,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [inWebView]);
+  }, [inWebView, getFullscreenTarget]);
 
   // ── Custom SRT renderer: lee el .srt, lo parsea y lo pinta sobre el video ──
   useEffect(() => {
