@@ -72,7 +72,9 @@ export default function StreamGuard({ animeId, episode, children }: Props) {
     };
   }, []);
 
-  if (loading || (user && starting && !blocked)) {
+  // No desmontar el reproductor al cambiar de episodio: si ya hay una sesión
+  // activa, mantenemos children montado mientras se refresca start_stream.
+  if (loading || (user && starting && !blocked && !sessionId)) {
     return (
       <div className="aspect-video bg-secondary rounded-xl flex items-center justify-center">
         <Loader2 className="w-7 h-7 text-primary animate-spin" />
