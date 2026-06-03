@@ -71,8 +71,11 @@ export default function AdOverlayGate({
 
   useEffect(() => {
     const video = document.querySelector("#zet-player-container video") as HTMLVideoElement | null;
-    if (!video) return;
-    if (show && !isPremium) video.pause();
+    if (!video || !show || isPremium) return;
+    const pauseBehindAd = () => video.pause();
+    pauseBehindAd();
+    video.addEventListener("play", pauseBehindAd);
+    return () => video.removeEventListener("play", pauseBehindAd);
   }, [show, isPremium]);
 
   const canClose = secs <= 0;
