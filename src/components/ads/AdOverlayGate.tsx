@@ -84,8 +84,6 @@ export default function AdOverlayGate({
     return () => clearTimeout(t);
   }, [show, secs]);
 
-  if (isPremium || !show) return null;
-
   const canClose = secs <= 0;
 
   const handleClose = () => {
@@ -94,15 +92,16 @@ export default function AdOverlayGate({
     onClosed?.();
   };
 
-  // En fullscreen → fixed con z-index máximo (por encima del video fullscreen).
-  // En modo normal → absolute dentro del player.
-  const positionClass = isFullscreen
-    ? "fixed inset-0 z-[2147483647]"
-    : "absolute inset-0 z-[60]";
+  // Siempre vive dentro del contenedor maestro del player. Se oculta por CSS,
+  // no desmontando el DOM, para no romper fullscreen ni dejar capas huérfanas.
+  const positionClass = "absolute inset-0 z-[60]";
 
   return (
     <div
-      className={`${positionClass} bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center gap-4 p-3`}
+      id="zet-ad-overlay"
+      aria-hidden={!show || isPremium}
+      className={`${positionClass} bg-background/95 backdrop-blur-sm flex-col items-center justify-center gap-4 p-3`}
+      style={{ display: show && !isPremium ? "flex" : "none" }}
       onClick={(e) => e.stopPropagation()}
     >
       <p className="text-[10px] uppercase tracking-widest text-white/50">
@@ -110,8 +109,8 @@ export default function AdOverlayGate({
       </p>
 
       {/* Anuncio rotativo */}
-      <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
-        {(() => {
+      <div className="bg-secondary/50 border border-border rounded-lg overflow-hidden">
+        {!isPremium && (() => {
           const rotation = [
             { key: "b411f21fa26a4e8427eb13433959b4e8", w: 300, h: 250 },
             { key: "ab525e23c9a041206c6d3096e5581274", w: 160, h: 300 },
