@@ -2,8 +2,7 @@
 // Muestra Adsterra 300x250, bloquea clicks al video, y un botón "Cerrar en Xs" deshabilitado
 // hasta que termina el contador. Aparece cada N episodios consumidos.
 // Premium queda exento por completo.
-// IMPORTANTE: en fullscreen usa position:fixed con z-index máximo para que se vea por encima
-// del video que está en pantalla completa.
+// IMPORTANTE: vive montado dentro del contenedor maestro; se muestra/oculta con display.
 import { useEffect, useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,11 +70,21 @@ export default function AdOverlayGate({
     return () => clearTimeout(t);
   }, [show, secs]);
 
+  useEffect(() => {
+    const video = document.querySelector("#zet-player-container video") as HTMLVideoElement | null;
+    if (!video) return;
+    if (show && !isPremium) video.pause();
+  }, [show, isPremium]);
+
   const canClose = secs <= 0;
 
   const handleClose = () => {
     if (!canClose) return;
     setShow(false);
+    window.setTimeout(() => {
+      const video = document.querySelector("#zet-player-container video") as HTMLVideoElement | null;
+      video?.play().catch(() => undefined);
+    }, 0);
     onClosed?.();
   };
 
