@@ -687,6 +687,16 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     scheduleControlsHide();
   }, [scheduleControlsHide]);
 
+  // Listener perpetuo en el contenedor maestro: al cambiar capítulo el mousemove
+  // sigue vivo aunque el video interno reinicie su stream.
+  useEffect(() => {
+    const target = getFullscreenTarget();
+    if (!target || isMobileLike) return;
+    const reveal = () => showControlsTemp();
+    target.addEventListener("mousemove", reveal);
+    return () => target.removeEventListener("mousemove", reveal);
+  }, [getFullscreenTarget, isMobileLike, showControlsTemp]);
+
   const toggleControls = useCallback(() => {
     setShowControls((visible) => {
       const next = !visible;
