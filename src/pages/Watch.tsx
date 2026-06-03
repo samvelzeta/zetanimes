@@ -842,15 +842,8 @@ export default function Watch() {
                 fullscreenContainerRef={playerWrapperRef}
               />
               {isEpisodeSwitching && (
-                <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-background/45 backdrop-blur-[2px]">
-                  <div className="flex items-center gap-3 rounded-lg border border-primary/35 bg-background/90 px-4 py-3 shadow-[0_0_28px_hsl(var(--primary)/0.35)]">
-                    <span className="relative flex h-8 w-8 items-center justify-center rounded-md bg-secondary/80">
-                      <svg viewBox="0 0 24 24" className="h-5 w-5 opacity-60 animate-[zet-bolt-pulse_1.8s_ease-in-out_infinite]" fill="currentColor" style={{ color: "hsl(var(--muted-foreground))" }} aria-hidden>
-                        <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
-                      </svg>
-                    </span>
-                    <span className="text-sm font-bold text-foreground">Cargando EP {selectedEp}</span>
-                  </div>
+                <div className="pointer-events-none absolute right-3 top-3 z-40 rounded-md border border-primary/35 bg-background/80 px-2.5 py-1.5 text-[10px] font-bold text-foreground shadow-[0_0_18px_hsl(var(--primary)/0.25)]">
+                  EP {selectedEp}
                 </div>
               )}
               <AdOverlayGate
