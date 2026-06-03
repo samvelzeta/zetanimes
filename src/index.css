@@ -204,6 +204,26 @@ body { overflow-x: clip; }
   50%      { opacity: 0.55; transform: scale(1.04); filter: brightness(1.4); }
 }
 
+/* Player maestro: en fullscreen ocupa el viewport real y mantiene el video centrado. */
+.zet-player-container:fullscreen,
+.zet-player-container:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  aspect-ratio: auto !important;
+  border-radius: 0 !important;
+  border-width: 0 !important;
+  background: hsl(var(--background)) !important;
+}
+.zet-player-container:fullscreen [data-player-video="true"],
+.zet-player-container:-webkit-full-screen [data-player-video="true"] {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: auto !important;
+  border-radius: 0 !important;
+}
+
 /* ============ Glassmorphism header ============ */
 .glass-header {
   background: linear-gradient(
