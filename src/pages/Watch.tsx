@@ -757,10 +757,12 @@ export default function Watch() {
   const displayedAutoNextKey = `${anilistId}-${displayedEpisode}`;
   const isEpisodeSwitching = isLoading && playerSources.length > 0;
   const sortedSourcesKey = sortedSources.map((source) => `${source.type || ""}|${source.embed}|${source.episode ?? ""}|${source.lang}`).join("¶");
+  const sortedSourcesRef = useRef(sortedSources);
+  sortedSourcesRef.current = sortedSources;
 
   useEffect(() => {
-    if (sortedSources.length === 0 || isLoading) return;
-    setPlayerSources(sortedSources);
+    if (sortedSourcesRef.current.length === 0 || isLoading) return;
+    setPlayerSources(sortedSourcesRef.current);
     setPlayerEpisode(selectedEp);
   }, [sortedSourcesKey, isLoading, selectedEp]);
 
