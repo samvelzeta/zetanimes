@@ -480,15 +480,22 @@ export default function Watch() {
 
   // Use replace instead of push for episode navigation (fixes back button)
   const selectEpisode = (epNumber: number) => {
-    const doc = document as Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => Promise<void> };
+    const doc = document as Document & { webkitFullscreenElement?: Element | null };
     const hasFullscreen = Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
 
-    if (!permissions.uninterrupted_fullscreen && hasFullscreen) {
-      try { document.exitFullscreen?.().catch(() => undefined); } catch { void 0; }
-      try { doc.webkitExitFullscreen?.().catch(() => undefined); } catch { void 0; }
-    } else if (permissions.uninterrupted_fullscreen && hasFullscreen && playerWrapperRef.current && document.fullscreenElement !== playerWrapperRef.current) {
-      // Premium: mantener pantalla completa sobre el wrapper antes de cambiar el episodio.
+    // Estilo YouTube/Netflix: el contenedor maestro (playerWrapper) nunca se desmonta
+    // ni se sale del fullscreen al cambiar de episodio. El anuncio (free) se pinta
+    // como overlay encima dentro del mismo contenedor. Si por algún motivo el
+    // fullscreen activo no está sobre el wrapper, lo re-solicitamos dentro del gesto.
+    if (hasFullscreen && playerWrapperRef.current && document.fullscreenElement !== playerWrapperRef.current) {
       try { playerWrapperRef.current.requestFullscreen?.().catch(() => undefined); } catch { void 0; }
+    }
+    // Bloquear orientación horizontal en móvil mientras seguimos en fullscreen.
+    if (hasFullscreen) {
+      const orientation = screen.orientation as ScreenOrientation & {
+        lock?: (o: OrientationLockType) => Promise<void>;
+      };
+      try { orientation.lock?.("landscape").catch(() => undefined); } catch { void 0; }
     }
     setSelectedEp(epNumber);
     setActiveSourceIdx(0);
