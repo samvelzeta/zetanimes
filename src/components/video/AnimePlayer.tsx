@@ -636,10 +636,22 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   };
 
   const toggleFullscreen = () => {
-    const el = containerRef.current;
+    const el = getFullscreenTarget();
     if (!el) return;
-    if (document.fullscreenElement) document.exitFullscreen();
-    else el.requestFullscreen();
+    const orientation = screen.orientation as ScreenOrientation & {
+      lock?: (orientation: OrientationLockType) => Promise<void>;
+      unlock?: () => void;
+    };
+    if (document.fullscreenElement) {
+      try { orientation.unlock?.(); } catch { void 0; }
+      document.exitFullscreen();
+    } else {
+      el.requestFullscreen?.().then(() => {
+        if (inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+          try { orientation.lock?.("landscape").catch(() => undefined); } catch { void 0; }
+        }
+      }).catch(() => undefined);
+    }
   };
 
   const seekTo = (e: React.MouseEvent<HTMLDivElement>) => {
