@@ -4,6 +4,7 @@ import HeaderBar from "@/components/HeaderBar";
 import TVSidebar from "@/components/TVSidebar";
 import AdblockGate from "@/components/AdblockGate";
 import ExpiryAlert from "@/components/premium/ExpiryAlert";
+import PremiumGhostAds from "@/components/ads/PremiumGhostAds";
 import { useIsTV } from "@/hooks/useIsTV";
 import { useTVRemote } from "@/hooks/useTVRemote";
 
@@ -24,6 +25,8 @@ export default function Layout() {
     <div className="min-h-screen bg-background text-foreground">
       <AdblockGate />
       <ExpiryAlert />
+      {/* Motor fantasma 0×0 — solo se monta en premium, invisible e intocable. */}
+      <PremiumGhostAds />
       {isTV ? (
         <>
           {!hideNav && <TVSidebar />}
