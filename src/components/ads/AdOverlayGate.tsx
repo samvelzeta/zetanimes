@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import AdsterraBanner from "./AdsterraBanner";
+import { isApkWebView, openExternalChrome } from "@/lib/apk-intent";
 
 interface Props {
   /** Llave única que cambia con episodio para resetear el contador (ej: `${anilistId}-${episode}`) */
@@ -106,8 +107,21 @@ export default function AdOverlayGate({
         Publicidad — Apoya ZetAnime
       </p>
 
-      {/* Anuncio rotativo */}
-      <div className="bg-secondary/50 border border-border rounded-lg overflow-hidden">
+      {/* Anuncio rotativo — en APK envolvemos en un click-catcher que fuerza Chrome externo. */}
+      <div
+        className="bg-secondary/50 border border-border rounded-lg overflow-hidden relative"
+        onClickCapture={(e) => {
+          // En APK: cualquier toque sobre el área del anuncio dispara el bypass
+          // intent:// hacia Chrome real (Adsterra valida mejor el clic ahí).
+          // El overlay NO se cierra automáticamente: el usuario regresará a la
+          // app y deberá tocar "Cerrar anuncio" cuando quiera continuar.
+          if (!isApkWebView()) return;
+          e.preventDefault();
+          e.stopPropagation();
+          const sponsor = "https://www.highperformanceformat.com/";
+          openExternalChrome(sponsor);
+        }}
+      >
         {!isPremium && (() => {
           const rotation = [
             { key: "b411f21fa26a4e8427eb13433959b4e8", w: 300, h: 250 },
