@@ -736,6 +736,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           display_name: string | null
+          expiry_notice_sent_at: string | null
           id: string
           last_seen_notification_id: string | null
           plan_type: string | null
@@ -751,6 +752,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          expiry_notice_sent_at?: string | null
           id?: string
           last_seen_notification_id?: string | null
           plan_type?: string | null
@@ -766,6 +768,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          expiry_notice_sent_at?: string | null
           id?: string
           last_seen_notification_id?: string | null
           plan_type?: string | null
@@ -1132,6 +1135,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      auto_expire_subscriptions: { Args: never; Returns: number }
+      cleanup_old_data: { Args: never; Returns: Json }
       cleanup_stale_streams: { Args: { _user_id: string }; Returns: undefined }
       delete_download_tracker: {
         Args: { _tracker_id: string }
