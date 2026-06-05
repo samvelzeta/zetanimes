@@ -52,9 +52,9 @@ export default function PremiumScreen({ onClose }: Props) {
           </div>
           <div>
             <h1 className="text-lg font-black text-foreground tracking-tight leading-none">
-              ZetAnime Premium
+              Apoya a ZetAnime
             </h1>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Membresía oficial · Pago vía Ko-fi</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Tu aporte mantiene la página viva</p>
           </div>
         </div>
         <button
@@ -71,14 +71,14 @@ export default function PremiumScreen({ onClose }: Props) {
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-3">
             <Sparkles className="w-3 h-3 text-primary" />
             <span className="text-[10px] font-black uppercase tracking-wider text-primary">
-              Planes anuales
+              Niveles de apoyo
             </span>
           </div>
           <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground leading-tight">
-            Elige tu plan
+            Haz tu aporte
           </h2>
           <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-            Paga una sola vez al año vía Ko-fi y disfruta sin límites. Se activa automáticamente en minutos.
+            ZetAnime se mantiene gracias a la comunidad. Apóyanos vía Ko-fi y recibe beneficios como agradecimiento.
           </p>
         </div>
 
@@ -120,7 +120,7 @@ export default function PremiumScreen({ onClose }: Props) {
                 className="w-full py-3 rounded-xl font-black text-sm text-white transition hover:opacity-90 flex items-center justify-center gap-2"
                  style={{ background: plan.accent_color, boxShadow: `0 6px 18px ${plan.accent_color}66` }}
               >
-                Pagar con Ko-fi
+                Hacer mi aporte
                 <ExternalLink className="w-4 h-4" />
               </button>
             </div>
@@ -129,9 +129,9 @@ export default function PremiumScreen({ onClose }: Props) {
 
         <div className="mt-8 p-4 rounded-xl bg-secondary/60 border border-border max-w-2xl mx-auto text-center">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            <strong className="text-foreground">Importante:</strong> al pagar en Ko-fi usa el mismo email
-            con el que te registraste en ZetAnime. La activación es automática en pocos minutos. Si tarda,
-            contáctanos.
+            <strong className="text-foreground">Importante:</strong> al aportar vía Ko-fi usa el mismo email
+            con el que te registraste en ZetAnime. Los beneficios se activan automáticamente en pocos minutos.
+            Si tarda, contáctanos. ¡Gracias por apoyar la comunidad! 💛
           </p>
         </div>
       </div>

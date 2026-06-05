@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Trash2, AlertTriangle, CheckCircle, Wrench } from "lucide-react";
+import { Loader2, Trash2, AlertTriangle, CheckCircle, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
 import { logAdminActivity } from "@/lib/admin-log";
 import { planLabel } from "@/lib/premium-config";
+import { useAuth } from "@/contexts/AuthContext";
 
 type ReportStatus = "pending" | "fixing" | "resolved";
 
@@ -32,9 +33,13 @@ const STATUS_MAP: { key: ReportStatus; label: string; color: string; icon: typeo
 ];
 
 export default function BrokenReports() {
+  const { user } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeStatus, setActiveStatus] = useState<ReportStatus>("pending");
+  const [resolveTarget, setResolveTarget] = useState<Report | null>(null);
+  const [customMessage, setCustomMessage] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => { loadReports(); }, [activeStatus]);
 
@@ -51,27 +56,36 @@ export default function BrokenReports() {
     setLoading(false);
   };
 
-  const changeStatus = async (id: string, newStatus: ReportStatus) => {
-    const r = reports.find((x) => x.id === id);
-    const update: any = { status: newStatus };
-    if (newStatus === "resolved") update.resolved_at = new Date().toISOString();
-    await supabase.from("broken_link_reports").update(update).eq("id", id);
+  const openResolveDialog = (r: Report) => {
+    setResolveTarget(r);
+    setCustomMessage("");
+  };
 
-    // Cuando se marca como RESUELTO → notificación personal a cada reportero.
-    if (newStatus === "resolved" && r) {
+  const confirmResolve = async () => {
+    if (!resolveTarget) return;
+    setSending(true);
+    const r = resolveTarget;
+    try {
+      await supabase
+        .from("broken_link_reports")
+        .update({ status: "resolved", resolved_at: new Date().toISOString() })
+        .eq("id", r.id);
+
       const { data: reporters } = await supabase
         .from("broken_link_reporters")
         .select("user_id")
-        .eq("report_id", id);
+        .eq("report_id", r.id);
       const userIds = Array.from(new Set(((reporters as any[]) || []).map((x) => x.user_id))).filter(Boolean);
+
+      const epLabel = r.episode_number ? ` (Capítulo ${r.episode_number})` : "";
+      const defaultMsg = `"${r.anime_title || r.slug}"${epLabel} fue solucionado. Ya puedes volver a disfrutarlo desde donde lo dejaste.`;
+      const finalMsg = customMessage.trim() ? customMessage.trim() : defaultMsg;
+      const link = r.slug ? `/anime/${r.slug}` : null;
+
       if (userIds.length > 0) {
-        const epLabel = r.episode_number ? ` (Capítulo ${r.episode_number})` : "";
-        const title = "¡Tu anime ya está disponible! 🎉";
-        const message = `"${r.anime_title || r.slug}"${epLabel} fue solucionado. Ya puedes volver a disfrutarlo desde donde lo dejaste.`;
-        const link = r.slug ? `/anime/${r.slug}` : null;
         const rows = userIds.map((uid) => ({
-          title,
-          message,
+          title: "¡Tu anime ya está disponible! 🎉",
+          message: finalMsg,
           type: "success",
           target_user_id: uid,
           image_url: r.anime_cover || null,
@@ -79,12 +93,47 @@ export default function BrokenReports() {
           active: true,
         }));
         await supabase.from("notifications").insert(rows as any);
-        // Cleanup: ya no necesitamos los reporters de un reporte resuelto.
-        await supabase.from("broken_link_reporters").delete().eq("report_id", id);
+        await supabase.from("broken_link_reporters").delete().eq("report_id", r.id);
       }
-    }
 
-    setReports(prev => prev.filter(r => r.id !== id));
+      // Notificación interna para el admin que resolvió
+      if (user) {
+        await supabase.from("notifications").insert({
+          title: "✅ Reporte resuelto",
+          message: `Notificaste a ${userIds.length} usuario${userIds.length === 1 ? "" : "s"} sobre "${r.anime_title || r.slug}"${epLabel}.`,
+          type: "info",
+          target_user_id: user.id,
+          image_url: r.anime_cover || null,
+          active: true,
+        });
+      }
+
+      setReports((prev) => prev.filter((x) => x.id !== r.id));
+      await logAdminActivity({
+        area: "reports",
+        action: "status_change",
+        summary: `Reporte ${r.report_type} "${r.anime_title || r.slug}"${r.episode_number ? ` ep ${r.episode_number}` : ""} → resolved (${userIds.length} notificados)`,
+        anilist_id: r.anilist_id ?? null,
+        anime_title: r.anime_title,
+        episode_number: r.episode_number ?? null,
+      });
+      toast.success(`Resuelto. ${userIds.length} usuario${userIds.length === 1 ? "" : "s"} notificado${userIds.length === 1 ? "" : "s"}`);
+      setResolveTarget(null);
+    } catch (e: any) {
+      toast.error(e.message || "Error al resolver");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const changeStatus = async (id: string, newStatus: ReportStatus) => {
+    const r = reports.find((x) => x.id === id);
+    if (newStatus === "resolved" && r) {
+      openResolveDialog(r);
+      return;
+    }
+    await supabase.from("broken_link_reports").update({ status: newStatus }).eq("id", id);
+    setReports((prev) => prev.filter((x) => x.id !== id));
     await logAdminActivity({
       area: "reports", action: "status_change",
       summary: `Reporte ${r?.report_type} "${r?.anime_title || r?.slug}"${r?.episode_number ? ` ep ${r.episode_number}` : ""} → ${newStatus}`,
@@ -171,6 +220,51 @@ export default function BrokenReports() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal de confirmación con mensaje opcional */}
+      {resolveTarget && (
+        <div className="fixed inset-0 z-[150] bg-background/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border-2 border-primary/40 rounded-2xl max-w-md w-full p-5 shadow-2xl shadow-primary/30">
+            <div className="flex items-start justify-between mb-3">
+              <h4 className="text-sm font-black text-foreground">Notificar a los reporters</h4>
+              <button onClick={() => setResolveTarget(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              <strong className="text-foreground">{resolveTarget.anime_title || resolveTarget.slug}</strong>
+              {resolveTarget.episode_number ? ` · Cap ${resolveTarget.episode_number}` : ""}
+            </p>
+            <label className="block text-[11px] font-bold text-foreground mb-1">
+              Mensaje personalizado (opcional)
+            </label>
+            <textarea
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value.slice(0, 300))}
+              placeholder="Dejar vacío para usar el mensaje por defecto"
+              className="w-full h-24 px-3 py-2 rounded-lg bg-background border border-border text-xs resize-none focus:outline-none focus:border-primary"
+            />
+            <p className="text-[10px] text-muted-foreground text-right mt-1">{customMessage.length}/300</p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => setResolveTarget(null)}
+                disabled={sending}
+                className="flex-1 px-3 py-2 rounded-lg bg-secondary text-foreground text-xs font-bold hover:bg-muted transition disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmResolve}
+                disabled={sending}
+                className="flex-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                {sending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                {sending ? "Enviando…" : "Resolver y notificar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
