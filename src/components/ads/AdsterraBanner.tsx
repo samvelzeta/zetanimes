@@ -60,6 +60,48 @@ export default function AdsterraBanner({ adKey, width, height, uid }: Props) {
     iframe.srcdoc = html;
     container.appendChild(iframe);
 
+    // APK WebView: parchear window.open + interceptar clicks dentro del iframe
+    // para que los popups/anuncios salten al Chrome externo (igual que la
+    // notificación de apoyo). Sin esto, los popups quedan atrapados en el WebView.
+    if (isApkWebView()) {
+      const patchIframe = () => {
+        try {
+          const win = iframe.contentWindow as any;
+          const doc = win?.document;
+          if (!win || !doc) return;
+          const origOpen = win.open?.bind(win);
+          win.open = function (url?: string) {
+            const href = typeof url === "string" ? url : url ? String(url) : "";
+            if (href && /^https?:\/\//i.test(href)) {
+              openExternalChrome(href);
+              return null;
+            }
+            try { return origOpen?.(url); } catch { return null; }
+          };
+          // Click capture: si tocan un <a> externo o el cuerpo del ad, forzamos Chrome.
+          doc.addEventListener(
+            "click",
+            (e: any) => {
+              const path = (e.composedPath?.() ?? []) as any[];
+              const a = path.find((n: any) => n?.tagName === "A");
+              const href = a?.href || a?.getAttribute?.("href") || "";
+              if (href && /^https?:\/\//i.test(href)) {
+                e.preventDefault();
+                e.stopPropagation();
+                openExternalChrome(href);
+              }
+            },
+            true
+          );
+        } catch { /* cross-origin: el sandbox global ya cubre top-level */ }
+      };
+      iframe.addEventListener("load", patchIframe);
+      // Reintento por si invoke.js reemplaza el documento después del load inicial.
+      window.setTimeout(patchIframe, 1500);
+      window.setTimeout(patchIframe, 4000);
+    }
+
+
     // Reintentos: chequear a 3s, 6s y 10s. Solo marca failed si tras 10s no hay nada.
     const timers: number[] = [];
     const check = (final: boolean) => {
