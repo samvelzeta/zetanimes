@@ -53,6 +53,63 @@ function clearCache(slug: string, ep: number, lang: string, anilistId?: number |
   }
 }
 
+// ── Realtime cross-tab invalidation ─────────────────────────────────────────
+// Cuando un admin guarda/elimina un video, todas las pestañas y dispositivos
+// abiertos en la app deben tirar su memCache para releer la fila nueva.
+type InvalidationPayload = {
+  slug?: string | null;
+  episode?: number | null;
+  lang?: string | null;
+  anilist_id?: number | null;
+};
+
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+
+function applyInvalidation(p: InvalidationPayload) {
+  if (p.slug && typeof p.episode === "number" && p.lang) {
+    clearCache(p.slug, p.episode, p.lang, p.anilist_id ?? undefined);
+  } else {
+    // Datos incompletos: limpia todo el memCache para forzar relectura.
+    memCache.clear();
+  }
+}
+
+function ensureRealtimeChannel() {
+  if (realtimeChannel || typeof window === "undefined") return;
+  try {
+    realtimeChannel = supabase
+      .channel("video-cache-invalidation")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "video_cache" },
+        (payload: any) => {
+          const row = (payload.new ?? payload.old) || {};
+          applyInvalidation({
+            slug: row.slug ?? null,
+            episode: row.episode ?? null,
+            lang: row.lang ?? null,
+            anilist_id: row.anilist_id ?? null,
+          });
+        }
+      )
+      .subscribe();
+  } catch (err) {
+    console.warn("[video-cache] realtime subscribe failed:", err);
+  }
+}
+
+function broadcastInvalidation(p: InvalidationPayload) {
+  applyInvalidation(p);
+  // El INSERT/UPDATE/DELETE en video_cache ya dispara postgres_changes, que llega
+  // a todas las pestañas suscritas — no necesitamos un canal broadcast aparte.
+}
+
+if (typeof window !== "undefined") {
+  // Auto-suscribir al cargar el módulo.
+  setTimeout(ensureRealtimeChannel, 0);
+}
+
+
 function pickBestVideo(rows: CachedVideo[], requestedSlug: string) {
   const normalizedSlug = normalizeSlug(requestedSlug);
   return rows.find((row) => normalizeSlug(row.slug) === normalizedSlug) || rows[0] || null;
