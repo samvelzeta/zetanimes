@@ -361,6 +361,7 @@ export async function deleteCachedVideo(
     clearCache(row.slug || normalizedSlug, episode, lang, row.anilist_id);
   });
   clearCache(normalizedSlug, episode, lang, anilistId);
+  broadcastInvalidation({ slug: normalizedSlug, episode, lang, anilist_id: anilistId ?? null });
 
   return { success: true };
 }
