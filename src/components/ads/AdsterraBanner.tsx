@@ -7,6 +7,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
+import { isApkWebView, openExternalChrome } from "@/lib/apk-intent";
+
 
 interface Props {
   adKey: string;
