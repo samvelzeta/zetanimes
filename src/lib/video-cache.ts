@@ -156,17 +156,19 @@ export async function saveCachedVideo(params: {
   const slug = normalizeSlug(params.slug);
 
   let previousSlug: string | null = null;
+  let keepId: string | null = null;
   let error = null;
 
   if (anilist_id) {
+    // Trae TODAS las filas existentes para (anilist_id, episode, lang) — no solo la más reciente.
+    // Esto permite borrar duplicados/legacy con slug viejo que estaban sirviendo el video antiguo.
     const { data: existingRows, error: existingError } = await supabase
       .from("video_cache")
       .select("id, slug")
       .eq("anilist_id", anilist_id)
       .eq("episode", episode)
       .eq("lang", lang)
-      .order("updated_at", { ascending: false })
-      .limit(1);
+      .order("updated_at", { ascending: false });
 
     if (existingError) {
       return { success: false, error: existingError.message };
@@ -176,6 +178,7 @@ export async function saveCachedVideo(params: {
     previousSlug = existing?.slug ?? null;
 
     if (existing?.id) {
+      keepId = existing.id;
       const response = await supabase
         .from("video_cache")
         .update({
@@ -204,9 +207,40 @@ export async function saveCachedVideo(params: {
             updated_at: new Date().toISOString(),
           },
           { onConflict: "slug,episode,lang" }
-        );
+        )
+        .select("id")
+        .single();
 
       error = response.error;
+      keepId = response.data?.id ?? null;
+    }
+
+    // Wipe TOTAL: elimina cualquier otra fila para (anilist_id, episode, lang)
+    // — slugs viejos, duplicados, embeds previos. Garantiza que el nuevo enlace
+    // sea el único que pueda servir ese episodio.
+    if (!error) {
+      const wipe = supabase
+        .from("video_cache")
+        .delete()
+        .eq("anilist_id", anilist_id)
+        .eq("episode", episode)
+        .eq("lang", lang);
+      if (keepId) wipe.neq("id", keepId);
+      const { error: wipeErr } = await wipe;
+      if (wipeErr) console.warn("[video-cache] wipe duplicates failed:", wipeErr);
+    }
+
+    // Además: si tocaron el SEEKE BASE (episode 0), invalida cualquier otra base
+    // del mismo anime que pueda estar "ganando" sobre los episodios nuevos.
+    if (!error && episode === 0) {
+      const wipeBase = supabase
+        .from("video_cache")
+        .delete()
+        .eq("anilist_id", anilist_id)
+        .eq("episode", 0)
+        .eq("lang", lang);
+      if (keepId) wipeBase.neq("id", keepId);
+      await wipeBase;
     }
   } else {
     const response = await supabase
@@ -229,12 +263,15 @@ export async function saveCachedVideo(params: {
   }
 
   if (error) return { success: false, error: error.message };
+  // Invalida memCache local + notifica a TODAS las pestañas/dispositivos vía realtime.
   clearCache(slug, episode, lang, anilist_id);
   if (previousSlug && normalizeSlug(previousSlug) !== slug) {
     clearCache(previousSlug, episode, lang, anilist_id);
   }
+  broadcastInvalidation({ slug, episode, lang, anilist_id: anilist_id ?? null });
   return { success: true };
 }
+
 
 /**
  * Elimina del cache. Devuelve { success, error } para diagnosticar fallos RLS.
