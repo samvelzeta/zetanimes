@@ -32,7 +32,7 @@ export default function ExpiryAlert() {
 
   return (
     <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-[90] max-w-md w-[calc(100%-1rem)] px-4">
-      <div className="rounded-2xl border-2 border-primary/50 bg-card/95 backdrop-blur-xl shadow-2xl shadow-primary/30 p-3 flex items-center gap-3 animate-in slide-in-from-bottom-4">
+      <div className="relative rounded-2xl border-2 border-primary/50 bg-card/95 backdrop-blur-xl shadow-2xl shadow-primary/30 p-3 pr-12 flex items-center gap-3 animate-in slide-in-from-bottom-4">
         <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
           <Heart className="w-5 h-5 text-primary" fill="currentColor" />
         </div>
@@ -52,14 +52,18 @@ export default function ExpiryAlert() {
         >
           Apoyar <ExternalLink className="w-3 h-3" />
         </a>
+        {/* X separada en esquina superior derecha — área de toque amplia, no la tapa el botón Apoyar. */}
         <button
-          onClick={handleDismiss}
-          className="w-7 h-7 rounded-full hover:bg-muted flex items-center justify-center flex-shrink-0"
-          aria-label="Cerrar"
+          type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDismiss(); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute top-1 right-1 w-9 h-9 rounded-full bg-background/60 hover:bg-muted active:scale-90 flex items-center justify-center z-10 shadow-md border border-border/50"
+          aria-label="Cerrar aviso"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-4 h-4" />
         </button>
       </div>
     </div>
   );
 }
+
