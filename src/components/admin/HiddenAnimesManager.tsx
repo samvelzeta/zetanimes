@@ -48,7 +48,6 @@ export default function HiddenAnimesManager() {
   const data = section === "search" ? searchResults : sectionData;
   const loading = section === "search" ? searching : isLoading;
 
-  const hiddenIds = useMemo(() => new Set(hiddenList.map((h) => h.anilist_id)), [hiddenList]);
   const publicHiddenIds = useMemo(() => new Set(hiddenList.filter((h) => h.is_hidden !== false).map((h) => h.anilist_id)), [hiddenList]);
 
   const curatedList = useMemo(() => {
