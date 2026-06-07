@@ -1,4 +1,6 @@
 import { idbGet, idbSet } from "@/lib/idb-cache";
+import { applyAnimeCurationPage } from "@/lib/anime-curation";
+import { applyStatusOverrides } from "@/lib/anime-status-overrides";
 
 const ANILIST_URL = "https://graphql.anilist.co";
 
@@ -31,9 +33,16 @@ const MEDIA_FRAGMENT = `
     season
     seasonYear
     format
+    countryOfOrigin
+    tags { name }
     nextAiringEpisode { airingAt episode }
   }
 `;
+
+async function processPage<T extends PageResult>(page: T, options?: { skipCuration?: boolean }): Promise<T> {
+  const curated = await applyAnimeCurationPage(page, options);
+  return { ...curated, media: await applyStatusOverrides(curated.media || []) };
+}
 
 async function queryAniList(query: string, variables: Record<string, unknown> = {}) {
   const res = await fetch(ANILIST_URL, {
@@ -61,6 +70,8 @@ export interface AniListMedia {
   season: string | null;
   seasonYear: number | null;
   format: string | null;
+  countryOfOrigin?: string | null;
+  tags?: { name: string }[];
   nextAiringEpisode: { airingAt: number; episode: number } | null;
   streamingEpisodes?: { title: string; thumbnail: string; url: string; site: string }[];
   relations?: { edges: { relationType: string; node: { id: number; title: { romaji: string; english: string | null }; coverImage: { large: string }; format: string; type: string } }[] };
