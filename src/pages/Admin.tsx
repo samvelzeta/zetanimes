@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, BarChart3, Crown, Image, Store, CreditCard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search,
-  Trash2, Pencil, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered, Bug, Activity,
+  Trash2, Pencil, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered, Bug, Activity, Tv,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import ActivityLogTab from "@/components/admin/ActivityLogTab";
 import PremiumConfigEditor from "@/components/admin/PremiumConfigEditor";
 import PremiumBackgroundUploader from "@/components/admin/PremiumBackgroundUploader";
 import RankingOverridesAdmin from "@/components/admin/RankingOverridesAdmin";
+import AnimeStatusOverridesAdmin from "@/components/admin/AnimeStatusOverridesAdmin";
 import { logAdminActivity } from "@/lib/admin-log";
 
 // Tabs reservados solo para owner — los admins NO ven ni pueden interactuar con APK, notificaciones, pagos, premium, API keys, roles ni historial.
@@ -35,6 +36,7 @@ const TABS = [
   { key: "videos", label: "Videos", icon: Film },
   { key: "apidebug", label: "API JSON", icon: Bug },
   { key: "epcount", label: "Episodios", icon: ListOrdered },
+  { key: "status", label: "Estados", icon: Tv },
   { key: "slugs", label: "Slugs", icon: Link2 },
   { key: "hidden", label: "Ocultar", icon: X },
   { key: "ranking", label: "Top Ranking", icon: ListOrdered },
@@ -101,6 +103,7 @@ export default function AdminPanel() {
         {tab === "videos" && <VideoManager />}
         {tab === "apidebug" && <ApiDebugPanel />}
         {tab === "epcount" && <EpisodeCountManager />}
+        {tab === "status" && <AnimeStatusOverridesAdmin />}
         {tab === "slugs" && <SlugManager />}
         {tab === "hidden" && <HiddenAnimesManager />}
         {tab === "ranking" && <RankingOverridesAdmin />}
