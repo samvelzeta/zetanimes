@@ -399,8 +399,12 @@ export default function VideoManager() {
       if (!res.success) {
         toast.error("Error: " + (res.error || "desconocido"));
       } else {
+        const { count: blockCount } = await supabase
+          .from("video_cache_blocks" as any)
+          .delete({ count: "exact" })
+          .neq("id", "00000000-0000-0000-0000-000000000000");
         forceLocalVideoRefresh();
-        toast.success(`Cache global borrado: ${res.count ?? 0} registros eliminados`);
+        toast.success(`Cache global borrado: ${res.count ?? 0} videos y ${blockCount ?? 0} bloques`);
         if (selected) {
           const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
           setSavedVideos(refreshed);
@@ -423,6 +427,11 @@ export default function VideoManager() {
     try {
       const res = await deleteAnimeVideoCache({ slug: selected.slug, anilistId: selected.id });
       if (!res.success) throw new Error(res.error || "no se pudo borrar");
+      const { count: blockCount, error: blockError } = await supabase
+        .from("video_cache_blocks" as any)
+        .delete({ count: "exact" })
+        .eq("anilist_id", selected.id);
+      if (blockError) throw blockError;
       forceLocalVideoRefresh();
       setSavedVideos([]);
       setEpStatuses({});
@@ -430,7 +439,7 @@ export default function VideoManager() {
       setFallbackUrl("");
       setPcUrl("");
       setMobileUrl("");
-      toast.success(`Cache de ${selected.title} borrado: ${res.count ?? 0} registros`);
+      toast.success(`Cache de ${selected.title} borrado: ${res.count ?? 0} videos y ${blockCount ?? 0} bloques`);
     } catch (e) {
       toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
     }
