@@ -37,18 +37,8 @@ export async function applyAnimeCuration<T extends CuratableAnime>(media: T[], o
 
   const autoHiddenToPersist = media.filter((anime) => shouldAutoHideAnime(anime) && !rows.has(anime.id));
   if (autoHiddenToPersist.length > 0) {
-    const payload = autoHiddenToPersist.map((anime) => ({
-      anilist_id: anime.id,
-      anime_title: animeTitle(anime),
-      reason: getAutoHideReason(anime),
-      country_of_origin: anime.countryOfOrigin ?? null,
-      tags: (anime.tags || []).map((tag) => tag.name).filter(Boolean),
-      auto_hidden: true,
-      source: "anilist-filter",
-      is_hidden: true,
-    }));
-    // Si el visitante no es admin, RLS puede bloquear esta escritura; igual filtramos en memoria.
-    await supabase.from("hidden_home_animes" as any).upsert(payload as any, { onConflict: "anilist_id" });
+    // Persistencia tras bambalinas con función segura; si falla, el filtro en memoria sigue limpiando la UI.
+    await supabase.functions.invoke("curate-anime", { body: { ids: autoHiddenToPersist.map((anime) => anime.id) } }).catch(() => null);
   }
 
   return media.filter((anime) => {
