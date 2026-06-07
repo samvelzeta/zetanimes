@@ -534,6 +534,7 @@ export type Database = {
           created_at: string
           hidden_by: string | null
           id: string
+          is_hidden: boolean
           reason: string | null
           source: string
           tags: Json
@@ -546,6 +547,7 @@ export type Database = {
           created_at?: string
           hidden_by?: string | null
           id?: string
+          is_hidden?: boolean
           reason?: string | null
           source?: string
           tags?: Json
@@ -558,6 +560,7 @@ export type Database = {
           created_at?: string
           hidden_by?: string | null
           id?: string
+          is_hidden?: boolean
           reason?: string | null
           source?: string
           tags?: Json
