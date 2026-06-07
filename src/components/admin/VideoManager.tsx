@@ -514,7 +514,7 @@ export default function VideoManager() {
           title="Borra todos los caps cacheados (NO toca las URLs base Seeke)"
         >
           {clearingCache ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
-          Limpiar cache rápido
+          Borrar cache global
         </button>
       </div>
 
@@ -527,6 +527,15 @@ export default function VideoManager() {
           </div>
           <button onClick={() => setShowSaved(!showSaved)} className="text-xs text-primary hover:underline px-2">
             {showSaved ? "Ocultar" : "Ver guardados"}
+          </button>
+          <button
+            onClick={clearSelectedAnimeCache}
+            disabled={deletingAnimeCache}
+            className="flex items-center gap-1 rounded-lg border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[10px] font-bold text-destructive transition hover:bg-destructive/20 disabled:opacity-50"
+            title="Borrar todo el cache de este anime"
+          >
+            {deletingAnimeCache ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            Cache anime
           </button>
           <button onClick={() => { setSelected(null); setSelectedEp(null); setEpStatuses({}); setSavedVideos([]); }} className="text-muted-foreground hover:text-destructive">
             <X className="w-4 h-4" />
