@@ -529,26 +529,38 @@ export type Database = {
         Row: {
           anilist_id: number
           anime_title: string | null
+          auto_hidden: boolean
+          country_of_origin: string | null
           created_at: string
           hidden_by: string | null
           id: string
           reason: string | null
+          source: string
+          tags: Json
         }
         Insert: {
           anilist_id: number
           anime_title?: string | null
+          auto_hidden?: boolean
+          country_of_origin?: string | null
           created_at?: string
           hidden_by?: string | null
           id?: string
           reason?: string | null
+          source?: string
+          tags?: Json
         }
         Update: {
           anilist_id?: number
           anime_title?: string | null
+          auto_hidden?: boolean
+          country_of_origin?: string | null
           created_at?: string
           hidden_by?: string | null
           id?: string
           reason?: string | null
+          source?: string
+          tags?: Json
         }
         Relationships: []
       }
