@@ -53,6 +53,19 @@ function clearCache(slug: string, ep: number, lang: string, anilistId?: number |
   }
 }
 
+function clearAnimeCache(slug?: string | null, anilistId?: number | null) {
+  if (!slug && !anilistId) {
+    memCache.clear();
+    return;
+  }
+  const normalized = slug ? normalizeSlug(slug) : null;
+  for (const key of Array.from(memCache.keys())) {
+    if ((normalized && key.includes(`::${normalized}::`)) || (anilistId && key.includes(`::anilist:${anilistId}::`))) {
+      memCache.delete(key);
+    }
+  }
+}
+
 // ── Realtime cross-tab invalidation ─────────────────────────────────────────
 // Cuando un admin guarda/elimina un video, todas las pestañas y dispositivos
 // abiertos en la app deben tirar su memCache para releer la fila nueva.
@@ -364,6 +377,53 @@ export async function deleteCachedVideo(
   broadcastInvalidation({ slug: normalizedSlug, episode, lang, anilist_id: anilistId ?? null });
 
   return { success: true };
+}
+
+export async function deleteEpisodeVideoCache(params: {
+  slug: string;
+  episode: number;
+  anilistId?: number;
+}): Promise<{ success: boolean; error?: string; count?: number }> {
+  const normalizedSlug = normalizeSlug(params.slug);
+  let query = supabase.from("video_cache").delete({ count: "exact" }).select("slug, episode, lang, anilist_id");
+  query = params.anilistId
+    ? query.eq("episode", params.episode).or(`anilist_id.eq.${params.anilistId},slug.eq.${normalizedSlug}`)
+    : query.eq("slug", normalizedSlug).eq("episode", params.episode);
+
+  const { data, error, count } = await query;
+  if (error) return { success: false, error: error.message };
+  (data || []).forEach((row: any) => clearCache(row.slug || normalizedSlug, row.episode, row.lang, row.anilist_id));
+  clearAnimeCache(normalizedSlug, params.anilistId);
+  broadcastInvalidation({ slug: normalizedSlug, episode: params.episode, lang: null, anilist_id: params.anilistId ?? null });
+  return { success: true, count: count ?? data?.length ?? 0 };
+}
+
+export async function deleteAnimeVideoCache(params: {
+  slug: string;
+  anilistId?: number;
+}): Promise<{ success: boolean; error?: string; count?: number }> {
+  const normalizedSlug = normalizeSlug(params.slug);
+  let query = supabase.from("video_cache").delete({ count: "exact" }).select("slug, episode, lang, anilist_id");
+  query = params.anilistId ? query.or(`anilist_id.eq.${params.anilistId},slug.eq.${normalizedSlug}`) : query.eq("slug", normalizedSlug);
+
+  const { data, error, count } = await query;
+  if (error) return { success: false, error: error.message };
+  clearAnimeCache(normalizedSlug, params.anilistId);
+  (data || []).forEach((row: any) => broadcastInvalidation({ slug: row.slug || normalizedSlug, episode: row.episode, lang: row.lang, anilist_id: row.anilist_id }));
+  if (!data?.length) broadcastInvalidation({ slug: normalizedSlug, episode: null, lang: null, anilist_id: params.anilistId ?? null });
+  return { success: true, count: count ?? data?.length ?? 0 };
+}
+
+export async function deleteAllVideoCache(): Promise<{ success: boolean; error?: string; count?: number }> {
+  const { data, error, count } = await supabase
+    .from("video_cache")
+    .delete({ count: "exact" })
+    .neq("id", "00000000-0000-0000-0000-000000000000")
+    .select("slug, episode, lang, anilist_id");
+  if (error) return { success: false, error: error.message };
+  memCache.clear();
+  broadcastInvalidation({ slug: null, episode: null, lang: null, anilist_id: null });
+  return { success: true, count: count ?? data?.length ?? 0 };
 }
 
 /**
