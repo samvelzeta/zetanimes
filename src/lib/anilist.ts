@@ -149,7 +149,7 @@ export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult>
  * y volvemos a pedir esos mismos animes a AniList por `idMal_in` para mantener el
  * shape consistente con el resto de la app.
  */
-export async function searchAnime(searchTerm: string, page = 1, perPage = 20, genres: string[] = []): Promise<PageResult> {
+export async function searchAnime(searchTerm: string, page = 1, perPage = 20, genres: string[] = [], options?: { skipCuration?: boolean }): Promise<PageResult> {
   const variables: Record<string, unknown> = { page, perPage };
   if (searchTerm) variables.search = searchTerm;
   if (genres.length > 0) variables.genres = genres;
@@ -188,7 +188,7 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
             },
             media: fetched,
           };
-          return processPage(fallbackPage, { skipCuration: true });
+          return processPage(fallbackPage, options);
         }
       }
     } catch {
@@ -196,7 +196,7 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
     }
   }
 
-  return processPage(data.Page, { skipCuration: true });
+  return processPage(data.Page, options);
 }
 
 export async function getAnimeById(id: number): Promise<AniListMedia> {
