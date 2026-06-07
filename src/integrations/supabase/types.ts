@@ -241,6 +241,42 @@ export type Database = {
         }
         Relationships: []
       }
+      anime_status_overrides: {
+        Row: {
+          anilist_id: number
+          anime_title: string | null
+          cover_image: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          manual_status: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          anime_title?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          manual_status: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          anime_title?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          manual_status?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anime_views: {
         Row: {
           anilist_id: number
