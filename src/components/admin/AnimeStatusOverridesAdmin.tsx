@@ -35,7 +35,7 @@ export default function AnimeStatusOverridesAdmin() {
     timer.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await searchAnime(value, 1, 12);
+        const res = await searchAnime(value, 1, 12, [], { skipCuration: true });
         setResults(res.media || []);
       } catch {
         setResults([]);

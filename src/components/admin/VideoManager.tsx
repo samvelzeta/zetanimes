@@ -106,7 +106,7 @@ export default function VideoManager() {
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await searchAnime(val, 1, 10);
+        const res = await searchAnime(val, 1, 10, [], { skipCuration: true });
         setSearchResults(res.media || []);
       } catch { setSearchResults([]); }
       setSearching(false);

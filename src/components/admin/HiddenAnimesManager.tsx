@@ -28,7 +28,7 @@ export default function HiddenAnimesManager() {
 
   const { data: searchResults, isFetching: searching } = useQuery({
     queryKey: ["admin-hide-search", debounced],
-    queryFn: async () => (await searchAnime(debounced, 1, 30)).media,
+    queryFn: async () => (await searchAnime(debounced, 1, 30, [], { skipCuration: true })).media,
     enabled: section === "search" && debounced.length >= 2,
     staleTime: 5 * 60 * 1000,
   });
