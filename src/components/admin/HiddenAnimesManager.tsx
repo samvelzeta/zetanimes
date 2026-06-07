@@ -129,7 +129,7 @@ export default function HiddenAnimesManager() {
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {data.map((anime: any) => {
-              const hidden = hiddenIds.has(anime.id);
+              const hidden = publicHiddenIds.has(anime.id);
               return (
                 <div key={anime.id} className={`relative rounded-xl overflow-hidden border-2 ${hidden ? "border-destructive opacity-50" : "border-border"}`}>
                   <img src={anime.coverImage?.large} alt="" className="w-full aspect-[3/4] object-cover" loading="lazy" />
@@ -155,16 +155,54 @@ export default function HiddenAnimesManager() {
 
       {/* Lista de ocultos */}
       <div>
-        <h3 className="text-sm font-bold text-foreground mb-2">Animes eliminados ({hiddenList.length})</h3>
-        {hiddenList.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic text-center py-4">Ninguno eliminado aún</p>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Filter className="w-4 h-4 text-primary" /> Curación ({curatedList.length})
+          </h3>
+          <div className="flex gap-1">
+            {(["all", "hidden", "visible", "auto"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setHiddenFilter(f)}
+                className={`rounded-md px-2 py-1 text-[9px] font-bold ${hiddenFilter === f ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
+              >
+                {f === "all" ? "Todo" : f === "hidden" ? "Oculto" : f === "visible" ? "Visible" : "Auto"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="relative mb-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input value={hiddenSearch} onChange={(e) => setHiddenSearch(e.target.value)} placeholder="Buscar ocultos, visibles o auto-filtrados…" className="h-8 pl-8 text-xs" />
+        </div>
+        {curatedList.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic text-center py-4">Sin elementos en esta vista</p>
         ) : (
           <div className="space-y-1.5 max-h-64 overflow-y-auto">
-            {hiddenList.map((h) => (
+            {curatedList.map((h) => (
               <div key={h.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary border border-border">
-                <span className="flex-1 text-xs text-foreground truncate">{h.anime_title || `ID ${h.anilist_id}`}</span>
-                <button onClick={() => toggle({ id: h.anilist_id })} className="p-1.5 rounded bg-primary/20 text-primary hover:bg-primary/30" title="Restaurar">
-                  <Eye className="w-3 h-3" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-foreground truncate">{h.anime_title || `ID ${h.anilist_id}`}</p>
+                  <p className="text-[9px] text-muted-foreground flex items-center gap-1 truncate">
+                    {h.auto_hidden && <Bot className="w-3 h-3 text-primary" />}
+                    {h.is_hidden === false ? "Visible manual" : "Oculto"}{h.reason ? ` · ${h.reason}` : ""}{h.country_of_origin ? ` · ${h.country_of_origin}` : ""}
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (h.is_hidden === false) {
+                      await rehideAnime(h.anilist_id);
+                      toast.success("Anime ocultado otra vez");
+                    } else {
+                      await unhideAnime(h.anilist_id);
+                      toast.success("Anime marcado como visible");
+                    }
+                    setReload((n) => n + 1);
+                  }}
+                  className={`p-1.5 rounded ${h.is_hidden === false ? "bg-destructive/20 text-destructive hover:bg-destructive/30" : "bg-primary/20 text-primary hover:bg-primary/30"}`}
+                  title={h.is_hidden === false ? "Ocultar otra vez" : "Marcar visible"}
+                >
+                  {h.is_hidden === false ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                 </button>
               </div>
             ))}
