@@ -177,7 +177,7 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
           const order = new Map(malIds.map((id, i) => [id, i]));
           fetched.sort((a: any, b: any) => (order.get(a.idMal) ?? 999) - (order.get(b.idMal) ?? 999));
           const pag = jikanJson?.pagination || {};
-          return {
+          const fallbackPage = {
             pageInfo: {
               total: pag?.items?.total || fetched.length,
               currentPage: page,
@@ -186,6 +186,7 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
             },
             media: fetched,
           };
+          return processPage(fallbackPage, { skipCuration: true });
         }
       }
     } catch {
@@ -193,21 +194,24 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
     }
   }
 
-  return data.Page;
+  return processPage(data.Page, { skipCuration: true });
 }
 
 export async function getAnimeById(id: number): Promise<AniListMedia> {
-  return withIdbCache(`anime:${id}`, async () => {
+  const result = await withIdbCache(`anime:${id}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($id:Int){Media(id:$id,type:ANIME){...MediaFields streamingEpisodes{title thumbnail url site}relations{edges{relationType node{id title{romaji english}coverImage{large}format type}}}recommendations(sort:RATING_DESC,perPage:10){nodes{mediaRecommendation{id title{romaji english}coverImage{large extraLarge}averageScore status format}}}}}`, { id });
     return data.Media;
   }, 24 * 60 * 60 * 1000);
+  const [withStatus] = await applyStatusOverrides([result]);
+  return withStatus;
 }
 
 export async function getByGenre(genre: string, page = 1, perPage = 20): Promise<PageResult> {
-  return withIdbCache(`genre:${genre}:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`genre:${genre}:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(genre:$genre,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage, genre });
     return data.Page;
   }, 6 * 60 * 60 * 1000);
+  return processPage(result);
 }
 
 export function getTitle(media: AniListMedia): string {
