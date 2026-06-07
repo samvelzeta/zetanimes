@@ -84,24 +84,27 @@ interface PageResult {
 }
 
 export async function getTrending(page = 1, perPage = 20): Promise<PageResult> {
-  return withIdbCache(`trending:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`trending:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:TRENDING_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage });
     return data.Page;
   });
+  return processPage(result);
 }
 
 export async function getPopular(page = 1, perPage = 20): Promise<PageResult> {
-  return withIdbCache(`popular:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`popular:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage });
     return data.Page;
   });
+  return processPage(result);
 }
 
 export async function getRecentlyUpdated(page = 1, perPage = 20): Promise<PageResult> {
-  return withIdbCache(`recent:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`recent:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:UPDATED_AT_DESC,type:ANIME,status:RELEASING,isAdult:false){...MediaFields}}}`, { page, perPage });
     return data.Page;
   }, 30 * 60 * 1000); // 30min: cambia más seguido
+  return processPage(result);
 }
 
 export async function getTopRated(page = 1, perPage = 20): Promise<PageResult> {
