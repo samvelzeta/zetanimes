@@ -108,21 +108,23 @@ export async function getRecentlyUpdated(page = 1, perPage = 20): Promise<PageRe
 }
 
 export async function getTopRated(page = 1, perPage = 20): Promise<PageResult> {
-  return withIdbCache(`toprated:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`toprated:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:SCORE_DESC,type:ANIME,isAdult:false,format_in:[TV,MOVIE]){...MediaFields}}}`, { page, perPage });
     return data.Page;
   }, 24 * 60 * 60 * 1000); // 24h
+  return processPage(result);
 }
 
 export async function getMovies(page = 1, perPage = 30, genre?: string | null): Promise<PageResult> {
   const g = genre || "";
-  return withIdbCache(`movies:${g}:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`movies:${g}:${page}:${perPage}`, async () => {
     const data = await queryAniList(
       `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,isAdult:false,genre:$genre){...MediaFields}}}`,
       { page, perPage, genre: g || undefined }
     );
     return data.Page;
   }, 6 * 60 * 60 * 1000);
+  return processPage(result);
 }
 
 export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult> {
@@ -131,10 +133,11 @@ export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult>
   const year = now.getFullYear();
   const seasons = ["WINTER","WINTER","SPRING","SPRING","SPRING","SUMMER","SUMMER","SUMMER","FALL","FALL","FALL","WINTER"];
   const season = seasons[month];
-  return withIdbCache(`season:${season}:${year}:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`season:${season}:${year}:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$season:MediaSeason,$year:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(season:$season,seasonYear:$year,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage, season, year });
     return data.Page;
   }, 6 * 60 * 60 * 1000); // 6h
+  return processPage(result);
 }
 
 /**
