@@ -9,10 +9,6 @@ export interface CuratableAnime {
 
 type HiddenRow = { anilist_id: number; is_hidden?: boolean | null };
 
-function animeTitle(anime: CuratableAnime) {
-  return anime.title?.english || anime.title?.romaji || `Anime ${anime.id}`;
-}
-
 export function getAutoHideReason(anime: CuratableAnime): string | null {
   if (anime.countryOfOrigin === "CN") return "Origen China";
   const chibi = anime.tags?.some((tag) => (tag.name || "").trim().toLowerCase() === "chibi");
