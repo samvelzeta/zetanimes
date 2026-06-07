@@ -511,7 +511,7 @@ export default function VideoManager() {
           onClick={clearJunkCache}
           disabled={clearingCache}
           className="flex-shrink-0 px-3 py-2 rounded-lg bg-destructive/15 border border-destructive/40 text-destructive font-bold text-[10px] hover:bg-destructive/25 transition flex items-center gap-1.5 disabled:opacity-50"
-          title="Borra todos los caps cacheados (NO toca las URLs base Seeke)"
+          title="Borra todo el cache global de videos"
         >
           {clearingCache ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
           Borrar cache global
