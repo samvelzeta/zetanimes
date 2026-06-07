@@ -3,7 +3,17 @@ import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand
 import { Input } from "@/components/ui/input";
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
 import { clearSeekeEpisodeCache, getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
-import { saveCachedVideo, getCachedVideo, deleteCachedVideo, listCachedVideosBySlug, type CachedVideo, clearRuntimeVideoCache } from "@/lib/video-cache";
+import {
+  saveCachedVideo,
+  getCachedVideo,
+  deleteCachedVideo,
+  deleteEpisodeVideoCache,
+  deleteAnimeVideoCache,
+  deleteAllVideoCache,
+  listCachedVideosBySlug,
+  type CachedVideo,
+  clearRuntimeVideoCache,
+} from "@/lib/video-cache";
 import { getSlugOverride } from "@/lib/slug-overrides";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +94,7 @@ export default function VideoManager() {
   const [autoFetching, setAutoFetching] = useState(false);
   const [autoLog, setAutoLog] = useState<string[]>([]);
   const [deletingEp, setDeletingEp] = useState<number | null>(null);
+  const [deletingAnimeCache, setDeletingAnimeCache] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const listRef = useRef<HTMLDivElement>(null);
   const stopAutoFetchRef = useRef(false);
