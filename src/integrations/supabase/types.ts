@@ -241,6 +241,42 @@ export type Database = {
         }
         Relationships: []
       }
+      anime_status_overrides: {
+        Row: {
+          anilist_id: number
+          anime_title: string | null
+          cover_image: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          manual_status: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          anime_title?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          manual_status: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          anime_title?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          manual_status?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anime_views: {
         Row: {
           anilist_id: number
@@ -493,26 +529,41 @@ export type Database = {
         Row: {
           anilist_id: number
           anime_title: string | null
+          auto_hidden: boolean
+          country_of_origin: string | null
           created_at: string
           hidden_by: string | null
           id: string
+          is_hidden: boolean
           reason: string | null
+          source: string
+          tags: Json
         }
         Insert: {
           anilist_id: number
           anime_title?: string | null
+          auto_hidden?: boolean
+          country_of_origin?: string | null
           created_at?: string
           hidden_by?: string | null
           id?: string
+          is_hidden?: boolean
           reason?: string | null
+          source?: string
+          tags?: Json
         }
         Update: {
           anilist_id?: number
           anime_title?: string | null
+          auto_hidden?: boolean
+          country_of_origin?: string | null
           created_at?: string
           hidden_by?: string | null
           id?: string
+          is_hidden?: boolean
           reason?: string | null
+          source?: string
+          tags?: Json
         }
         Relationships: []
       }

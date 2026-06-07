@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     // IDs de roles privilegiados — NO deben recibir la notificación masiva.
     const { data: staffRows } = await supabase
       .from("user_roles")
-      .select("user_id")
+      .select("user_id, role")
       .in("role", ["owner", "admin"]);
     const staffIds = new Set((staffRows || []).map((r: any) => r.user_id));
     const ownerIds = (staffRows || [])

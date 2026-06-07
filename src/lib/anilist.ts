@@ -1,6 +1,9 @@
 import { idbGet, idbSet } from "@/lib/idb-cache";
+import { applyAnimeCurationPage } from "@/lib/anime-curation";
+import { applyStatusOverrides } from "@/lib/anime-status-overrides";
 
 const ANILIST_URL = "https://graphql.anilist.co";
+const CATALOG_CACHE_VERSION = "curation-v1";
 
 // TTL caché IndexedDB:
 //  - 1h para listados (trending, popular, recientes)
@@ -8,10 +11,11 @@ const ANILIST_URL = "https://graphql.anilist.co";
 const TTL_HOME = 60 * 60 * 1000;
 
 async function withIdbCache<T>(key: string, fetcher: () => Promise<T>, ttl = TTL_HOME): Promise<T> {
-  const cached = await idbGet<T>(key);
+  const versionedKey = `${CATALOG_CACHE_VERSION}:${key}`;
+  const cached = await idbGet<T>(versionedKey);
   if (cached) return cached;
   const fresh = await fetcher();
-  idbSet(key, fresh, ttl);
+  idbSet(versionedKey, fresh, ttl);
   return fresh;
 }
 
@@ -31,9 +35,16 @@ const MEDIA_FRAGMENT = `
     season
     seasonYear
     format
+    countryOfOrigin
+    tags { name }
     nextAiringEpisode { airingAt episode }
   }
 `;
+
+async function processPage<T extends PageResult>(page: T, options?: { skipCuration?: boolean }): Promise<T> {
+  const curated = await applyAnimeCurationPage(page, options);
+  return { ...curated, media: await applyStatusOverrides(curated.media || []) };
+}
 
 async function queryAniList(query: string, variables: Record<string, unknown> = {}) {
   const res = await fetch(ANILIST_URL, {
@@ -61,6 +72,8 @@ export interface AniListMedia {
   season: string | null;
   seasonYear: number | null;
   format: string | null;
+  countryOfOrigin?: string | null;
+  tags?: { name: string }[];
   nextAiringEpisode: { airingAt: number; episode: number } | null;
   streamingEpisodes?: { title: string; thumbnail: string; url: string; site: string }[];
   relations?: { edges: { relationType: string; node: { id: number; title: { romaji: string; english: string | null }; coverImage: { large: string }; format: string; type: string } }[] };
@@ -73,42 +86,47 @@ interface PageResult {
 }
 
 export async function getTrending(page = 1, perPage = 20): Promise<PageResult> {
-  return withIdbCache(`trending:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`trending:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:TRENDING_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage });
     return data.Page;
   });
+  return processPage(result);
 }
 
 export async function getPopular(page = 1, perPage = 20): Promise<PageResult> {
-  return withIdbCache(`popular:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`popular:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage });
     return data.Page;
   });
+  return processPage(result);
 }
 
 export async function getRecentlyUpdated(page = 1, perPage = 20): Promise<PageResult> {
-  return withIdbCache(`recent:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`recent:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:UPDATED_AT_DESC,type:ANIME,status:RELEASING,isAdult:false){...MediaFields}}}`, { page, perPage });
     return data.Page;
   }, 30 * 60 * 1000); // 30min: cambia más seguido
+  return processPage(result);
 }
 
 export async function getTopRated(page = 1, perPage = 20): Promise<PageResult> {
-  return withIdbCache(`toprated:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`toprated:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:SCORE_DESC,type:ANIME,isAdult:false,format_in:[TV,MOVIE]){...MediaFields}}}`, { page, perPage });
     return data.Page;
   }, 24 * 60 * 60 * 1000); // 24h
+  return processPage(result);
 }
 
 export async function getMovies(page = 1, perPage = 30, genre?: string | null): Promise<PageResult> {
   const g = genre || "";
-  return withIdbCache(`movies:${g}:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`movies:${g}:${page}:${perPage}`, async () => {
     const data = await queryAniList(
       `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,isAdult:false,genre:$genre){...MediaFields}}}`,
       { page, perPage, genre: g || undefined }
     );
     return data.Page;
   }, 6 * 60 * 60 * 1000);
+  return processPage(result);
 }
 
 export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult> {
@@ -117,10 +135,11 @@ export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult>
   const year = now.getFullYear();
   const seasons = ["WINTER","WINTER","SPRING","SPRING","SPRING","SUMMER","SUMMER","SUMMER","FALL","FALL","FALL","WINTER"];
   const season = seasons[month];
-  return withIdbCache(`season:${season}:${year}:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`season:${season}:${year}:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$season:MediaSeason,$year:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(season:$season,seasonYear:$year,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage, season, year });
     return data.Page;
   }, 6 * 60 * 60 * 1000); // 6h
+  return processPage(result);
 }
 
 /**
@@ -130,7 +149,7 @@ export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult>
  * y volvemos a pedir esos mismos animes a AniList por `idMal_in` para mantener el
  * shape consistente con el resto de la app.
  */
-export async function searchAnime(searchTerm: string, page = 1, perPage = 20, genres: string[] = []): Promise<PageResult> {
+export async function searchAnime(searchTerm: string, page = 1, perPage = 20, genres: string[] = [], options?: { skipCuration?: boolean }): Promise<PageResult> {
   const variables: Record<string, unknown> = { page, perPage };
   if (searchTerm) variables.search = searchTerm;
   if (genres.length > 0) variables.genres = genres;
@@ -160,7 +179,7 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
           const order = new Map(malIds.map((id, i) => [id, i]));
           fetched.sort((a: any, b: any) => (order.get(a.idMal) ?? 999) - (order.get(b.idMal) ?? 999));
           const pag = jikanJson?.pagination || {};
-          return {
+          const fallbackPage = {
             pageInfo: {
               total: pag?.items?.total || fetched.length,
               currentPage: page,
@@ -169,6 +188,7 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
             },
             media: fetched,
           };
+          return processPage(fallbackPage, options);
         }
       }
     } catch {
@@ -176,21 +196,24 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
     }
   }
 
-  return data.Page;
+  return processPage(data.Page, options);
 }
 
 export async function getAnimeById(id: number): Promise<AniListMedia> {
-  return withIdbCache(`anime:${id}`, async () => {
+  const result = await withIdbCache(`anime:${id}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($id:Int){Media(id:$id,type:ANIME){...MediaFields streamingEpisodes{title thumbnail url site}relations{edges{relationType node{id title{romaji english}coverImage{large}format type}}}recommendations(sort:RATING_DESC,perPage:10){nodes{mediaRecommendation{id title{romaji english}coverImage{large extraLarge}averageScore status format}}}}}`, { id });
     return data.Media;
   }, 24 * 60 * 60 * 1000);
+  const [withStatus] = await applyStatusOverrides([result]);
+  return withStatus;
 }
 
 export async function getByGenre(genre: string, page = 1, perPage = 20): Promise<PageResult> {
-  return withIdbCache(`genre:${genre}:${page}:${perPage}`, async () => {
+  const result = await withIdbCache(`genre:${genre}:${page}:${perPage}`, async () => {
     const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(genre:$genre,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage, genre });
     return data.Page;
   }, 6 * 60 * 60 * 1000);
+  return processPage(result);
 }
 
 export function getTitle(media: AniListMedia): string {
