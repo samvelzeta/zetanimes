@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, EyeOff, Eye, Search, Trash2 } from "lucide-react";
+import { Loader2, EyeOff, Eye, Search, Trash2, Bot, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { getTrending, getPopular, getRecentlyUpdated, searchAnime, getTitle } from "@/lib/anilist";
-import { listHiddenAnimes, hideAnime, unhideAnime } from "@/lib/hidden-animes";
+import { listHiddenAnimes, hideAnime, unhideAnime, rehideAnime } from "@/lib/hidden-animes";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function HiddenAnimesManager() {
@@ -14,9 +14,11 @@ export default function HiddenAnimesManager() {
   const [reload, setReload] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [debounced, setDebounced] = useState("");
+  const [hiddenFilter, setHiddenFilter] = useState<"all" | "hidden" | "visible" | "auto">("all");
+  const [hiddenSearch, setHiddenSearch] = useState("");
 
   useEffect(() => {
-    listHiddenAnimes().then(setHiddenList);
+    listHiddenAnimes(true).then(setHiddenList);
   }, [reload]);
 
   useEffect(() => {
@@ -47,9 +49,21 @@ export default function HiddenAnimesManager() {
   const loading = section === "search" ? searching : isLoading;
 
   const hiddenIds = useMemo(() => new Set(hiddenList.map((h) => h.anilist_id)), [hiddenList]);
+  const publicHiddenIds = useMemo(() => new Set(hiddenList.filter((h) => h.is_hidden !== false).map((h) => h.anilist_id)), [hiddenList]);
+
+  const curatedList = useMemo(() => {
+    const q = hiddenSearch.trim().toLowerCase();
+    return hiddenList.filter((h) => {
+      if (hiddenFilter === "hidden" && h.is_hidden === false) return false;
+      if (hiddenFilter === "visible" && h.is_hidden !== false) return false;
+      if (hiddenFilter === "auto" && !h.auto_hidden) return false;
+      if (!q) return true;
+      return String(h.anime_title || h.anilist_id).toLowerCase().includes(q) || String(h.reason || "").toLowerCase().includes(q);
+    });
+  }, [hiddenList, hiddenFilter, hiddenSearch]);
 
   const toggle = async (anime: any) => {
-    const isHidden = hiddenIds.has(anime.id);
+    const isHidden = publicHiddenIds.has(anime.id);
     if (isHidden) {
       await unhideAnime(anime.id);
       toast.success("Anime restaurado");

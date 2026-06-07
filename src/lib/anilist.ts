@@ -3,6 +3,7 @@ import { applyAnimeCurationPage } from "@/lib/anime-curation";
 import { applyStatusOverrides } from "@/lib/anime-status-overrides";
 
 const ANILIST_URL = "https://graphql.anilist.co";
+const CATALOG_CACHE_VERSION = "curation-v1";
 
 // TTL caché IndexedDB:
 //  - 1h para listados (trending, popular, recientes)
@@ -10,10 +11,11 @@ const ANILIST_URL = "https://graphql.anilist.co";
 const TTL_HOME = 60 * 60 * 1000;
 
 async function withIdbCache<T>(key: string, fetcher: () => Promise<T>, ttl = TTL_HOME): Promise<T> {
-  const cached = await idbGet<T>(key);
+  const versionedKey = `${CATALOG_CACHE_VERSION}:${key}`;
+  const cached = await idbGet<T>(versionedKey);
   if (cached) return cached;
   const fresh = await fetcher();
-  idbSet(key, fresh, ttl);
+  idbSet(versionedKey, fresh, ttl);
   return fresh;
 }
 
