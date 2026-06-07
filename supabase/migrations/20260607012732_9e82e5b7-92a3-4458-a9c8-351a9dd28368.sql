@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.auto_hide_anime(integer, text, text, text, jsonb);

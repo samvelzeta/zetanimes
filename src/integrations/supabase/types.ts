@@ -1187,16 +1187,6 @@ export type Database = {
         Returns: undefined
       }
       auto_expire_subscriptions: { Args: never; Returns: number }
-      auto_hide_anime: {
-        Args: {
-          _anilist_id: number
-          _anime_title: string
-          _country_of_origin?: string
-          _reason: string
-          _tags?: Json
-        }
-        Returns: undefined
-      }
       cleanup_old_data: { Args: never; Returns: Json }
       cleanup_stale_streams: { Args: { _user_id: string }; Returns: undefined }
       delete_download_tracker: {
