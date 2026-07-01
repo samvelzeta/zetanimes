@@ -507,46 +507,29 @@ export default function VideoManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Film className="w-4 h-4 text-primary" /> Gestor de Videos
-          </h3>
-          <p className="text-[10px] text-muted-foreground">
-            Busca anime → episodio → URL. Se guarda en DB global (Lovable Cloud) + tu API.
-          </p>
-        </div>
-        <button
-          onClick={clearJunkCache}
-          disabled={clearingCache}
-          className="flex-shrink-0 px-3 py-2 rounded-lg bg-destructive/15 border border-destructive/40 text-destructive font-bold text-[10px] hover:bg-destructive/25 transition flex items-center gap-1.5 disabled:opacity-50"
-          title="Borra todo el cache global de videos"
-        >
-          {clearingCache ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
-          Borrar cache global
-        </button>
+      <div>
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+          <Film className="w-4 h-4 text-primary" /> Gestor de Videos
+        </h3>
+        <p className="text-[10px] text-muted-foreground">
+          Busca anime → episodio → URL. Se guarda en DB global (Lovable Cloud) + tu API. Para reemplazar un enlace Seeke, edítalo desde "Ver guardados" del anime.
+        </p>
       </div>
 
       {selected ? (
-        <div className="flex items-center gap-3 bg-secondary rounded-xl p-3 border border-primary/30">
-          {selected.cover && <img src={selected.cover} alt="" className="w-10 h-14 rounded object-cover" />}
-          <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-secondary rounded-xl p-3 border border-primary/30">
+          {selected.cover && <img src={selected.cover} alt="" className="w-10 h-14 rounded object-cover flex-shrink-0" />}
+          <div className="flex-1 min-w-[140px]">
             <p className="text-sm font-bold text-foreground truncate">{selected.title}</p>
-            <p className="text-[10px] text-muted-foreground font-mono">{selected.slug} · {totalEps} eps · {savedVideos.length} guardados en DB</p>
+            <p className="text-[10px] text-muted-foreground font-mono break-all whitespace-normal leading-tight">
+              {selected.slug}
+            </p>
+            <p className="text-[10px] text-muted-foreground">{totalEps} eps · {savedVideos.length} guardados</p>
           </div>
-          <button onClick={() => setShowSaved(!showSaved)} className="text-xs text-primary hover:underline px-2">
+          <button onClick={() => setShowSaved(!showSaved)} className="text-xs text-primary hover:underline px-2 flex-shrink-0">
             {showSaved ? "Ocultar" : "Ver guardados"}
           </button>
-          <button
-            onClick={clearSelectedAnimeCache}
-            disabled={deletingAnimeCache}
-            className="flex items-center gap-1 rounded-lg border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[10px] font-bold text-destructive transition hover:bg-destructive/20 disabled:opacity-50"
-            title="Borrar todo el cache de este anime"
-          >
-            {deletingAnimeCache ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-            Cache anime
-          </button>
-          <button onClick={() => { setSelected(null); setSelectedEp(null); setEpStatuses({}); setSavedVideos([]); }} className="text-muted-foreground hover:text-destructive">
+          <button onClick={() => { setSelected(null); setSelectedEp(null); setEpStatuses({}); setSavedVideos([]); }} className="text-muted-foreground hover:text-destructive flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
