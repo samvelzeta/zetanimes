@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2, Database } from "lucide-react";
+import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
 import { clearSeekeEpisodeCache, getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
@@ -7,9 +7,6 @@ import {
   saveCachedVideo,
   getCachedVideo,
   deleteCachedVideo,
-  deleteEpisodeVideoCache,
-  deleteAnimeVideoCache,
-  deleteAllVideoCache,
   listCachedVideosBySlug,
   type CachedVideo,
   clearRuntimeVideoCache,
