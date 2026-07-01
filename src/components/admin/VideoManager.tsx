@@ -375,73 +375,11 @@ export default function VideoManager() {
   };
 
   // Limpia el cache "basura" (todo lo que NO sea base Seeke). Útil tras pruebas
-  // donde se guardaron embeds de otras APIs en animes equivocados. NO toca las
-  // URLs base Seeke (episode=0 con sources.seeke), que son las que admin sube.
-  const [clearingCache, setClearingCache] = useState(false);
-  const forceLocalVideoRefresh = () => {
-    clearRuntimeVideoCache();
-    clearSeekeEpisodeCache();
-    clearProgress();
-  };
+  // NOTA: eliminado el borrado global y por-anime del cache. Los enlaces Seeke
+  // solo se pueden reemplazar/eliminar individualmente desde "Ver guardados"
+  // para no dejar toda la app sin fuentes de video.
 
-  const clearJunkCache = async () => {
-    if (!confirm(
-      "¿Eliminar ABSOLUTAMENTE TODO el cache global de videos?\n\n" +
-      "Se borran bases Seeke, capítulos HLS/MP4/embed, PC, móvil y Latino/Sub de todos los animes.\n" +
-      "El reproductor volverá a solicitar cada anime desde cero."
-    )) return;
-    setClearingCache(true);
-    try {
-      const res = await deleteAllVideoCache();
-      if (!res.success) {
-        toast.error("Error: " + (res.error || "desconocido"));
-      } else {
-        const { count: blockCount } = await supabase
-          .from("video_cache_blocks" as any)
-          .delete({ count: "exact" })
-          .neq("id", "00000000-0000-0000-0000-000000000000");
-        forceLocalVideoRefresh();
-        toast.success(`Cache global borrado: ${res.count ?? 0} videos y ${blockCount ?? 0} bloques`);
-        if (selected) {
-          const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
-          setSavedVideos(refreshed);
-          setEpStatuses({});
-        }
-      }
-    } catch (e) {
-      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
-    }
-    setClearingCache(false);
-  };
 
-  const clearSelectedAnimeCache = async () => {
-    if (!selected) return;
-    if (!confirm(
-      `¿Borrar TODO el cache de ${selected.title}?\n\n` +
-      "Se eliminan todos los capítulos, bases Seeke, Latino/Sub, PC y móvil de este anime."
-    )) return;
-    setDeletingAnimeCache(true);
-    try {
-      const res = await deleteAnimeVideoCache({ slug: selected.slug, anilistId: selected.id });
-      if (!res.success) throw new Error(res.error || "no se pudo borrar");
-      const { count: blockCount, error: blockError } = await supabase
-        .from("video_cache_blocks" as any)
-        .delete({ count: "exact" })
-        .eq("anilist_id", selected.id);
-      if (blockError) throw blockError;
-      forceLocalVideoRefresh();
-      setSavedVideos([]);
-      setEpStatuses({});
-      setPrimaryUrl("");
-      setFallbackUrl("");
-      setPcUrl("");
-      setMobileUrl("");
-      toast.success(`Cache de ${selected.title} borrado: ${res.count ?? 0} videos y ${blockCount ?? 0} bloques`);
-    } catch (e) {
-      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
-    }
-    setDeletingAnimeCache(false);
-  };
 
   const editSaved = (sv: CachedVideo) => {
     setSelectedEp(sv.episode === 0 ? 1 : sv.episode);
@@ -466,39 +404,8 @@ export default function VideoManager() {
     }
   };
 
-  const deleteEpisodeCache = async (ep: number) => {
-    if (!selected) return;
-    if (!confirm(`¿Vaciar TODO lo guardado del Cap ${ep}?\n\nSe borran Sub/Latino, HLS/MP4/embed, PC y móvil de ese capítulo. La URL madre Seeke se mantiene para que el capítulo vuelva a pedirse desde cero.`)) return;
-    setDeletingEp(ep);
-    try {
-      const res = await deleteEpisodeVideoCache({ slug: selected.slug, episode: ep, anilistId: selected.id });
-      if (!res.success) throw new Error(res.error || "no se pudo borrar");
-      forceLocalVideoRefresh();
-      try {
-        Object.keys(localStorage)
-          .filter((key) => key.startsWith("zet:seeke:") && key.endsWith(`:${ep}`))
-          .forEach((key) => localStorage.removeItem(key));
-      } catch { void 0; }
 
-      const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
-      setSavedVideos(refreshed);
-      setEpStatuses((prev) => ({
-        ...prev,
-        [`${ep}-sub`]: { checked: true, exists: false },
-        [`${ep}-latino`]: { checked: true, exists: false },
-      }));
-      if (selectedEp === ep) {
-        setPrimaryUrl("");
-        setFallbackUrl("");
-        setPcUrl("");
-        setMobileUrl("");
-      }
-      toast.success(`Cap ${ep} vaciado; se pedirá de nuevo desde cero`);
-    } catch (e) {
-      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
-    }
-    setDeletingEp(null);
-  };
+
 
   const totalEps = selected?.totalEpisodes || 0;
 
