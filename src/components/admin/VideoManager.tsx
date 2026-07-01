@@ -90,7 +90,7 @@ export default function VideoManager() {
   const [showSaved, setShowSaved] = useState(false);
   const [autoFetching, setAutoFetching] = useState(false);
   const [autoLog, setAutoLog] = useState<string[]>([]);
-  const searchTimerAnchor: null = null;
+  
 
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const listRef = useRef<HTMLDivElement>(null);
