@@ -427,7 +427,7 @@ export default function DownloadTracker() {
                 <div key={anime.id} className="flex items-center gap-3 bg-background rounded-lg p-2">
                   <img src={anime.coverImage?.large} alt="" className="w-10 h-14 rounded object-cover" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate">{getTitle(anime)}</p>
+                    <MarqueeText text={getTitle(anime)} className="text-xs font-bold text-foreground block" />
                     <p className="text-[10px] text-muted-foreground">
                       {anime.episodes || "?"} eps · {anime.status}
                     </p>
