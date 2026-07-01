@@ -491,7 +491,7 @@ export default function DownloadTracker() {
                     <img src={tracker.cover_image} alt="" className="w-12 h-16 rounded-lg object-cover flex-shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{tracker.title}</p>
+                    <MarqueeText text={tracker.title} className="text-sm font-bold text-foreground block" />
                     <p className="text-[10px] text-muted-foreground">
                       {tracker.total_episodes} eps · {tracker.airing_status || "—"}
                     </p>
