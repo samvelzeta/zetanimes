@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { getTitle, getStatusLabel, getStatusColor, type AniListMedia } from "@/lib/anilist";
 import { Star, Play } from "lucide-react";
 import LazyImage from "@/components/LazyImage";
+import MarqueeText from "@/components/MarqueeText";
 
 interface AnimeCardProps {
   anime: AniListMedia;
