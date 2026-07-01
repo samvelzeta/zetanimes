@@ -62,10 +62,21 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
     navigate("/", { replace: true });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este perfil? El historial asociado se desvinculará.")) return;
+  const handleDelete = async (p: AccountProfile) => {
+    if (profiles.length <= 1) {
+      toast.error("Debes tener al menos un perfil");
+      return;
+    }
+    if (!confirm(`¿Eliminar el perfil "${p.name}"? El historial asociado se desvinculará.`)) return;
     try {
-      await deleteProfile(id);
+      await deleteProfile(p.id);
+      // Si borramos el default, promovemos otro para que la cuenta siempre tenga uno
+      if (p.is_default) {
+        const remaining = profiles.filter((x) => x.id !== p.id);
+        if (remaining[0]) {
+          try { await updateProfile(remaining[0].id, { is_default: true } as any); } catch {}
+        }
+      }
       toast.success("Perfil eliminado");
       await refresh();
     } catch (e: any) {
@@ -147,9 +158,9 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
-                  {!selfEditOnly && !p.is_default && (
+                  {!selfEditOnly && profiles.length > 1 && (
                     <button
-                      onClick={() => handleDelete(p.id)}
+                      onClick={() => handleDelete(p)}
                       className="p-2 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition"
                       title="Eliminar"
                     >

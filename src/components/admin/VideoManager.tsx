@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2, Database } from "lucide-react";
+import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
 import { clearSeekeEpisodeCache, getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
@@ -7,9 +7,6 @@ import {
   saveCachedVideo,
   getCachedVideo,
   deleteCachedVideo,
-  deleteEpisodeVideoCache,
-  deleteAnimeVideoCache,
-  deleteAllVideoCache,
   listCachedVideosBySlug,
   type CachedVideo,
   clearRuntimeVideoCache,
@@ -93,8 +90,8 @@ export default function VideoManager() {
   const [showSaved, setShowSaved] = useState(false);
   const [autoFetching, setAutoFetching] = useState(false);
   const [autoLog, setAutoLog] = useState<string[]>([]);
-  const [deletingEp, setDeletingEp] = useState<number | null>(null);
-  const [deletingAnimeCache, setDeletingAnimeCache] = useState(false);
+  
+
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const listRef = useRef<HTMLDivElement>(null);
   const stopAutoFetchRef = useRef(false);
@@ -378,73 +375,11 @@ export default function VideoManager() {
   };
 
   // Limpia el cache "basura" (todo lo que NO sea base Seeke). Útil tras pruebas
-  // donde se guardaron embeds de otras APIs en animes equivocados. NO toca las
-  // URLs base Seeke (episode=0 con sources.seeke), que son las que admin sube.
-  const [clearingCache, setClearingCache] = useState(false);
-  const forceLocalVideoRefresh = () => {
-    clearRuntimeVideoCache();
-    clearSeekeEpisodeCache();
-    clearProgress();
-  };
+  // NOTA: eliminado el borrado global y por-anime del cache. Los enlaces Seeke
+  // solo se pueden reemplazar/eliminar individualmente desde "Ver guardados"
+  // para no dejar toda la app sin fuentes de video.
 
-  const clearJunkCache = async () => {
-    if (!confirm(
-      "¿Eliminar ABSOLUTAMENTE TODO el cache global de videos?\n\n" +
-      "Se borran bases Seeke, capítulos HLS/MP4/embed, PC, móvil y Latino/Sub de todos los animes.\n" +
-      "El reproductor volverá a solicitar cada anime desde cero."
-    )) return;
-    setClearingCache(true);
-    try {
-      const res = await deleteAllVideoCache();
-      if (!res.success) {
-        toast.error("Error: " + (res.error || "desconocido"));
-      } else {
-        const { count: blockCount } = await supabase
-          .from("video_cache_blocks" as any)
-          .delete({ count: "exact" })
-          .neq("id", "00000000-0000-0000-0000-000000000000");
-        forceLocalVideoRefresh();
-        toast.success(`Cache global borrado: ${res.count ?? 0} videos y ${blockCount ?? 0} bloques`);
-        if (selected) {
-          const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
-          setSavedVideos(refreshed);
-          setEpStatuses({});
-        }
-      }
-    } catch (e) {
-      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
-    }
-    setClearingCache(false);
-  };
 
-  const clearSelectedAnimeCache = async () => {
-    if (!selected) return;
-    if (!confirm(
-      `¿Borrar TODO el cache de ${selected.title}?\n\n` +
-      "Se eliminan todos los capítulos, bases Seeke, Latino/Sub, PC y móvil de este anime."
-    )) return;
-    setDeletingAnimeCache(true);
-    try {
-      const res = await deleteAnimeVideoCache({ slug: selected.slug, anilistId: selected.id });
-      if (!res.success) throw new Error(res.error || "no se pudo borrar");
-      const { count: blockCount, error: blockError } = await supabase
-        .from("video_cache_blocks" as any)
-        .delete({ count: "exact" })
-        .eq("anilist_id", selected.id);
-      if (blockError) throw blockError;
-      forceLocalVideoRefresh();
-      setSavedVideos([]);
-      setEpStatuses({});
-      setPrimaryUrl("");
-      setFallbackUrl("");
-      setPcUrl("");
-      setMobileUrl("");
-      toast.success(`Cache de ${selected.title} borrado: ${res.count ?? 0} videos y ${blockCount ?? 0} bloques`);
-    } catch (e) {
-      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
-    }
-    setDeletingAnimeCache(false);
-  };
 
   const editSaved = (sv: CachedVideo) => {
     setSelectedEp(sv.episode === 0 ? 1 : sv.episode);
@@ -469,84 +404,36 @@ export default function VideoManager() {
     }
   };
 
-  const deleteEpisodeCache = async (ep: number) => {
-    if (!selected) return;
-    if (!confirm(`¿Vaciar TODO lo guardado del Cap ${ep}?\n\nSe borran Sub/Latino, HLS/MP4/embed, PC y móvil de ese capítulo. La URL madre Seeke se mantiene para que el capítulo vuelva a pedirse desde cero.`)) return;
-    setDeletingEp(ep);
-    try {
-      const res = await deleteEpisodeVideoCache({ slug: selected.slug, episode: ep, anilistId: selected.id });
-      if (!res.success) throw new Error(res.error || "no se pudo borrar");
-      forceLocalVideoRefresh();
-      try {
-        Object.keys(localStorage)
-          .filter((key) => key.startsWith("zet:seeke:") && key.endsWith(`:${ep}`))
-          .forEach((key) => localStorage.removeItem(key));
-      } catch { void 0; }
 
-      const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
-      setSavedVideos(refreshed);
-      setEpStatuses((prev) => ({
-        ...prev,
-        [`${ep}-sub`]: { checked: true, exists: false },
-        [`${ep}-latino`]: { checked: true, exists: false },
-      }));
-      if (selectedEp === ep) {
-        setPrimaryUrl("");
-        setFallbackUrl("");
-        setPcUrl("");
-        setMobileUrl("");
-      }
-      toast.success(`Cap ${ep} vaciado; se pedirá de nuevo desde cero`);
-    } catch (e) {
-      toast.error("Error: " + (e instanceof Error ? e.message : "desconocido"));
-    }
-    setDeletingEp(null);
-  };
+
 
   const totalEps = selected?.totalEpisodes || 0;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Film className="w-4 h-4 text-primary" /> Gestor de Videos
-          </h3>
-          <p className="text-[10px] text-muted-foreground">
-            Busca anime → episodio → URL. Se guarda en DB global (Lovable Cloud) + tu API.
-          </p>
-        </div>
-        <button
-          onClick={clearJunkCache}
-          disabled={clearingCache}
-          className="flex-shrink-0 px-3 py-2 rounded-lg bg-destructive/15 border border-destructive/40 text-destructive font-bold text-[10px] hover:bg-destructive/25 transition flex items-center gap-1.5 disabled:opacity-50"
-          title="Borra todo el cache global de videos"
-        >
-          {clearingCache ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
-          Borrar cache global
-        </button>
+      <div>
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+          <Film className="w-4 h-4 text-primary" /> Gestor de Videos
+        </h3>
+        <p className="text-[10px] text-muted-foreground">
+          Busca anime → episodio → URL. Se guarda en DB global (Lovable Cloud) + tu API. Para reemplazar un enlace Seeke, edítalo desde "Ver guardados" del anime.
+        </p>
       </div>
 
       {selected ? (
-        <div className="flex items-center gap-3 bg-secondary rounded-xl p-3 border border-primary/30">
-          {selected.cover && <img src={selected.cover} alt="" className="w-10 h-14 rounded object-cover" />}
-          <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-secondary rounded-xl p-3 border border-primary/30">
+          {selected.cover && <img src={selected.cover} alt="" className="w-10 h-14 rounded object-cover flex-shrink-0" />}
+          <div className="flex-1 min-w-[140px]">
             <p className="text-sm font-bold text-foreground truncate">{selected.title}</p>
-            <p className="text-[10px] text-muted-foreground font-mono">{selected.slug} · {totalEps} eps · {savedVideos.length} guardados en DB</p>
+            <p className="text-[10px] text-muted-foreground font-mono break-all whitespace-normal leading-tight">
+              {selected.slug}
+            </p>
+            <p className="text-[10px] text-muted-foreground">{totalEps} eps · {savedVideos.length} guardados</p>
           </div>
-          <button onClick={() => setShowSaved(!showSaved)} className="text-xs text-primary hover:underline px-2">
+          <button onClick={() => setShowSaved(!showSaved)} className="text-xs text-primary hover:underline px-2 flex-shrink-0">
             {showSaved ? "Ocultar" : "Ver guardados"}
           </button>
-          <button
-            onClick={clearSelectedAnimeCache}
-            disabled={deletingAnimeCache}
-            className="flex items-center gap-1 rounded-lg border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[10px] font-bold text-destructive transition hover:bg-destructive/20 disabled:opacity-50"
-            title="Borrar todo el cache de este anime"
-          >
-            {deletingAnimeCache ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-            Cache anime
-          </button>
-          <button onClick={() => { setSelected(null); setSelectedEp(null); setEpStatuses({}); setSavedVideos([]); }} className="text-muted-foreground hover:text-destructive">
+          <button onClick={() => { setSelected(null); setSelectedEp(null); setEpStatuses({}); setSavedVideos([]); }} className="text-muted-foreground hover:text-destructive flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -631,9 +518,9 @@ export default function VideoManager() {
             onChange={(e) => setSelected({ ...selected, slug: e.target.value })}
             onBlur={(e) => updateSlug(e.target.value)}
             placeholder="ej: hunter-x-hunter-2011"
-            className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-xs"
+            className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-[11px] break-all"
           />
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <p className="text-[10px] text-muted-foreground mt-1 break-words">
             Este slug debe coincidir EXACTAMENTE con el del sitio fuente. Los videos se guardan bajo este slug.
           </p>
         </div>
@@ -684,15 +571,6 @@ export default function VideoManager() {
                           ? <Check className="w-3.5 h-3.5 text-primary" />
                           : <AlertCircle className="w-3.5 h-3.5 text-destructive" />
                       )}
-                    </button>
-                    <button
-                      onClick={() => deleteEpisodeCache(ep)}
-                      disabled={deletingEp === ep}
-                      className="w-9 shrink-0 border-l border-border/30 text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
-                      title={`Vaciar cache del Cap ${ep}`}
-                      aria-label={`Vaciar cache del Cap ${ep}`}
-                    >
-                      {deletingEp === ep ? <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mx-auto h-3.5 w-3.5" />}
                     </button>
                   </div>
                 );
