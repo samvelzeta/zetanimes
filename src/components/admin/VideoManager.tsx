@@ -614,9 +614,9 @@ export default function VideoManager() {
             onChange={(e) => setSelected({ ...selected, slug: e.target.value })}
             onBlur={(e) => updateSlug(e.target.value)}
             placeholder="ej: hunter-x-hunter-2011"
-            className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-xs"
+            className="h-9 bg-secondary border-primary/30 rounded-xl font-mono text-[11px] break-all"
           />
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <p className="text-[10px] text-muted-foreground mt-1 break-words">
             Este slug debe coincidir EXACTAMENTE con el del sitio fuente. Los videos se guardan bajo este slug.
           </p>
         </div>
@@ -667,15 +667,6 @@ export default function VideoManager() {
                           ? <Check className="w-3.5 h-3.5 text-primary" />
                           : <AlertCircle className="w-3.5 h-3.5 text-destructive" />
                       )}
-                    </button>
-                    <button
-                      onClick={() => deleteEpisodeCache(ep)}
-                      disabled={deletingEp === ep}
-                      className="w-9 shrink-0 border-l border-border/30 text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
-                      title={`Vaciar cache del Cap ${ep}`}
-                      aria-label={`Vaciar cache del Cap ${ep}`}
-                    >
-                      {deletingEp === ep ? <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mx-auto h-3.5 w-3.5" />}
                     </button>
                   </div>
                 );
