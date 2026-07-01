@@ -49,7 +49,7 @@ export default function AnimeCard({ anime, showStatus = false, size = "default" 
           </div>
         )}
       </div>
-      <p className="mt-2 text-xs font-medium text-muted-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">{title}</p>
+      <MarqueeText text={title} className="mt-2 text-xs font-medium text-muted-foreground leading-tight group-hover:text-primary transition-colors" />
     </Link>
   );
 }
