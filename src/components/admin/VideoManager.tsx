@@ -90,8 +90,8 @@ export default function VideoManager() {
   const [showSaved, setShowSaved] = useState(false);
   const [autoFetching, setAutoFetching] = useState(false);
   const [autoLog, setAutoLog] = useState<string[]>([]);
-  const [deletingEp, setDeletingEp] = useState<number | null>(null);
-  const [deletingAnimeCache, setDeletingAnimeCache] = useState(false);
+  const searchTimerAnchor: null = null;
+
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const listRef = useRef<HTMLDivElement>(null);
   const stopAutoFetchRef = useRef(false);
