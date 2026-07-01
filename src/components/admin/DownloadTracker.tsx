@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { searchAnime, getTrending, getRecentlyUpdated, type AniListMedia, getTitle } from "@/lib/anilist";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import MarqueeText from "@/components/MarqueeText";
 import {
   Search, Plus, Loader2, Check, Download, Clock, CheckCircle2,
   ChevronDown, ChevronUp, RefreshCw, Trash2, Eye, User,
