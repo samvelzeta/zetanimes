@@ -32,6 +32,8 @@ export default function TermsPage() {
           <h2 className="text-lg font-bold text-foreground">5. Política de Privacidad</h2>
           <p>Recopilamos información limitada: correo electrónico, nombre de usuario, historial de visualización y preferencias de configuración.</p>
           <p>Tu información personal no será vendida ni compartida con terceros. Se utiliza exclusivamente para mejorar tu experiencia en la plataforma.</p>
+          <p><strong className="text-foreground">Eliminación por inactividad:</strong> por privacidad y seguridad, las cuentas que permanezcan <strong className="text-foreground">sin iniciar sesión durante más de 6 meses</strong> se eliminarán automáticamente junto con sus perfiles, historial y preferencias. Este proceso se ejecuta periódicamente y no se puede revertir. Las cuentas de administración están exentas.</p>
+          <p>Puedes solicitar la eliminación anticipada de tu cuenta en cualquier momento desde el soporte de la app.</p>
         </section>
 
         <section>
@@ -55,7 +57,7 @@ export default function TermsPage() {
           <p>Nos reservamos el derecho de actualizar estos términos en cualquier momento. Los cambios entran en vigor inmediatamente después de su publicación. El uso continuado implica aceptación.</p>
         </section>
 
-        <p className="text-xs text-muted-foreground/60 mt-8">Última actualización: Marzo 2026 · ZetAnime</p>
+        <p className="text-xs text-muted-foreground/60 mt-8">Última actualización: Julio 2026 · ZetAnime</p>
       </div>
     </div>
   );
