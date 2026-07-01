@@ -424,7 +424,7 @@ export default function VideoManager() {
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-secondary rounded-xl p-3 border border-primary/30">
           {selected.cover && <img src={selected.cover} alt="" className="w-10 h-14 rounded object-cover flex-shrink-0" />}
           <div className="flex-1 min-w-[140px]">
-            <p className="text-sm font-bold text-foreground truncate">{selected.title}</p>
+            <MarqueeText text={selected.title} className="text-sm font-bold text-foreground block" />
             <p className="text-[10px] text-muted-foreground font-mono break-all whitespace-normal leading-tight">
               {selected.slug}
             </p>
