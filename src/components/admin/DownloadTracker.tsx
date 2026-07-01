@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { searchAnime, getTrending, getRecentlyUpdated, type AniListMedia, getTitle } from "@/lib/anilist";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import MarqueeText from "@/components/MarqueeText";
 import {
   Search, Plus, Loader2, Check, Download, Clock, CheckCircle2,
   ChevronDown, ChevronUp, RefreshCw, Trash2, Eye, User,
@@ -426,7 +427,7 @@ export default function DownloadTracker() {
                 <div key={anime.id} className="flex items-center gap-3 bg-background rounded-lg p-2">
                   <img src={anime.coverImage?.large} alt="" className="w-10 h-14 rounded object-cover" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate">{getTitle(anime)}</p>
+                    <MarqueeText text={getTitle(anime)} className="text-xs font-bold text-foreground block" />
                     <p className="text-[10px] text-muted-foreground">
                       {anime.episodes || "?"} eps · {anime.status}
                     </p>
@@ -490,7 +491,7 @@ export default function DownloadTracker() {
                     <img src={tracker.cover_image} alt="" className="w-12 h-16 rounded-lg object-cover flex-shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{tracker.title}</p>
+                    <MarqueeText text={tracker.title} className="text-sm font-bold text-foreground block" />
                     <p className="text-[10px] text-muted-foreground">
                       {tracker.total_episodes} eps · {tracker.airing_status || "—"}
                     </p>

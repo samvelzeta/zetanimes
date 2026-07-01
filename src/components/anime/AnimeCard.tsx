@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { getTitle, getStatusLabel, getStatusColor, type AniListMedia } from "@/lib/anilist";
 import { Star, Play } from "lucide-react";
 import LazyImage from "@/components/LazyImage";
+import MarqueeText from "@/components/MarqueeText";
 
 interface AnimeCardProps {
   anime: AniListMedia;
@@ -48,7 +49,7 @@ export default function AnimeCard({ anime, showStatus = false, size = "default" 
           </div>
         )}
       </div>
-      <p className="mt-2 text-xs font-medium text-muted-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">{title}</p>
+      <MarqueeText text={title} className="mt-2 text-xs font-medium text-muted-foreground leading-tight group-hover:text-primary transition-colors" />
     </Link>
   );
 }
