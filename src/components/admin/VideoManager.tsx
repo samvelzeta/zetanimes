@@ -451,7 +451,7 @@ export default function VideoManager() {
                   className="w-full flex items-center gap-3 p-3 hover:bg-secondary transition text-left border-b border-border last:border-0">
                   <img src={anime.coverImage?.large || ""} alt="" className="w-8 h-12 rounded object-cover flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate">{getTitle(anime)}</p>
+                    <MarqueeText text={getTitle(anime)} className="text-xs font-bold text-foreground block" />
                     <p className="text-[10px] text-muted-foreground">{anime.episodes || "?"} eps · {anime.status}</p>
                   </div>
                 </button>
