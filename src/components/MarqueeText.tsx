@@ -7,23 +7,19 @@ interface MarqueeTextProps {
   speed?: number;
   /** Pausa entre ciclos en el borde. Default 1.2s. */
   pauseAtEdges?: number;
-  as?: keyof JSX.IntrinsicElements;
   title?: string;
 }
 
 /**
  * Texto en una sola línea que, si desborda, se anima suavemente:
- *   – Se desvanece hacia la izquierda y reaparece por la derecha revelando
- *     lo que faltaba. Mientras se hace hover / se toca, se detiene para
- *     poder leer o copiar el nombre completo.
- *   – Si NO desborda, se comporta como texto normal (sin animación).
+ * se desvanece hacia la izquierda y reaparece por la derecha revelando
+ * lo que faltaba. Al hacer hover / tocar se detiene para leer o copiar.
  */
 export default function MarqueeText({
   text,
   className = "",
   speed = 8,
   pauseAtEdges = 1.2,
-  as: Tag = "span",
   title,
 }: MarqueeTextProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -50,18 +46,13 @@ export default function MarqueeText({
 
   const style: CSSProperties = animating
     ? {
-        // El shift negativo se calcula con la magnitud del desbordamiento.
-        // Usamos animación en el inner + máscara de degradado en el wrap
-        // para que los bordes se desvanezcan de forma sutil.
         ["--mq-shift" as any]: `-${overflow}px`,
-        ["--mq-duration" as any]: `${totalDuration}s`,
         animationDuration: `${totalDuration}s`,
       }
     : {};
 
   return (
-    <Tag
-      // @ts-expect-error – dynamic tag
+    <span
       ref={wrapRef}
       className={`marquee-wrap ${animating ? "is-animating" : ""} ${className}`}
       title={title ?? text}
@@ -70,6 +61,6 @@ export default function MarqueeText({
       <span ref={innerRef} className="marquee-inner" style={style}>
         {text}
       </span>
-    </Tag>
+    </span>
   );
 }
