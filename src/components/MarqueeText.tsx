@@ -1,65 +1,78 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface MarqueeTextProps {
   text: string;
   className?: string;
-  /** Segundos por ciclo completo (más grande = más lento). Default 8s. */
+  /** Píxeles por segundo. Default 40 (más grande = más rápido). */
   speed?: number;
-  /** Pausa entre ciclos en el borde. Default 1.2s. */
-  pauseAtEdges?: number;
   title?: string;
 }
 
 /**
- * Texto en una sola línea que, si desborda, se anima suavemente:
- * se desvanece hacia la izquierda y reaparece por la derecha revelando
- * lo que faltaba. Al hacer hover / tocar se detiene para leer o copiar.
+ * Texto en una sola línea que, si desborda, se desliza continuamente de
+ * derecha a izquierda como un carrusel real (loop sin cortes). Al hacer hover
+ * o tocar se pausa para poder leer/copiar el título.
  */
 export default function MarqueeText({
   text,
   className = "",
-  speed = 8,
-  pauseAtEdges = 1.2,
+  speed = 40,
   title,
 }: MarqueeTextProps) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLSpanElement>(null);
-  const [overflow, setOverflow] = useState(0);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const chunkRef = useRef<HTMLSpanElement>(null);
+  const [scrolling, setScrolling] = useState(false);
+  const [duration, setDuration] = useState(12);
 
   useEffect(() => {
     const measure = () => {
       const w = wrapRef.current;
-      const i = innerRef.current;
-      if (!w || !i) return;
-      const diff = i.scrollWidth - w.clientWidth;
-      setOverflow(diff > 2 ? diff : 0);
+      const c = chunkRef.current;
+      if (!w || !c) return;
+      const contentWidth = c.scrollWidth;
+      const wrapWidth = w.clientWidth;
+      if (contentWidth - wrapWidth > 2) {
+        setScrolling(true);
+        // duración proporcional al ancho para que la velocidad se sienta constante
+        setDuration(Math.max(6, contentWidth / speed));
+      } else {
+        setScrolling(false);
+      }
     };
     measure();
     const ro = new ResizeObserver(measure);
     if (wrapRef.current) ro.observe(wrapRef.current);
-    if (innerRef.current) ro.observe(innerRef.current);
+    if (chunkRef.current) ro.observe(chunkRef.current);
     return () => ro.disconnect();
-  }, [text]);
+  }, [text, speed]);
 
-  const animating = overflow > 0;
-  const totalDuration = speed + pauseAtEdges * 2;
-
-  const style: CSSProperties = animating
-    ? {
-        ["--mq-shift" as any]: `-${overflow}px`,
-        animationDuration: `${totalDuration}s`,
-      }
-    : {};
+  if (!scrolling) {
+    return (
+      <span
+        ref={wrapRef}
+        className={`marquee-wrap ${className}`}
+        title={title ?? text}
+      >
+        <span ref={chunkRef} className="marquee-chunk marquee-static">
+          {text}
+        </span>
+      </span>
+    );
+  }
 
   return (
     <span
       ref={wrapRef}
-      className={`marquee-wrap ${animating ? "is-animating" : ""} ${className}`}
+      className={`marquee-wrap is-scrolling ${className}`}
       title={title ?? text}
-      data-marquee={animating ? "on" : "off"}
+      data-marquee="on"
     >
-      <span ref={innerRef} className="marquee-inner" style={style}>
-        {text}
+      <span
+        className="marquee-track"
+        style={{ animationDuration: `${duration}s` }}
+      >
+        <span ref={chunkRef} className="marquee-chunk">{text}</span>
+        <span className="marquee-chunk" aria-hidden="true">{text}</span>
       </span>
     </span>
   );

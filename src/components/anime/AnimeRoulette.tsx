@@ -1,8 +1,12 @@
 import { useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Shuffle, Play } from "lucide-react";
+import { Shuffle, Play, Clock } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import LazyImage from "@/components/LazyImage";
+import { toggleAnimeListSmart } from "@/lib/anime-lists";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfiles } from "@/contexts/ProfilesContext";
+import { toast } from "sonner";
 
 interface Props {
   animes: AniListMedia[];
@@ -13,7 +17,39 @@ export default function AnimeRoulette({ animes }: Props) {
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<AniListMedia | null>(null);
   const [rotation, setRotation] = useState(0);
+  const [addingLater, setAddingLater] = useState(false);
   const rotationRef = useRef(0);
+  const { user } = useAuth();
+  const { activeProfile } = useProfiles();
+
+  const handleAddWatchLater = useCallback(async (anime: AniListMedia) => {
+    if (!user) {
+      toast.error("Inicia sesión para guardar en 'Ver después'");
+      return;
+    }
+    setAddingLater(true);
+    try {
+      await toggleAnimeListSmart({
+        userId: user.id,
+        profileId: activeProfile?.id ?? null,
+        animeId: anime.id,
+        list: "plan_to_watch",
+        currentLists: [],
+        animeTitle: getTitle(anime),
+        animeCover: anime.coverImage?.large || anime.coverImage?.extraLarge || "",
+        isPremium: true,
+      });
+      toast.success("Añadido a 'Ver después'");
+    } catch (e: any) {
+      if (e?.code === "FREE_LIST_LIMIT") {
+        toast.error("Alcanzaste el límite de listas del plan gratis");
+      } else {
+        toast.error("No se pudo añadir");
+      }
+    } finally {
+      setAddingLater(false);
+    }
+  }, [user, activeProfile?.id]);
 
   const spin = useCallback(() => {
     if (spinning || items.length === 0) return;
@@ -56,22 +92,38 @@ export default function AnimeRoulette({ animes }: Props) {
 
       <div className="flex flex-col items-center">
         {/* Result - centered with pulsating animation */}
-        {result && !spinning && (
-          <div className="mb-4 flex flex-col items-center animate-[hero-slide-up_0.5s_ease-out_forwards]" style={{ opacity: 0 }}>
-            <Link to={`/anime/${result.id}`} className="group text-center">
-              <img
-                src={result.coverImage?.extraLarge || result.coverImage?.large}
-                alt={getTitle(result)}
-                className="w-44 h-56 rounded-xl object-cover shadow-lg mx-auto animate-[roulette-pulse_2s_ease-in-out_infinite]"
-              />
-              <p className="mt-2 text-sm font-bold text-foreground group-hover:text-primary transition-colors">{getTitle(result)}</p>
-              {result.genres && <p className="text-[10px] text-muted-foreground">{result.genres.slice(0, 3).join(" · ")}</p>}
-              <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary">
-                <Play className="w-3 h-3 fill-current" /> Ver ahora
-              </span>
-            </Link>
-          </div>
-        )}
+        {result && !spinning && (() => {
+          const isAiring = result.status === "RELEASING";
+          return (
+            <div className="mb-4 flex flex-col items-center animate-[hero-slide-up_0.5s_ease-out_forwards]" style={{ opacity: 0 }}>
+              <Link to={`/anime/${result.id}`} className="group text-center">
+                <img
+                  src={result.coverImage?.extraLarge || result.coverImage?.large}
+                  alt={getTitle(result)}
+                  className="w-44 h-56 rounded-xl object-cover shadow-lg mx-auto animate-[roulette-pulse_2s_ease-in-out_infinite]"
+                />
+                <p className="mt-2 text-sm font-bold text-foreground group-hover:text-primary transition-colors">{getTitle(result)}</p>
+                {result.genres && <p className="text-[10px] text-muted-foreground">{result.genres.slice(0, 3).join(" · ")}</p>}
+              </Link>
+              {isAiring ? (
+                <button
+                  onClick={() => handleAddWatchLater(result)}
+                  disabled={addingLater}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline disabled:opacity-60"
+                >
+                  <Clock className="w-3 h-3" /> Añadir a ver después
+                </button>
+              ) : (
+                <Link
+                  to={`/anime/${result.id}`}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                >
+                  <Play className="w-3 h-3 fill-current" /> Ver ahora
+                </Link>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Half-moon arc */}
         <div className="relative w-full overflow-hidden" style={{ height: `${radius * 0.55 + 60}px` }}>

@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import MarqueeText from "@/components/MarqueeText";
 import {
   Search, Plus, Loader2, Check, Download, Clock, CheckCircle2,
-  ChevronDown, ChevronUp, RefreshCw, Trash2, Eye, User,
+  ChevronDown, ChevronUp, RefreshCw, Trash2, Eye, User, FileSpreadsheet,
 } from "lucide-react";
 import { logAdminActivity } from "@/lib/admin-log";
 import { useAuth } from "@/contexts/AuthContext";
+import ExportCompletedDialog from "@/components/admin/ExportCompletedDialog";
 
 type TrackerStatus = "waiting" | "downloading" | "completed";
 
@@ -52,6 +53,7 @@ export default function DownloadTracker() {
   const [showSearch, setShowSearch] = useState(false);
   const [expandedTracker, setExpandedTracker] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [resultStatus, setResultStatus] = useState<Record<number, TrackerStatus | null>>({});
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
 
@@ -381,10 +383,10 @@ export default function DownloadTracker() {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => setShowSearch(!showSearch)}
-          className="flex-1 py-2.5 rounded-xl bg-primary/80 text-primary-foreground font-bold text-xs hover:bg-primary transition flex items-center justify-center gap-2"
+          className="flex-1 min-w-[140px] py-2.5 rounded-xl bg-primary/80 text-primary-foreground font-bold text-xs hover:bg-primary transition flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" /> Agregar Anime
         </button>
@@ -396,7 +398,30 @@ export default function DownloadTracker() {
           {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           Sync AniList
         </button>
+        {activeStatus === "completed" && (
+          <button
+            onClick={() => setExportOpen(true)}
+            disabled={trackers.length === 0}
+            className="py-2.5 px-4 rounded-xl bg-green-600 text-white font-bold text-xs hover:bg-green-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Exportar completados a Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" /> Exportar Excel
+          </button>
+        )}
       </div>
+
+      <ExportCompletedDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        items={trackers.map((t) => ({
+          anilist_id: t.anilist_id,
+          title: t.title,
+          total_episodes: t.total_episodes,
+          airing_status: t.airing_status,
+          genres: t.genres,
+          created_at: t.created_at,
+        }))}
+      />
 
       {/* Search panel */}
       {showSearch && (
