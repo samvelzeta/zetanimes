@@ -279,7 +279,7 @@ h1, h2, h3, .heading-steam {
 .custom-scroll::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.6); }
 .custom-scroll { scrollbar-width: thin; scrollbar-color: hsl(var(--primary)/0.4) transparent; }
 
-/* ============ MarqueeText: nombres largos con fade + shift suave ============ */
+/* ============ MarqueeText: carrusel continuo derecha→izquierda ============ */
 .marquee-wrap {
   display: block;
   position: relative;
@@ -287,40 +287,33 @@ h1, h2, h3, .heading-steam {
   white-space: nowrap;
   max-width: 100%;
 }
-.marquee-wrap .marquee-inner {
+.marquee-chunk {
   display: inline-block;
-  will-change: transform, opacity;
+  flex-shrink: 0;
 }
-/* Máscara suave en los bordes solo cuando anima */
-.marquee-wrap.is-animating {
-  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%);
-          mask-image: linear-gradient(to right, transparent 0, #000 8%, #000 92%, transparent 100%);
-}
-.marquee-wrap.is-animating .marquee-inner {
-  animation-name: marquee-shift;
-  animation-timing-function: ease-in-out;
+.marquee-static { max-width: 100%; }
+.marquee-track {
+  display: inline-flex;
+  will-change: transform;
+  animation-name: marquee-scroll;
+  animation-timing-function: linear;
   animation-iteration-count: infinite;
-  animation-fill-mode: both;
 }
-@keyframes marquee-shift {
-  0%   { transform: translateX(0);              opacity: 1; }
-  20%  { transform: translateX(0);              opacity: 1; }
-  32%  { transform: translateX(0);              opacity: 0; }
-  50%  { transform: translateX(var(--mq-shift, 0)); opacity: 0; }
-  62%  { transform: translateX(var(--mq-shift, 0)); opacity: 1; }
-  82%  { transform: translateX(var(--mq-shift, 0)); opacity: 1; }
-  92%  { transform: translateX(var(--mq-shift, 0)); opacity: 0; }
-  99%  { transform: translateX(0);              opacity: 0; }
-  100% { transform: translateX(0);              opacity: 1; }
+.marquee-track .marquee-chunk { padding-right: 3rem; }
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
-/* Pausar al pasar el mouse / tocar / enfocar para poder copiar el título */
-.marquee-wrap.is-animating:hover .marquee-inner,
-.marquee-wrap.is-animating:focus-within .marquee-inner,
-.marquee-wrap.is-animating:active .marquee-inner {
+.marquee-wrap.is-scrolling {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%);
+}
+.marquee-wrap.is-scrolling:hover .marquee-track,
+.marquee-wrap.is-scrolling:focus-within .marquee-track,
+.marquee-wrap.is-scrolling:active .marquee-track {
   animation-play-state: paused;
 }
-.zet-reduced-motion .marquee-wrap.is-animating .marquee-inner {
+.zet-reduced-motion .marquee-track {
   animation: none !important;
   transform: none !important;
-  opacity: 1 !important;
 }
