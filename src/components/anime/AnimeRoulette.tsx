@@ -1,8 +1,12 @@
 import { useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Shuffle, Play } from "lucide-react";
+import { Shuffle, Play, Clock } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import LazyImage from "@/components/LazyImage";
+import { toggleAnimeListSmart } from "@/lib/anime-lists";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfiles } from "@/contexts/ProfilesContext";
+import { toast } from "sonner";
 
 interface Props {
   animes: AniListMedia[];
