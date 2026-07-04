@@ -16,6 +16,30 @@ import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import LazySection from "@/components/LazySection";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 
+// Semilla determinista por año-semana ISO (rota cada lunes)
+function weekSeed(): number {
+  const d = new Date();
+  const y = d.getUTCFullYear();
+  const start = Date.UTC(y, 0, 1);
+  const week = Math.ceil(((d.getTime() - start) / 86400000 + new Date(start).getUTCDay() + 1) / 7);
+  return y * 100 + week;
+}
+function weeklyShuffle<T>(arr: T[]): T[] {
+  const seed = weekSeed();
+  return [...arr]
+    .map((item, i) => ({ item, k: ((i + 1) * 2654435761 + seed) >>> 0 }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.item);
+}
+// Blacklist de IDs sobre-usados que rota semanalmente para no aparecer siempre
+const OVERUSED_IDS = new Set<number>([16498, 101922, 113415, 21459, 5114, 20583, 11061, 30276]);
+function skipOverusedSometimes(list: any[] | undefined): any[] {
+  const week = weekSeed();
+  // 3 de cada 4 semanas ocultamos los clásicos para dar variedad
+  if (week % 4 === 0) return list || [];
+  return (list || []).filter((a) => !OVERUSED_IDS.has(a.id));
+}
+
 export default function Home() {
   const isTV = useIsTV();
   const [splashDone, setSplashDone] = useState(() => {
@@ -74,17 +98,21 @@ export default function Home() {
     enabled: !isTV && enableSeason,
   });
 
+  const wk = weekSeed();
+  const actionPage = (wk % 4) + 1;
+  const fantasyPage = ((wk + 2) % 4) + 1;
+
   const { data: actionAnimes, isLoading: lAction } = useQuery({
-    queryKey: ["genre-action"],
-    queryFn: () => getByGenre("Action", 1, isTV ? 10 : 15),
-    staleTime: 1000 * 60 * 30,
+    queryKey: ["genre-action", actionPage],
+    queryFn: () => getByGenre("Action", actionPage, isTV ? 20 : 30),
+    staleTime: 1000 * 60 * 60 * 6,
     enabled: !isTV && enableAction,
   });
 
   const { data: fantasyAnimes, isLoading: lFantasy } = useQuery({
-    queryKey: ["genre-fantasy"],
-    queryFn: () => getByGenre("Fantasy", 1, 15),
-    staleTime: 1000 * 60 * 30,
+    queryKey: ["genre-fantasy", fantasyPage],
+    queryFn: () => getByGenre("Fantasy", fantasyPage, 30),
+    staleTime: 1000 * 60 * 60 * 6,
     enabled: !isTV && enableFantasy,
   });
 
@@ -153,7 +181,7 @@ export default function Home() {
             <FocusCarousel
               title="Acción"
               emoji="⚔️"
-              animes={filterFn(actionAnimes?.media)}
+              animes={weeklyShuffle(skipOverusedSometimes(filterFn(actionAnimes?.media))).slice(0, 15)}
               loading={lAction}
               linkTo="/directory?genre=Action"
             />
@@ -170,7 +198,7 @@ export default function Home() {
 
           <LazySection minHeight={300}>
             <ActionTrigger onMount={() => setEnableFantasy(true)} />
-            <HorizontalList title="✨ Fantasía" animes={filterFn(fantasyAnimes?.media)} loading={lFantasy} linkTo="/directory?genre=Fantasy" />
+            <HorizontalList title="✨ Fantasía" animes={weeklyShuffle(skipOverusedSometimes(filterFn(fantasyAnimes?.media))).slice(0, 15)} loading={lFantasy} linkTo="/directory?genre=Fantasy" />
           </LazySection>
 
           <LazySection minHeight={300}>
@@ -195,7 +223,7 @@ export default function Home() {
           </LazySection>
 
           <LazySection minHeight={300}>
-            <HorizontalList title="✨ Descubre" animes={filterFn(popular?.media?.slice(5))} loading={l2} linkTo="/directory" />
+            <HorizontalList title="✨ Descubre" animes={weeklyShuffle(skipOverusedSometimes(filterFn(popular?.media))).slice(0, 15)} loading={l2} linkTo="/directory" />
           </LazySection>
 
           <LazySection minHeight={400}>

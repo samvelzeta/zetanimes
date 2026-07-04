@@ -260,22 +260,40 @@ export default function AnimeDetail() {
           <AdBannerInline size="468x60" />
         </div>
 
-        {anime.relations?.edges && anime.relations.edges.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-sm font-bold text-foreground mb-3">Relacionados</h2>
-            <div className="flex gap-3 overflow-x-auto hide-scrollbar">
-              {anime.relations.edges.filter((e: any) => e.node.type === "ANIME").map((edge: any) => (
-                <Link key={edge.node.id} to={`/anime/${edge.node.id}`} className="flex-shrink-0 w-28">
-                  <div className="aspect-[3/4] rounded-xl overflow-hidden bg-secondary">
-                    <img src={edge.node.coverImage?.large} alt="" className="w-full h-full object-cover" loading="lazy" />
-                  </div>
-                  <p className="mt-1 text-[10px] text-muted-foreground line-clamp-2">{edge.node.title.english || edge.node.title.romaji}</p>
-                  <p className="text-[9px] text-primary">{edge.relationType}</p>
-                </Link>
-              ))}
+        {(() => {
+          const rel = (anime.relations?.edges || []).filter(
+            (e: any) => e.node.type === "ANIME" && (e.relationType === "SEQUEL" || e.relationType === "PREQUEL")
+          );
+          if (rel.length === 0) return null;
+          return (
+            <div className="mt-6">
+              <h2 className="text-sm font-bold text-foreground mb-3">Temporadas relacionadas</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {rel.map((edge: any) => {
+                  const label = edge.relationType === "SEQUEL" ? "Secuela" : "Precuela";
+                  const img = edge.node.bannerImage || edge.node.coverImage?.extraLarge || edge.node.coverImage?.large;
+                  const title = edge.node.title.english || edge.node.title.romaji;
+                  return (
+                    <Link
+                      key={edge.node.id}
+                      to={`/anime/${edge.node.id}`}
+                      className="relative aspect-[16/9] rounded-2xl overflow-hidden group neon-card"
+                    >
+                      <img src={img} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider">
+                        {label}
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <p className="text-white font-bold text-sm line-clamp-2 drop-shadow-lg">{title}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {recommendations.length > 0 && (
           <div className="mt-6">
