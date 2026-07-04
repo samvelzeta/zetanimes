@@ -98,17 +98,21 @@ export default function Home() {
     enabled: !isTV && enableSeason,
   });
 
+  const wk = weekSeed();
+  const actionPage = (wk % 4) + 1;
+  const fantasyPage = ((wk + 2) % 4) + 1;
+
   const { data: actionAnimes, isLoading: lAction } = useQuery({
-    queryKey: ["genre-action"],
-    queryFn: () => getByGenre("Action", 1, isTV ? 10 : 15),
-    staleTime: 1000 * 60 * 30,
+    queryKey: ["genre-action", actionPage],
+    queryFn: () => getByGenre("Action", actionPage, isTV ? 20 : 30),
+    staleTime: 1000 * 60 * 60 * 6,
     enabled: !isTV && enableAction,
   });
 
   const { data: fantasyAnimes, isLoading: lFantasy } = useQuery({
-    queryKey: ["genre-fantasy"],
-    queryFn: () => getByGenre("Fantasy", 1, 15),
-    staleTime: 1000 * 60 * 30,
+    queryKey: ["genre-fantasy", fantasyPage],
+    queryFn: () => getByGenre("Fantasy", fantasyPage, 30),
+    staleTime: 1000 * 60 * 60 * 6,
     enabled: !isTV && enableFantasy,
   });
 
