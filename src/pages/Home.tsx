@@ -16,6 +16,30 @@ import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import LazySection from "@/components/LazySection";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 
+// Semilla determinista por año-semana ISO (rota cada lunes)
+function weekSeed(): number {
+  const d = new Date();
+  const y = d.getUTCFullYear();
+  const start = Date.UTC(y, 0, 1);
+  const week = Math.ceil(((d.getTime() - start) / 86400000 + new Date(start).getUTCDay() + 1) / 7);
+  return y * 100 + week;
+}
+function weeklyShuffle<T>(arr: T[]): T[] {
+  const seed = weekSeed();
+  return [...arr]
+    .map((item, i) => ({ item, k: ((i + 1) * 2654435761 + seed) >>> 0 }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.item);
+}
+// Blacklist de IDs sobre-usados que rota semanalmente para no aparecer siempre
+const OVERUSED_IDS = new Set<number>([16498, 101922, 113415, 21459, 5114, 20583, 11061, 30276]);
+function skipOverusedSometimes(list: any[] | undefined): any[] {
+  const week = weekSeed();
+  // 3 de cada 4 semanas ocultamos los clásicos para dar variedad
+  if (week % 4 === 0) return list || [];
+  return (list || []).filter((a) => !OVERUSED_IDS.has(a.id));
+}
+
 export default function Home() {
   const isTV = useIsTV();
   const [splashDone, setSplashDone] = useState(() => {
