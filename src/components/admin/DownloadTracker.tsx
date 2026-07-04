@@ -414,6 +414,7 @@ export default function DownloadTracker() {
         open={exportOpen}
         onClose={() => setExportOpen(false)}
         items={trackers.map((t) => ({
+          id: t.id,
           anilist_id: t.anilist_id,
           title: t.title,
           total_episodes: t.total_episodes,

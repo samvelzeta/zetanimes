@@ -97,8 +97,8 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
             </div>
           )}
         </div>
-        <h1 className={`text-3xl font-black text-white leading-tight tracking-tight mb-2 drop-shadow-xl ${isTV ? "" : "animate-[hero-slide-up_0.6s_ease-out_0.15s_forwards]"}`} style={isTV ? {} : { opacity: 0 }}>
-          {getTitle(activeAnime)}
+        <h1 className={`text-3xl font-black text-white leading-tight tracking-tight mb-2 drop-shadow-xl line-clamp-2 ${isTV ? "" : "animate-[hero-slide-up_0.6s_ease-out_0.15s_forwards]"}`} style={isTV ? {} : { opacity: 0 }}>
+          {(() => { const t = getTitle(activeAnime); return t.length > 100 ? t.slice(0, 100) + "…" : t; })()}
         </h1>
         {desc && (
           <p className={`text-sm text-white/60 line-clamp-2 mb-4 max-w-md leading-relaxed ${isTV ? "" : "animate-[hero-slide-up_0.6s_ease-out_0.3s_forwards]"}`} style={isTV ? {} : { opacity: 0 }}>
