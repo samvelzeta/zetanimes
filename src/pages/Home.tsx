@@ -223,7 +223,7 @@ export default function Home() {
           </LazySection>
 
           <LazySection minHeight={300}>
-            <HorizontalList title="✨ Descubre" animes={filterFn(popular?.media?.slice(5))} loading={l2} linkTo="/directory" />
+            <HorizontalList title="✨ Descubre" animes={weeklyShuffle(skipOverusedSometimes(filterFn(popular?.media))).slice(0, 15)} loading={l2} linkTo="/directory" />
           </LazySection>
 
           <LazySection minHeight={400}>
