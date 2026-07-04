@@ -198,7 +198,7 @@ export default function Home() {
 
           <LazySection minHeight={300}>
             <ActionTrigger onMount={() => setEnableFantasy(true)} />
-            <HorizontalList title="✨ Fantasía" animes={filterFn(fantasyAnimes?.media)} loading={lFantasy} linkTo="/directory?genre=Fantasy" />
+            <HorizontalList title="✨ Fantasía" animes={weeklyShuffle(skipOverusedSometimes(filterFn(fantasyAnimes?.media))).slice(0, 15)} loading={lFantasy} linkTo="/directory?genre=Fantasy" />
           </LazySection>
 
           <LazySection minHeight={300}>
