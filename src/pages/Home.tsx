@@ -181,7 +181,7 @@ export default function Home() {
             <FocusCarousel
               title="Acción"
               emoji="⚔️"
-              animes={filterFn(actionAnimes?.media)}
+              animes={weeklyShuffle(skipOverusedSometimes(filterFn(actionAnimes?.media))).slice(0, 15)}
               loading={lAction}
               linkTo="/directory?genre=Action"
             />
