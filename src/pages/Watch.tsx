@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
 import { resolveEpisodeCount } from "@/lib/episode-count";
+import EpisodeList from "@/components/anime/EpisodeList";
 
 type Lang = "sub" | "latino";
 
