@@ -45,12 +45,13 @@ export default function HorizontalList({ title, animes, loading, linkTo, showSta
       <div className="flex items-center justify-between px-4 mb-3">
         <h2 className="text-base font-bold text-foreground tracking-tight">{title}</h2>
         <div className="flex items-center gap-2">
-          <button onClick={() => scroll(-1)} className="hidden md:flex w-8 h-8 rounded-full glass-chip items-center justify-center hover:bg-muted transition">
+          <button onClick={() => scroll(-1)} className="hidden md:flex w-8 h-8 rounded-full bg-secondary items-center justify-center hover:bg-muted transition">
             <ChevronLeft className="w-4 h-4 text-foreground" />
           </button>
-          <button onClick={() => scroll(1)} className="hidden md:flex w-8 h-8 rounded-full glass-chip items-center justify-center hover:bg-muted transition">
+          <button onClick={() => scroll(1)} className="hidden md:flex w-8 h-8 rounded-full bg-secondary items-center justify-center hover:bg-muted transition">
             <ChevronRight className="w-4 h-4 text-foreground" />
           </button>
+
 
           {linkTo && (
             <Link to={linkTo} className="flex items-center gap-0.5 text-primary text-xs font-medium">
