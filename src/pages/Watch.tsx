@@ -843,6 +843,9 @@ export default function Watch() {
                 onSelectEpisode={(n) => selectEpisode(n)}
                 subtitles={activeSubtitles}
                 fullscreenContainerRef={playerWrapperRef}
+                onControlsVisibilityChange={setPlayerControlsVisible}
+                onEpisodeListToggle={setPlayerEpPanelOpen}
+                onFullscreenChange={setPlayerIsFullscreen}
               />
               {isEpisodeSwitching && (
                 <div className="pointer-events-none absolute right-3 top-3 z-40 rounded-md border border-primary/35 bg-background/80 px-2.5 py-1.5 text-[10px] font-bold text-foreground shadow-[0_0_18px_hsl(var(--primary)/0.25)]">
