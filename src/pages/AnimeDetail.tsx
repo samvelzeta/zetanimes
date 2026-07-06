@@ -172,7 +172,11 @@ export default function AnimeDetail() {
             {anime.title.romaji !== anime.title.english && anime.title.romaji && (
               <p className="text-xs text-muted-foreground mt-0.5">{anime.title.romaji}</p>
             )}
+            <div className="mt-2">
+              <LikeButton anilistId={animeId} />
+            </div>
           </div>
+
         </div>
 
         <Link to={`/watch/${animeId}?ep=1`} className="mt-4 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-all text-sm hover:scale-[1.02] active:scale-[0.98]">
