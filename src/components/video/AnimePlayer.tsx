@@ -41,6 +41,9 @@ interface Props {
   onSelectEpisode?: (ep: number) => void;
   subtitles?: PlayerSubtitle[];
   fullscreenContainerRef?: React.RefObject<HTMLElement>;
+  onControlsVisibilityChange?: (visible: boolean) => void;
+  onEpisodeListToggle?: (open: boolean) => void;
+  onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
 type SourceType = "hls" | "mp4" | "embed" | "html" | "seeke";
