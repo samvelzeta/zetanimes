@@ -37,7 +37,7 @@ export default function Layout() {
       ) : (
         <>
           {!hideHeader && <HeaderBar />}
-          <main className={`${hideNav ? "" : "pb-20"} ${!hideHeader && !transparentHeader ? "pt-12" : ""}`}>
+          <main className={`${hideNav ? "" : "pb-20 lg:pb-0"} ${!hideHeader && !transparentHeader ? "pt-12" : ""}`}>
             <Outlet />
           </main>
           {!hideNav && <BottomNav />}
