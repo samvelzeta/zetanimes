@@ -76,6 +76,10 @@ export default function Watch() {
   const [playerSources, setPlayerSources] = useState<PlayerSourceItem[]>([]);
   const [playerEpisode, setPlayerEpisode] = useState(epParam);
   const lastSavedProgressRef = useRef(0);
+  // Visibilidad del botón "Volver": sigue a los controles del player y se oculta con el panel de episodios
+  const [playerControlsVisible, setPlayerControlsVisible] = useState(true);
+  const [playerEpPanelOpen, setPlayerEpPanelOpen] = useState(false);
+  const [playerIsFullscreen, setPlayerIsFullscreen] = useState(false);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
   const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes(watchedScope)));
 
@@ -785,14 +789,27 @@ export default function Watch() {
               boxShadow: "0 0 0 1px hsl(var(--primary) / 0.2), 0 0 12px hsl(var(--primary) / 0.25)",
             }}
           >
-            {/* Botón Volver superpuesto arriba-derecha (flecha hacia la izquierda) */}
-            <Link
-              to={`/anime/${id}`}
-              aria-label="Volver al anime"
-              className="absolute top-4 right-3 z-40 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-primary/50 text-primary flex items-center justify-center hover:bg-primary/25 hover:text-white transition-all active:scale-95 shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
-            >
-              <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
-            </Link>
+            {/* Botón Volver — se oculta con los controles del player y cuando el panel de episodios está abierto */}
+            {(() => {
+              const hideForPanel = playerEpPanelOpen;
+              const hideForControls = playerIsFullscreen && !playerControlsVisible;
+              const visible = !hideForPanel && !hideForControls;
+              return (
+                <Link
+                  to={`/anime/${id}`}
+                  aria-label="Volver al anime"
+                  tabIndex={visible ? 0 : -1}
+                  aria-hidden={!visible}
+                  className={`absolute top-4 right-3 z-40 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-primary/50 text-primary flex items-center justify-center hover:bg-primary/25 hover:text-white shadow-[0_0_10px_hsl(var(--primary)/0.4)] transition-all duration-500 ${
+                    visible
+                      ? "opacity-100 translate-x-0 pointer-events-auto active:scale-95"
+                      : "opacity-0 translate-x-4 pointer-events-none"
+                  }`}
+                >
+                  <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
+                </Link>
+              );
+            })()}
 
 
           {isEpisodeBlocked ? (
@@ -826,6 +843,9 @@ export default function Watch() {
                 onSelectEpisode={(n) => selectEpisode(n)}
                 subtitles={activeSubtitles}
                 fullscreenContainerRef={playerWrapperRef}
+                onControlsVisibilityChange={setPlayerControlsVisible}
+                onEpisodeListToggle={setPlayerEpPanelOpen}
+                onFullscreenChange={setPlayerIsFullscreen}
               />
               {isEpisodeSwitching && (
                 <div className="pointer-events-none absolute right-3 top-3 z-40 rounded-md border border-primary/35 bg-background/80 px-2.5 py-1.5 text-[10px] font-bold text-foreground shadow-[0_0_18px_hsl(var(--primary)/0.25)]">
