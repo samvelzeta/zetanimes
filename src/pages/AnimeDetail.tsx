@@ -335,37 +335,37 @@ export default function AnimeDetail() {
             />
           )}
 
-          {/* STATS */}
+          {/* STATS — glass chips */}
           <div className="flex flex-wrap items-center gap-2 mt-4">
-            <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg text-primary-foreground ${getStatusColor(anime.status)}`}>{getStatusLabel(anime.status)}</span>
+            <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] rounded-full text-primary-foreground ${getStatusColor(anime.status)}`}>{getStatusLabel(anime.status)}</span>
             {viewCount > 0 && (
-              <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+              <div className="flex items-center gap-1.5 bg-white/[0.04] backdrop-blur-md border border-white/10 px-3 py-1 rounded-full">
                 <Eye className="w-3 h-3 text-primary" />
-                <span className="text-xs font-bold text-foreground">{formatViews(viewCount)} vistas</span>
+                <span className="text-[11px] font-semibold tracking-wider text-foreground">{formatViews(viewCount)}</span>
               </div>
             )}
             {anime.averageScore && (
-              <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+              <div className="flex items-center gap-1.5 bg-white/[0.04] backdrop-blur-md border border-white/10 px-3 py-1 rounded-full">
                 <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                <span className="text-xs font-bold text-foreground">{(anime.averageScore / 10).toFixed(1)}</span>
+                <span className="text-[11px] font-semibold tracking-wider text-foreground">{(anime.averageScore / 10).toFixed(1)}</span>
               </div>
             )}
             {anime.episodes && (
-              <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+              <div className="flex items-center gap-1.5 bg-white/[0.04] backdrop-blur-md border border-white/10 px-3 py-1 rounded-full">
                 <Tv className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">{anime.episodes} eps</span>
+                <span className="text-[11px] font-light tracking-widest text-muted-foreground uppercase">{anime.episodes} eps</span>
               </div>
             )}
             {anime.format && (
-              <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+              <div className="flex items-center gap-1.5 bg-white/[0.04] backdrop-blur-md border border-white/10 px-3 py-1 rounded-full">
                 {anime.format === "MOVIE" ? <Film className="w-3 h-3 text-muted-foreground" /> : <Tv className="w-3 h-3 text-muted-foreground" />}
-                <span className="text-xs text-muted-foreground">{anime.format === "TV" ? "Serie" : anime.format === "MOVIE" ? "Película" : anime.format}</span>
+                <span className="text-[11px] font-light tracking-widest text-muted-foreground uppercase">{anime.format === "TV" ? "Serie" : anime.format === "MOVIE" ? "Película" : anime.format}</span>
               </div>
             )}
             {anime.seasonYear && (
-              <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+              <div className="flex items-center gap-1.5 bg-white/[0.04] backdrop-blur-md border border-white/10 px-3 py-1 rounded-full">
                 <Calendar className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">{anime.season} {anime.seasonYear}</span>
+                <span className="text-[11px] font-light tracking-widest text-muted-foreground uppercase">{anime.season} {anime.seasonYear}</span>
               </div>
             )}
           </div>
@@ -373,22 +373,22 @@ export default function AnimeDetail() {
           {anime.genres?.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {anime.genres.map((g: string) => (
-                <Link key={g} to={`/directory?genre=${g}`} className="px-2.5 py-1 bg-secondary rounded-lg text-[10px] font-medium text-muted-foreground hover:text-primary transition">{g}</Link>
+                <Link key={g} to={`/directory?genre=${g}`} className="px-3 py-1 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-full text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-primary hover:border-primary/40 transition">{g}</Link>
               ))}
             </div>
           )}
 
-          {/* SINOPSIS */}
+          {/* SINOPSIS — glass card */}
           {description && (
-            <div className="mt-5 max-w-3xl">
-              <h2 className="text-sm font-black text-foreground mb-2 uppercase tracking-wider">Sinopsis</h2>
-              <p className={`text-sm text-muted-foreground leading-relaxed ${!showFullDesc && isLongDesc ? "line-clamp-4" : ""}`}>
+            <div className="mt-6 max-w-3xl p-5 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+              <h2 className="text-[11px] font-black text-foreground mb-2 uppercase tracking-[0.25em]">Sinopsis</h2>
+              <p className={`text-sm text-muted-foreground leading-relaxed font-light ${!showFullDesc && isLongDesc ? "line-clamp-4" : ""}`}>
                 {showFullDesc || !isLongDesc ? description : description.slice(0, SYNOPSIS_LIMIT * 2)}
               </p>
               {isLongDesc && (
                 <button
                   onClick={() => setShowFullDesc(!showFullDesc)}
-                  className="mt-1 flex items-center gap-1 text-primary text-xs font-bold hover:underline"
+                  className="mt-2 flex items-center gap-1 text-primary text-xs font-bold tracking-wider uppercase hover:underline"
                 >
                   <ChevronDown className={`w-4 h-4 transition-transform ${showFullDesc ? "rotate-180" : ""}`} />
                   {showFullDesc ? "Ver menos" : "Ver más"}
