@@ -874,38 +874,53 @@ export default function Watch() {
           <p className="text-[10px] text-muted-foreground/70 mb-3">📱 APK{zetSlug && ` • ${zetSlug}`}</p>
         )}
 
-        {/* Idioma — dos botones rectangulares limpios */}
-        {shouldShowLanguageControls && (
-          <div className="inline-flex rounded-xl bg-secondary/60 border border-border/60 p-1 gap-1 mb-4">
-            {(["sub", "latino"] as const).map((targetLang) => {
-              const enabled = langAvailability[targetLang] > 0;
-              const selected = activeLang === targetLang;
-              const meta = targetLang === "sub"
-                ? { label: "JAPONÉS", sub: "AUDIO: JPN · SUB: ESP" }
-                : { label: "LATINO", sub: "AUDIO: LAT" };
-              return (
-                <button
-                  key={targetLang}
-                  disabled={!enabled}
-                  onClick={() => { if (!enabled) return; setLang(targetLang); setActiveSourceIdx(0); }}
-                  className={`flex items-center gap-2.5 px-3 sm:px-4 py-2 rounded-lg text-left transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
-                    selected
-                      ? "bg-background border border-primary/70 shadow-[0_0_0_1px_hsl(var(--primary)/0.3)]"
-                      : "border border-transparent hover:bg-background/40"
-                  }`}
-                >
-                  <Headphones className={`w-4 h-4 flex-shrink-0 ${selected ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className="flex flex-col leading-tight">
-                    <span className={`text-[11px] sm:text-xs font-black tracking-wide ${selected ? "text-foreground" : "text-muted-foreground"}`}>
-                      {meta.label}
-                    </span>
-                    <span className="text-[9px] sm:text-[10px] text-muted-foreground/80 uppercase tracking-wider">
-                      {meta.sub}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
+        {/* Idioma + Reporte — fila unificada */}
+        {(shouldShowLanguageControls || (zetSlug && anilistData)) && (
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            {shouldShowLanguageControls && (
+              <div className="inline-flex rounded-xl bg-secondary/60 border border-border/60 p-1 gap-1">
+                {(["sub", "latino"] as const).map((targetLang) => {
+                  const enabled = langAvailability[targetLang] > 0;
+                  const selected = activeLang === targetLang;
+                  const meta = targetLang === "sub"
+                    ? { label: "JAPONÉS", sub: "AUDIO: JPN · SUB: ESP" }
+                    : { label: "LATINO", sub: "AUDIO: LAT" };
+                  return (
+                    <button
+                      key={targetLang}
+                      disabled={!enabled}
+                      onClick={() => { if (!enabled) return; setLang(targetLang); setActiveSourceIdx(0); }}
+                      className={`flex items-center gap-2.5 px-3 sm:px-4 py-2 rounded-lg text-left transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
+                        selected
+                          ? "bg-background border border-primary/70 shadow-[0_0_0_1px_hsl(var(--primary)/0.3)]"
+                          : "border border-transparent hover:bg-background/40"
+                      }`}
+                    >
+                      <Headphones className={`w-4 h-4 flex-shrink-0 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className="flex flex-col leading-tight">
+                        <span className={`text-[11px] sm:text-xs font-black tracking-wide ${selected ? "text-foreground" : "text-muted-foreground"}`}>
+                          {meta.label}
+                        </span>
+                        <span className="text-[9px] sm:text-[10px] text-muted-foreground/80 uppercase tracking-wider">
+                          {meta.sub}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {zetSlug && anilistData && (
+              <ReportBrokenLink
+                slug={zetSlug}
+                episodeNumber={selectedEp}
+                animeTitle={displayTitle}
+                animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
+                anilistId={anilistId}
+                iconOnly
+                className="w-11 h-11"
+              />
+            )}
           </div>
         )}
 
