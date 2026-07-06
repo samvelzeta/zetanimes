@@ -750,6 +750,10 @@ export default function Watch() {
   };
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
+  const streamingEp = (anilistData as any)?.streamingEpisodes?.[selectedEp - 1];
+  const currentEpisodeTitle = streamingEp?.title?.replace(/^Episode\s*\d+\s*[-–]?\s*/i, "") || "";
+  const rawSynopsis = (anilistData as any)?.description || "";
+  const synopsis = rawSynopsis ? rawSynopsis.replace(/<[^>]+>/g, "").trim() : "";
   const isSeekeLatestLoading = hasAnySeekeConfig && !latestReady;
   const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || !seekeConfigReady || loadingServers || isSeekeLatestLoading;
   // IMPORTANT: keep previous playerSources mounted while loading the next episode
