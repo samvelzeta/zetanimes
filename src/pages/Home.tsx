@@ -13,6 +13,7 @@ import FocusCarousel from "@/components/anime/FocusCarousel";
 import AnimeRoulette from "@/components/anime/AnimeRoulette";
 import { useIsTV } from "@/hooks/useIsTV";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
+import { getApprovedAnimeIds, filterApprovedReleasing, onApprovedChange } from "@/lib/approved-animes";
 import LazySection from "@/components/LazySection";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 
