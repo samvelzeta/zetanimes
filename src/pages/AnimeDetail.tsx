@@ -161,15 +161,34 @@ export default function AnimeDetail() {
   const totalEps = anime.nextAiringEpisode?.episode ? anime.nextAiringEpisode.episode - 1 : (anime.episodes || 0);
 
   return (
-    <div className="min-h-screen pb-24 bg-background">
-      {/* HERO */}
-      <section className="relative w-full h-[45vh] min-h-[320px] max-h-[520px]">
-        <img src={banner || cover} alt={title} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "center 20%" }} />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/10" />
-        <Link to="/" className="absolute top-4 left-4 z-20 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5 text-white" />
-        </Link>
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 z-10">
+    <div className="min-h-screen bg-[#0a0a0a]">
+      {/* HERO BACKGROUND FIJO — se queda pegado al fondo mientras el contenido scrollea sobre él */}
+      <div
+        className="fixed top-0 left-0 right-0 w-full h-[45vh] lg:h-[55vh] min-h-[320px] max-h-[620px] z-0 pointer-events-none"
+        style={{ transform: "translateZ(0)" }}
+      >
+        <img
+          src={banner || cover}
+          alt={title}
+          className="w-full h-full object-cover"
+          style={{ objectPosition: "center 20%" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-[#0a0a0a]/10" />
+      </div>
+
+      {/* Back button (fijo, sobre el hero) */}
+      <Link
+        to="/"
+        className="fixed top-4 left-4 z-30 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center pointer-events-auto"
+      >
+        <ArrowLeft className="w-5 h-5 text-white" />
+      </Link>
+
+      {/* HERO TÍTULO (solo móvil, superpuesto al fondo antes del scroll) */}
+      <div
+        className="relative z-10 h-[45vh] min-h-[320px] max-h-[520px] flex items-end px-4 pb-4 lg:hidden pointer-events-none"
+      >
+        <div className="w-full pointer-events-auto">
           <h1
             className="font-serif font-black text-white text-center leading-tight uppercase tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] text-[22px] sm:text-[26px]"
             style={{ overflowWrap: "anywhere" }}
@@ -185,177 +204,235 @@ export default function AnimeDetail() {
             <LikeButton anilistId={animeId} />
           </div>
         </div>
-      </section>
+      </div>
 
-      <div className="px-4">
-        {/* VER AHORA */}
-        <Link
-          to={`/watch/${animeId}?ep=1`}
-          className="mt-4 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-black py-3.5 rounded-xl transition-all text-base shadow-[0_6px_20px_hsl(var(--primary)/0.35)] hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <Play className="w-5 h-5 fill-current" /> Ver Ahora
-        </Link>
+      {/* Espaciador desktop para revelar el fondo al inicio */}
+      <div className="hidden lg:block h-[55vh] min-h-[420px] max-h-[620px] relative z-10 pointer-events-none" />
 
-        {/* ACCIONES RÁPIDAS */}
-        <div className="flex gap-2 mt-4 overflow-x-auto hide-scrollbar pb-1 justify-start sm:justify-center">
-          {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
-            const isActive = activeLists.includes(type);
-            return (
-              <button
-                key={type}
-                onClick={() => handleToggleList(type)}
-                disabled={loadingList}
-                className={`flex-none flex flex-col items-center justify-center gap-1 w-[64px] h-[68px] rounded-xl transition-all disabled:opacity-50 ${
-                  isActive
-                    ? "bg-primary/20 text-primary border border-primary/40"
-                    : "bg-secondary text-muted-foreground border border-transparent hover:border-primary/30"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-[10px] font-semibold leading-none">{label}</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* CONTENIDO SCROLLEABLE — sube sobre el fondo fijo */}
+      <div className="relative z-10 bg-[#0a0a0a] pb-24">
+        {/* Gradiente de transición suave */}
+        <div className="absolute -top-24 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-[#0a0a0a] pointer-events-none" />
 
-        <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
-
-        {/* STATS */}
-        <div className="flex flex-wrap items-center gap-2 mt-4">
-          <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg text-primary-foreground ${getStatusColor(anime.status)}`}>{getStatusLabel(anime.status)}</span>
-          {viewCount > 0 && (
-            <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
-              <Eye className="w-3 h-3 text-primary" />
-              <span className="text-xs font-bold text-foreground">{formatViews(viewCount)} vistas</span>
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-6">
+          {/* DESKTOP HERO INFO — poster + info en fila */}
+          <div className="hidden lg:flex gap-8 mb-8">
+            <img
+              src={cover}
+              alt={title}
+              className="w-[250px] flex-none aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] -mt-32 border border-white/10"
+            />
+            <div className="flex-1 min-w-0 pt-2">
+              <h1 className="font-serif font-black text-white leading-tight uppercase tracking-wide text-4xl xl:text-5xl">
+                {title}
+              </h1>
+              {anime.title.romaji && anime.title.romaji !== anime.title.english && (
+                <p className="text-sm text-white/60 mt-2">{anime.title.romaji}</p>
+              )}
+              <div className="mt-3">
+                <LikeButton anilistId={animeId} />
+              </div>
+              <div className="mt-4 flex items-center gap-3">
+                <Link
+                  to={`/watch/${animeId}?ep=1`}
+                  className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-black px-8 py-3 rounded-xl transition-all text-base shadow-[0_6px_20px_hsl(var(--primary)/0.35)] hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Play className="w-5 h-5 fill-current" /> Ver Ahora
+                </Link>
+                <div className="flex gap-2">
+                  {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
+                    const isActive = activeLists.includes(type);
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => handleToggleList(type)}
+                        disabled={loadingList}
+                        className={`inline-flex items-center gap-1.5 px-3 h-10 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 ${
+                          isActive
+                            ? "bg-primary/20 text-primary border border-primary/40"
+                            : "bg-secondary text-muted-foreground border border-transparent hover:bg-neutral-800 hover:text-foreground"
+                        }`}
+                        title={label}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="hidden xl:inline">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-          )}
-          {anime.averageScore && (
-            <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
-              <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-              <span className="text-xs font-bold text-foreground">{(anime.averageScore / 10).toFixed(1)}</span>
-            </div>
-          )}
-          {anime.episodes && (
-            <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
-              <Tv className="w-3 h-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{anime.episodes} eps</span>
-            </div>
-          )}
-          {anime.format && (
-            <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
-              {anime.format === "MOVIE" ? <Film className="w-3 h-3 text-muted-foreground" /> : <Tv className="w-3 h-3 text-muted-foreground" />}
-              <span className="text-xs text-muted-foreground">{anime.format === "TV" ? "Serie" : anime.format === "MOVIE" ? "Película" : anime.format}</span>
-            </div>
-          )}
-          {anime.seasonYear && (
-            <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
-              <Calendar className="w-3 h-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{anime.season} {anime.seasonYear}</span>
-            </div>
-          )}
-        </div>
-
-        {anime.genres?.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {anime.genres.map((g: string) => (
-              <Link key={g} to={`/directory?genre=${g}`} className="px-2.5 py-1 bg-secondary rounded-lg text-[10px] font-medium text-muted-foreground hover:text-primary transition">{g}</Link>
-            ))}
           </div>
-        )}
 
-        {/* SINOPSIS */}
-        {description && (
-          <div className="mt-5">
-            <h2 className="text-sm font-black text-foreground mb-2 uppercase tracking-wider">Sinopsis</h2>
-            <p className={`text-sm text-muted-foreground leading-relaxed ${!showFullDesc && isLongDesc ? "line-clamp-4" : ""}`}>
-              {showFullDesc || !isLongDesc ? description : description.slice(0, SYNOPSIS_LIMIT * 2)}
-            </p>
-            {isLongDesc && (
-              <button
-                onClick={() => setShowFullDesc(!showFullDesc)}
-                className="mt-1 flex items-center gap-1 text-primary text-xs font-bold hover:underline"
-              >
-                <ChevronDown className={`w-4 h-4 transition-transform ${showFullDesc ? "rotate-180" : ""}`} />
-                {showFullDesc ? "Ver menos" : "Ver más"}
-              </button>
+          {/* MÓVIL: Ver Ahora + acciones (oculto en lg) */}
+          <div className="lg:hidden">
+            <Link
+              to={`/watch/${animeId}?ep=1`}
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-black py-3.5 rounded-xl transition-all text-base shadow-[0_6px_20px_hsl(var(--primary)/0.35)] hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Play className="w-5 h-5 fill-current" /> Ver Ahora
+            </Link>
+
+            <div className="flex gap-2 mt-4 overflow-x-auto hide-scrollbar pb-1 justify-start sm:justify-center">
+              {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
+                const isActive = activeLists.includes(type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => handleToggleList(type)}
+                    disabled={loadingList}
+                    className={`flex-none flex flex-col items-center justify-center gap-1 w-[64px] h-[68px] rounded-xl transition-all disabled:opacity-50 ${
+                      isActive
+                        ? "bg-primary/20 text-primary border border-primary/40"
+                        : "bg-secondary text-muted-foreground border border-transparent hover:border-primary/30"
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="text-[10px] font-semibold leading-none">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
+
+          {/* STATS */}
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg text-primary-foreground ${getStatusColor(anime.status)}`}>{getStatusLabel(anime.status)}</span>
+            {viewCount > 0 && (
+              <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+                <Eye className="w-3 h-3 text-primary" />
+                <span className="text-xs font-bold text-foreground">{formatViews(viewCount)} vistas</span>
+              </div>
+            )}
+            {anime.averageScore && (
+              <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+                <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                <span className="text-xs font-bold text-foreground">{(anime.averageScore / 10).toFixed(1)}</span>
+              </div>
+            )}
+            {anime.episodes && (
+              <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+                <Tv className="w-3 h-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">{anime.episodes} eps</span>
+              </div>
+            )}
+            {anime.format && (
+              <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+                {anime.format === "MOVIE" ? <Film className="w-3 h-3 text-muted-foreground" /> : <Tv className="w-3 h-3 text-muted-foreground" />}
+                <span className="text-xs text-muted-foreground">{anime.format === "TV" ? "Serie" : anime.format === "MOVIE" ? "Película" : anime.format}</span>
+              </div>
+            )}
+            {anime.seasonYear && (
+              <div className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-lg">
+                <Calendar className="w-3 h-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">{anime.season} {anime.seasonYear}</span>
+              </div>
             )}
           </div>
-        )}
-      </div>
 
-      {/* CAPÍTULOS — scroll horizontal */}
-      {totalEps > 0 && (
-        <div className="mt-6">
-          <h2 className="px-4 text-sm font-black text-foreground mb-3 uppercase tracking-wider">
-            Capítulos <span className="text-muted-foreground font-normal">({totalEps})</span>
-          </h2>
-          <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 pb-1">
-            {Array.from({ length: totalEps }, (_, i) => i + 1).map((ep) => {
-              const meta = streamingEpisodes?.[ep - 1];
-              const thumb = meta?.thumbnail || cover || "";
-              const epTitle = meta?.title?.replace(/^Episode\s*\d+\s*[-:·—]?\s*/i, "") || "";
-              return (
-                <Link
-                  key={ep}
-                  to={`/watch/${animeId}?ep=${ep}`}
-                  className="flex-none w-[120px] h-[90px] rounded-[10px] overflow-hidden bg-secondary relative group"
+          {anime.genres?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {anime.genres.map((g: string) => (
+                <Link key={g} to={`/directory?genre=${g}`} className="px-2.5 py-1 bg-secondary rounded-lg text-[10px] font-medium text-muted-foreground hover:text-primary transition">{g}</Link>
+              ))}
+            </div>
+          )}
+
+          {/* SINOPSIS */}
+          {description && (
+            <div className="mt-5 max-w-3xl">
+              <h2 className="text-sm font-black text-foreground mb-2 uppercase tracking-wider">Sinopsis</h2>
+              <p className={`text-sm text-muted-foreground leading-relaxed ${!showFullDesc && isLongDesc ? "line-clamp-4" : ""}`}>
+                {showFullDesc || !isLongDesc ? description : description.slice(0, SYNOPSIS_LIMIT * 2)}
+              </p>
+              {isLongDesc && (
+                <button
+                  onClick={() => setShowFullDesc(!showFullDesc)}
+                  className="mt-1 flex items-center gap-1 text-primary text-xs font-bold hover:underline"
                 >
-                  <div className="h-[65%] w-full overflow-hidden">
-                    <img src={thumb} alt={`Ep ${ep}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
-                  </div>
-                  <div className="h-[35%] px-2 py-1 bg-black flex flex-col justify-center">
-                    <span className="text-[10px] font-black text-primary leading-none">Ep {ep}</span>
-                    <span className="text-[10px] font-semibold text-white truncate leading-tight mt-0.5">
-                      {epTitle || "—"}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showFullDesc ? "rotate-180" : ""}`} />
+                  {showFullDesc ? "Ver menos" : "Ver más"}
+                </button>
+              )}
+            </div>
+          )}
         </div>
-      )}
 
-      {/* 468x60 banner */}
-      <div className="px-4 mt-6">
-        <AdBannerInline size="468x60" />
-      </div>
-
-      {/* SECUELAS — scroll horizontal */}
-      {(() => {
-        const rel = (anime.relations?.edges || []).filter(
-          (e: any) => e.node.type === "ANIME" && (e.relationType === "SEQUEL" || e.relationType === "PREQUEL")
-        );
-        if (rel.length === 0) return null;
-        return (
-          <div className="mt-6">
-            <h2 className="px-4 text-sm font-black text-foreground mb-3 uppercase tracking-wider">Secuela</h2>
-            <div className="flex gap-4 overflow-x-auto hide-scrollbar px-4 pb-1">
-              {rel.map((edge: any) => {
-                const label = edge.relationType === "SEQUEL" ? "Secuela" : "Precuela";
-                const img = edge.node.bannerImage || edge.node.coverImage?.extraLarge || edge.node.coverImage?.large;
-                const relTitle = edge.node.title.english || edge.node.title.romaji;
+        {/* CAPÍTULOS */}
+        {totalEps > 0 && (
+          <div className="mt-6 max-w-7xl mx-auto lg:px-8">
+            <h2 className="px-4 lg:px-0 text-sm font-black text-foreground mb-3 uppercase tracking-wider">
+              Capítulos <span className="text-muted-foreground font-normal">({totalEps})</span>
+            </h2>
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 lg:px-0 pb-1">
+              {Array.from({ length: totalEps }, (_, i) => i + 1).map((ep) => {
+                const meta = streamingEpisodes?.[ep - 1];
+                const thumb = meta?.thumbnail || cover || "";
+                const epTitle = meta?.title?.replace(/^Episode\s*\d+\s*[-:·—]?\s*/i, "") || "";
                 return (
                   <Link
-                    key={edge.node.id}
-                    to={`/anime/${edge.node.id}`}
-                    className="relative flex-none w-[220px] h-[110px] rounded-xl overflow-hidden border border-primary/80 group"
+                    key={ep}
+                    to={`/watch/${animeId}?ep=${ep}`}
+                    className="flex-none w-[120px] h-[90px] lg:w-[180px] lg:h-[130px] rounded-[10px] overflow-hidden bg-secondary relative group"
                   >
-                    <img src={img} alt={relTitle} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" style={{ objectPosition: "center 20%" }} loading="lazy" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider">
-                      {label}
+                    <div className="h-[65%] w-full overflow-hidden">
+                      <img src={thumb} alt={`Ep ${ep}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                      <p className="text-white font-bold text-[12px] line-clamp-2 leading-tight drop-shadow-lg">{relTitle}</p>
+                    <div className="h-[35%] px-2 py-1 bg-black flex flex-col justify-center">
+                      <span className="text-[10px] lg:text-xs font-black text-primary leading-none">Ep {ep}</span>
+                      <span className="text-[10px] lg:text-xs font-semibold text-white truncate leading-tight mt-0.5">
+                        {epTitle || "—"}
+                      </span>
                     </div>
                   </Link>
                 );
               })}
             </div>
           </div>
-        );
-      })()}
+        )}
+
+        <div className="px-4 lg:px-8 mt-6 max-w-7xl mx-auto">
+          <AdBannerInline size="468x60" />
+        </div>
+
+        {/* SECUELAS */}
+        {(() => {
+          const rel = (anime.relations?.edges || []).filter(
+            (e: any) => e.node.type === "ANIME" && (e.relationType === "SEQUEL" || e.relationType === "PREQUEL")
+          );
+          if (rel.length === 0) return null;
+          return (
+            <div className="mt-6 max-w-7xl mx-auto lg:px-8">
+              <h2 className="px-4 lg:px-0 text-sm font-black text-foreground mb-3 uppercase tracking-wider">Secuela</h2>
+              <div className="flex gap-4 overflow-x-auto hide-scrollbar px-4 lg:px-0 pb-1 lg:grid lg:grid-cols-4 lg:overflow-visible">
+                {rel.map((edge: any) => {
+                  const label = edge.relationType === "SEQUEL" ? "Secuela" : "Precuela";
+                  const img = edge.node.bannerImage || edge.node.coverImage?.extraLarge || edge.node.coverImage?.large;
+                  const relTitle = edge.node.title.english || edge.node.title.romaji;
+                  return (
+                    <Link
+                      key={edge.node.id}
+                      to={`/anime/${edge.node.id}`}
+                      className="relative flex-none lg:flex-auto w-[220px] lg:w-auto h-[110px] lg:h-[140px] rounded-xl overflow-hidden border border-primary/80 group"
+                    >
+                      <img src={img} alt={relTitle} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" style={{ objectPosition: "center 20%" }} loading="lazy" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider">
+                        {label}
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                        <p className="text-white font-bold text-[12px] line-clamp-2 leading-tight drop-shadow-lg">{relTitle}</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
 
       {recommendations.length > 0 && (
         <div className="mt-6 px-4">
