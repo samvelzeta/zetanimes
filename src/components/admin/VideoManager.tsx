@@ -143,6 +143,35 @@ export default function VideoManager() {
     setSavedVideos(saved);
   };
 
+  // Preselección desde otras páginas del admin (ej. "Pendientes de aprobación")
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("admin:preselect-anime");
+      if (!raw) return;
+      sessionStorage.removeItem("admin:preselect-anime");
+      const info = JSON.parse(raw) as { id: number; title: string; cover?: string; episodes?: number; lang?: "sub" | "latino" };
+      if (!info?.id || !info?.title) return;
+      (async () => {
+        const override = await getSlugOverride(info.id);
+        const slug = override || titleToSlug(info.title);
+        setSelected({
+          id: info.id,
+          title: info.title,
+          slug,
+          cover: info.cover || "",
+          totalEpisodes: info.episodes || 24,
+        });
+        if (info.lang) setLang(info.lang);
+        const saved = await listCachedVideosBySlug(slug, info.id);
+        setSavedVideos(saved);
+        toast.success(`Anime cargado: ${info.title}`);
+      })();
+    } catch (e) {
+      console.warn("[VideoManager] preselect failed", e);
+    }
+  }, []);
+
+
   const checkEpisode = useCallback(async (slug: string, ep: number, l: string) => {
     const key = `${ep}-${l}`;
     // Primero check en nuestra DB (más rápido y confiable)
