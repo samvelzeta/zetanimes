@@ -194,6 +194,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     if (autoNextTimer.current) clearInterval(autoNextTimer.current);
   }, [classified]);
 
+  // Apply playback speed
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = playbackRate;
+  }, [playbackRate, currentIdx]);
+
+
+
   useEffect(() => {
     autoNextCountdownStarted.current = false;
     autoNextCancelled.current = false;
