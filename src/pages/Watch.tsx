@@ -789,6 +789,20 @@ export default function Watch() {
               <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
             </Link>
 
+            {/* Botón Reportar (esférico, debajo del botón de volver / agrandar) */}
+            {zetSlug && anilistData && (
+              <div className="absolute top-14 right-2 z-40">
+                <ReportBrokenLink
+                  slug={zetSlug}
+                  episodeNumber={selectedEp}
+                  animeTitle={displayTitle}
+                  animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
+                  anilistId={anilistId}
+                  iconOnly
+                />
+              </div>
+            )}
+
           {isEpisodeBlocked ? (
             <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3 px-4 text-center">
               <AlertCircle className="w-10 h-10 text-primary" />
