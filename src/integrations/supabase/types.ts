@@ -208,6 +208,24 @@ export type Database = {
           },
         ]
       }
+      anime_likes: {
+        Row: {
+          anilist_id: number
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          anilist_id: number
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          anilist_id?: number
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       anime_lists: {
         Row: {
           anime_cover: string | null
@@ -1198,6 +1216,7 @@ export type Database = {
         Returns: undefined
       }
       end_stream: { Args: { _session_id: string }; Returns: undefined }
+      get_anime_like_count: { Args: { _anilist_id: number }; Returns: number }
       get_user_max_profiles: { Args: { _user_id: string }; Returns: number }
       get_user_max_streams: { Args: { _user_id: string }; Returns: number }
       get_user_plan_slug: { Args: { _user_id: string }; Returns: string }
