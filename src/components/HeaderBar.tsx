@@ -125,7 +125,15 @@ export default function HeaderBar() {
         )}
       </div>
 
-      <Link to="/" className="text-sm font-black text-foreground tracking-tight drop-shadow-md">ZetAnime</Link>
+      <div className="flex items-center gap-6">
+        <Link to="/" className="text-sm font-black text-foreground tracking-tight drop-shadow-md">ZetAnime</Link>
+        <nav className="hidden lg:flex items-center gap-5 text-xs font-bold">
+          <Link to="/" className="text-foreground/80 hover:text-primary transition">Inicio</Link>
+          <Link to="/recent" className="text-foreground/80 hover:text-primary transition">Recientes</Link>
+          <Link to="/directory" className="text-foreground/80 hover:text-primary transition">Directorio</Link>
+          <Link to="/search" className="text-foreground/80 hover:text-primary transition">Buscar</Link>
+        </nav>
+      </div>
 
       <div className="relative">
         <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur flex items-center justify-center hover:bg-muted transition relative">
