@@ -113,16 +113,6 @@ export default function HeaderBar() {
             </div>
           )}
         </Link>
-        {user && profiles.length > 0 && (
-          <button
-            onClick={() => setShowProfileSwitcher(true)}
-            className="flex items-center gap-1 px-2 py-1 rounded-md bg-secondary/60 hover:bg-secondary text-[10px] font-bold text-foreground transition"
-            title="Cambiar perfil"
-          >
-            <Users className="w-3 h-3" />
-            {activeProfile?.name || "Perfil"}
-          </button>
-        )}
       </div>
 
       <div className="flex items-center gap-6">
