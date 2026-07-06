@@ -14,6 +14,7 @@ import { trackAnimeView, getAnimeViews, formatViews } from "@/lib/anime-views";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import SlugOverrideAdmin from "@/components/admin/SlugOverrideAdmin";
 import LikeButton from "@/components/anime/LikeButton";
+import EpisodeList from "@/components/anime/EpisodeList";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 
 
