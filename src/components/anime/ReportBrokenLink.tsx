@@ -12,9 +12,11 @@ interface Props {
   animeTitle: string;
   animeCover: string;
   anilistId: number;
+  iconOnly?: boolean;
+  className?: string;
 }
 
-export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, animeCover, anilistId }: Props) {
+export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, animeCover, anilistId, iconOnly, className }: Props) {
   const { user } = useAuth();
   const { permissions } = usePlanPermissions();
   const [open, setOpen] = useState(false);
