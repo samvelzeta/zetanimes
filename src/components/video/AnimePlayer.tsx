@@ -438,8 +438,10 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     onControlsVisibilityChange?.(showControls || !playing);
   }, [showControls, playing, onControlsVisibilityChange]);
   useEffect(() => {
+    // Si sale de pantalla completa con el panel abierto, ciérralo (solo se usa en FS)
+    if (!isFullscreen && showEpList) setShowEpList(false);
     onEpisodeListToggle?.(showEpList);
-  }, [showEpList, onEpisodeListToggle]);
+  }, [showEpList, isFullscreen, onEpisodeListToggle]);
 
   // ── Custom SRT renderer: lee el .srt, lo parsea y lo pinta sobre el video ──
   useEffect(() => {
