@@ -405,6 +405,55 @@ h1, h2, h3, .heading-steam {
 }
 .heart-spark { animation: heart-spark 0.75s ease-out forwards; }
 
+/* ————— Magitech VIP avatar aura ————— */
+@keyframes magitech-pulse {
+  0%   { transform: translate(-50%,-50%) scale(0.85); opacity: 0.45; }
+  100% { transform: translate(-50%,-50%) scale(1.08); opacity: 0.9; }
+}
+.magitech-pulse {
+  animation: magitech-pulse 3.6s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+@keyframes magitech-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.magitech-spin {
+  animation: magitech-spin 20s linear infinite;
+  will-change: transform;
+}
+@keyframes magitech-spin-reverse {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+.magitech-spin-reverse {
+  animation: magitech-spin-reverse 32s linear infinite;
+  will-change: transform;
+}
+@keyframes vip-shimmer {
+  0%   { background-position: -150% 0; }
+  12%  { background-position: 150% 0; }
+  100% { background-position: 150% 0; }
+}
+.vip-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 0%,
+    transparent 40%,
+    hsl(var(--primary) / 0.55) 50%,
+    rgba(255,255,255,0.9) 52%,
+    hsl(var(--primary) / 0.55) 54%,
+    transparent 64%,
+    transparent 100%
+  );
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: vip-shimmer 5s ease-in-out infinite;
+}
+
 .zet-reduced-motion .marquee-track {
 
   animation: none !important;
