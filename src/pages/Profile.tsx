@@ -201,7 +201,7 @@ export default function Profile() {
         <ChevronLeft className="w-5 h-5" strokeWidth={1.75} />
       </button>
       <div className="max-w-[860px] mx-auto px-5 md:px-8 pt-16 md:pt-20 pb-32">
-        <div className="arcane-card arcane-stagger rounded-3xl border border-neutral-800/70 bg-white/[0.015] flex flex-col gap-8 p-6 md:p-10">
+        <div className="arcane-card arcane-stagger overflow-hidden rounded-3xl border border-neutral-800/70 bg-white/[0.015] flex flex-col gap-8 p-6 md:p-10">
           {/* Ambient Hextech particles */}
           <div className="arcane-particles" aria-hidden>
             {Array.from({ length: 14 }).map((_, i) => {
