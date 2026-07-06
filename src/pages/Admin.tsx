@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import {
@@ -83,11 +83,18 @@ const TAB_TITLES: Record<string, string> = Object.fromEntries(
 export default function AdminPanel() {
   const { isOwner, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [tab, setTab] = useState(() => {
     if (typeof window === "undefined") return "dashboard";
     const t = new URLSearchParams(window.location.search).get("tab");
     return t && TAB_TITLES[t] ? t : "dashboard";
   });
+
+  // Sincroniza el tab con ?tab= cuando cambia la URL (navegación desde otros paneles)
+  useEffect(() => {
+    const t = new URLSearchParams(location.search).get("tab");
+    if (t && TAB_TITLES[t] && t !== tab) setTab(t);
+  }, [location.search]);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
