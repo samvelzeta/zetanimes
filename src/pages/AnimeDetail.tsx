@@ -34,7 +34,7 @@ const SYNOPSIS_LIMIT = 200;
 export default function AnimeDetail() {
   const { id } = useParams();
   const animeId = parseInt(id || "0");
-  const { user, isPremium } = useAuth();
+  const { user, isPremium, isOwner } = useAuth();
   const { permissions } = usePlanPermissions();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
