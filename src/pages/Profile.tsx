@@ -2,10 +2,26 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, LogOut, Crown, Shield, MessageSquare, ExternalLink, Camera, Share2, Smartphone, Cog, ChevronRight, Library, FileDown, Sparkles, Palette, Users, KeyRound, BadgeCheck } from "lucide-react";
+import {
+  Settings,
+  LogOut,
+  Crown,
+  Shield,
+  MessageSquare,
+  ExternalLink,
+  Camera,
+  Share2,
+  Smartphone,
+  Users,
+  Library,
+  FileDown,
+  Loader2,
+  BadgeCheck,
+  MonitorSmartphone,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
-import { compressAvatar, compressProof } from "@/lib/image-compress";
-import { Loader2 } from "lucide-react";
+import { compressAvatar } from "@/lib/image-compress";
 import { exportUserHistoryToPDF } from "@/lib/export-history-pdf";
 import { getAccentColor } from "@/lib/accent";
 import ProfileManagementSection from "@/components/profiles/ProfileManagementSection";
@@ -14,8 +30,9 @@ import ProfileSelector from "@/components/profiles/ProfileSelector";
 import PremiumScreen from "@/components/profiles/PremiumScreen";
 import { setActiveProfileId } from "@/lib/account-profiles";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
-// [SOPORTE PAUSADO] — sistema de tickets desactivado hasta nueva orden.
-// import SupportSection from "@/components/support/SupportSection";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
+type PanelId = null | "manage" | "contact";
 
 export default function Profile() {
   const { user, profile, isPremium, isOwner, isAdmin, signOut, refreshProfile } = useAuth();
@@ -31,6 +48,7 @@ export default function Profile() {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showOwnProfileEditor, setShowOwnProfileEditor] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [panel, setPanel] = useState<PanelId>(null);
 
   const { permissions } = usePlanPermissions();
 
@@ -60,7 +78,6 @@ export default function Profile() {
     }
   };
 
-  // Auto-abrir modal premium si viene con ?premium=1 (ej: desde AdblockGate)
   useEffect(() => {
     if (searchParams.get("premium") === "1" && user && !isPremium) {
       setShowPremiumModal(true);
@@ -126,18 +143,31 @@ export default function Profile() {
     toast.success("Foto actualizada");
   };
 
+  const shareApp = async () => {
+    const url = `${window.location.origin}/download`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "zetAnime APK", text: "Descarga zetAnime y mira anime sin límites", url });
+        return;
+      } catch {}
+    }
+    await navigator.clipboard.writeText(url);
+    toast.success("Enlace copiado");
+  };
+
   if (!user) {
     return (
-      <div className="min-h-screen pt-12 px-4 pb-24">
-        <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-24 h-24 rounded-full overflow-hidden mb-3 ring-1 ring-border">
-            <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-2xl font-black text-primary-foreground">Z</span>
-            </div>
+      <div className="min-h-screen bg-background pt-24 px-6 pb-24">
+        <div className="max-w-md mx-auto text-center">
+          <div className="w-28 h-28 rounded-full overflow-hidden mx-auto mb-8 bg-gradient-to-br from-primary/30 to-accent/20 flex items-center justify-center">
+            <span className="text-3xl font-thin text-foreground/60">Z</span>
           </div>
-          <h1 className="text-lg font-black text-foreground">Invitado</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Inicia sesión para guardar tu progreso</p>
-          <Link to="/auth" className="mt-4 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition">
+          <h1 className="text-4xl font-thin tracking-tight text-foreground mb-2">Invitado</h1>
+          <p className="text-sm text-muted-foreground/70 mb-10 font-light">Inicia sesión para guardar tu progreso</p>
+          <Link
+            to="/auth"
+            className="inline-block px-10 py-3 rounded-full border border-foreground/20 text-sm font-medium text-foreground hover:border-primary hover:text-primary transition-all"
+          >
             Iniciar Sesión
           </Link>
         </div>
@@ -145,271 +175,280 @@ export default function Profile() {
     );
   }
 
-  return (
-    <div className="min-h-screen pt-12 px-4 pb-24">
-      {/* Header avatar — limpio, sin tuercas decorativas de fondo */}
-      <div className="flex flex-col items-center text-center mb-6 relative">
-        <div className="relative">
-          {/* Anillo dentado giratorio premium (estilo engranaje rotando alrededor) */}
-          {isPremium && (
-            <>
-              <svg
-                className="absolute inset-[-14px] w-[124px] h-[124px] animate-spin pointer-events-none"
-                style={{ animationDuration: "14s", filter: "drop-shadow(0 0 8px hsl(var(--primary) / 0.7))" }}
-                viewBox="0 0 100 100"
-                aria-hidden
-              >
-                {/* Engranaje: 12 dientes alrededor */}
-                <g fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5">
-                  <circle cx="50" cy="50" r="44" strokeDasharray="2 4" opacity="0.6" />
-                </g>
-                {Array.from({ length: 12 }).map((_, i) => {
-                  const angle = (i * 360) / 12;
-                  return (
-                    <rect
-                      key={i}
-                      x="48.5"
-                      y="2"
-                      width="3"
-                      height="7"
-                      rx="0.8"
-                      fill="hsl(var(--primary))"
-                      transform={`rotate(${angle} 50 50)`}
-                    />
-                  );
-                })}
-              </svg>
-              {/* Anillo interno contra-rotando (sutil) */}
-              <svg
-                className="absolute inset-[-6px] w-[108px] h-[108px] animate-spin pointer-events-none opacity-70"
-                style={{ animationDuration: "9s", animationDirection: "reverse" }}
-                viewBox="0 0 100 100"
-                aria-hidden
-              >
-                <circle cx="50" cy="50" r="46" fill="none" stroke="hsl(var(--primary))" strokeWidth="0.8" strokeDasharray="1 6" />
-              </svg>
-            </>
-          )}
+  const managementItems: Array<{ id: string; icon: any; label: string; onClick: () => void; hint?: string }> = [
+    { id: "lists", icon: Library, label: "Mis Listas", onClick: () => navigate("/mis-listas"), hint: "Favoritos, viendo, terminados" },
+    { id: "manage", icon: MonitorSmartphone, label: "Perfiles y Dispositivos", onClick: () => setPanel("manage"), hint: "Gestiona hasta 5 perfiles" },
+    { id: "settings", icon: Settings, label: "Configuración", onClick: () => navigate("/settings"), hint: "Preferencias, tema, PIN" },
+  ];
+  if (isAdmin) {
+    managementItems.push({
+      id: "admin",
+      icon: Shield,
+      label: isOwner ? "Panel Owner" : "Panel Admin",
+      onClick: () => navigate("/admin"),
+      hint: "Herramientas de administración",
+    });
+  }
 
-          <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-primary/60 relative" style={{ boxShadow: "0 0 24px hsl(var(--primary) / 0.5)" }}>
-            {displayAvatar ? (
-              <img src={displayAvatar} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <span className="text-2xl font-black text-primary-foreground">{displayName[0]?.toUpperCase() || "U"}</span>
-              </div>
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      {/* ————————————— ZONA DE IDENTIDAD ————————————— */}
+      <header className="pt-16 md:pt-24 px-6 md:px-12 pb-10">
+        <div className="max-w-5xl mx-auto flex items-start gap-6 md:gap-12">
+          {/* Avatar sin caja, con drop shadow difuso */}
+          <div className="relative flex-shrink-0">
+            <div
+              className="w-24 h-24 md:w-40 md:h-40 rounded-full overflow-hidden"
+              style={{ filter: "drop-shadow(0 20px 40px hsl(var(--primary) / 0.35)) drop-shadow(0 8px 16px rgb(0 0 0 / 0.4))" }}
+            >
+              {displayAvatar ? (
+                <img src={displayAvatar} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/40 to-accent/20 flex items-center justify-center">
+                  <span className="text-4xl md:text-6xl font-thin text-foreground/70">
+                    {displayName[0]?.toUpperCase() || "U"}
+                  </span>
+                </div>
+              )}
+            </div>
+            {isMainProfile && permissions.custom_avatar_upload && (
+              <label className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-background border border-foreground/15 flex items-center justify-center cursor-pointer hover:border-primary transition">
+                <Camera className="w-3.5 h-3.5 text-foreground/70" />
+                <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+              </label>
             )}
           </div>
-          {user && isMainProfile && permissions.custom_avatar_upload && (
-            <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:bg-primary/80 transition z-10">
-              <Camera className="w-3.5 h-3.5 text-primary-foreground" />
-              <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-            </label>
-          )}
-        </div>
-        <h1 className="text-lg font-black text-foreground mt-4">{displayName}</h1>
-        {isMainProfile && <p className="text-xs text-muted-foreground">{user.email}</p>}
-        {isMainProfile && (profile?.subscription_status === "active" || isOwner) && (
-          <span className="mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-xs font-black text-primary-foreground shadow-lg shadow-primary/40">
-            <BadgeCheck className="w-3.5 h-3.5" />
-            VIP
-            {profile?.plan_type && (
-              <span className="ml-1 opacity-90 capitalize">· {profile.plan_type === "duo" ? "Dúo" : profile.plan_type === "solo" ? "Solo" : "Básico"}</span>
-            )}
-            {isOwner && !profile?.plan_type && <span className="ml-1 opacity-90">· Owner</span>}
-          </span>
-        )}
 
-        {/* Stats con marco steampunk */}
-        <div className="mt-5 grid grid-cols-3 gap-2 w-full max-w-xs">
+          {/* Info flotando en espacio negativo */}
+          <div className="flex-1 min-w-0 pt-1 md:pt-4">
+            <h1
+              className="text-3xl md:text-6xl tracking-tight text-foreground leading-none truncate"
+              style={{ fontWeight: 200, letterSpacing: "-0.02em" }}
+            >
+              {displayName}
+            </h1>
+            {isMainProfile && (
+              <p className="mt-2 md:mt-3 text-xs md:text-sm text-muted-foreground/60 font-light truncate">
+                {user.email}
+              </p>
+            )}
+            {isMainProfile && (profile?.subscription_status === "active" || isOwner) && (
+              <span className="mt-3 inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium text-primary tracking-widest uppercase">
+                <BadgeCheck className="w-3.5 h-3.5" />
+                VIP
+                {profile?.plan_type && (
+                  <span className="opacity-70 normal-case tracking-normal">
+                    · {profile.plan_type === "duo" ? "Dúo" : profile.plan_type === "solo" ? "Solo" : "Básico"}
+                  </span>
+                )}
+                {isOwner && !profile?.plan_type && <span className="opacity-70 normal-case tracking-normal">· Owner</span>}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Insights — números grandes finos, sin cajas */}
+        <div className="max-w-5xl mx-auto mt-10 md:mt-16 grid grid-cols-3 gap-4 md:gap-16">
           {[
-            { value: stats.lists, label: "En Listas" },
+            { value: stats.lists, label: "En listas" },
             { value: stats.episodes, label: "Episodios" },
             { value: stats.hours, label: "Horas" },
           ].map((s) => (
-            <div key={s.label} className="rounded-xl border-2 border-primary/20 bg-secondary/40 py-2 px-1">
-              <p className="text-xl font-black text-foreground">{s.value}</p>
-              <p className="text-[10px] text-muted-foreground font-medium">{s.label}</p>
+            <div key={s.label} className="group">
+              <p
+                className="text-4xl md:text-6xl text-foreground/90 leading-none transition-colors group-hover:text-primary"
+                style={{ fontWeight: 200, letterSpacing: "-0.03em" }}
+              >
+                {s.value}
+              </p>
+              <p className="mt-2 md:mt-3 text-[10px] md:text-xs text-muted-foreground/50 uppercase tracking-[0.2em] font-light">
+                {s.label}
+              </p>
             </div>
           ))}
         </div>
-      </div>
+      </header>
 
-      {/* CTA grande hacia Mis Listas (steampunk) */}
-      <Link
-        to="/mis-listas"
-        className="group relative block mb-4 rounded-2xl overflow-hidden border-2 border-primary/40 bg-gradient-to-r from-primary/15 via-secondary/60 to-primary/15 p-4 hover:border-primary transition-all"
-        style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.25), inset 0 0 20px hsl(var(--primary) / 0.05)" }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="relative w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-            <Library className="w-6 h-6 text-primary" />
-            <Cog className="absolute -top-1 -right-1 w-4 h-4 text-primary animate-spin" style={{ animationDuration: "6s" }} />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-sm font-black text-foreground tracking-tight">Mis Listas</p>
-            <p className="text-[11px] text-muted-foreground">Favoritos · Viendo · Terminados · Plan · Indecisos</p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-primary group-hover:translate-x-1 transition" />
-        </div>
-      </Link>
+      {/* ————————————— ZONA DE GESTIÓN ————————————— */}
+      <section className="px-6 md:px-12 pt-6 pb-10">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-[10px] md:text-xs text-muted-foreground/50 uppercase tracking-[0.25em] font-light mb-6">
+            Gestión de Cuenta
+          </h2>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3 md:gap-4">
+            {managementItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={item.onClick}
+                className="group text-left p-4 md:p-6 rounded-2xl hover:bg-foreground/5 transition-all"
+              >
+                <item.icon
+                  className="w-5 h-5 md:w-6 md:h-6 text-foreground/50 group-hover:text-primary transition-colors mb-3 md:mb-4"
+                  strokeWidth={1.5}
+                />
+                <p className="text-sm md:text-base font-light text-foreground tracking-tight">{item.label}</p>
+                {item.hint && (
+                  <p className="text-[10px] md:text-xs text-muted-foreground/50 font-light mt-1 line-clamp-1">{item.hint}</p>
+                )}
+              </button>
+            ))}
 
-      {/* Gestión de perfiles, dispositivos y PIN */}
-      {isMainProfile && <ProfileManagementSection />}
-
-      {!isMainProfile && activeProfile && (
-        <button
-          onClick={() => setShowOwnProfileEditor(true)}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary/60 border border-border hover:border-primary/50 hover:bg-secondary transition-all mb-2.5"
-        >
-          <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Users className="w-4 h-4 text-primary" />
-          </div>
-          <span className="text-sm text-foreground font-medium flex-1 text-left">Editar este perfil</span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </button>
-      )}
-
-      {/* Acciones rediseñadas estilo steampunk */}
-      <div className="space-y-2.5">
-        {(isMainProfile || activeProfile) && (
-          <Link
-            to="/settings"
-            className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary/60 border border-border hover:border-primary/50 hover:bg-secondary transition-all"
-          >
-            <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 transition">
-              <Settings className="w-4 h-4 text-primary" />
-            </div>
-            <span className="text-sm text-foreground font-medium flex-1">Configuración</span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition" />
-          </Link>
-        )}
-
-        {!isPremium && isMainProfile && (
-          <button
-            onClick={() => setShowPremiumModal(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/40 hover:from-primary/30 transition-all"
-            style={{ boxShadow: "0 0 16px hsl(var(--primary) / 0.2)" }}
-          >
-            <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
-              <Crown className="w-4 h-4 text-primary" />
-            </div>
-            <span className="text-sm text-foreground font-bold flex-1 text-left">Obtener Premium</span>
-            <ChevronRight className="w-4 h-4 text-primary" />
-          </button>
-        )}
-
-        {user && isMainProfile && (
-          <button
-            onClick={handleExportPDF}
-            disabled={exportingPdf}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-primary/15 to-accent/15 border border-primary/40 hover:from-primary/25 transition-all disabled:opacity-60"
-            style={{ boxShadow: "0 0 14px hsl(var(--primary) / 0.2)" }}
-          >
-            <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
-              {exportingPdf ? <Loader2 className="w-4 h-4 text-primary animate-spin" /> : <FileDown className="w-4 h-4 text-primary" />}
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm text-foreground font-bold">Exportar Historial PDF</p>
-              <p className="text-[10px] text-muted-foreground">
-                {permissions.pdf_export ? "Listas + estadísticas con tu color" : "Disponible al actualizar tu plan"}
-              </p>
-            </div>
-            {permissions.pdf_export ? (
-              <Crown className="w-3.5 h-3.5 text-primary" />
-            ) : (
-              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary/20 text-primary">PREMIUM</span>
+            {!isPremium && isMainProfile && (
+              <button
+                onClick={() => setShowPremiumModal(true)}
+                className="group text-left p-4 md:p-6 rounded-2xl hover:bg-primary/5 transition-all col-span-2"
+              >
+                <Crown className="w-5 h-5 md:w-6 md:h-6 text-primary mb-3 md:mb-4" strokeWidth={1.5} />
+                <p className="text-sm md:text-base font-light text-foreground tracking-tight">Obtener Premium</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground/60 font-light mt-1">
+                  Desbloquea planes Básico, Solo o Dúo
+                </p>
+              </button>
             )}
-          </button>
-        )}
-
-        {isAdmin && (
-          <Link
-            to="/admin"
-            className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 border-2 border-primary/40 hover:bg-primary/15 hover:border-primary transition-all"
-            style={{ boxShadow: "0 0 14px hsl(var(--primary) / 0.25)" }}
-          >
-            <div className="w-9 h-9 rounded-lg bg-primary/25 flex items-center justify-center">
-              <Shield className="w-4 h-4 text-primary" />
-            </div>
-            <span className="text-sm text-primary font-bold flex-1">{isOwner ? "Panel Owner" : "Panel Admin"}</span>
-            <ChevronRight className="w-4 h-4 text-primary group-hover:translate-x-0.5 transition" />
-          </Link>
-        )}
-
-        {/* Contáctanos rediseñado */}
-        {contacts.length > 0 && (
-          <div className="pt-5">
-            <div className="flex items-center gap-2 mb-3 px-1">
-              <MessageSquare className="w-3.5 h-3.5 text-primary" />
-              <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.15em]">Contáctanos</h3>
-              <div className="flex-1 h-px bg-gradient-to-r from-primary/40 via-primary/10 to-transparent" />
-            </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              {contacts.map((c) => (
-                <a
-                  key={c.id}
-                  href={c.url}
-                  target="_blank"
-                  rel="noopener"
-                  className="group flex items-center gap-2.5 px-3 py-3 rounded-xl bg-secondary/60 border border-border hover:border-primary/50 hover:bg-secondary transition-all"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition">
-                    {c.icon_url ? (
-                      <img src={c.icon_url} alt="" className="w-5 h-5 rounded" />
-                    ) : (
-                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: c.color || "hsl(var(--primary))" }} />
-                    )}
-                  </div>
-                  <span className="text-xs font-semibold text-foreground truncate flex-1">{c.name}</span>
-                  <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary transition" />
-                </a>
-              ))}
-            </div>
           </div>
-        )}
 
-        <button
-          onClick={async () => {
-            const url = `${window.location.origin}/download`;
-            if (navigator.share) {
-              try { await navigator.share({ title: "zetAnime APK", text: "Descarga zetAnime y mira anime sin límites", url }); return; } catch {}
-            }
-            await navigator.clipboard.writeText(url);
-            toast.success("Enlace copiado al portapapeles");
-          }}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-primary/10 to-transparent rounded-xl border border-primary/30 hover:from-primary/20 transition mt-4"
-        >
-          <Smartphone className="w-4 h-4 text-primary" />
-          <span className="text-sm text-foreground font-bold flex-1 text-left">Compartir aplicación</span>
-          <Share2 className="w-4 h-4 text-primary" />
-        </button>
+          {!isMainProfile && activeProfile && (
+            <button
+              onClick={() => setShowOwnProfileEditor(true)}
+              className="mt-3 w-full text-left p-4 rounded-2xl hover:bg-foreground/5 transition-all flex items-center gap-3"
+            >
+              <Users className="w-5 h-5 text-foreground/50" strokeWidth={1.5} />
+              <span className="text-sm font-light text-foreground">Editar este perfil</span>
+            </button>
+          )}
+        </div>
+      </section>
 
-        {/* Cerrar perfil — disponible en TODOS los perfiles. Vuelve al selector "¿Quién está viendo?" */}
-        <button
-          onClick={() => { setActiveProfileId(null); navigate("/"); }}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-primary/10 transition mt-2"
-        >
-          <Users className="w-4 h-4 text-primary" />
-          <span className="text-sm text-foreground font-bold flex-1 text-left">Cerrar perfil</span>
-          <span className="text-[10px] text-muted-foreground">Cambiar de perfil</span>
-        </button>
+      {/* ————————————— ZONA DE UTILIDADES (ghost) ————————————— */}
+      <section className="px-6 md:px-12 py-8">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-[10px] md:text-xs text-muted-foreground/50 uppercase tracking-[0.25em] font-light mb-6">
+            Acciones de Cuenta
+          </h2>
+          <div className="flex flex-wrap gap-2 md:gap-3">
+            {isMainProfile && (
+              <button
+                onClick={handleExportPDF}
+                disabled={exportingPdf}
+                className="inline-flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-full border border-foreground/15 text-xs md:text-sm font-light text-foreground/80 hover:border-primary hover:text-primary transition-all disabled:opacity-50"
+              >
+                {exportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" strokeWidth={1.5} />}
+                Exportar historial
+                {!permissions.pdf_export && (
+                  <span className="text-[9px] font-medium tracking-wider text-primary/80">PREMIUM</span>
+                )}
+              </button>
+            )}
+            <button
+              onClick={shareApp}
+              className="inline-flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-full border border-foreground/15 text-xs md:text-sm font-light text-foreground/80 hover:border-primary hover:text-primary transition-all"
+            >
+              <Share2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Compartir app
+            </button>
+            {contacts.length > 0 && (
+              <button
+                onClick={() => setPanel("contact")}
+                className="inline-flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-full border border-foreground/15 text-xs md:text-sm font-light text-foreground/80 hover:border-primary hover:text-primary transition-all"
+              >
+                <MessageSquare className="w-3.5 h-3.5" strokeWidth={1.5} />
+                Contáctanos
+              </button>
+            )}
+            <Link
+              to="/download"
+              className="inline-flex items-center gap-2 px-4 md:px-5 py-2.5 rounded-full border border-foreground/15 text-xs md:text-sm font-light text-foreground/80 hover:border-primary hover:text-primary transition-all"
+            >
+              <Smartphone className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Descargar APK
+            </Link>
+          </div>
+        </div>
+      </section>
 
-        {/* Cerrar sesión — disponible en TODOS los perfiles. Cierra la cuenta entera. */}
-        <button onClick={() => { signOut(); navigate("/"); }} className="w-full flex items-center gap-3 px-4 py-3 bg-secondary rounded-xl hover:bg-destructive/10 transition">
-          <LogOut className="w-4 h-4 text-destructive" /><span className="text-sm text-destructive font-bold">Cerrar Sesión</span>
-        </button>
-      </div>
+      {/* ————————————— ACCIONES CRÍTICAS ————————————— */}
+      <footer className="px-6 md:px-12 pt-10 pb-32">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row gap-3 sm:justify-end">
+          <button
+            onClick={() => {
+              setActiveProfileId(null);
+              navigate("/");
+            }}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-foreground/15 text-sm font-light text-foreground/80 hover:border-foreground hover:text-foreground transition-all"
+          >
+            <Users className="w-4 h-4" strokeWidth={1.5} />
+            Cerrar perfil
+          </button>
+          <button
+            onClick={() => {
+              signOut();
+              navigate("/");
+            }}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-destructive/40 text-sm font-light text-destructive hover:bg-destructive/10 hover:border-destructive transition-all"
+          >
+            <LogOut className="w-4 h-4" strokeWidth={1.5} />
+            Cerrar sesión
+          </button>
+        </div>
+      </footer>
+
+      {/* ————————————— PANEL LATERAL: Gestión (Perfiles + Dispositivos + PIN) ————————————— */}
+      <Sheet open={panel === "manage"} onOpenChange={(o) => !o && setPanel(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto bg-background border-l border-foreground/10">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="text-2xl font-thin tracking-tight">Perfiles y Dispositivos</SheetTitle>
+          </SheetHeader>
+          {isMainProfile ? (
+            <ProfileManagementSection />
+          ) : (
+            <p className="text-sm text-muted-foreground font-light">
+              Cambia al perfil principal para gestionar perfiles, dispositivos y PIN.
+            </p>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* ————————————— PANEL LATERAL: Contacto ————————————— */}
+      <Sheet open={panel === "contact"} onOpenChange={(o) => !o && setPanel(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto bg-background border-l border-foreground/10">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="text-2xl font-thin tracking-tight">Contáctanos</SheetTitle>
+          </SheetHeader>
+          <div className="grid grid-cols-1 gap-2">
+            {contacts.map((c) => (
+              <a
+                key={c.id}
+                href={c.url}
+                target="_blank"
+                rel="noopener"
+                className="group flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-foreground/5 transition-all"
+              >
+                <div className="w-9 h-9 rounded-full bg-foreground/5 flex items-center justify-center flex-shrink-0">
+                  {c.icon_url ? (
+                    <img src={c.icon_url} alt="" className="w-5 h-5 rounded" />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.color || "hsl(var(--primary))" }} />
+                  )}
+                </div>
+                <span className="text-sm font-light text-foreground flex-1">{c.name}</span>
+                <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-primary transition" />
+              </a>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {showPremiumModal && <PremiumScreen onClose={() => setShowPremiumModal(false)} />}
       {showOwnProfileEditor && activeProfile && (
         <ProfileSelector
           manageMode
           editableProfileId={activeProfile.id}
-          onClose={() => { setShowOwnProfileEditor(false); refreshProfiles(); }}
+          onClose={() => {
+            setShowOwnProfileEditor(false);
+            refreshProfiles();
+          }}
         />
       )}
     </div>
   );
 }
-
