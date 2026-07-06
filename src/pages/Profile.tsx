@@ -379,15 +379,21 @@ export default function Profile() {
               {!isPremium && isMainProfile && (
                 <button
                   onClick={() => setShowPremiumModal(true)}
-                  className="group text-left p-4 md:px-5 md:py-4 rounded-2xl hover:bg-primary/5 transition-all col-span-2 md:flex-1 md:min-w-[220px] md:basis-full"
+                  className="mgmt-tile group text-left p-4 md:px-5 md:py-4 rounded-2xl col-span-2 md:flex-1 md:min-w-[220px] md:basis-full"
                 >
-                  <Crown className="w-5 h-5 text-primary mb-3" strokeWidth={1.5} />
+                  <span className="relative inline-block mb-3">
+                    <Crown className="w-5 h-5 text-primary" strokeWidth={1.5} />
+                    <svg aria-hidden viewBox="0 0 24 24" className="cog-spin absolute -top-1.5 -right-2 w-3.5 h-3.5 text-primary/70" fill="currentColor">
+                      <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm0 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" />
+                    </svg>
+                  </span>
                   <p className="text-sm font-light text-foreground tracking-tight">Obtener Premium</p>
                   <p className="text-[10px] md:text-xs text-muted-foreground/60 font-light mt-1">
                     Desbloquea planes Básico, Solo o Dúo
                   </p>
                 </button>
               )}
+
             </div>
 
             {!isMainProfile && activeProfile && (
