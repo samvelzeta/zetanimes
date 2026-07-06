@@ -208,6 +208,24 @@ export type Database = {
           },
         ]
       }
+      anime_like_counts: {
+        Row: {
+          anilist_id: number
+          like_count: number
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          like_count?: number
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          like_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anime_likes: {
         Row: {
           anilist_id: number

@@ -383,7 +383,30 @@ h1, h2, h3, .heading-steam {
 .marquee-wrap.is-scrolling:active .marquee-track {
   animation-play-state: paused;
 }
+/* ============ Like heart animations ============ */
+@keyframes heart-pop {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.55) rotate(-8deg); }
+  55%  { transform: scale(0.9) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.heart-pop { animation: heart-pop 0.55s cubic-bezier(.34,1.56,.64,1); }
+
+@keyframes heart-glow {
+  0%   { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7); opacity: 1; }
+  100% { box-shadow: 0 0 0 18px hsl(var(--primary) / 0);  opacity: 0; }
+}
+.heart-glow { animation: heart-glow 0.7s ease-out forwards; border-radius: 9999px; }
+
+@keyframes heart-spark {
+  0%   { opacity: 0; transform: scale(0.4) translate(0, 0) rotate(0deg); }
+  40%  { opacity: 1; transform: scale(1.1) translate(2px, -3px) rotate(15deg); }
+  100% { opacity: 0; transform: scale(0.6) translate(6px, -8px) rotate(30deg); }
+}
+.heart-spark { animation: heart-spark 0.75s ease-out forwards; }
+
 .zet-reduced-motion .marquee-track {
+
   animation: none !important;
   transform: none !important;
 }
