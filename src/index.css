@@ -247,18 +247,86 @@ body { overflow-x: clip; }
 
 
 
-/* ============ Steampunk: tipografía ============ */
-.font-steam {
-  font-family: "Cinzel", "Times New Roman", serif;
+/* ============ Old-World typography ============ */
+body {
+  font-family: "EB Garamond", "Iowan Old Style", Georgia, serif;
+  font-feature-settings: "kern", "liga", "onum";
+  letter-spacing: 0.005em;
+}
+.font-steam,
+h1, h2, h3, .heading-steam {
+  font-family: "Cinzel", "EB Garamond", "Times New Roman", serif;
   letter-spacing: 0.02em;
 }
-h1, h2, h3, .heading-steam {
-  font-family: "Cinzel", "Times New Roman", serif;
-  letter-spacing: 0.01em;
-}
+.font-serif-body { font-family: "EB Garamond", Georgia, serif; }
 
-/* (Engranajes de fondo eliminados — quedaba muy cargado.
-    Mantenemos la tipografía Cinzel y el splash steampunk.) */
+/* ============ Zet Panel — aura premium unificada ============ */
+.zet-panel {
+  position: relative;
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, hsl(var(--card) / 0.75) 0%, hsl(var(--background) / 0.55) 100%);
+  border: 1px solid hsl(var(--border) / 0.9);
+  box-shadow:
+    inset 0 1px 0 hsl(var(--foreground) / 0.04),
+    0 1px 0 hsl(0 0% 0% / 0.6),
+    0 12px 40px -20px hsl(0 0% 0% / 0.7);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+.zet-panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg,
+    hsl(var(--primary) / 0.35),
+    hsl(var(--foreground) / 0.05) 30%,
+    transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.6;
+}
+.zet-panel-soft {
+  border-radius: 0.85rem;
+  background: linear-gradient(180deg, hsl(var(--secondary) / 0.55), hsl(var(--card) / 0.35));
+  border: 1px solid hsl(var(--border) / 0.7);
+  backdrop-filter: blur(8px);
+}
+.zet-icon-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 0.6rem;
+  background: linear-gradient(160deg, hsl(var(--primary) / 0.22), hsl(var(--primary) / 0.06));
+  border: 1px solid hsl(var(--primary) / 0.35);
+  color: hsl(var(--primary));
+  box-shadow: inset 0 1px 0 hsl(var(--primary) / 0.25), 0 0 12px -6px hsl(var(--primary) / 0.6);
+}
+.zet-btn-primary {
+  background: linear-gradient(135deg,
+    hsl(var(--primary)) 0%,
+    hsl(var(--primary) / 0.85) 55%,
+    hsl(var(--accent) / 0.9) 100%);
+  color: hsl(var(--primary-foreground));
+  border: 1px solid hsl(var(--primary) / 0.6);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.25),
+    0 8px 24px -10px hsl(var(--primary) / 0.7);
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.zet-btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.zet-btn-ghost {
+  background: linear-gradient(180deg, hsl(var(--secondary) / 0.7), hsl(var(--card) / 0.4));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  transition: border-color .2s ease, background .2s ease;
+}
+.zet-btn-ghost:hover { border-color: hsl(var(--primary) / 0.55); background: linear-gradient(180deg, hsl(var(--secondary)), hsl(var(--card) / 0.6)); }
+.zet-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.35), transparent);
+}
 
 /* Reduced motion (configurable desde Ajustes) — desactiva todas las animaciones para ahorrar GPU */
 .zet-reduced-motion *,

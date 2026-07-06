@@ -148,120 +148,104 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen pb-24">
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center gap-3">
-        <Link to="/profile" className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center hover:bg-primary/20 transition">
-          <ArrowLeft className="w-5 h-5 text-foreground" />
-        </Link>
-        <h1 className="text-base font-black text-foreground">Configuración</h1>
+      <div className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/70 px-4 py-3">
+        <div className="max-w-4xl mx-auto flex items-center gap-3">
+          <Link to="/profile" className="w-9 h-9 rounded-full zet-btn-ghost flex items-center justify-center">
+            <ArrowLeft className="w-5 h-5 text-foreground" />
+          </Link>
+          <h1 className="heading-steam text-lg md:text-xl font-semibold text-foreground tracking-wide">Configuración</h1>
+        </div>
       </div>
 
-      <div className="px-4 pt-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 pt-8 space-y-8">
         {/* Profile name */}
         {user && (
-          <div>
-            <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-              <User className="w-4 h-4 text-primary" /> Tu Perfil
+          <section className="zet-panel p-5 md:p-6">
+            <h2 className="heading-steam text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+              <span className="zet-icon-badge w-7 h-7"><User className="w-3.5 h-3.5" /></span>
+              Tu Perfil
             </h2>
-            <div className="bg-secondary rounded-xl p-4 space-y-3">
-              <div>
-                <label className="text-[11px] text-muted-foreground font-medium block mb-1.5">
-                  Nombre que se muestra
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Tu nombre"
-                    maxLength={30}
-                    className="bg-background"
-                  />
-                  <button
-                    onClick={handleSaveName}
-                    disabled={savingName || displayName === (profile?.display_name || "")}
-                    className="px-4 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition disabled:opacity-50"
-                  >
-                    {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar"}
-                  </button>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-1">@{profile?.username}</p>
-              </div>
+            <label className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium block mb-2">
+              Nombre que se muestra
+            </label>
+            <div className="flex gap-2">
+              <Input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Tu nombre"
+                maxLength={30}
+                className="bg-background/60 border-border/80 font-serif-body text-base"
+              />
+              <button
+                onClick={handleSaveName}
+                disabled={savingName || displayName === (profile?.display_name || "")}
+                className="px-5 rounded-lg zet-btn-primary text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+              >
+                {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : "Guardar"}
+              </button>
             </div>
-          </div>
+            <p className="text-[10px] text-muted-foreground mt-2 italic">@{profile?.username}</p>
+          </section>
         )}
 
-        {/* Playback */}
-        <div>
-          <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">▶ Reproducción</h2>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between bg-secondary rounded-xl px-4 py-3">
-              <div className="flex-1 pr-3">
-                <p className="text-sm text-foreground">Reproducir siguiente automáticamente</p>
-                <p className="text-[10px] text-muted-foreground">Al llegar al 85%, salta al siguiente episodio</p>
-              </div>
-              <Switch checked={autoPlay} onCheckedChange={setAutoPlay} />
+        {/* Playback + Network merged in a two-column grid on md+ */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <section className="zet-panel p-5">
+            <h2 className="heading-steam text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">▶ Reproducción</h2>
+            <div className="space-y-2">
+              {[
+                { label: "Reproducir siguiente automáticamente", sub: "Al llegar al 85%, salta al siguiente episodio", val: autoPlay, set: setAutoPlay },
+                { label: "Mostrar cuenta regresiva", sub: "Temporizador antes del siguiente episodio", val: countdown, set: setCountdown },
+                { label: "Mantener pantalla activa", sub: "Evita que la pantalla se apague durante la reproducción", val: keepScreenOn, set: setKeepScreenOn },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center justify-between zet-panel-soft px-4 py-3">
+                  <div className="flex-1 pr-3">
+                    <p className="text-sm text-foreground font-serif-body">{row.label}</p>
+                    <p className="text-[10px] text-muted-foreground italic">{row.sub}</p>
+                  </div>
+                  <Switch checked={row.val} onCheckedChange={row.set} />
+                </div>
+              ))}
             </div>
-            <div className="flex items-center justify-between bg-secondary rounded-xl px-4 py-3">
-              <div className="flex-1 pr-3">
-                <p className="text-sm text-foreground">Mostrar cuenta regresiva</p>
-                <p className="text-[10px] text-muted-foreground">Temporizador antes del siguiente episodio</p>
-              </div>
-              <Switch checked={countdown} onCheckedChange={setCountdown} />
+          </section>
+
+          <section className="zet-panel p-5">
+            <h2 className="heading-steam text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">📡 Red y Contenido</h2>
+            <div className="space-y-2">
+              {[
+                { label: "Modo Ahorro de Datos", sub: "Carga imágenes en menor calidad", val: dataSaver, set: setDataSaver },
+                { label: "Ocultar contenido Gore", sub: "Filtra anime con violencia extrema del directorio", val: hideGore, set: setHideGore },
+                { label: "Reducir animaciones", sub: "Mejora rendimiento en equipos lentos", val: reducedMotion, set: setReducedMotion },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center justify-between zet-panel-soft px-4 py-3">
+                  <div className="flex-1 pr-3">
+                    <p className="text-sm text-foreground font-serif-body">{row.label}</p>
+                    <p className="text-[10px] text-muted-foreground italic">{row.sub}</p>
+                  </div>
+                  <Switch checked={row.val} onCheckedChange={row.set} />
+                </div>
+              ))}
             </div>
-            <div className="flex items-center justify-between bg-secondary rounded-xl px-4 py-3">
-              <div className="flex-1 pr-3">
-                <p className="text-sm text-foreground">Mantener pantalla activa</p>
-                <p className="text-[10px] text-muted-foreground">Evita que la pantalla se apague durante la reproducción</p>
-              </div>
-              <Switch checked={keepScreenOn} onCheckedChange={setKeepScreenOn} />
-            </div>
-          </div>
+          </section>
         </div>
 
-        {/* Network & content */}
-        <div>
-          <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">📡 Red y Contenido</h2>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between bg-secondary rounded-xl px-4 py-3">
-              <div className="flex-1 pr-3">
-                <p className="text-sm text-foreground">Modo Ahorro de Datos</p>
-                <p className="text-[10px] text-muted-foreground">Carga imágenes en menor calidad</p>
-              </div>
-              <Switch checked={dataSaver} onCheckedChange={setDataSaver} />
-            </div>
-            <div className="flex items-center justify-between bg-secondary rounded-xl px-4 py-3">
-              <div className="flex-1 pr-3">
-                <p className="text-sm text-foreground">Ocultar contenido Gore</p>
-                <p className="text-[10px] text-muted-foreground">Filtra anime con violencia extrema del directorio</p>
-              </div>
-              <Switch checked={hideGore} onCheckedChange={setHideGore} />
-            </div>
-            <div className="flex items-center justify-between bg-secondary rounded-xl px-4 py-3">
-              <div className="flex-1 pr-3">
-                <p className="text-sm text-foreground">Reducir animaciones</p>
-                <p className="text-[10px] text-muted-foreground">Mejora rendimiento en equipos lentos</p>
-              </div>
-              <Switch checked={reducedMotion} onCheckedChange={setReducedMotion} />
-            </div>
-          </div>
-        </div>
-
-        {/* Font picker (only stores ID, no DB) */}
-        <div>
-          <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">🔤 Tipografía</h2>
-          <p className="text-[10px] text-muted-foreground mb-2">
+        {/* Font picker */}
+        <section className="zet-panel p-5 md:p-6">
+          <h2 className="heading-steam text-sm font-semibold text-foreground mb-1 uppercase tracking-wider">🔤 Tipografía</h2>
+          <p className="text-[11px] text-muted-foreground italic mb-4">
             Solo se guarda en este dispositivo. La fuente se carga al activarse.
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
             {FONT_OPTIONS.map((f) => {
               const isSelected = selectedFont === f.id;
               return (
                 <button
                   key={f.id}
                   onClick={() => handleFontChange(f.id)}
-                  className={`px-3 py-3 rounded-xl text-xs font-medium transition-all text-left ${
+                  className={`px-3 py-3 rounded-xl text-xs font-medium transition-all text-left border ${
                     isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground hover:bg-muted"
+                      ? "zet-btn-primary border-transparent"
+                      : "zet-btn-ghost"
                   }`}
                   style={f.id !== "default" ? { fontFamily: f.css } : undefined}
                 >
@@ -269,36 +253,31 @@ export default function SettingsPage() {
                     <span>{f.name}</span>
                     {isSelected && <Check className="w-3.5 h-3.5" />}
                   </div>
-                  <p className="text-[9px] mt-0.5 opacity-70">Aa Bb Cc 123</p>
+                  <p className="text-[10px] mt-0.5 opacity-80">Aa Bb Cc 123</p>
                 </button>
               );
             })}
           </div>
-        </div>
+        </section>
 
         {/* Accent color */}
-        <div>
-          <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">🎨 Color de Acento</h2>
+        <section className="zet-panel p-5 md:p-6">
+          <h2 className="heading-steam text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">🎨 Color de Acento</h2>
 
-          {/* Free palette */}
-          <div className="bg-secondary rounded-xl p-4 mb-2">
+          <div className="zet-panel-soft p-4 mb-3">
             <p className="text-[10px] text-muted-foreground mb-3 font-bold uppercase tracking-wider">Gratis</p>
             <div className="flex justify-around flex-wrap gap-3">
               {ACCENT_COLORS.filter((c) => !c.premium).map((c) => {
                 const isSelected = selectedAccent.name === c.name;
                 return (
-                  <button
-                    key={c.name}
-                    onClick={() => handleAccentChange(c)}
-                    className="flex flex-col items-center gap-2 group"
-                  >
+                  <button key={c.name} onClick={() => handleAccentChange(c)} className="flex flex-col items-center gap-2 group">
                     <div
                       className={`w-11 h-11 rounded-full transition-all duration-300 flex items-center justify-center ${
                         isSelected ? "ring-2 ring-offset-2 ring-offset-background scale-110" : "hover:scale-105"
                       }`}
                       style={{
-                        backgroundColor: c.hex,
-                        boxShadow: isSelected ? `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${c.hex}` : undefined,
+                        background: `radial-gradient(circle at 30% 30%, ${c.hex}, ${c.hex}cc 70%)`,
+                        boxShadow: isSelected ? `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${c.hex}, 0 0 22px ${c.hex}88` : `0 4px 12px -4px ${c.hex}66`,
                       }}
                     >
                       {isSelected && <Check className="w-5 h-5 text-white drop-shadow-md" />}
@@ -312,31 +291,25 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Premium palette */}
-          <div className="rounded-xl p-4 border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 relative overflow-hidden">
+          <div className="rounded-xl p-4 border border-primary/40 bg-gradient-to-br from-primary/10 via-accent/5 to-transparent relative overflow-hidden">
             <div className="flex items-center gap-2 mb-3">
               <Crown className="w-3.5 h-3.5 text-primary" />
               <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Premium · Exclusivos</p>
-              {!isPremium && <span className="ml-auto text-[9px] text-muted-foreground">Solo miembros</span>}
+              {!isPremium && <span className="ml-auto text-[9px] text-muted-foreground italic">Solo miembros</span>}
             </div>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
               {ACCENT_COLORS.filter((c) => c.premium).map((c) => {
                 const isSelected = selectedAccent.name === c.name;
                 const locked = !isPremium;
                 return (
-                  <button
-                    key={c.name}
-                    onClick={() => handleAccentChange(c)}
-                    className="flex flex-col items-center gap-1.5 group"
-                    title={locked ? "Premium requerido" : c.name}
-                  >
+                  <button key={c.name} onClick={() => handleAccentChange(c)} className="flex flex-col items-center gap-1.5 group" title={locked ? "Premium requerido" : c.name}>
                     <div
                       className={`relative w-11 h-11 rounded-full transition-all duration-300 flex items-center justify-center ${
                         isSelected ? "ring-2 ring-offset-2 ring-offset-background scale-110" : locked ? "opacity-50 grayscale-[40%]" : "hover:scale-105"
                       }`}
                       style={{
-                        backgroundColor: c.hex,
-                        boxShadow: isSelected ? `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${c.hex}` : undefined,
+                        background: `radial-gradient(circle at 30% 30%, ${c.hex}, ${c.hex}cc 70%)`,
+                        boxShadow: isSelected ? `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${c.hex}, 0 0 22px ${c.hex}88` : undefined,
                       }}
                     >
                       {isSelected && <Check className="w-5 h-5 text-white drop-shadow-md" />}
@@ -354,33 +327,29 @@ export default function SettingsPage() {
               })}
             </div>
             {!isPremium && (
-              <Link
-                to="/profile?premium=1"
-                className="mt-3 block w-full text-center text-[11px] font-bold text-primary hover:underline"
-              >
+              <Link to="/profile?premium=1" className="mt-3 block w-full text-center text-[11px] font-bold text-primary hover:underline">
                 🔓 Desbloquear paleta premium →
               </Link>
             )}
           </div>
-        </div>
+        </section>
 
         {/* Save / reset */}
-        <div className="space-y-2">
+        <div className="flex flex-col md:flex-row gap-3">
           <button
             onClick={handleSave}
-            className="w-full py-4 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="flex-1 py-4 rounded-xl zet-btn-primary heading-steam text-sm font-semibold tracking-widest uppercase hover:scale-[1.01] active:scale-[0.99]"
           >
             Guardar Cambios
           </button>
           <button
             onClick={handleResetDefaults}
-            className="w-full py-3 rounded-xl bg-secondary text-muted-foreground font-bold text-xs hover:bg-muted transition-all"
+            className="md:w-72 py-3 rounded-xl zet-btn-ghost text-xs font-bold uppercase tracking-wider"
           >
-            Restaurar valores predeterminados
+            Restaurar predeterminados
           </button>
         </div>
 
-        {/* Ad – usuarios free */}
         <AdBanner300x250 />
       </div>
     </div>
