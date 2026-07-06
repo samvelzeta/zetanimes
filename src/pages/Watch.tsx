@@ -63,7 +63,7 @@ export default function Watch() {
 
   const [selectedEp, setSelectedEp] = useState(epParam);
   const [lang, setLang] = useState<Lang>("sub");
-  const [showDebug, setShowDebug] = useState(false);
+  
   const watchTimeRef = useRef(0);
   const lastTickTimeRef = useRef<number | null>(null);
   const queryClient = useQueryClient();
