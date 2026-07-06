@@ -157,41 +157,38 @@ export default function AnimeDetail() {
   const displayDesc = isLongDesc && !showFullDesc ? description.slice(0, SYNOPSIS_LIMIT) + "..." : description;
   const recommendations = anime.recommendations?.nodes?.map((n: any) => n.mediaRecommendation).filter(Boolean) || [];
 
+  const streamingEpisodes = (anime as any).streamingEpisodes as { title?: string; thumbnail?: string }[] | undefined;
+  const totalEps = anime.nextAiringEpisode?.episode ? anime.nextAiringEpisode.episode - 1 : (anime.episodes || 0);
+
   return (
-    <div className="min-h-screen pb-24">
-      <div className="relative w-full h-56 md:h-72">
-        <img src={banner || cover} alt={title} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+    <div className="min-h-screen pb-24 bg-background">
+      {/* HERO */}
+      <section className="relative w-full h-[45vh] min-h-[320px] max-h-[520px]">
+        <img src={banner || cover} alt={title} className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "center 20%" }} />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/10" />
         <Link to="/" className="absolute top-4 left-4 z-20 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
           <ArrowLeft className="w-5 h-5 text-white" />
         </Link>
-      </div>
-
-      <div className="px-4 -mt-20 relative z-10">
-        <div className="flex items-start gap-4">
-          <img
-            src={cover}
-            alt={title}
-            className="w-[130px] flex-none aspect-[2/3] rounded-xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.6)] border-2 border-background"
-          />
-          <div className="flex-1 min-w-0 pt-16">
-            <h1
-              className="font-serif font-black text-foreground leading-tight text-lg sm:text-xl break-words"
-              style={{ overflowWrap: "anywhere" }}
-            >
-              {title}
-            </h1>
-            {anime.title.romaji && anime.title.romaji !== anime.title.english && (
-              <p className="text-xs text-muted-foreground mt-1 break-words" style={{ overflowWrap: "anywhere" }}>
-                {anime.title.romaji}
-              </p>
-            )}
-            <div className="mt-2">
-              <LikeButton anilistId={animeId} />
-            </div>
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 z-10">
+          <h1
+            className="font-serif font-black text-white text-center leading-tight uppercase tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] text-[22px] sm:text-[26px]"
+            style={{ overflowWrap: "anywhere" }}
+          >
+            {title}
+          </h1>
+          {anime.title.romaji && anime.title.romaji !== anime.title.english && (
+            <p className="text-center text-xs text-white/60 mt-1 break-words" style={{ overflowWrap: "anywhere" }}>
+              {anime.title.romaji}
+            </p>
+          )}
+          <div className="mt-2 flex justify-center">
+            <LikeButton anilistId={animeId} />
           </div>
         </div>
+      </section>
 
+      <div className="px-4">
+        {/* VER AHORA */}
         <Link
           to={`/watch/${animeId}?ep=1`}
           className="mt-4 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-black py-3.5 rounded-xl transition-all text-base shadow-[0_6px_20px_hsl(var(--primary)/0.35)] hover:scale-[1.02] active:scale-[0.98]"
@@ -199,23 +196,31 @@ export default function AnimeDetail() {
           <Play className="w-5 h-5 fill-current" /> Ver Ahora
         </Link>
 
-
-        <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
-
-        <div className="flex gap-2 mt-3 overflow-x-auto hide-scrollbar pb-1">
+        {/* ACCIONES RÁPIDAS */}
+        <div className="flex gap-2 mt-4 overflow-x-auto hide-scrollbar pb-1 justify-start sm:justify-center">
           {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
             const isActive = activeLists.includes(type);
             return (
-              <button key={type} onClick={() => handleToggleList(type)} disabled={loadingList}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  isActive ? "bg-primary/20 text-primary border border-primary/30" : "bg-secondary text-muted-foreground hover:bg-muted"
-                } disabled:opacity-50`}>
-                <Icon className="w-3.5 h-3.5" />{label}
+              <button
+                key={type}
+                onClick={() => handleToggleList(type)}
+                disabled={loadingList}
+                className={`flex-none flex flex-col items-center justify-center gap-1 w-[64px] h-[68px] rounded-xl transition-all disabled:opacity-50 ${
+                  isActive
+                    ? "bg-primary/20 text-primary border border-primary/40"
+                    : "bg-secondary text-muted-foreground border border-transparent hover:border-primary/30"
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] font-semibold leading-none">{label}</span>
               </button>
             );
           })}
         </div>
 
+        <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
+
+        {/* STATS */}
         <div className="flex flex-wrap items-center gap-2 mt-4">
           <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-lg text-primary-foreground ${getStatusColor(anime.status)}`}>{getStatusLabel(anime.status)}</span>
           {viewCount > 0 && (
@@ -258,16 +263,17 @@ export default function AnimeDetail() {
           </div>
         )}
 
+        {/* SINOPSIS */}
         {description && (
-          <div className="mt-4">
-            <h2 className="text-sm font-bold text-foreground mb-2">Sinopsis</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {displayDesc}
+          <div className="mt-5">
+            <h2 className="text-sm font-black text-foreground mb-2 uppercase tracking-wider">Sinopsis</h2>
+            <p className={`text-sm text-muted-foreground leading-relaxed ${!showFullDesc && isLongDesc ? "line-clamp-4" : ""}`}>
+              {showFullDesc || !isLongDesc ? description : description.slice(0, SYNOPSIS_LIMIT * 2)}
             </p>
             {isLongDesc && (
               <button
                 onClick={() => setShowFullDesc(!showFullDesc)}
-                className="mt-1 flex items-center gap-1 text-primary text-xs font-medium hover:underline"
+                className="mt-1 flex items-center gap-1 text-primary text-xs font-bold hover:underline"
               >
                 <ChevronDown className={`w-4 h-4 transition-transform ${showFullDesc ? "rotate-180" : ""}`} />
                 {showFullDesc ? "Ver menos" : "Ver más"}
@@ -275,81 +281,93 @@ export default function AnimeDetail() {
             )}
           </div>
         )}
+      </div>
 
-        {(() => {
-          const total = anime.nextAiringEpisode?.episode
-            ? anime.nextAiringEpisode.episode - 1
-            : (anime.episodes || 0);
-          if (!total) return null;
-          return (
-            <div className="mt-6">
-              <h2 className="text-sm font-bold text-foreground mb-3">
-                Capítulos <span className="text-muted-foreground font-normal">({total})</span>
-              </h2>
-              <EpisodeList
-                total={total}
-                cover={cover || ""}
-                animeTitle={title}
-                streamingEpisodes={(anime as any).streamingEpisodes}
-                linkTo={(ep) => `/watch/${animeId}?ep=${ep}`}
-              />
-            </div>
-          );
-        })()}
-
-
-
-        {/* 468x60 banner discreto antes de Relacionados */}
+      {/* CAPÍTULOS — scroll horizontal */}
+      {totalEps > 0 && (
         <div className="mt-6">
-          <AdBannerInline size="468x60" />
+          <h2 className="px-4 text-sm font-black text-foreground mb-3 uppercase tracking-wider">
+            Capítulos <span className="text-muted-foreground font-normal">({totalEps})</span>
+          </h2>
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 pb-1">
+            {Array.from({ length: totalEps }, (_, i) => i + 1).map((ep) => {
+              const meta = streamingEpisodes?.[ep - 1];
+              const thumb = meta?.thumbnail || cover || "";
+              const epTitle = meta?.title?.replace(/^Episode\s*\d+\s*[-:·—]?\s*/i, "") || "";
+              return (
+                <Link
+                  key={ep}
+                  to={`/watch/${animeId}?ep=${ep}`}
+                  className="flex-none w-[120px] h-[90px] rounded-[10px] overflow-hidden bg-secondary relative group"
+                >
+                  <div className="h-[65%] w-full overflow-hidden">
+                    <img src={thumb} alt={`Ep ${ep}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+                  </div>
+                  <div className="h-[35%] px-2 py-1 bg-black flex flex-col justify-center">
+                    <span className="text-[10px] font-black text-primary leading-none">Ep {ep}</span>
+                    <span className="text-[10px] font-semibold text-white truncate leading-tight mt-0.5">
+                      {epTitle || "—"}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </div>
+      )}
 
-        {(() => {
-          const rel = (anime.relations?.edges || []).filter(
-            (e: any) => e.node.type === "ANIME" && (e.relationType === "SEQUEL" || e.relationType === "PREQUEL")
-          );
-          if (rel.length === 0) return null;
-          return (
-            <div className="mt-6">
-              <h2 className="text-sm font-bold text-foreground mb-3">Temporadas relacionadas</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {rel.map((edge: any) => {
-                  const label = edge.relationType === "SEQUEL" ? "Secuela" : "Precuela";
-                  const img = edge.node.bannerImage || edge.node.coverImage?.extraLarge || edge.node.coverImage?.large;
-                  const title = edge.node.title.english || edge.node.title.romaji;
-                  return (
-                    <Link
-                      key={edge.node.id}
-                      to={`/anime/${edge.node.id}`}
-                      className="relative aspect-[16/9] rounded-2xl overflow-hidden group neon-card"
-                    >
-                      <img src={img} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" style={{ objectPosition: "center 20%" }} loading="lazy" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider">
-                        {label}
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className="text-white font-bold text-sm line-clamp-2 drop-shadow-lg">{title}</p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
+      {/* 468x60 banner */}
+      <div className="px-4 mt-6">
+        <AdBannerInline size="468x60" />
+      </div>
 
-        {recommendations.length > 0 && (
+      {/* SECUELAS — scroll horizontal */}
+      {(() => {
+        const rel = (anime.relations?.edges || []).filter(
+          (e: any) => e.node.type === "ANIME" && (e.relationType === "SEQUEL" || e.relationType === "PREQUEL")
+        );
+        if (rel.length === 0) return null;
+        return (
           <div className="mt-6">
-            <h2 className="text-sm font-bold text-foreground mb-3">Recomendaciones</h2>
-            <div className="flex gap-3 overflow-x-auto hide-scrollbar">
-              {recommendations.map((rec: any) => <AnimeCard key={rec.id} anime={rec} size="small" />)}
+            <h2 className="px-4 text-sm font-black text-foreground mb-3 uppercase tracking-wider">Secuela</h2>
+            <div className="flex gap-4 overflow-x-auto hide-scrollbar px-4 pb-1">
+              {rel.map((edge: any) => {
+                const label = edge.relationType === "SEQUEL" ? "Secuela" : "Precuela";
+                const img = edge.node.bannerImage || edge.node.coverImage?.extraLarge || edge.node.coverImage?.large;
+                const relTitle = edge.node.title.english || edge.node.title.romaji;
+                return (
+                  <Link
+                    key={edge.node.id}
+                    to={`/anime/${edge.node.id}`}
+                    className="relative flex-none w-[220px] h-[110px] rounded-xl overflow-hidden border border-primary/80 group"
+                  >
+                    <img src={img} alt={relTitle} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" style={{ objectPosition: "center 20%" }} loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider">
+                      {label}
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                      <p className="text-white font-bold text-[12px] line-clamp-2 leading-tight drop-shadow-lg">{relTitle}</p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
-        )}
-      </div>
+        );
+      })()}
+
+      {recommendations.length > 0 && (
+        <div className="mt-6 px-4">
+          <h2 className="text-sm font-black text-foreground mb-3 uppercase tracking-wider">Recomendaciones</h2>
+          <div className="flex gap-3 overflow-x-auto hide-scrollbar">
+            {recommendations.map((rec: any) => <AnimeCard key={rec.id} anime={rec} size="small" />)}
+          </div>
+        </div>
+      )}
 
       {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} message="Regístrate para guardar animes en tus listas, marcar favoritos y llevar control de lo que ves." />}
     </div>
   );
 }
+
