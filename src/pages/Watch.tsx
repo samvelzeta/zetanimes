@@ -871,14 +871,8 @@ export default function Watch() {
             Episodio {selectedEp} {zetSlug && `• ${zetSlug}`}
             {inWebView && " • 📱 APK"}
           </p>
-          <Link
-            to={`/anime/${id}`}
-            className="group inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/40 hover:border-primary text-primary font-steam text-xs font-bold tracking-wide transition-all active:scale-95 shadow-[0_0_12px_hsl(var(--primary)/0.25)] hover:shadow-[0_0_18px_hsl(var(--primary)/0.5)]"
-          >
-            <ChevronLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-            Volver al anime
-          </Link>
         </div>
+
 
         {/* Idioma / fuente alternativa */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
