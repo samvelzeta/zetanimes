@@ -870,7 +870,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         </div>
       )}
 
-      <video ref={videoRef} className="relative z-[1] w-full h-full object-contain" playsInline muted={muted} crossOrigin="anonymous" />
+      <video ref={videoRef} className={`relative z-[1] w-full h-full object-contain transition-all duration-500 ${showEpList ? "brightness-50 scale-[0.98]" : ""}`} playsInline muted={muted} crossOrigin="anonymous" />
 
       {subsActive && activeSubtitleText && (
         <div
