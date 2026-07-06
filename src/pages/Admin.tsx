@@ -131,6 +131,7 @@ export default function AdminPanel() {
             <div className="max-w-7xl mx-auto">
               {tab === "dashboard" && <DashboardTab isOwner={isOwner} setTab={setTab} />}
               {isOwner && tab === "activity" && <ActivityLogTab />}
+              {tab === "pending" && <PendingApproval />}
               {tab === "downloads" && <DownloadTracker />}
               {tab === "videos" && <VideoManager />}
               {tab === "apidebug" && <ApiDebugPanel />}
