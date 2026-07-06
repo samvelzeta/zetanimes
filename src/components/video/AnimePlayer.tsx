@@ -1100,12 +1100,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                   </div>
                 )}
               </div>
-              {currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
+              {isFullscreen && currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
                   className="flex items-center gap-1 text-white/80 hover:text-primary transition"
                   aria-label="Lista de episodios"
-                  title="Lista de episodios"
+                  title="Lista de episodios (solo en pantalla completa)"
                 >
                   <List className="w-5 h-5" />
                   <span className="text-[10px] font-mono tabular-nums">{currentEpisode}/{totalEpisodes}</span>
