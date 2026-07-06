@@ -430,29 +430,26 @@ h1, h2, h3, .heading-steam {
   animation: magitech-spin-reverse 32s linear infinite;
   will-change: transform;
 }
-@keyframes vip-shimmer {
-  0%   { background-position: -150% 0; }
-  12%  { background-position: 150% 0; }
-  100% { background-position: 150% 0; }
+@keyframes vip-neon-flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+    text-shadow:
+      0 0 4px hsl(var(--primary) / 0.95),
+      0 0 10px hsl(var(--primary) / 0.85),
+      0 0 22px hsl(var(--primary) / 0.55),
+      0 0 42px hsl(var(--primary) / 0.35);
+  }
+  20%, 24%, 55% { opacity: 0.28; text-shadow: none; }
+  22%           { opacity: 0.8;  text-shadow: 0 0 6px hsl(var(--primary) / 0.6); }
+  70%           { opacity: 0.1;  text-shadow: none; }
+  72%           { opacity: 1;    text-shadow: 0 0 12px hsl(var(--primary)); }
 }
 .vip-shimmer {
-  background-image: linear-gradient(
-    100deg,
-    transparent 0%,
-    transparent 40%,
-    hsl(var(--primary) / 0.55) 50%,
-    rgba(255,255,255,0.9) 52%,
-    hsl(var(--primary) / 0.55) 54%,
-    transparent 64%,
-    transparent 100%
-  );
-  background-size: 250% 100%;
-  background-repeat: no-repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: vip-shimmer 5s ease-in-out infinite;
+  color: hsl(var(--primary));
+  animation: vip-neon-flicker 4.8s infinite steps(1, end);
+  will-change: opacity, text-shadow;
 }
+
 
 /* ————— Arcane profile card ————— */
 @property --arcane-angle {
