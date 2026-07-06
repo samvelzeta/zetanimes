@@ -47,6 +47,7 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Contenido", icon: FolderCog, items: [
+      { key: "pending", label: "Pendientes", icon: ShieldCheck },
       { key: "downloads", label: "Descargas", icon: Store },
       { key: "videos", label: "Videos", icon: Film },
       { key: "epcount", label: "Episodios", icon: ListOrdered },
