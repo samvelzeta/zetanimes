@@ -13,8 +13,8 @@ import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform, clearRuntime
 import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang, listBlocks } from "@/lib/video-blocks";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
-  Eye, EyeOff, ChevronLeft, AlertCircle,
-  Globe, ChevronDown, List,
+  Eye, EyeOff, ChevronLeft, ChevronRight, AlertCircle,
+  Headphones, ChevronDown, List,
 } from "lucide-react";
 
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
@@ -750,6 +750,10 @@ export default function Watch() {
   };
 
   const displayTitle = anilistData ? getTitle(anilistData) : "Cargando...";
+  const streamingEp = (anilistData as any)?.streamingEpisodes?.[selectedEp - 1];
+  const currentEpisodeTitle = streamingEp?.title?.replace(/^Episode\s*\d+\s*[-–]?\s*/i, "") || "";
+  const rawSynopsis = (anilistData as any)?.description || "";
+  const synopsis = rawSynopsis ? rawSynopsis.replace(/<[^>]+>/g, "").trim() : "";
   const isSeekeLatestLoading = hasAnySeekeConfig && !latestReady;
   const isLoading = loadingSlug || !cachedVideoFetched || !cachedVideoOppositeFetched || !seekeConfigReady || loadingServers || isSeekeLatestLoading;
   // IMPORTANT: keep previous playerSources mounted while loading the next episode
@@ -861,54 +865,71 @@ export default function Watch() {
       )}
 
 
-      {/* Title + controls */}
-      <div className="px-4 sm:px-6 mt-4 sm:mt-6 mb-4">
-        <h1 className="font-steam text-base sm:text-xl font-bold text-foreground mb-1 leading-tight line-clamp-2">
+      {/* Title + details */}
+      <div className="px-4 sm:px-6 mt-4 sm:mt-6 mb-5">
+        <h1 className="font-steam text-2xl sm:text-4xl font-black uppercase tracking-wider text-foreground leading-none mb-2 line-clamp-2">
           {displayTitle}
         </h1>
-        <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <p className="text-xs text-muted-foreground">
-
-            Episodio {selectedEp} {zetSlug && `• ${zetSlug}`}
-            {inWebView && " • 📱 APK"}
+        <p className="text-sm sm:text-base font-medium text-foreground/85 mb-2">
+          Episodio {selectedEp}
+          {currentEpisodeTitle && (
+            <span className="text-muted-foreground"> • “{currentEpisodeTitle}”</span>
+          )}
+        </p>
+        {synopsis && (
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-3">
+            {synopsis}
           </p>
-        </div>
+        )}
+        {inWebView && (
+          <p className="text-[10px] text-muted-foreground/70 mb-3">📱 APK{zetSlug && ` • ${zetSlug}`}</p>
+        )}
 
+        {/* Idioma — dos botones rectangulares limpios */}
+        {shouldShowLanguageControls && (
+          <div className="inline-flex rounded-xl bg-secondary/60 border border-border/60 p-1 gap-1 mb-4">
+            {(["sub", "latino"] as const).map((targetLang) => {
+              const enabled = langAvailability[targetLang] > 0;
+              const selected = activeLang === targetLang;
+              const meta = targetLang === "sub"
+                ? { label: "JAPONÉS", sub: "AUDIO: JPN · SUB: ESP" }
+                : { label: "LATINO", sub: "AUDIO: LAT" };
+              return (
+                <button
+                  key={targetLang}
+                  disabled={!enabled}
+                  onClick={() => { if (!enabled) return; setLang(targetLang); setActiveSourceIdx(0); }}
+                  className={`flex items-center gap-2.5 px-3 sm:px-4 py-2 rounded-lg text-left transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
+                    selected
+                      ? "bg-background border border-primary/70 shadow-[0_0_0_1px_hsl(var(--primary)/0.3)]"
+                      : "border border-transparent hover:bg-background/40"
+                  }`}
+                >
+                  <Headphones className={`w-4 h-4 flex-shrink-0 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+                  <span className="flex flex-col leading-tight">
+                    <span className={`text-[11px] sm:text-xs font-black tracking-wide ${selected ? "text-foreground" : "text-muted-foreground"}`}>
+                      {meta.label}
+                    </span>
+                    <span className="text-[9px] sm:text-[10px] text-muted-foreground/80 uppercase tracking-wider">
+                      {meta.sub}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-        {/* Idioma / fuente alternativa */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-          {shouldShowLanguageControls && (["sub", "latino"] as const).map((targetLang) => {
-            const enabled = langAvailability[targetLang] > 0;
-            const selected = activeLang === targetLang;
-            return (
-              <button
-                key={targetLang}
-                disabled={!enabled}
-                onClick={() => {
-                  if (!enabled) return;
-                  setLang(targetLang);
-                  setActiveSourceIdx(0);
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 disabled:opacity-35 disabled:cursor-not-allowed ${
-                  selected ? "bg-primary text-primary-foreground border-primary" : "bg-primary/15 border-primary/40 text-primary hover:bg-primary/25"
-                }`}
-              >
-                {targetLang === "sub" ? "🇯🇵 Japonés" : "🌎 Latino"}
-                <span className="text-[10px] opacity-80">{langAvailability[targetLang]}</span>
-              </button>
-            );
-          })}
-          {shouldShowServerControl && (
+        {shouldShowServerControl && (
+          <div className="mb-3">
             <button
               onClick={() => setActiveSourceIdx((i) => (i + 1) % Math.max(1, rawSources.length))}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary border border-border text-foreground hover:border-primary hover:text-primary transition-all"
             >
               Servidor: {Math.min(activeSourceIdx + 1, rawSources.length)}/{rawSources.length}
             </button>
-          )}
-          {!shouldShowServerControl && !shouldShowLanguageControls && <span className="text-[10px] text-muted-foreground">Fuente directa disponible</span>}
-        </div>
+          </div>
+        )}
 
         {lang === "latino" && latinoEp && (
           <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2 mb-4">
@@ -922,42 +943,33 @@ export default function Watch() {
             <p className="text-xs text-destructive">{(serverError as Error)?.message || "Error al obtener servidores"}</p>
           </div>
         )}
-
-        {sortedSources.length > 0 && (
-          <p className="text-[10px] text-muted-foreground mb-2">
-            {sortedSources.length} servidor{sortedSources.length > 1 ? "es" : ""} disponible{sortedSources.length > 1 ? "s" : ""}
-          </p>
-        )}
-
-        {zetSlug && anilistData && null}
-
       </div>
 
-      {/* Navegación de episodios — naranja translúcido alargado */}
+      {/* Navegación de episodios — tres botones limpios, Siguiente con acento naranja */}
       <div className="px-4 mb-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-stretch gap-2">
           <button
             onClick={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
             disabled={selectedEp <= 1}
-            className="flex-1 py-2.5 px-3 rounded-lg bg-primary/15 hover:bg-primary/30 border border-primary/40 text-primary text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95"
+            className="flex-1 py-2.5 px-3 rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
           >
             <ChevronLeft className="w-4 h-4" /> Anterior
           </button>
           <button
             onClick={() => setShowEpisodes((v) => !v)}
-            className="px-3 py-2.5 rounded-lg bg-primary/25 hover:bg-primary/40 border border-primary/60 text-primary text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+            className="flex-[1.4] py-2.5 px-3 rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
             aria-label="Mostrar lista de episodios"
           >
-            <List className="w-4 h-4" />
-            EP {selectedEp}
+            <List className="w-4 h-4 text-muted-foreground" />
+            <span>EPISODIOS ({selectedEp}/{totalEpisodes})</span>
             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showEpisodes ? "rotate-180" : ""}`} />
           </button>
           <button
             onClick={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
             disabled={selectedEp >= maxEpisodeForLang}
-            className="flex-1 py-2.5 px-3 rounded-lg bg-primary/15 hover:bg-primary/30 border border-primary/40 text-primary text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-25 disabled:cursor-not-allowed transition-all active:scale-95"
+            className="flex-1 py-2.5 px-3 rounded-lg bg-primary text-primary-foreground border border-primary hover:bg-primary/90 text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 shadow-[0_0_12px_hsl(var(--primary)/0.35)]"
           >
-            Siguiente <ChevronLeft className="w-4 h-4 rotate-180" />
+            Siguiente <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
