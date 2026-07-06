@@ -398,26 +398,48 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
   const getFullscreenTarget = useCallback(() => fullscreenContainerRef?.current || containerRef.current, [fullscreenContainerRef]);
 
-  // Fullscreen: lock landscape on mobile/webview
+  // Fullscreen: lock landscape on mobile/webview (forzado, ignora bloqueo del sistema)
   useEffect(() => {
     const onFsChange = () => {
       const target = getFullscreenTarget();
       const active = document.fullscreenElement;
       const isFull = !!active && !!target && (active === target || active.contains(target) || target.contains(active));
       setIsFullscreen(isFull);
+      onFullscreenChange?.(isFull);
       const orientation = screen.orientation as ScreenOrientation & {
         lock?: (orientation: OrientationLockType) => Promise<void>;
         unlock?: () => void;
       };
-      if (isFull && (inWebView || /Mobi|Android/i.test(navigator.userAgent))) {
+      const legacy = window.screen as unknown as {
+        lockOrientation?: (o: string) => boolean;
+        mozLockOrientation?: (o: string) => boolean;
+        msLockOrientation?: (o: string) => boolean;
+        unlockOrientation?: () => void;
+        mozUnlockOrientation?: () => void;
+        msUnlockOrientation?: () => void;
+      };
+      const isMobile = inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isFull && isMobile) {
+        // API moderna
         try { orientation.lock?.("landscape").catch(() => undefined); } catch { void 0; }
+        // Fallback legacy (Android WebView antiguo)
+        try { (legacy.lockOrientation || legacy.mozLockOrientation || legacy.msLockOrientation)?.call(window.screen, "landscape"); } catch { void 0; }
       } else {
         try { orientation.unlock?.(); } catch { void 0; }
+        try { (legacy.unlockOrientation || legacy.mozUnlockOrientation || legacy.msUnlockOrientation)?.call(window.screen); } catch { void 0; }
       }
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [inWebView, getFullscreenTarget]);
+  }, [inWebView, getFullscreenTarget, onFullscreenChange]);
+
+  // Notificar al padre cambios de visibilidad de controles / panel de episodios
+  useEffect(() => {
+    onControlsVisibilityChange?.(showControls || !playing);
+  }, [showControls, playing, onControlsVisibilityChange]);
+  useEffect(() => {
+    onEpisodeListToggle?.(showEpList);
+  }, [showEpList, onEpisodeListToggle]);
 
   // ── Custom SRT renderer: lee el .srt, lo parsea y lo pinta sobre el video ──
   useEffect(() => {
