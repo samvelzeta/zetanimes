@@ -436,9 +436,38 @@ export default function AnimeDetail() {
 
         {recommendations.length > 0 && (
           <div className="mt-6 px-4 lg:px-8 max-w-7xl mx-auto">
-            <h2 className="text-sm font-black text-foreground mb-3 uppercase tracking-wider">Recomendaciones</h2>
-            <div className="flex gap-3 overflow-x-auto hide-scrollbar lg:grid lg:grid-cols-5 lg:overflow-visible">
+            <h2 className="text-sm font-black text-foreground mb-4 uppercase tracking-wider">Recomendaciones</h2>
+            {/* Móvil: scroll horizontal · Desktop: grid tipo póster */}
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar lg:hidden">
               {recommendations.map((rec: any) => <AnimeCard key={rec.id} anime={rec} size="small" />)}
+            </div>
+            <div className="hidden lg:grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+              {recommendations.map((rec: any) => {
+                const recTitle = rec.title?.english || rec.title?.romaji || "";
+                const recImg = rec.coverImage?.extraLarge || rec.coverImage?.large;
+                const recScore = rec.averageScore;
+                return (
+                  <Link key={rec.id} to={`/anime/${rec.id}`} className="group block">
+                    <div className="relative w-full aspect-[2/3] overflow-hidden rounded-lg bg-secondary">
+                      <img
+                        src={recImg}
+                        alt={recTitle}
+                        loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      {recScore && (
+                        <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/70 backdrop-blur-sm rounded-md px-2 py-1">
+                          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                          <span className="text-xs font-semibold text-white">{(recScore / 10).toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-foreground/90 line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                      {recTitle}
+                    </p>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
