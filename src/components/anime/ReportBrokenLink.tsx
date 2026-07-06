@@ -12,9 +12,11 @@ interface Props {
   animeTitle: string;
   animeCover: string;
   anilistId: number;
+  iconOnly?: boolean;
+  className?: string;
 }
 
-export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, animeCover, anilistId }: Props) {
+export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, animeCover, anilistId, iconOnly, className }: Props) {
   const { user } = useAuth();
   const { permissions } = usePlanPermissions();
   const [open, setOpen] = useState(false);
@@ -98,10 +100,21 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
 
   return (
     <>
-      <button onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition">
-        <AlertTriangle className="w-3.5 h-3.5" /> Reportar enlace caído
-      </button>
+      {iconOnly ? (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="Reportar enlace caído"
+          title="Reportar enlace caído"
+          className={`w-8 h-8 rounded-full bg-black/55 backdrop-blur-sm border border-destructive/60 text-destructive flex items-center justify-center hover:bg-destructive/25 hover:text-white transition-all active:scale-95 shadow-[0_0_10px_hsl(var(--destructive)/0.4)] ${className || ""}`}
+        >
+          <AlertTriangle className="w-4 h-4" strokeWidth={2.5} />
+        </button>
+      ) : (
+        <button onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition">
+          <AlertTriangle className="w-3.5 h-3.5" /> Reportar enlace caído
+        </button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setOpen(false)}>

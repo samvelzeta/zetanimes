@@ -789,6 +789,20 @@ export default function Watch() {
               <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
             </Link>
 
+            {/* Botón Reportar (esférico, debajo del botón de volver / agrandar) */}
+            {zetSlug && anilistData && (
+              <div className="absolute top-14 right-2 z-40">
+                <ReportBrokenLink
+                  slug={zetSlug}
+                  episodeNumber={selectedEp}
+                  animeTitle={displayTitle}
+                  animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
+                  anilistId={anilistId}
+                  iconOnly
+                />
+              </div>
+            )}
+
           {isEpisodeBlocked ? (
             <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3 px-4 text-center">
               <AlertCircle className="w-10 h-10 text-primary" />
@@ -918,17 +932,7 @@ export default function Watch() {
           </p>
         )}
 
-        {zetSlug && anilistData && (
-          <div className="mb-3">
-            <ReportBrokenLink
-              slug={zetSlug}
-              episodeNumber={selectedEp}
-              animeTitle={displayTitle}
-              animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
-              anilistId={anilistId}
-            />
-          </div>
-        )}
+        {zetSlug && anilistData && null}
 
         <button onClick={() => setShowDebug(!showDebug)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition mb-2">
           <Bug className="w-3.5 h-3.5" /> Debug
