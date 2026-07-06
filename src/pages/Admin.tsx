@@ -29,6 +29,7 @@ import PremiumConfigEditor from "@/components/admin/PremiumConfigEditor";
 import PremiumBackgroundUploader from "@/components/admin/PremiumBackgroundUploader";
 import RankingOverridesAdmin from "@/components/admin/RankingOverridesAdmin";
 import AnimeStatusOverridesAdmin from "@/components/admin/AnimeStatusOverridesAdmin";
+import PendingApproval from "@/components/admin/PendingApproval";
 import { logAdminActivity } from "@/lib/admin-log";
 
 // Tabs reservados solo para owner
