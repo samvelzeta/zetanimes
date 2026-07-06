@@ -216,10 +216,14 @@ function PendingCard({
       const res = await approveAnime(anime.id, url || null as any);
       if (!res.success) throw new Error(res.error || "No se pudo aprobar");
       await logAdminActivity({
+        area: "videos",
         action: "approve_anime",
+        summary: `Aprobado: ${title}`,
         target_type: "anime",
         target_id: String(anime.id),
-        details: { title, seeke: url || null },
+        anilist_id: anime.id,
+        anime_title: title,
+        metadata: { seeke: url || null },
       });
       toast.success(`Aprobado: ${title}`);
       setSeekeUrl("");
