@@ -167,24 +167,38 @@ export default function AnimeDetail() {
         </Link>
       </div>
 
-      <div className="px-4 -mt-16 relative z-10">
-        <div className="flex gap-4">
-          <img src={cover} alt={title} className="w-28 h-40 rounded-xl object-cover shadow-2xl border-2 border-background flex-shrink-0" />
-          <div className="pt-16 flex-1 min-w-0">
-            <h1 className="text-xl font-black text-foreground leading-tight">{title}</h1>
-            {anime.title.romaji !== anime.title.english && anime.title.romaji && (
-              <p className="text-xs text-muted-foreground mt-0.5">{anime.title.romaji}</p>
+      <div className="px-4 -mt-20 relative z-10">
+        <div className="flex items-start gap-4">
+          <img
+            src={cover}
+            alt={title}
+            className="w-[130px] flex-none aspect-[2/3] rounded-xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.6)] border-2 border-background"
+          />
+          <div className="flex-1 min-w-0 pt-16">
+            <h1
+              className="font-serif font-black text-foreground leading-tight text-lg sm:text-xl break-words"
+              style={{ overflowWrap: "anywhere" }}
+            >
+              {title}
+            </h1>
+            {anime.title.romaji && anime.title.romaji !== anime.title.english && (
+              <p className="text-xs text-muted-foreground mt-1 break-words" style={{ overflowWrap: "anywhere" }}>
+                {anime.title.romaji}
+              </p>
             )}
             <div className="mt-2">
               <LikeButton anilistId={animeId} />
             </div>
           </div>
-
         </div>
 
-        <Link to={`/watch/${animeId}?ep=1`} className="mt-4 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-all text-sm hover:scale-[1.02] active:scale-[0.98]">
+        <Link
+          to={`/watch/${animeId}?ep=1`}
+          className="mt-4 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-black py-3.5 rounded-xl transition-all text-base shadow-[0_6px_20px_hsl(var(--primary)/0.35)] hover:scale-[1.02] active:scale-[0.98]"
+        >
           <Play className="w-5 h-5 fill-current" /> Ver Ahora
         </Link>
+
 
         <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
 
@@ -309,7 +323,7 @@ export default function AnimeDetail() {
                       to={`/anime/${edge.node.id}`}
                       className="relative aspect-[16/9] rounded-2xl overflow-hidden group neon-card"
                     >
-                      <img src={img} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                      <img src={img} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" style={{ objectPosition: "center 20%" }} loading="lazy" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                       <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider">
                         {label}
