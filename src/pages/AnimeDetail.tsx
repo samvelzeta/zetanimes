@@ -220,32 +220,57 @@ export default function AnimeDetail() {
         <div className="relative max-w-7xl mx-auto px-4 lg:px-8 pt-6" style={{ zIndex: 1 }}>
           {/* DESKTOP HERO INFO — poster + info en fila */}
           <div className="hidden lg:flex gap-8 mb-8">
-            <div className="relative flex-none" style={{ zIndex: 2 }}>
+            <div className="relative flex-none group" style={{ zIndex: 2 }}>
+              {/* Aura gradiente sutil alrededor del póster */}
+              <div
+                aria-hidden
+                className="absolute -inset-[1.5px] rounded-2xl opacity-70 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none -mt-32"
+                style={{
+                  background: "linear-gradient(140deg, hsl(var(--primary)/0.9), transparent 40%, hsl(var(--primary)/0.35) 100%)",
+                  height: "calc(250px * 3 / 2 + 3px)",
+                  width: "calc(250px + 3px)",
+                }}
+              />
               <img
                 src={cover}
                 alt={title}
-                className="w-[250px] aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] -mt-32 border border-white/10 block"
+                className="relative w-[250px] aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] -mt-32 block transition-transform duration-500 ease-out group-hover:scale-[1.03]"
               />
+              {/* Indicador de emisión: punto naranja pulsante */}
+              {anime.status === "RELEASING" && (
+                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-primary/40 shadow-[0_0_18px_hsl(var(--primary)/0.35)]">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                  </span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90">En emisión</span>
+                </div>
+              )}
             </div>
 
             <div className="flex-1 min-w-0 pt-2">
-              <h1 className="font-serif font-black text-white leading-tight uppercase tracking-wide text-4xl xl:text-5xl">
+              <h1
+                className="font-serif font-black text-white leading-[1.05] uppercase tracking-wide text-4xl xl:text-5xl"
+                style={{ textShadow: "0 2px 24px rgba(0,0,0,0.55)" }}
+              >
                 {title}
               </h1>
               {anime.title.romaji && anime.title.romaji !== anime.title.english && (
-                <p className="text-sm text-white/60 mt-2">{anime.title.romaji}</p>
+                <p className="text-sm text-white/50 mt-2 font-light tracking-[0.15em] uppercase">{anime.title.romaji}</p>
               )}
               <div className="mt-3">
                 <LikeButton anilistId={animeId} />
               </div>
-              <div className="mt-4 flex items-center gap-3">
+              {/* Floating Action Deck — glass panel */}
+              <div className="mt-5 inline-flex items-center gap-2 p-2 rounded-2xl bg-white/[0.04] backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
                 <Link
                   to={`/watch/${animeId}?ep=1`}
-                  className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-black px-8 py-3 rounded-xl transition-all text-base shadow-[0_6px_20px_hsl(var(--primary)/0.35)] hover:scale-[1.02] active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-black px-6 py-2.5 rounded-xl transition-all text-sm tracking-wider uppercase shadow-[0_6px_20px_hsl(var(--primary)/0.4)] hover:scale-[1.03] active:scale-[0.97]"
                 >
-                  <Play className="w-5 h-5 fill-current" /> Ver Ahora
+                  <Play className="w-4 h-4 fill-current" /> Ver Ahora
                 </Link>
-                <div className="flex gap-2">
+                <div className="w-px h-8 bg-white/10 mx-1" />
+                <div className="flex gap-1">
                   {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
                     const isActive = activeLists.includes(type);
                     return (
@@ -253,15 +278,14 @@ export default function AnimeDetail() {
                         key={type}
                         onClick={() => handleToggleList(type)}
                         disabled={loadingList}
-                        className={`inline-flex items-center gap-1.5 px-3 h-10 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 ${
-                          isActive
-                            ? "bg-primary/20 text-primary border border-primary/40"
-                            : "bg-secondary text-muted-foreground border border-transparent hover:bg-neutral-800 hover:text-foreground"
-                        }`}
                         title={label}
+                        className={`inline-flex items-center justify-center w-10 h-10 rounded-lg transition-all disabled:opacity-50 ${
+                          isActive
+                            ? "bg-primary/25 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
+                            : "text-white/60 hover:bg-white/5 hover:text-white"
+                        }`}
                       >
-                        <Icon className="w-4 h-4" />
-                        <span className="hidden xl:inline">{label}</span>
+                        <Icon className={`w-4 h-4 ${isActive ? "fill-current" : ""}`} />
                       </button>
                     );
                   })}
