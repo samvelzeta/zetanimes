@@ -279,9 +279,9 @@ export default function Profile() {
                 </p>
               )}
               {isMainProfile && (profile?.subscription_status === "active" || isOwner) && (
-                <span className="mt-3 inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium text-primary tracking-widest uppercase">
+                <span className="mt-3 inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium text-primary tracking-widest uppercase px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5">
                   <BadgeCheck className="w-3.5 h-3.5" />
-                  VIP
+                  <span className="vip-shimmer">VIP</span>
                   {profile?.plan_type && (
                     <span className="opacity-70 normal-case tracking-normal">
                       · {profile.plan_type === "duo" ? "Dúo" : profile.plan_type === "solo" ? "Solo" : "Básico"}
