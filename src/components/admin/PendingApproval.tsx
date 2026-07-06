@@ -252,6 +252,20 @@ function PendingCard({
       if (!approved) {
         const res = await approveAnime(anime.id, url || null as any);
         if (!res.success) throw new Error(res.error || "No se pudo aprobar");
+        // Registrar automáticamente en el tracker de descargas como "completed"
+        try {
+          await supabase.from("anime_download_tracker").upsert({
+            anilist_id: anime.id,
+            title,
+            cover_image: cover || null,
+            total_episodes: anime.episodes || 0,
+            status: "completed",
+            airing_status: anime.status || null,
+            updated_at: new Date().toISOString(),
+          } as any, { onConflict: "anilist_id" });
+        } catch (err) {
+          console.warn("[approve] tracker upsert failed", err);
+        }
       }
       await logAdminActivity({
         area: "videos",
