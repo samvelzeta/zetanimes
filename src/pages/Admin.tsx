@@ -66,7 +66,6 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Sistema", icon: Settings2, items: [
-      { key: "downloads", label: "Descargas", icon: Store },
       { key: "apk", label: "APK", icon: ExternalLink },
       { key: "notifs", label: "Notifs", icon: Bell },
       { key: "payment", label: "Pago / Config", icon: CreditCard },
