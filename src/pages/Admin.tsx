@@ -83,7 +83,11 @@ const TAB_TITLES: Record<string, string> = Object.fromEntries(
 export default function AdminPanel() {
   const { isOwner, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState(() => {
+    if (typeof window === "undefined") return "dashboard";
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return t && TAB_TITLES[t] ? t : "dashboard";
+  });
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {

@@ -1,14 +1,16 @@
 import { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRecentlyUpdated } from "@/lib/anilist";
 import { getApprovedAnimeIds, approveAnime, unapproveAnime, onApprovedChange } from "@/lib/approved-animes";
-import { saveCachedVideo } from "@/lib/video-cache";
+import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Check, X, Link2, Search, ShieldCheck, Play } from "lucide-react";
+import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
+
 
 type AiringItem = {
   id: number;
@@ -189,44 +191,79 @@ function PendingCard({
   hasVideo: boolean;
   onChanged: () => void;
 }) {
+  const navigate = useNavigate();
+  const [lang, setLang] = useState<"sub" | "latino">("sub");
   const [seekeUrl, setSeekeUrl] = useState("");
+  const [existingUrl, setExistingUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const title = titleOf(anime);
   const cover = anime.coverImage?.large || anime.coverImage?.extraLarge;
+  const slug = slugFromTitle(anime.title?.romaji || title);
+
+  // Al cambiar de idioma, precarga el enlace Seeke ya guardado para ese idioma (si existe)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const cached = await getCachedVideo(slug, 0, lang, anime.id);
+      if (cancelled) return;
+      const url = cached?.sources?.seeke?.[0] || null;
+      setExistingUrl(url);
+      setSeekeUrl(url || "");
+    })();
+    return () => { cancelled = true; };
+  }, [lang, anime.id, slug]);
+
+  const openAdvanced = () => {
+    try {
+      sessionStorage.setItem("admin:preselect-anime", JSON.stringify({
+        id: anime.id,
+        title,
+        cover: cover || "",
+        episodes: anime.episodes || 24,
+        lang,
+      }));
+    } catch {}
+    navigate("/admin?tab=videos");
+  };
 
   const handleApprove = async () => {
     const url = seekeUrl.trim();
-    if (!url && !hasVideo) {
-      toast.error("Pega el enlace Seeke antes de aprobar");
+    // Se puede aprobar sin nuevo URL si ya hay uno existente para este idioma
+    if (!url && !existingUrl) {
+      toast.error(`Pega el enlace Seeke (${lang}) antes de aprobar`);
       return;
     }
     setBusy(true);
     try {
-      if (url) {
+      if (url && url !== existingUrl) {
+        // saveCachedVideo ya sobrescribe/borra cualquier fila previa para
+        // (anilist_id, episode=0, lang), quedando el nuevo enlace como único.
         const save = await saveCachedVideo({
-          slug: slugFromTitle(anime.title?.romaji || title),
+          slug,
           episode: 0,
-          lang: "sub",
+          lang,
           sources: { seeke: [url] },
           anilist_id: anime.id,
           anime_title: title,
         });
         if (!save.success) throw new Error(save.error || "No se pudo guardar el enlace");
+        setExistingUrl(url);
       }
-      const res = await approveAnime(anime.id, url || null as any);
-      if (!res.success) throw new Error(res.error || "No se pudo aprobar");
+      if (!approved) {
+        const res = await approveAnime(anime.id, url || null as any);
+        if (!res.success) throw new Error(res.error || "No se pudo aprobar");
+      }
       await logAdminActivity({
         area: "videos",
-        action: "approve_anime",
-        summary: `Aprobado: ${title}`,
+        action: approved ? "update_anime_link" : "approve_anime",
+        summary: approved ? `Enlace ${lang} actualizado: ${title}` : `Aprobado: ${title}`,
         target_type: "anime",
         target_id: String(anime.id),
         anilist_id: anime.id,
         anime_title: title,
-        metadata: { seeke: url || null },
+        metadata: { seeke: url || null, lang },
       });
-      toast.success(`Aprobado: ${title}`);
-      setSeekeUrl("");
+      toast.success(approved ? `Enlace ${lang} actualizado` : `Aprobado: ${title}`);
       onChanged();
     } catch (e: any) {
       toast.error(e?.message || "Error al aprobar");
@@ -281,40 +318,68 @@ function PendingCard({
                 <Play className="w-2.5 h-2.5" /> con enlace
               </span>
             )}
+            {existingUrl && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                {lang} guardado
+              </span>
+            )}
           </div>
         </div>
 
-        {!approved && (
-          <div className="flex items-center gap-1.5">
-            <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <Input
-              value={seekeUrl}
-              onChange={(e) => setSeekeUrl(e.target.value)}
-              placeholder="URL base Seeke (flixlat.com/…)"
-              className="h-8 text-[11px]"
+        {/* Switcher de idioma */}
+        <div className="flex gap-1">
+          {(["sub", "latino"] as const).map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLang(l)}
               disabled={busy}
-            />
-          </div>
-        )}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold transition ${
+                lang === l ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {l === "sub" ? "🇯🇵 Sub" : "🌎 Latino"}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <Input
+            value={seekeUrl}
+            onChange={(e) => setSeekeUrl(e.target.value)}
+            placeholder={`URL Seeke ${lang} (sobrescribe el anterior)`}
+            className="h-8 text-[11px]"
+            disabled={busy}
+          />
+        </div>
 
         <div className="flex gap-2 mt-auto">
-          {!approved ? (
-            <button
-              onClick={handleApprove}
-              disabled={busy}
-              className="flex-1 h-8 rounded-lg bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-50"
-            >
-              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-              Aprobar
-            </button>
-          ) : (
+          <button
+            onClick={handleApprove}
+            disabled={busy || (!seekeUrl.trim() && !existingUrl)}
+            className="flex-1 h-8 rounded-lg bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+            {approved ? "Actualizar" : "Aprobar"}
+          </button>
+          <button
+            onClick={openAdvanced}
+            disabled={busy}
+            title="Abrir en Videos con este anime preseleccionado"
+            className="h-8 px-2 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-muted disabled:opacity-50"
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+            Avanzado
+          </button>
+          {approved && (
             <button
               onClick={handleUnapprove}
               disabled={busy}
-              className="flex-1 h-8 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-destructive/15 hover:text-destructive disabled:opacity-50"
+              title="Quitar de la whitelist"
+              className="h-8 px-2 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center hover:bg-destructive/15 hover:text-destructive disabled:opacity-50"
             >
-              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-              Quitar
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -322,3 +387,4 @@ function PendingCard({
     </div>
   );
 }
+
