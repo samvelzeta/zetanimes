@@ -41,8 +41,9 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
   const selfEditOnly = Boolean(editableProfileId);
   const visibleProfiles = selfEditOnly ? profiles.filter((p) => p.id === editableProfileId) : profiles;
   const canCreate = manage && !selfEditOnly && profiles.length < maxProfiles;
-  const emptySlots = canCreate ? Array.from({ length: maxProfiles - profiles.length }) : [];
-  const totalCards = visibleProfiles.length + emptySlots.length;
+  // Un ÚNICO botón "Añadir perfil" (no una casilla por cada slot disponible)
+  const showAddButton = canCreate;
+  const totalCards = visibleProfiles.length + (showAddButton ? 1 : 0);
 
   useEffect(() => { if (manageMode) refresh(); }, [refresh, manageMode]);
 
