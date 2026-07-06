@@ -14,6 +14,7 @@ import { trackAnimeView, getAnimeViews, formatViews } from "@/lib/anime-views";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import SlugOverrideAdmin from "@/components/admin/SlugOverrideAdmin";
 import LikeButton from "@/components/anime/LikeButton";
+import EpisodeList from "@/components/anime/EpisodeList";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 
 
@@ -260,6 +261,29 @@ export default function AnimeDetail() {
             )}
           </div>
         )}
+
+        {(() => {
+          const total = anime.nextAiringEpisode?.episode
+            ? anime.nextAiringEpisode.episode - 1
+            : (anime.episodes || 0);
+          if (!total) return null;
+          return (
+            <div className="mt-6">
+              <h2 className="text-sm font-bold text-foreground mb-3">
+                Capítulos <span className="text-muted-foreground font-normal">({total})</span>
+              </h2>
+              <EpisodeList
+                total={total}
+                cover={cover || ""}
+                animeTitle={title}
+                streamingEpisodes={(anime as any).streamingEpisodes}
+                linkTo={(ep) => `/watch/${animeId}?ep=${ep}`}
+              />
+            </div>
+          );
+        })()}
+
+
 
         {/* 468x60 banner discreto antes de Relacionados */}
         <div className="mt-6">
