@@ -928,7 +928,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       {/* Controls overlay — usa visibility: hidden cuando está oculto para bloquear TODOS los clicks (incluso en hijos con pointer-events:auto). Esto arregla el bug del APK donde los botones de prev/next se ejecutaban estando ocultos. */}
       <div
         aria-hidden={!(showControls || !playing)}
-        className={`absolute inset-0 z-10 transition-opacity duration-300 ${
+        className={`absolute inset-0 z-10 transition-opacity duration-700 ${
           showControls || !playing ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
         }`}
       >
