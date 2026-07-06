@@ -1,14 +1,16 @@
 import { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRecentlyUpdated } from "@/lib/anilist";
 import { getApprovedAnimeIds, approveAnime, unapproveAnime, onApprovedChange } from "@/lib/approved-animes";
-import { saveCachedVideo } from "@/lib/video-cache";
+import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Check, X, Link2, Search, ShieldCheck, Play } from "lucide-react";
+import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
+
 
 type AiringItem = {
   id: number;
