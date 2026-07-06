@@ -13,8 +13,8 @@ import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform, clearRuntime
 import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang, listBlocks } from "@/lib/video-blocks";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
-  Eye, EyeOff, ChevronLeft, AlertCircle,
-  Globe, ChevronDown, List,
+  Eye, EyeOff, ChevronLeft, ChevronRight, AlertCircle,
+  Headphones, ChevronDown, List,
 } from "lucide-react";
 
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
