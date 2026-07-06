@@ -1,5 +1,29 @@
 import { useMemo, useState } from "react";
-import { Play, Eye, EyeOff, Lock } from "lucide-react";
+import { Play, Eye, EyeOff, Lock, ChevronDown } from "lucide-react";
+
+const MAX_TITLE_CHARS = 20;
+
+function ExpandableTitle({ text, className }: { text: string; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const needs = text.length > MAX_TITLE_CHARS;
+  if (!needs) return <span className={className}>{text}</span>;
+  return (
+    <span className={`inline-flex items-start gap-1 ${className || ""}`}>
+      <span className="min-w-0 break-words">
+        {open ? text : `${text.slice(0, MAX_TITLE_CHARS)}...`}
+      </span>
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}
+        className="flex-shrink-0 text-primary hover:text-primary/80"
+        aria-label={open ? "Contraer" : "Ver título completo"}
+      >
+        <ChevronDown className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+    </span>
+  );
+}
+
 
 interface StreamingEp {
   title?: string;
@@ -83,10 +107,13 @@ export default function EpisodeList({
                 <p className={`text-xs font-black uppercase tracking-wide ${isActive ? "text-primary" : "text-muted-foreground"}`}>
                   Capítulo {n}
                 </p>
-                <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight mt-0.5">
-                  {epTitle}
+                <p className="text-sm font-bold text-foreground leading-tight mt-0.5">
+                  <ExpandableTitle text={epTitle} />
                 </p>
-                <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5">{animeTitle}</p>
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                  <ExpandableTitle text={animeTitle} />
+                </p>
+
               </div>
               {onToggleWatched && (
                 <button

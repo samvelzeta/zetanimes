@@ -13,9 +13,10 @@ import { getCachedVideo, cachedVideoToSources, getPlaybackPlatform, clearRuntime
 import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang, listBlocks } from "@/lib/video-blocks";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
-  Eye, EyeOff, ChevronLeft, ChevronRight, AlertCircle,
-  Globe, Bug, ChevronDown, List,
+  Eye, EyeOff, ChevronLeft, AlertCircle,
+  Globe, ChevronDown, List,
 } from "lucide-react";
+
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
 import AdOverlayGate from "@/components/ads/AdOverlayGate";
 import AnimePlayer from "@/components/video/AnimePlayer";
@@ -62,7 +63,7 @@ export default function Watch() {
 
   const [selectedEp, setSelectedEp] = useState(epParam);
   const [lang, setLang] = useState<Lang>("sub");
-  const [showDebug, setShowDebug] = useState(false);
+  
   const watchTimeRef = useRef(0);
   const lastTickTimeRef = useRef<number | null>(null);
   const queryClient = useQueryClient();
@@ -780,28 +781,15 @@ export default function Watch() {
               boxShadow: "0 0 0 1px hsl(var(--primary) / 0.2), 0 0 12px hsl(var(--primary) / 0.25)",
             }}
           >
-            {/* Botón Volver superpuesto arriba-derecha dentro del player (flecha hacia la derecha) */}
+            {/* Botón Volver superpuesto arriba-derecha (flecha hacia la izquierda) */}
             <Link
               to={`/anime/${id}`}
               aria-label="Volver al anime"
               className="absolute top-2 right-2 z-40 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-primary/50 text-primary flex items-center justify-center hover:bg-primary/25 hover:text-white transition-all active:scale-95 shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
             >
-              <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
+              <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
             </Link>
 
-            {/* Botón Reportar (esférico, debajo del botón de volver / agrandar) */}
-            {zetSlug && anilistData && (
-              <div className="absolute top-14 right-2 z-40">
-                <ReportBrokenLink
-                  slug={zetSlug}
-                  episodeNumber={selectedEp}
-                  animeTitle={displayTitle}
-                  animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
-                  anilistId={anilistId}
-                  iconOnly
-                />
-              </div>
-            )}
 
           {isEpisodeBlocked ? (
             <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3 px-4 text-center">
@@ -858,25 +846,34 @@ export default function Watch() {
         </div>
       </div>
 
+      {/* Botón Reportar por fuera, debajo del player (a la derecha, debajo del botón de agrandar pantalla) */}
+      {zetSlug && anilistData && (
+        <div className="px-4 sm:px-6 -mt-1 mb-3 flex justify-end">
+          <ReportBrokenLink
+            slug={zetSlug}
+            episodeNumber={selectedEp}
+            animeTitle={displayTitle}
+            animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
+            anilistId={anilistId}
+            iconOnly
+          />
+        </div>
+      )}
+
 
       {/* Title + controls */}
-      <div className="px-5 sm:px-6 mt-8 mb-4">
-        <h1 className="font-steam text-lg sm:text-xl font-bold text-foreground mb-1 leading-tight">
+      <div className="px-4 sm:px-6 mt-4 sm:mt-6 mb-4">
+        <h1 className="font-steam text-base sm:text-xl font-bold text-foreground mb-1 leading-tight line-clamp-2">
           {displayTitle}
         </h1>
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
           <p className="text-xs text-muted-foreground">
+
             Episodio {selectedEp} {zetSlug && `• ${zetSlug}`}
             {inWebView && " • 📱 APK"}
           </p>
-          <Link
-            to={`/anime/${id}`}
-            className="group inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/40 hover:border-primary text-primary font-steam text-xs font-bold tracking-wide transition-all active:scale-95 shadow-[0_0_12px_hsl(var(--primary)/0.25)] hover:shadow-[0_0_18px_hsl(var(--primary)/0.5)]"
-          >
-            <ChevronLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-            Volver al anime
-          </Link>
         </div>
+
 
         {/* Idioma / fuente alternativa */}
         <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -934,23 +931,6 @@ export default function Watch() {
 
         {zetSlug && anilistData && null}
 
-        <button onClick={() => setShowDebug(!showDebug)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition mb-2">
-          <Bug className="w-3.5 h-3.5" /> Debug
-          <ChevronDown className={`w-3 h-3 transition-transform ${showDebug ? "rotate-180" : ""}`} />
-        </button>
-        {showDebug && (
-          <div className="bg-secondary/50 border border-border rounded-xl p-3 mb-4 text-[10px] font-mono space-y-1">
-            <p><span className="text-primary">slug:</span> {zetSlug || "—"}</p>
-            <p><span className="text-primary">episode:</span> {selectedEp}</p>
-            <p><span className="text-primary">lang:</span> {lang}</p>
-            <p><span className="text-primary">servers:</span> {sortedSources.length}</p>
-            <p><span className="text-primary">idiomas:</span> JP {langAvailability.sub} · LAT {langAvailability.latino}</p>
-            <p><span className="text-primary">plataforma:</span> {playbackPlatform === "mobile" ? "APK/Móvil" : "PC"}</p>
-            <p><span className="text-primary">latino_hls:</span> {latinoEp ? "✓" : "✗"}</p>
-            <p><span className="text-primary">webview:</span> {inWebView ? "✓" : "✗"}</p>
-            <p><span className="text-primary">titles:</span> {[anilistData?.title?.romaji, anilistData?.title?.english].filter(Boolean).join(", ")}</p>
-          </div>
-        )}
       </div>
 
       {/* Navegación de episodios — naranja translúcido alargado */}
