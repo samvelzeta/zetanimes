@@ -780,28 +780,15 @@ export default function Watch() {
               boxShadow: "0 0 0 1px hsl(var(--primary) / 0.2), 0 0 12px hsl(var(--primary) / 0.25)",
             }}
           >
-            {/* Botón Volver superpuesto arriba-derecha dentro del player (flecha hacia la derecha) */}
+            {/* Botón Volver superpuesto arriba-derecha (flecha hacia la izquierda) */}
             <Link
               to={`/anime/${id}`}
               aria-label="Volver al anime"
               className="absolute top-2 right-2 z-40 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-primary/50 text-primary flex items-center justify-center hover:bg-primary/25 hover:text-white transition-all active:scale-95 shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
             >
-              <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
+              <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
             </Link>
 
-            {/* Botón Reportar (esférico, debajo del botón de volver / agrandar) */}
-            {zetSlug && anilistData && (
-              <div className="absolute top-14 right-2 z-40">
-                <ReportBrokenLink
-                  slug={zetSlug}
-                  episodeNumber={selectedEp}
-                  animeTitle={displayTitle}
-                  animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
-                  anilistId={anilistId}
-                  iconOnly
-                />
-              </div>
-            )}
 
           {isEpisodeBlocked ? (
             <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3 px-4 text-center">
