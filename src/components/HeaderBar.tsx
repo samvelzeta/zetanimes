@@ -126,17 +126,18 @@ export default function HeaderBar() {
       </div>
 
       <div className="relative">
-        <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur flex items-center justify-center hover:bg-muted transition relative">
+        <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full glass-chip flex items-center justify-center hover:bg-muted transition relative">
           <Bell className="w-4 h-4 text-foreground" />
           {hasUnread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
         </button>
 
         {showNotifs && (
-          <div className="absolute right-0 top-10 w-80 max-h-96 overflow-y-auto bg-card border border-border rounded-xl shadow-xl z-50">
-            <div className="p-3 border-b border-border flex items-center justify-between">
+          <div className="absolute right-0 top-10 w-80 max-h-96 overflow-y-auto glass-panel-strong rounded-xl z-50">
+            <div className="p-3 border-b border-border/50 flex items-center justify-between">
               <span className="text-sm font-bold text-foreground">Notificaciones</span>
               <button onClick={() => setShowNotifs(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
             </div>
+
             {notifications.length === 0 ? (
               <div className="p-6 text-center">
                 <p className="text-sm text-muted-foreground">No hay notificaciones</p>
