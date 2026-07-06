@@ -15,6 +15,7 @@ import AdBannerInline from "@/components/ads/AdBannerInline";
 import SlugOverrideAdmin from "@/components/admin/SlugOverrideAdmin";
 import LikeButton from "@/components/anime/LikeButton";
 import EpisodeList from "@/components/anime/EpisodeList";
+import TechInfoBlock from "@/components/anime/TechInfoBlock";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 
 
