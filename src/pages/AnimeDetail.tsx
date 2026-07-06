@@ -323,7 +323,7 @@ export default function AnimeDetail() {
                       to={`/anime/${edge.node.id}`}
                       className="relative aspect-[16/9] rounded-2xl overflow-hidden group neon-card"
                     >
-                      <img src={img} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                      <img src={img} alt={title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" style={{ objectPosition: "center 20%" }} loading="lazy" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                       <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider">
                         {label}
