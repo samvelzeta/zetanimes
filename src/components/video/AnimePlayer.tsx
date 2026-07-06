@@ -169,6 +169,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [parsedSubtitleCues, setParsedSubtitleCues] = useState<ParsedSubtitleCue[]>([]);
   const [activeSubtitleText, setActiveSubtitleText] = useState("");
   const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const subtitleOptions = useMemo(
     () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
     [effectiveSubtitles]
