@@ -766,52 +766,28 @@ export default function Watch() {
     setPlayerEpisode(selectedEp);
   }, [sortedSourcesKey, isLoading, selectedEp]);
 
-  // Tuerca decorativa SVG (estática, mitad visible en esquina)
-  const CornerNut = ({ className }: { className: string }) => (
-    <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      <defs>
-        <radialGradient id="cornerNutBg" cx="50%" cy="40%" r="60%">
-          <stop offset="0%" stopColor="hsl(20 25% 18%)" />
-          <stop offset="100%" stopColor="hsl(15 40% 5%)" />
-        </radialGradient>
-      </defs>
-      <polygon
-        points="50,4 91,27 91,73 50,96 9,73 9,27"
-        fill="url(#cornerNutBg)"
-        stroke="hsl(22 60% 35%)"
-        strokeWidth="2.5"
-      />
-      <polygon
-        points="50,12 84,30 84,70 50,88 16,70 16,30"
-        fill="none"
-        stroke="hsl(22 40% 22%)"
-        strokeWidth="0.8"
-      />
-      <circle cx="50" cy="50" r="14" fill="hsl(15 35% 6%)" stroke="hsl(22 45% 25%)" strokeWidth="1.2" />
-    </svg>
-  );
-
   return (
     <div className="min-h-screen pb-24">
-      {/* Player con marco decorativo (brillo naranja + tuercas en las 4 esquinas) */}
-      <div className="px-4 pt-4 mb-3">
+      {/* Player edge-to-edge en móvil, con línea de acento sutil */}
+      <div className="sm:px-4 sm:pt-4 mb-3">
         <div className="relative">
-          {/* Tuercas DEBAJO del player (z-0), solo sobresale la mitad */}
-          <CornerNut className="absolute -top-3 -left-3 w-9 h-9 sm:w-11 sm:h-11 z-0 pointer-events-none drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" />
-          <CornerNut className="absolute -top-3 -right-3 w-9 h-9 sm:w-11 sm:h-11 z-0 pointer-events-none drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" />
-          <CornerNut className="absolute -bottom-3 -left-3 w-9 h-9 sm:w-11 sm:h-11 z-0 pointer-events-none drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" />
-          <CornerNut className="absolute -bottom-3 -right-3 w-9 h-9 sm:w-11 sm:h-11 z-0 pointer-events-none drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" />
-
-          {/* Wrapper del player con borde + brillo naranja, encima de las tuercas */}
           <div
             ref={playerWrapperRef}
             id="zet-player-container"
-            className="zet-player-container relative z-10 aspect-video bg-black rounded-xl overflow-hidden border-2 border-primary/40 select-none"
+            className="zet-player-container relative z-10 aspect-video bg-black sm:rounded-xl overflow-hidden border-y sm:border-2 border-primary/50 select-none"
             style={{
-              boxShadow:
-                "0 0 0 1px hsl(var(--primary) / 0.15), 0 0 22px hsl(var(--primary) / 0.45), 0 0 50px hsl(var(--primary) / 0.25)",
+              boxShadow: "0 0 0 1px hsl(var(--primary) / 0.2), 0 0 12px hsl(var(--primary) / 0.25)",
             }}
           >
+            {/* Botón Volver superpuesto arriba-izquierda dentro del player */}
+            <Link
+              to={`/anime/${id}`}
+              aria-label="Volver al anime"
+              className="absolute top-2 left-2 z-40 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-primary/50 text-primary flex items-center justify-center hover:bg-primary/25 hover:text-white transition-all active:scale-95 shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+            >
+              <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
+            </Link>
+
           {isEpisodeBlocked ? (
             <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3 px-4 text-center">
               <AlertCircle className="w-10 h-10 text-primary" />
@@ -866,6 +842,7 @@ export default function Watch() {
           </div>
         </div>
       </div>
+
 
       {/* Title + controls */}
       <div className="px-5 sm:px-6 mt-8 mb-4">
