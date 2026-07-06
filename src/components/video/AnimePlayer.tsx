@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 
