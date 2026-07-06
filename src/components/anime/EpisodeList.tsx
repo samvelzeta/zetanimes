@@ -107,10 +107,13 @@ export default function EpisodeList({
                 <p className={`text-xs font-black uppercase tracking-wide ${isActive ? "text-primary" : "text-muted-foreground"}`}>
                   Capítulo {n}
                 </p>
-                <p className="text-sm font-bold text-foreground line-clamp-2 leading-tight mt-0.5">
-                  {epTitle}
+                <p className="text-sm font-bold text-foreground leading-tight mt-0.5">
+                  <ExpandableTitle text={epTitle} />
                 </p>
-                <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5">{animeTitle}</p>
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                  <ExpandableTitle text={animeTitle} />
+                </p>
+
               </div>
               {onToggleWatched && (
                 <button
