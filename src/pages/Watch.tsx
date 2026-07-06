@@ -850,19 +850,8 @@ export default function Watch() {
         </div>
       </div>
 
-      {/* Botón Reportar por fuera, debajo del player (a la derecha, debajo del botón de agrandar pantalla) */}
-      {zetSlug && anilistData && (
-        <div className="px-4 sm:px-6 -mt-1 mb-3 flex justify-end">
-          <ReportBrokenLink
-            slug={zetSlug}
-            episodeNumber={selectedEp}
-            animeTitle={displayTitle}
-            animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
-            anilistId={anilistId}
-            iconOnly
-          />
-        </div>
-      )}
+
+
 
 
       {/* Title + details */}
