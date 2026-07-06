@@ -19,6 +19,7 @@ import {
   BadgeCheck,
   MonitorSmartphone,
   X,
+  ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { compressAvatar } from "@/lib/image-compress";
@@ -191,7 +192,14 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground relative">
+      <button
+        onClick={() => navigate(-1)}
+        aria-label="Volver"
+        className="fixed top-6 left-6 z-50 w-10 h-10 rounded-full bg-neutral-900/80 border border-neutral-700 backdrop-blur-sm flex items-center justify-center text-foreground/80 hover:text-primary hover:border-primary/60 hover:bg-neutral-900 transition-all shadow-lg"
+      >
+        <ChevronLeft className="w-5 h-5" strokeWidth={1.75} />
+      </button>
       <div className="max-w-[860px] mx-auto px-5 md:px-8 pt-16 md:pt-20 pb-32">
         <div className="rounded-3xl border border-neutral-800/70 bg-white/[0.015] flex flex-col gap-8 p-6 md:p-10">
 
