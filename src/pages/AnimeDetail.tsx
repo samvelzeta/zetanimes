@@ -15,6 +15,7 @@ import AdBannerInline from "@/components/ads/AdBannerInline";
 import SlugOverrideAdmin from "@/components/admin/SlugOverrideAdmin";
 import LikeButton from "@/components/anime/LikeButton";
 import EpisodeList from "@/components/anime/EpisodeList";
+import TechInfoBlock from "@/components/anime/TechInfoBlock";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 
 
@@ -33,7 +34,7 @@ const SYNOPSIS_LIMIT = 200;
 export default function AnimeDetail() {
   const { id } = useParams();
   const animeId = parseInt(id || "0");
-  const { user, isPremium } = useAuth();
+  const { user, isPremium, isOwner } = useAuth();
   const { permissions } = usePlanPermissions();
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -295,7 +296,15 @@ export default function AnimeDetail() {
             </div>
           </div>
 
-          <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
+          {isOwner ? (
+            <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
+          ) : (
+            <TechInfoBlock
+              title={title}
+              studio={(anime as any).studios?.nodes?.find((s: any) => s.isAnimationStudio)?.name || (anime as any).studios?.nodes?.[0]?.name}
+              format={anime.format}
+            />
+          )}
 
           {/* STATS */}
           <div className="flex flex-wrap items-center gap-2 mt-4">
