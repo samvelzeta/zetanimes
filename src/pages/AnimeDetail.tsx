@@ -162,11 +162,11 @@ export default function AnimeDetail() {
   const totalEps = anime.nextAiringEpisode?.episode ? anime.nextAiringEpisode.episode - 1 : (anime.episodes || 0);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      {/* HERO BACKGROUND FIJO — se queda pegado al fondo mientras el contenido scrollea sobre él */}
+    <div className="min-h-screen bg-[#0a0a0a] relative" style={{ isolation: "isolate" }}>
+      {/* HERO BACKGROUND FIJO — capa base, siempre detrás */}
       <div
-        className="fixed top-0 left-0 right-0 w-full h-[45vh] lg:h-[55vh] min-h-[320px] max-h-[620px] z-0 pointer-events-none"
-        style={{ transform: "translateZ(0)" }}
+        className="fixed top-0 left-0 right-0 w-full h-[45vh] lg:h-[55vh] min-h-[320px] max-h-[620px] overflow-hidden pointer-events-none"
+        style={{ zIndex: 0 }}
       >
         <img
           src={banner || cover}
@@ -177,17 +177,19 @@ export default function AnimeDetail() {
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-[#0a0a0a]/10" />
       </div>
 
-      {/* Back button (fijo, sobre el hero) */}
+      {/* Back button (fijo, sobre todo) */}
       <Link
         to="/"
-        className="fixed top-4 left-4 z-30 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center pointer-events-auto"
+        className="fixed top-4 left-4 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center pointer-events-auto"
+        style={{ zIndex: 40 }}
       >
         <ArrowLeft className="w-5 h-5 text-white" />
       </Link>
 
       {/* HERO TÍTULO (solo móvil, superpuesto al fondo antes del scroll) */}
       <div
-        className="relative z-10 h-[45vh] min-h-[320px] max-h-[520px] flex items-end px-4 pb-4 lg:hidden pointer-events-none"
+        className="relative h-[45vh] min-h-[320px] max-h-[520px] flex items-end px-4 pb-4 lg:hidden pointer-events-none"
+        style={{ zIndex: 10 }}
       >
         <div className="w-full pointer-events-auto">
           <h1
@@ -208,23 +210,24 @@ export default function AnimeDetail() {
       </div>
 
       {/* Espaciador desktop para revelar el fondo al inicio */}
-      <div className="hidden lg:block h-[55vh] min-h-[420px] max-h-[620px] relative z-10 pointer-events-none" />
+      <div className="hidden lg:block h-[55vh] min-h-[420px] max-h-[620px] relative pointer-events-none" style={{ zIndex: 10 }} />
 
-      {/* CONTENIDO SCROLLEABLE — sube sobre el fondo fijo */}
-      <div className="relative z-20 bg-[#0a0a0a] pb-24" style={{ isolation: "isolate" }}>
+      {/* CONTENIDO SCROLLEABLE — capa superior, siempre encima del fondo */}
+      <div className="relative bg-[#0a0a0a] pb-24" style={{ zIndex: 20, isolation: "isolate" }}>
         {/* Gradiente de transición suave */}
-        <div className="absolute -top-24 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-[#0a0a0a] pointer-events-none z-0" />
+        <div className="absolute -top-24 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-[#0a0a0a] pointer-events-none" style={{ zIndex: 0 }} />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-6">
+        <div className="relative max-w-7xl mx-auto px-4 lg:px-8 pt-6" style={{ zIndex: 1 }}>
           {/* DESKTOP HERO INFO — poster + info en fila */}
           <div className="hidden lg:flex gap-8 mb-8">
-            <div className="relative z-30 flex-none" style={{ isolation: "isolate" }}>
+            <div className="relative flex-none" style={{ zIndex: 2 }}>
               <img
                 src={cover}
                 alt={title}
-                className="w-[250px] aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] -mt-32 border border-white/10 relative z-30"
+                className="w-[250px] aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] -mt-32 border border-white/10 block"
               />
             </div>
+
             <div className="flex-1 min-w-0 pt-2">
               <h1 className="font-serif font-black text-white leading-tight uppercase tracking-wide text-4xl xl:text-5xl">
                 {title}
