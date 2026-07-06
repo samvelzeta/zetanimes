@@ -241,10 +241,13 @@ function PendingCard({
       const res = await unapproveAnime(anime.id);
       if (!res.success) throw new Error(res.error);
       await logAdminActivity({
+        area: "videos",
         action: "unapprove_anime",
+        summary: `Aprobación retirada: ${title}`,
         target_type: "anime",
         target_id: String(anime.id),
-        details: { title },
+        anilist_id: anime.id,
+        anime_title: title,
       });
       toast.success("Quitado de la whitelist");
       onChanged();
