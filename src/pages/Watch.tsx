@@ -789,7 +789,7 @@ export default function Watch() {
             <Link
               to={`/anime/${id}`}
               aria-label="Volver al anime"
-              className="absolute top-2 right-2 z-40 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-primary/50 text-primary flex items-center justify-center hover:bg-primary/25 hover:text-white transition-all active:scale-95 shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+              className="absolute top-4 right-3 z-40 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-primary/50 text-primary flex items-center justify-center hover:bg-primary/25 hover:text-white transition-all active:scale-95 shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
             >
               <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
             </Link>
