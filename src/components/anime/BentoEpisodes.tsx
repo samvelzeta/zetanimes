@@ -5,6 +5,8 @@ import { Play, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
+import { getApprovedAnimeIds, filterApprovedReleasing, onApprovedChange } from "@/lib/approved-animes";
+import { useEffect } from "react";
 import AdCard from "@/components/ads/AdCard";
 import LazyImage from "@/components/LazyImage";
 
@@ -26,7 +28,17 @@ export default function BentoEpisodes() {
   });
   const hidden = new Set(hiddenIds || []);
 
-  const allItems = (data?.media || []).filter((a) => !hidden.has(a.id));
+  // Whitelist de RELEASING aprobados — los no aprobados se ocultan del Home
+  const { data: approvedIds, refetch: refetchApproved } = useQuery({
+    queryKey: ["approved-anime-ids"],
+    queryFn: async () => Array.from(await getApprovedAnimeIds(true)),
+    staleTime: 1000 * 60 * 5,
+  });
+  const approvedSet = new Set<number>(approvedIds || []);
+  useEffect(() => onApprovedChange(() => { refetchApproved(); }), [refetchApproved]);
+
+  const noHidden = (data?.media || []).filter((a) => !hidden.has(a.id));
+  const allItems = filterApprovedReleasing(noHidden, approvedSet);
   // Premium: 5 cuadros. Free: 4 cuadros + 1 anuncio.
   const items = allItems.slice(0, isPremium ? 5 : 4);
 

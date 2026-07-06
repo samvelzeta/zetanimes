@@ -41,8 +41,9 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
   const selfEditOnly = Boolean(editableProfileId);
   const visibleProfiles = selfEditOnly ? profiles.filter((p) => p.id === editableProfileId) : profiles;
   const canCreate = manage && !selfEditOnly && profiles.length < maxProfiles;
-  const emptySlots = canCreate ? Array.from({ length: maxProfiles - profiles.length }) : [];
-  const totalCards = visibleProfiles.length + emptySlots.length;
+  // Un ÚNICO botón "Añadir perfil" (no una casilla por cada slot disponible)
+  const showAddButton = canCreate;
+  const totalCards = visibleProfiles.length + (showAddButton ? 1 : 0);
 
   useEffect(() => { if (manageMode) refresh(); }, [refresh, manageMode]);
 
@@ -172,24 +173,27 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
             </div>
           ))}
 
-          {emptySlots.map((_, slotIdx) => {
-            const idx = visibleProfiles.length + slotIdx;
+          {showAddButton && (() => {
+            const idx = visibleProfiles.length;
             return (
-            <div
-              key={`empty-${slotIdx}`}
-              className={`flex flex-col items-center gap-3 animate-fade-in ${totalCards === 3 && idx === 2 ? "col-span-2 md:col-span-1" : ""}`}
-              style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "backwards" }}
-            >
-              <button
-                onClick={() => setCreating(true)}
-                className="w-32 h-32 sm:w-36 sm:h-36 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all hover:scale-110 flex items-center justify-center group"
+              <div
+                key="add-btn"
+                className={`flex flex-col items-center gap-3 animate-fade-in ${totalCards === 3 && idx === 2 ? "col-span-2 md:col-span-1" : ""}`}
+                style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "backwards" }}
               >
-                <Plus className="w-12 h-12 text-muted-foreground group-hover:text-primary transition" />
-              </button>
-              <span className="text-base font-bold text-muted-foreground">Añadir perfil</span>
-            </div>
+                <button
+                  onClick={() => setCreating(true)}
+                  className="w-32 h-32 sm:w-36 sm:h-36 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all hover:scale-110 flex items-center justify-center group"
+                  title={`Añadir perfil (${profiles.length}/${maxProfiles})`}
+                >
+                  <Plus className="w-12 h-12 text-muted-foreground group-hover:text-primary transition" />
+                </button>
+                <span className="text-base font-bold text-muted-foreground">
+                  Añadir perfil <span className="text-[10px] opacity-70">({profiles.length}/{maxProfiles})</span>
+                </span>
+              </div>
             );
-          })}
+          })()}
         </div>
 
         <div className="mt-12 flex justify-center gap-3">

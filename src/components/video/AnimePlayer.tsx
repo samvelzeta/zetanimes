@@ -438,8 +438,10 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     onControlsVisibilityChange?.(showControls || !playing);
   }, [showControls, playing, onControlsVisibilityChange]);
   useEffect(() => {
+    // Si sale de pantalla completa con el panel abierto, ciérralo (solo se usa en FS)
+    if (!isFullscreen && showEpList) setShowEpList(false);
     onEpisodeListToggle?.(showEpList);
-  }, [showEpList, onEpisodeListToggle]);
+  }, [showEpList, isFullscreen, onEpisodeListToggle]);
 
   // ── Custom SRT renderer: lee el .srt, lo parsea y lo pinta sobre el video ──
   useEffect(() => {
@@ -1100,12 +1102,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                   </div>
                 )}
               </div>
-              {currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
+              {isFullscreen && currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
                   className="flex items-center gap-1 text-white/80 hover:text-primary transition"
                   aria-label="Lista de episodios"
-                  title="Lista de episodios"
+                  title="Lista de episodios (solo en pantalla completa)"
                 >
                   <List className="w-5 h-5" />
                   <span className="text-[10px] font-mono tabular-nums">{currentEpisode}/{totalEpisodes}</span>
