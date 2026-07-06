@@ -211,18 +211,20 @@ export default function AnimeDetail() {
       <div className="hidden lg:block h-[55vh] min-h-[420px] max-h-[620px] relative z-10 pointer-events-none" />
 
       {/* CONTENIDO SCROLLEABLE — sube sobre el fondo fijo */}
-      <div className="relative z-10 bg-[#0a0a0a] pb-24">
+      <div className="relative z-20 bg-[#0a0a0a] pb-24" style={{ isolation: "isolate" }}>
         {/* Gradiente de transición suave */}
-        <div className="absolute -top-24 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-[#0a0a0a] pointer-events-none" />
+        <div className="absolute -top-24 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-[#0a0a0a] pointer-events-none z-0" />
 
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-6">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 lg:px-8 pt-6">
           {/* DESKTOP HERO INFO — poster + info en fila */}
           <div className="hidden lg:flex gap-8 mb-8">
-            <img
-              src={cover}
-              alt={title}
-              className="w-[250px] flex-none aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] -mt-32 border border-white/10"
-            />
+            <div className="relative z-30 flex-none" style={{ isolation: "isolate" }}>
+              <img
+                src={cover}
+                alt={title}
+                className="w-[250px] aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] -mt-32 border border-white/10 relative z-30"
+              />
+            </div>
             <div className="flex-1 min-w-0 pt-2">
               <h1 className="font-serif font-black text-white leading-tight uppercase tracking-wide text-4xl xl:text-5xl">
                 {title}
