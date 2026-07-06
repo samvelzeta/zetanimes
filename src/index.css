@@ -496,14 +496,16 @@ h1, h2, h3, .heading-steam {
   content: "";
   position: absolute;
   inset: 0;
+  border-radius: inherit;
   background: linear-gradient(115deg,
     transparent 40%,
     hsl(var(--primary) / 0.08) 48%,
     rgba(255,255,255,0.12) 50%,
     hsl(var(--primary) / 0.08) 52%,
     transparent 60%);
-  background-size: 250% 250%;
-  background-position: -60% -60%;
+  background-size: 200% 200%;
+  background-position: 0% 0%;
+  background-repeat: no-repeat;
   opacity: 0;
   transition: opacity 0.5s ease, background-position 1.1s ease;
   pointer-events: none;
@@ -513,8 +515,31 @@ h1, h2, h3, .heading-steam {
 .arcane-card:hover::after,
 .arcane-card:focus-within::after {
   opacity: 1;
-  background-position: 160% 160%;
+  background-position: 100% 100%;
 }
+
+/* Cogwheel — mechanical spinner over icons */
+@keyframes cog-spin { to { transform: rotate(360deg); } }
+.cog-spin { animation: cog-spin 15s linear infinite; transform-origin: 50% 50%; will-change: transform; }
+
+/* Interactive management tile */
+.mgmt-tile {
+  position: relative;
+  border: 1px solid hsl(var(--border) / 0.55);
+  background: linear-gradient(180deg, hsl(var(--card) / 0.35), hsl(var(--background) / 0.15));
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+}
+.mgmt-tile:hover,
+.mgmt-tile:focus-visible {
+  transform: translateY(-3px);
+  border-color: hsl(var(--primary) / 0.55);
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--primary) / 0.35),
+    0 10px 28px -14px hsl(var(--primary) / 0.55),
+    0 0 22px -8px hsl(var(--primary) / 0.5);
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.06), hsl(var(--card) / 0.35));
+}
+
 
 /* Ambient particles */
 .arcane-particles {
