@@ -434,14 +434,15 @@ export default function AnimeDetail() {
         })()}
 
 
-      {recommendations.length > 0 && (
-        <div className="mt-6 px-4">
-          <h2 className="text-sm font-black text-foreground mb-3 uppercase tracking-wider">Recomendaciones</h2>
-          <div className="flex gap-3 overflow-x-auto hide-scrollbar">
-            {recommendations.map((rec: any) => <AnimeCard key={rec.id} anime={rec} size="small" />)}
+        {recommendations.length > 0 && (
+          <div className="mt-6 px-4 lg:px-8 max-w-7xl mx-auto">
+            <h2 className="text-sm font-black text-foreground mb-3 uppercase tracking-wider">Recomendaciones</h2>
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar lg:grid lg:grid-cols-5 lg:overflow-visible">
+              {recommendations.map((rec: any) => <AnimeCard key={rec.id} anime={rec} size="small" />)}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} message="Regístrate para guardar animes en tus listas, marcar favoritos y llevar control de lo que ves." />}
     </div>
