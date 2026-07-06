@@ -201,7 +201,29 @@ export default function Profile() {
         <ChevronLeft className="w-5 h-5" strokeWidth={1.75} />
       </button>
       <div className="max-w-[860px] mx-auto px-5 md:px-8 pt-16 md:pt-20 pb-32">
-        <div className="rounded-3xl border border-neutral-800/70 bg-white/[0.015] flex flex-col gap-8 p-6 md:p-10">
+        <div className="arcane-card arcane-stagger rounded-3xl border border-neutral-800/70 bg-white/[0.015] flex flex-col gap-8 p-6 md:p-10">
+          {/* Ambient Hextech particles */}
+          <div className="arcane-particles" aria-hidden>
+            {Array.from({ length: 14 }).map((_, i) => {
+              const left = (i * 7.3) % 100;
+              const dur = 12 + ((i * 3) % 10);
+              const delay = (i * 1.4) % 9;
+              const size = 2 + (i % 3);
+              return (
+                <span
+                  key={i}
+                  style={{
+                    left: `${left}%`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    animationDuration: `${dur}s`,
+                    animationDelay: `-${delay}s`,
+                  }}
+                />
+              );
+            })}
+          </div>
+
 
           {/* ————————————— ZONA DE IDENTIDAD ————————————— */}
           <header className="flex items-start gap-5 md:gap-10">
