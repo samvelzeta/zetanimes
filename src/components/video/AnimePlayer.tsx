@@ -666,7 +666,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
   // El tap simple siempre deja los controles visibles al menos 5s antes de ocultarlos.
   const isMobileLike = inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const HIDE_MS = 5000;
+  const HIDE_MS = 3000;
   const DOUBLE_TAP_MS = 300;
   const SINGLE_TAP_DELAY_MS = 340;
 
