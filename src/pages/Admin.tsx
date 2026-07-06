@@ -117,7 +117,7 @@ export default function AdminPanel() {
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top bar */}
-          <header className="sticky top-0 z-30 h-14 flex items-center gap-3 border-b border-border bg-background/95 backdrop-blur-xl px-4">
+          <header className="sticky top-0 z-30 h-14 flex items-center gap-3 glass-panel rounded-none border-x-0 border-t-0 px-4">
             <SidebarTrigger className="text-foreground" />
             <Link to="/profile" className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-muted transition">
               <ArrowLeft className="w-4 h-4 text-foreground" />

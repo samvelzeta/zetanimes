@@ -10,8 +10,9 @@ interface Props {
 export default function DeviceLimitModal({ current, limit, onClose }: Props) {
   const navigate = useNavigate();
   return (
-    <div className="fixed inset-0 z-[120] bg-background/95 backdrop-blur-xl flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-card border-2 border-destructive/40 rounded-2xl p-6 shadow-2xl text-center">
+    <div className="fixed inset-0 z-[120] bg-background/60 backdrop-blur-xl flex items-center justify-center p-4">
+      <div className="max-w-md w-full glass-panel-strong rounded-2xl p-6 text-center border-destructive/40">
+
         {onClose && (
           <button
             onClick={onClose}

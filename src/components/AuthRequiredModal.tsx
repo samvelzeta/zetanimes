@@ -8,8 +8,9 @@ interface Props {
 
 export default function AuthRequiredModal({ onClose, message }: Props) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={onClose}>
+      <div className="glass-panel-strong w-full max-w-sm rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
+
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-black text-foreground flex items-center gap-2">
             <LogIn className="w-5 h-5 text-primary" />
