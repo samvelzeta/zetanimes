@@ -180,7 +180,7 @@ export default function AnimeDetail() {
       {/* Back button (fijo, sobre todo) */}
       <Link
         to="/"
-        className="fixed top-4 left-4 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center pointer-events-auto"
+        className="fixed top-14 left-4 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center pointer-events-auto"
         style={{ zIndex: 40 }}
       >
         <ArrowLeft className="w-5 h-5 text-white" />
