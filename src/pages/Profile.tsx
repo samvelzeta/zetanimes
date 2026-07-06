@@ -201,7 +201,7 @@ export default function Profile() {
         <ChevronLeft className="w-5 h-5" strokeWidth={1.75} />
       </button>
       <div className="max-w-[860px] mx-auto px-5 md:px-8 pt-16 md:pt-20 pb-32">
-        <div className="arcane-card arcane-stagger rounded-3xl border border-neutral-800/70 bg-white/[0.015] flex flex-col gap-8 p-6 md:p-10">
+        <div className="arcane-card arcane-stagger overflow-hidden rounded-3xl border border-neutral-800/70 bg-white/[0.015] flex flex-col gap-8 p-6 md:p-10">
           {/* Ambient Hextech particles */}
           <div className="arcane-particles" aria-hidden>
             {Array.from({ length: 14 }).map((_, i) => {
@@ -351,12 +351,23 @@ export default function Profile() {
                 <button
                   key={item.id}
                   onClick={item.onClick}
-                  className="group text-left p-4 md:px-5 md:py-4 rounded-2xl hover:bg-foreground/5 transition-all md:flex-1 md:min-w-[160px]"
+                  className="mgmt-tile group text-left p-4 md:px-5 md:py-4 rounded-2xl md:flex-1 md:min-w-[160px]"
                 >
-                  <item.icon
-                    className="w-5 h-5 md:w-5 md:h-5 text-foreground/50 group-hover:text-primary transition-colors mb-3"
-                    strokeWidth={1.5}
-                  />
+                  <span className="relative inline-block mb-3">
+                    <item.icon
+                      className="w-5 h-5 md:w-5 md:h-5 text-foreground/60 group-hover:text-primary transition-colors"
+                      strokeWidth={1.5}
+                    />
+                    <svg
+                      aria-hidden
+                      viewBox="0 0 24 24"
+                      className="cog-spin absolute -top-1.5 -right-2 w-3.5 h-3.5 text-primary/70 group-hover:text-primary transition-colors"
+                      fill="currentColor"
+                    >
+                      <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm0 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" />
+                      <path d="M19.4 12c0-.34-.03-.67-.08-1l1.7-1.32a.5.5 0 0 0 .11-.62l-1.6-2.77a.5.5 0 0 0-.6-.22l-2 .8a7.4 7.4 0 0 0-1.72-1L14.9 3.6a.5.5 0 0 0-.5-.42h-3.2a.5.5 0 0 0-.5.42l-.31 2.27c-.62.24-1.2.58-1.72 1l-2-.8a.5.5 0 0 0-.6.22L4.47 9.06a.5.5 0 0 0 .11.62L6.28 11c-.05.33-.08.66-.08 1s.03.67.08 1l-1.7 1.32a.5.5 0 0 0-.11.62l1.6 2.77a.5.5 0 0 0 .6.22l2-.8c.52.42 1.1.76 1.72 1l.31 2.27a.5.5 0 0 0 .5.42h3.2a.5.5 0 0 0 .5-.42l.31-2.27c.62-.24 1.2-.58 1.72-1l2 .8a.5.5 0 0 0 .6-.22l1.6-2.77a.5.5 0 0 0-.11-.62L19.32 13c.05-.33.08-.66.08-1Z" opacity=".35" />
+                    </svg>
+                  </span>
                   <p className="text-sm font-light text-foreground tracking-tight">{item.label}</p>
                   {item.hint && (
                     <p className="text-[10px] md:text-xs text-muted-foreground/50 font-light mt-1 line-clamp-1">{item.hint}</p>
@@ -364,18 +375,25 @@ export default function Profile() {
                 </button>
               ))}
 
+
               {!isPremium && isMainProfile && (
                 <button
                   onClick={() => setShowPremiumModal(true)}
-                  className="group text-left p-4 md:px-5 md:py-4 rounded-2xl hover:bg-primary/5 transition-all col-span-2 md:flex-1 md:min-w-[220px] md:basis-full"
+                  className="mgmt-tile group text-left p-4 md:px-5 md:py-4 rounded-2xl col-span-2 md:flex-1 md:min-w-[220px] md:basis-full"
                 >
-                  <Crown className="w-5 h-5 text-primary mb-3" strokeWidth={1.5} />
+                  <span className="relative inline-block mb-3">
+                    <Crown className="w-5 h-5 text-primary" strokeWidth={1.5} />
+                    <svg aria-hidden viewBox="0 0 24 24" className="cog-spin absolute -top-1.5 -right-2 w-3.5 h-3.5 text-primary/70" fill="currentColor">
+                      <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm0 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" />
+                    </svg>
+                  </span>
                   <p className="text-sm font-light text-foreground tracking-tight">Obtener Premium</p>
                   <p className="text-[10px] md:text-xs text-muted-foreground/60 font-light mt-1">
                     Desbloquea planes Básico, Solo o Dúo
                   </p>
                 </button>
               )}
+
             </div>
 
             {!isMainProfile && activeProfile && (
