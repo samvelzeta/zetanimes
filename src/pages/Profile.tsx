@@ -207,22 +207,59 @@ export default function Profile() {
           <header className="flex items-start gap-5 md:gap-10">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div
-                className="w-24 h-24 md:w-36 md:h-36 rounded-full overflow-hidden"
-                style={{ filter: "drop-shadow(0 20px 40px hsl(var(--primary) / 0.35)) drop-shadow(0 8px 16px rgb(0 0 0 / 0.4))" }}
-              >
-                {displayAvatar ? (
-                  <img src={displayAvatar} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/40 to-accent/20 flex items-center justify-center">
-                    <span className="text-4xl md:text-5xl font-thin text-foreground/70">
-                      {displayName[0]?.toUpperCase() || "U"}
-                    </span>
-                  </div>
+              <div className="relative w-24 h-24 md:w-36 md:h-36" style={{ isolation: "isolate" }}>
+                {/* Z-0: Magitech pulse glow */}
+                {(profile?.subscription_status === "active" || isOwner) && (
+                  <>
+                    <span
+                      aria-hidden
+                      className="magitech-pulse absolute top-1/2 left-1/2 rounded-full pointer-events-none"
+                      style={{
+                        zIndex: 0,
+                        width: "125%",
+                        height: "125%",
+                        background: "radial-gradient(circle, hsl(var(--primary) / 0.55) 0%, hsl(var(--primary) / 0.15) 45%, transparent 70%)",
+                        filter: "blur(14px)",
+                      }}
+                    />
+                    {/* Z-2: rotating dashed rune ring */}
+                    <span
+                      aria-hidden
+                      className="magitech-spin absolute inset-[-6px] rounded-full pointer-events-none"
+                      style={{
+                        zIndex: 2,
+                        border: "1.5px dashed hsl(var(--primary) / 0.75)",
+                        boxShadow: "0 0 12px hsl(var(--primary) / 0.35) inset",
+                      }}
+                    />
+                    <span
+                      aria-hidden
+                      className="magitech-spin-reverse absolute inset-[-12px] rounded-full pointer-events-none"
+                      style={{
+                        zIndex: 2,
+                        border: "1px dotted hsl(var(--primary) / 0.35)",
+                      }}
+                    />
+                  </>
                 )}
+                {/* Z-1: Photo */}
+                <div
+                  className="relative w-full h-full rounded-full overflow-hidden"
+                  style={{ zIndex: 1, filter: "drop-shadow(0 20px 40px hsl(var(--primary) / 0.35)) drop-shadow(0 8px 16px rgb(0 0 0 / 0.4))" }}
+                >
+                  {displayAvatar ? (
+                    <img src={displayAvatar} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/40 to-accent/20 flex items-center justify-center">
+                      <span className="text-4xl md:text-5xl font-thin text-foreground/70">
+                        {displayName[0]?.toUpperCase() || "U"}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
               {isMainProfile && permissions.custom_avatar_upload && (
-                <label className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-background border border-foreground/15 flex items-center justify-center cursor-pointer hover:border-primary transition">
+                <label className="absolute bottom-1 right-1 z-10 w-8 h-8 rounded-full bg-background border border-foreground/15 flex items-center justify-center cursor-pointer hover:border-primary transition">
                   <Camera className="w-3.5 h-3.5 text-foreground/70" />
                   <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
                 </label>
