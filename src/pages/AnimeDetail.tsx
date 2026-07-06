@@ -296,7 +296,15 @@ export default function AnimeDetail() {
             </div>
           </div>
 
-          <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
+          {isOwner ? (
+            <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
+          ) : (
+            <TechInfoBlock
+              title={title}
+              studio={(anime as any).studios?.nodes?.find((s: any) => s.isAnimationStudio)?.name || (anime as any).studios?.nodes?.[0]?.name}
+              format={anime.format}
+            />
+          )}
 
           {/* STATS */}
           <div className="flex flex-wrap items-center gap-2 mt-4">
