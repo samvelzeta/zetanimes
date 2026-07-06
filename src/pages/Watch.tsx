@@ -845,14 +845,29 @@ export default function Watch() {
         </div>
       </div>
 
+      {/* Botón Reportar por fuera, debajo del player (a la derecha, debajo del botón de agrandar pantalla) */}
+      {zetSlug && anilistData && (
+        <div className="px-4 sm:px-6 -mt-1 mb-3 flex justify-end">
+          <ReportBrokenLink
+            slug={zetSlug}
+            episodeNumber={selectedEp}
+            animeTitle={displayTitle}
+            animeCover={anilistData.coverImage?.large || anilistData.coverImage?.extraLarge || ""}
+            anilistId={anilistId}
+            iconOnly
+          />
+        </div>
+      )}
+
 
       {/* Title + controls */}
-      <div className="px-5 sm:px-6 mt-8 mb-4">
-        <h1 className="font-steam text-lg sm:text-xl font-bold text-foreground mb-1 leading-tight">
+      <div className="px-4 sm:px-6 mt-4 sm:mt-6 mb-4">
+        <h1 className="font-steam text-base sm:text-xl font-bold text-foreground mb-1 leading-tight line-clamp-2">
           {displayTitle}
         </h1>
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
           <p className="text-xs text-muted-foreground">
+
             Episodio {selectedEp} {zetSlug && `• ${zetSlug}`}
             {inWebView && " • 📱 APK"}
           </p>
