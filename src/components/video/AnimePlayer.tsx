@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 
@@ -169,6 +169,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [parsedSubtitleCues, setParsedSubtitleCues] = useState<ParsedSubtitleCue[]>([]);
   const [activeSubtitleText, setActiveSubtitleText] = useState("");
   const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const subtitleOptions = useMemo(
     () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
     [effectiveSubtitles]
@@ -191,6 +193,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     setAutoNextSeconds(15);
     if (autoNextTimer.current) clearInterval(autoNextTimer.current);
   }, [classified]);
+
+  // Apply playback speed
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = playbackRate;
+  }, [playbackRate, currentIdx]);
+
+
 
   useEffect(() => {
     autoNextCountdownStarted.current = false;
@@ -664,7 +673,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
   // El tap simple siempre deja los controles visibles al menos 5s antes de ocultarlos.
   const isMobileLike = inWebView || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const HIDE_MS = 5000;
+  const HIDE_MS = 3000;
   const DOUBLE_TAP_MS = 300;
   const SINGLE_TAP_DELAY_MS = 340;
 
@@ -861,7 +870,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         </div>
       )}
 
-      <video ref={videoRef} className="relative z-[1] w-full h-full object-contain" playsInline muted={muted} crossOrigin="anonymous" />
+      <video ref={videoRef} className={`relative z-[1] w-full h-full object-contain transition-all duration-500 ${showEpList ? "brightness-50 scale-[0.98]" : ""}`} playsInline muted={muted} crossOrigin="anonymous" />
 
       {subsActive && activeSubtitleText && (
         <div
@@ -919,7 +928,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       {/* Controls overlay — usa visibility: hidden cuando está oculto para bloquear TODOS los clicks (incluso en hijos con pointer-events:auto). Esto arregla el bug del APK donde los botones de prev/next se ejecutaban estando ocultos. */}
       <div
         aria-hidden={!(showControls || !playing)}
-        className={`absolute inset-0 z-10 transition-opacity duration-300 ${
+        className={`absolute inset-0 z-10 transition-opacity duration-700 ${
           showControls || !playing ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
         }`}
       >
@@ -970,19 +979,19 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           </div>
         )}
 
-        {/* Bottom controls */}
-        <div data-player-control="true" className="pointer-events-auto absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
-          <div onClick={seekTo} className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer mb-2 group/bar">
-            <div className="h-full bg-primary rounded-full relative transition-all" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : "0%" }}>
+        {/* Bottom controls — slim HUD */}
+        <div data-player-control="true" className="pointer-events-auto absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6 bg-gradient-to-t from-black/80 to-transparent">
+          <div onClick={seekTo} className="w-full h-[3px] bg-white/15 rounded-full cursor-pointer mb-2.5 group/bar hover:h-[5px] transition-all">
+            <div className="h-full bg-primary rounded-full relative transition-all" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : "0%", boxShadow: "0 0 8px hsl(var(--primary) / 0.65)" }}>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
             </div>
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
-              <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary transition shrink-0">
+              <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary hover:drop-shadow-[0_0_10px_hsl(var(--primary))] transition shrink-0">
                 {playing ? <Play className="w-5 h-5 fill-current" /> : <Zap className="w-5 h-5 fill-current" />}
               </button>
-              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white hover:text-primary transition shrink-0">
+              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white/80 hover:text-primary transition shrink-0">
                 {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
               {effectiveSubtitles.length > 0 && (
@@ -990,7 +999,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                   <button
                     onClick={(e) => { e.stopPropagation(); setSubsActive((v) => !v); if (!subsActive) setShowSubtitleMenu(false); }}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowSubtitleMenu((v) => !v); }}
-                    className={`text-white hover:text-primary transition ${subsActive ? "text-primary" : ""}`}
+                    className={`text-white/80 hover:text-primary transition ${subsActive ? "text-primary" : ""}`}
                     aria-label={subsActive ? "Desactivar subtítulos" : "Activar subtítulos"}
                     title={subsActive ? "Subtítulos: ON" : "Subtítulos: OFF"}
                   >
@@ -998,14 +1007,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowSubtitleMenu((v) => !v); }}
-                    className="ml-1 align-top text-[10px] font-bold text-white/80 hover:text-primary transition"
+                    className="ml-1 align-top text-[10px] font-mono font-medium text-white/70 hover:text-primary transition"
                     aria-label="Elegir idioma de subtítulos"
                     title="Elegir idioma"
                   >
                     {selectedSubtitleUrl ? getSubtitleLanguage(effectiveSubtitles.find((sub) => sub.url === selectedSubtitleUrl) || effectiveSubtitles[0]).code.toUpperCase() : "SUB"}
                   </button>
                   {showSubtitleMenu && (
-                    <div onClick={(e) => e.stopPropagation()} className="absolute bottom-full left-0 mb-2 max-h-48 w-44 overflow-y-auto rounded-md border border-primary/40 bg-background/95 p-1 shadow-[0_0_18px_hsl(var(--primary)/0.35)] backdrop-blur">
+                    <div onClick={(e) => e.stopPropagation()} className="absolute bottom-full left-0 mb-2 max-h-48 w-44 overflow-y-auto rounded-lg border border-white/10 bg-black/70 backdrop-blur-xl p-1 shadow-2xl">
                       {subtitleOptions.map(({ sub, index, language }) => (
                         <button
                           key={`${sub.url}-${index}`}
@@ -1015,7 +1024,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                             setSubsActive(true);
                             setShowSubtitleMenu(false);
                           }}
-                          className={`w-full rounded px-2 py-1.5 text-left text-xs transition ${selectedSubtitleUrl === sub.url ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-secondary"}`}
+                          className={`w-full rounded px-2 py-1.5 text-left text-xs transition ${selectedSubtitleUrl === sub.url ? "bg-primary/20 text-primary" : "text-white/80 hover:bg-white/5"}`}
                         >
                           {language.label}
                         </button>
@@ -1026,77 +1035,125 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               )}
               <button
                 onClick={(e) => { e.stopPropagation(); skip90(); }}
-                className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1 shrink-0"
+                className="px-2 py-0.5 rounded-md border border-white/15 text-[10px] font-mono font-medium text-white/80 hover:border-primary hover:text-primary hover:shadow-[0_0_10px_hsl(var(--primary)/0.4)] transition flex items-center gap-1 shrink-0"
                 aria-label="Saltar 1:30"
                 title="Saltar opening/ending (+1:30)"
               >
                 <SkipForward className="w-3 h-3" /> +1:30
               </button>
-              <span className="text-[10px] text-white/70 tabular-nums shrink-0">
-                {formatTime(progress)} / {formatTime(duration)}
+              <span className="text-[11px] font-mono tabular-nums tracking-wider text-white/70 shrink-0">
+                {formatTime(progress)} <span className="text-white/30 mx-0.5">/</span> {formatTime(duration)}
               </span>
-              {isFullscreen && currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
-                <>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
-                    className="px-2 py-0.5 rounded-md border border-primary/50 text-[10px] font-bold text-white hover:bg-primary/20 hover:text-primary transition flex items-center gap-1 shrink-0"
-                    aria-label="Lista de episodios"
-                    title="Lista de episodios"
-                  >
-                    <List className="w-3 h-3" /> {currentEpisode}/{totalEpisodes}
-                  </button>
-                  {showEpList && (
-                    <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 min-w-0 flex-1 rounded-md border border-primary/40 bg-black/70 px-1 py-0.5">
-                      {!isMobileLike && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); epScrollRef.current?.scrollBy({ left: -120, behavior: "smooth" }); }}
-                          className="shrink-0 h-5 w-5 rounded bg-white/10 hover:bg-primary/30 text-white flex items-center justify-center"
-                          aria-label="Anterior"
-                        >
-                          <ChevronLeft className="w-3 h-3" />
-                        </button>
-                      )}
-                      <div ref={epScrollRef} className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
-                        <div className="flex w-max gap-1">
-                          {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => (
-                            <button
-                              key={n}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowEpList(false);
-                                onSelectEpisode?.(n);
-                              }}
-                              className={`h-5 min-w-6 rounded px-1.5 text-[10px] font-bold transition ${
-                                n === currentEpisode
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-secondary/80 text-foreground hover:bg-primary/40"
-                              }`}
-                            >
-                              {n}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      {!isMobileLike && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); epScrollRef.current?.scrollBy({ left: 120, behavior: "smooth" }); }}
-                          className="shrink-0 h-5 w-5 rounded bg-white/10 hover:bg-primary/30 text-white flex items-center justify-center"
-                          aria-label="Siguiente"
-                        >
-                          <ChevronRight className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
             </div>
-            <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white hover:text-primary transition shrink-0">
-              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Speed gear popover */}
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowSpeedMenu((v) => !v); showControlsTemp(); }}
+                  className="flex items-center gap-1 text-white/80 hover:text-primary transition"
+                  aria-label="Velocidad de reproducción"
+                  title="Velocidad"
+                >
+                  <Gauge className="w-5 h-5" />
+                  <span className="text-[10px] font-mono tabular-nums">{playbackRate}x</span>
+                </button>
+                {showSpeedMenu && (
+                  <div onClick={(e) => e.stopPropagation()} className="absolute bottom-full right-0 mb-2 w-32 rounded-xl border border-white/10 bg-black/70 backdrop-blur-xl p-1.5 shadow-2xl">
+                    <p className="text-[9px] font-mono uppercase tracking-widest text-white/40 px-2 pt-1 pb-1.5">Velocidad</p>
+                    {[0.5, 1, 1.25, 1.5, 2].map((s) => (
+                      <button
+                        key={s}
+                        onClick={(e) => { e.stopPropagation(); setPlaybackRate(s); setShowSpeedMenu(false); }}
+                        className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-[11px] font-mono tabular-nums transition ${
+                          playbackRate === s ? "bg-primary/20 text-primary" : "text-white/70 hover:bg-white/5 hover:text-white"
+                        }`}
+                      >
+                        <span>{s}x</span>
+                        {playbackRate === s && <Check className="w-3 h-3" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
+                  className="flex items-center gap-1 text-white/80 hover:text-primary transition"
+                  aria-label="Lista de episodios"
+                  title="Lista de episodios"
+                >
+                  <List className="w-5 h-5" />
+                  <span className="text-[10px] font-mono tabular-nums">{currentEpisode}/{totalEpisodes}</span>
+                </button>
+              )}
+              <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white/80 hover:text-primary transition">
+                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Episodes side panel — vidrio esmerilado premium */}
+      {currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
+        <>
+          <div
+            className={`absolute inset-0 z-20 bg-black/40 transition-opacity duration-500 ${showEpList ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+            onClick={(e) => { e.stopPropagation(); setShowEpList(false); }}
+          />
+          <aside
+            onClick={(e) => e.stopPropagation()}
+            className={`absolute top-0 right-0 h-full w-full max-w-sm bg-black/60 backdrop-blur-xl border-l border-white/10 z-30 flex flex-col transition-transform duration-500 ease-out ${
+              showEpList ? "translate-x-0" : "translate-x-full"
+            }`}
+          >
+            <header className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+              <div className="min-w-0">
+                <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-white/40">Episodios</p>
+                <h3 className="text-sm font-light text-white tracking-wide mt-0.5 truncate">{title}</h3>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowEpList(false); }}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition"
+                aria-label="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </header>
+            <div ref={epScrollRef} className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
+              {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => {
+                const active = n === currentEpisode;
+                return (
+                  <button
+                    key={n}
+                    onClick={(e) => { e.stopPropagation(); setShowEpList(false); onSelectEpisode?.(n); }}
+                    className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all ${
+                      active
+                        ? "bg-primary/15 border border-primary/40"
+                        : "border border-transparent hover:bg-white/5 hover:border-white/10"
+                    }`}
+                  >
+                    <div className={`w-16 h-10 rounded-md flex-shrink-0 bg-white/5 flex items-center justify-center ${active ? "ring-1 ring-primary/60" : ""}`}>
+                      <span className={`text-xs font-mono tabular-nums ${active ? "text-primary" : "text-white/50"}`}>
+                        {String(n).padStart(2, "0")}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-light text-white/90 truncate">
+                        Episodio {n}
+                      </p>
+                      <p className="text-[10px] text-white/40 font-mono uppercase tracking-widest mt-0.5">
+                        {active ? (playing ? "Reproduciendo" : "Actual") : "Ver"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+        </>
+      )}
+
     </div>
   );
 }
