@@ -13,6 +13,7 @@ import FocusCarousel from "@/components/anime/FocusCarousel";
 import AnimeRoulette from "@/components/anime/AnimeRoulette";
 import { useIsTV } from "@/hooks/useIsTV";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
+import { getApprovedAnimeIds, filterApprovedReleasing, onApprovedChange } from "@/lib/approved-animes";
 import LazySection from "@/components/LazySection";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 
@@ -59,7 +60,20 @@ export default function Home() {
     staleTime: 1000 * 60 * 5,
   });
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
-  const filterFn = (list: any[] | undefined) => (list || []).filter((a) => !hiddenSet.has(a.id));
+
+  // Whitelist de animes en emisión aprobados (los RELEASING no aprobados se ocultan del Home)
+  const { data: approvedIds, refetch: refetchApproved } = useQuery({
+    queryKey: ["approved-anime-ids"],
+    queryFn: async () => Array.from(await getApprovedAnimeIds(true)),
+    staleTime: 1000 * 60 * 5,
+  });
+  const approvedSet = useMemo(() => new Set<number>(approvedIds || []), [approvedIds]);
+  useEffect(() => onApprovedChange(() => { refetchApproved(); }), [refetchApproved]);
+
+  const filterFn = (list: any[] | undefined) => {
+    const noHidden = (list || []).filter((a) => !hiddenSet.has(a.id));
+    return filterApprovedReleasing(noHidden, approvedSet);
+  };
 
   // Above-the-fold: cargar inmediato (HeroBanner + Trending)
   const { data: trending, isLoading: l1, isError: trendingError } = useQuery({

@@ -340,6 +340,30 @@ export type Database = {
         }
         Relationships: []
       }
+      approved_animes: {
+        Row: {
+          anilist_id: number
+          approved_by: string | null
+          created_at: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          approved_by?: string | null
+          created_at?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          approved_by?: string | null
+          created_at?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       broken_link_reporters: {
         Row: {
           created_at: string

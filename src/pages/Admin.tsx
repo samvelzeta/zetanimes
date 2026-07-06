@@ -7,7 +7,7 @@ import {
   ArrowLeft, BarChart3, Crown, Store, CreditCard, LayoutDashboard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search, Upload,
   Trash2, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered, Bug, Activity, Tv,
-  ChevronRight, TrendingUp, Zap, FolderCog, Settings2,
+  ChevronRight, TrendingUp, Zap, FolderCog, Settings2, ShieldCheck,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,6 +29,7 @@ import PremiumConfigEditor from "@/components/admin/PremiumConfigEditor";
 import PremiumBackgroundUploader from "@/components/admin/PremiumBackgroundUploader";
 import RankingOverridesAdmin from "@/components/admin/RankingOverridesAdmin";
 import AnimeStatusOverridesAdmin from "@/components/admin/AnimeStatusOverridesAdmin";
+import PendingApproval from "@/components/admin/PendingApproval";
 import { logAdminActivity } from "@/lib/admin-log";
 
 // Tabs reservados solo para owner
@@ -46,6 +47,7 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Contenido", icon: FolderCog, items: [
+      { key: "pending", label: "Pendientes", icon: ShieldCheck },
       { key: "downloads", label: "Descargas", icon: Store },
       { key: "videos", label: "Videos", icon: Film },
       { key: "epcount", label: "Episodios", icon: ListOrdered },
@@ -129,6 +131,7 @@ export default function AdminPanel() {
             <div className="max-w-7xl mx-auto">
               {tab === "dashboard" && <DashboardTab isOwner={isOwner} setTab={setTab} />}
               {isOwner && tab === "activity" && <ActivityLogTab />}
+              {tab === "pending" && <PendingApproval />}
               {tab === "downloads" && <DownloadTracker />}
               {tab === "videos" && <VideoManager />}
               {tab === "apidebug" && <ApiDebugPanel />}
