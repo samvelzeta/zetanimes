@@ -76,6 +76,10 @@ export default function Watch() {
   const [playerSources, setPlayerSources] = useState<PlayerSourceItem[]>([]);
   const [playerEpisode, setPlayerEpisode] = useState(epParam);
   const lastSavedProgressRef = useRef(0);
+  // Visibilidad del botón "Volver": sigue a los controles del player y se oculta con el panel de episodios
+  const [playerControlsVisible, setPlayerControlsVisible] = useState(true);
+  const [playerEpPanelOpen, setPlayerEpPanelOpen] = useState(false);
+  const [playerIsFullscreen, setPlayerIsFullscreen] = useState(false);
   // Estado reactivo de episodios "vistos" para refrescar el ojito en tiempo real
   const [watchedSet, setWatchedSet] = useState<Set<string>>(() => new Set(getWatchedEpisodes(watchedScope)));
 
