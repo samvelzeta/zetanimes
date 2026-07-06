@@ -13,7 +13,9 @@ import { translateText } from "@/lib/translate";
 import { trackAnimeView, getAnimeViews, formatViews } from "@/lib/anime-views";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import SlugOverrideAdmin from "@/components/admin/SlugOverrideAdmin";
+import LikeButton from "@/components/anime/LikeButton";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
+
 
 type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
 
