@@ -23,6 +23,7 @@ export default function MarqueeText({
   const chunkRef = useRef<HTMLSpanElement>(null);
   const [scrolling, setScrolling] = useState(false);
   const [duration, setDuration] = useState(12);
+  const [inView, setInView] = useState(false);
 
   useEffect(() => {
     const measure = () => {
@@ -33,7 +34,6 @@ export default function MarqueeText({
       const wrapWidth = w.clientWidth;
       if (contentWidth - wrapWidth > 2) {
         setScrolling(true);
-        // duración proporcional al ancho para que la velocidad se sienta constante
         setDuration(Math.max(6, contentWidth / speed));
       } else {
         setScrolling(false);
@@ -45,6 +45,20 @@ export default function MarqueeText({
     if (chunkRef.current) ro.observe(chunkRef.current);
     return () => ro.disconnect();
   }, [text, speed]);
+
+  // IntersectionObserver: pausa la animación cuando el título no está en pantalla
+  // para liberar CPU/GPU y mantener el scroll fluido (patrón Netflix/Disney+).
+  useEffect(() => {
+    if (!scrolling) return;
+    const el = wrapRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [scrolling]);
 
   if (!scrolling) {
     return (
@@ -65,11 +79,15 @@ export default function MarqueeText({
       ref={wrapRef}
       className={`marquee-wrap is-scrolling ${className}`}
       title={title ?? text}
-      data-marquee="on"
+      data-marquee={inView ? "on" : "paused"}
     >
       <span
         className="marquee-track"
-        style={{ animationDuration: `${duration}s` }}
+        style={{
+          animationDuration: `${duration}s`,
+          animationPlayState: inView ? "running" : "paused",
+          willChange: inView ? "transform" : "auto",
+        }}
       >
         <span ref={chunkRef} className="marquee-chunk">{text}</span>
         <span className="marquee-chunk" aria-hidden="true">{text}</span>
