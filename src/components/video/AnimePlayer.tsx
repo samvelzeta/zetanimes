@@ -39,6 +39,7 @@ interface Props {
   currentEpisode?: number;
   totalEpisodes?: number;
   onSelectEpisode?: (ep: number) => void;
+  episodeThumbnails?: string[];
   subtitles?: PlayerSubtitle[];
   fullscreenContainerRef?: React.RefObject<HTMLElement>;
   onControlsVisibilityChange?: (visible: boolean) => void;
