@@ -1028,6 +1028,7 @@ export default function Watch() {
               cover={anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || ""}
               animeTitle={anilistData ? getTitle(anilistData) : ""}
               streamingEpisodes={(anilistData as any)?.streamingEpisodes}
+              thumbnails={episodeThumbs}
               selected={selectedEp}
               watched={watchedSet}
               slug={zetSlug}
