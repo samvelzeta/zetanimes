@@ -49,8 +49,8 @@ interface Props {
 /**
  * Listado de capítulos estilo horizontal:
  * imagen a la izquierda + info a la derecha (sin ícono de descarga).
- * Usa el thumbnail de AniList `streamingEpisodes.thumbnail` si existe,
- * si no, el cover del anime recortado a 16:9.
+ * Usa las miniaturas normalizadas por anime; evita thumbnails externos que
+ * puedan pertenecer a otros arcos o temporadas.
  */
 export default function EpisodeList({
   total, cover, animeTitle, streamingEpisodes, thumbnails,
@@ -73,7 +73,7 @@ export default function EpisodeList({
       <div className="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
         {shown.map((n) => {
           const s = streamingEpisodes?.[n - 1];
-          const thumb = thumbnails?.[n - 1] || s?.thumbnail || cover;
+          const thumb = thumbnails?.[n - 1] || cover;
           const epTitle = s?.title?.replace(/^Episode\s*\d+\s*[-–]?\s*/i, "") || `Capítulo ${n}`;
           const epSlug = slug ? `${slug}-${n}` : "";
           const isWatched = epSlug ? !!watched?.has(epSlug) : false;
