@@ -224,6 +224,31 @@ export default function Profile() {
             })}
           </div>
 
+          {/* Engranaje con partículas de polvo estilo Minecraft */}
+          <div className="gear-emitter" style={{ top: 12, right: 12 }} aria-hidden>
+            <svg className="gear-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19.14 12.94a7.97 7.97 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.9 7.9 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.65 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.97 7.97 0 0 0 0 1.88L2.77 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.39 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.59-.24 1.13-.55 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            {Array.from({ length: 8 }).map((_, i) => {
+              const angle = (i * 45) + (i % 2 === 0 ? 0 : 22);
+              const delay = (i * 0.45).toFixed(2);
+              const dur = 3 + (i % 3) * 0.6;
+              return (
+                <span
+                  key={i}
+                  className="dust"
+                  style={{
+                    ["--dust-angle" as any]: `${angle}deg`,
+                    animationDelay: `${delay}s`,
+                    animationDuration: `${dur}s`,
+                  }}
+                />
+              );
+            })}
+          </div>
+
+
 
           {/* ————————————— ZONA DE IDENTIDAD ————————————— */}
           <header className="flex items-start gap-5 md:gap-10">
