@@ -298,7 +298,7 @@ export default function RecentlyWatched() {
 
                     <button
                       onClick={() => removeAnime(g.anime_id)}
-                      className="flex-shrink-0 w-8 h-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                      className="flex-shrink-0 w-8 h-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition opacity-100 md:opacity-0 md:group-hover:opacity-100"
                       aria-label="Eliminar"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
