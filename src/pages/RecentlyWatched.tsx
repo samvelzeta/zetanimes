@@ -114,8 +114,8 @@ export default function RecentlyWatched() {
         </button>
       </div>
 
-      {/* Tarjetas horizontales — diseño anterior */}
-      <div className="space-y-3">
+      {/* Grid responsivo tipo bloque */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {history.map((entry) => {
           const total = entry.total_duration_seconds || 0;
           const cur = entry.current_time_seconds || 0;
@@ -124,79 +124,75 @@ export default function RecentlyWatched() {
           const started = total > 0 && cur > 0;
 
           let statusLabel = "Empezar a ver";
-          let statusExtra: string | null = null;
-          if (completed) {
-            statusLabel = "✓ Completado";
-          } else if (started) {
-            statusLabel = "Continuar viendo";
-            statusExtra = `${pct}%`;
-          }
+          if (completed) statusLabel = "✓ Completado";
+          else if (started) statusLabel = `Continuar viendo · ${pct}%`;
 
           return (
             <div
               key={entry.id}
-              className="group relative flex gap-3 bg-card rounded-2xl overflow-hidden border border-border/40 hover:border-primary/40 transition"
+              className="group relative flex flex-col bg-card/60 rounded-xl overflow-hidden border border-border/60 transition-all duration-300 hover:scale-[1.03] hover:border-primary hover:shadow-[0_0_18px_hsl(var(--primary)/0.3)]"
             >
               <Link
                 to={`/watch/${entry.anime_id}?ep=${entry.episode_number}`}
-                className="flex gap-3 flex-1 min-w-0"
+                className="flex flex-col"
               >
-                {/* Cover */}
-                <div className="relative flex-shrink-0 w-[140px] h-[100px] sm:w-[160px] sm:h-[110px] rounded-xl overflow-hidden m-2">
+                {/* Thumbnail 16:9 */}
+                <div className="relative w-full aspect-video overflow-hidden bg-secondary">
                   {entry.anime_cover ? (
                     <img
                       src={entry.anime_cover}
                       alt={entry.anime_title || ""}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-secondary">
-                      <Play className="w-6 h-6 text-muted-foreground" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="w-8 h-8 text-muted-foreground" />
                     </div>
                   )}
-                  {/* Barra de progreso inferior */}
-                  {started && !completed && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/60">
-                      <div
-                        className="h-full bg-primary"
-                        style={{ width: `${pct}%` }}
-                      />
+
+                  {/* Play hover */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition bg-black/30">
+                    <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center shadow-[0_0_20px_hsl(var(--primary))]">
+                      <Play className="w-5 h-5 text-primary-foreground fill-primary-foreground ml-0.5" />
                     </div>
-                  )}
-                  {completed && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary" />
-                  )}
+                  </div>
+
+                  {/* Barra de progreso gráfica */}
+                  <div className="absolute bottom-0 left-0 w-full h-1 bg-black/60">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{ width: `${completed ? 100 : pct}%` }}
+                    />
+                  </div>
                 </div>
 
                 {/* Info */}
-                <div className="flex-1 min-w-0 py-3 pr-3 flex flex-col justify-center">
-                  <p className="text-sm sm:text-base font-bold text-foreground line-clamp-1">
+                <div className="p-4">
+                  <p className="text-base font-bold text-foreground line-clamp-1">
                     {entry.anime_title || "Anime"}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Episodio {entry.episode_number}
                   </p>
+                  <p className="text-xs text-primary font-semibold mt-2 line-clamp-1">
+                    {statusLabel}
+                  </p>
                   {started && !completed && (
-                    <p className="text-[11px] text-muted-foreground/80 mt-0.5">
+                    <p className="text-[11px] text-muted-foreground/70 mt-0.5">
                       {formatTime(cur)} / {formatTime(total)}
                     </p>
                   )}
-                  <p className="text-xs text-primary font-bold mt-1.5">
-                    {statusLabel}
-                    {statusExtra && (
-                      <span className="text-muted-foreground font-normal"> · {statusExtra}</span>
-                    )}
-                  </p>
                 </div>
               </Link>
 
+              {/* Eliminar (aparece en hover) */}
               <button
                 onClick={() => removeEntry(entry.id)}
-                className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-black/60 backdrop-blur rounded-full text-white/70 hover:text-destructive hover:bg-destructive/20 transition opacity-0 group-hover:opacity-100"
+                className="absolute top-2 right-2 p-2 rounded-full bg-black/60 backdrop-blur text-white/80 hover:text-destructive hover:bg-destructive/20 transition opacity-0 group-hover:opacity-100 z-10"
                 aria-label="Eliminar"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           );
