@@ -172,7 +172,7 @@ export default function RecentlyWatched() {
       </div>
 
       {/* ══════════════ HERO: Continuar viendo ══════════════ */}
-      <section className="relative w-full h-[280px] md:h-[320px] rounded-2xl overflow-hidden border border-border/50 mb-8 group">
+      <section className="relative w-full h-auto min-h-[400px] md:h-[350px] md:min-h-0 rounded-2xl overflow-hidden border border-border/50 mb-8 group">
         {/* Fondo difuminado */}
         {hero.anime_cover && (
           <img
@@ -185,7 +185,7 @@ export default function RecentlyWatched() {
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/40" />
         <div className="absolute inset-0 backdrop-blur-sm bg-black/40" />
 
-        <div className="relative z-10 h-full flex flex-col md:flex-row items-center gap-4 md:gap-8 p-4 md:p-8">
+        <div className="relative z-10 h-full flex flex-col md:flex-row items-center gap-4 md:gap-8 p-4 pb-8 md:p-8 md:pb-8">
           {/* Portada */}
           <div className="relative flex-shrink-0 w-[120px] md:w-[180px] aspect-[2/3] rounded-xl overflow-hidden shadow-2xl shadow-primary/30 ring-2 ring-primary/40">
             {hero.anime_cover ? (
@@ -198,11 +198,11 @@ export default function RecentlyWatched() {
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0 text-center md:text-left">
+          <div className="flex-1 min-w-0 w-full flex flex-col justify-center items-center text-center md:items-start md:text-left">
             <p className="text-[10px] md:text-xs font-bold text-primary uppercase tracking-[0.2em] mb-1">
               Continuar viendo
             </p>
-            <h2 className="text-2xl md:text-4xl font-black text-foreground leading-tight line-clamp-2 mb-2">
+            <h2 className="text-2xl md:text-4xl font-black text-foreground leading-tight line-clamp-2 md:line-clamp-none mb-2">
               {hero.anime_title}
             </h2>
             <p className="text-sm text-muted-foreground mb-4 hidden md:block">
