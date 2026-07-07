@@ -415,7 +415,7 @@ export default function AnimeDetail() {
             <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 lg:px-0 pb-1">
               {Array.from({ length: totalEps }, (_, i) => i + 1).map((ep) => {
                 const meta = streamingEpisodes?.[ep - 1];
-                const thumb = meta?.thumbnail || cover || "";
+                const thumb = episodeThumbs[ep - 1] || meta?.thumbnail || cover || "";
                 const epTitle = meta?.title?.replace(/^Episode\s*\d+\s*[-:·—]?\s*/i, "") || "";
                 return (
                   <Link
