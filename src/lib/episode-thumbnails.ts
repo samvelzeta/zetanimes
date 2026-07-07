@@ -41,36 +41,33 @@ export interface ThumbnailSource {
 
 export async function getEpisodeThumbnails(anime: ThumbnailSource, total: number): Promise<string[]> {
   if (!total || total <= 0) return [];
-  const cover = anime.coverImage?.extraLarge || anime.coverImage?.large || "";
-  const banner = anime.bannerImage || "";
-  const cycle: string[] = [banner, cover].filter(Boolean) as string[];
 
   const out: (string | null)[] = new Array(total).fill(null);
 
-  // 1) AniList streamingEpisodes por índice
+  // 1) AniList streamingEpisodes por índice — única fuente episodio-específica confiable
   const streaming = anime.streamingEpisodes || [];
   for (let i = 0; i < total; i++) {
     const t = streaming[i]?.thumbnail;
     if (t) out[i] = t;
   }
 
-  // 2) Jikan pictures ciclando para llenar huecos
+  // 2) Jikan pictures: capturas oficiales del anime. No son 1:1 por capítulo,
+  //    pero son escenas reales de la serie (no la portada global), así que las
+  //    ciclamos únicamente para huecos y sólo si hay varias distintas.
   const missing = out.some((v) => !v);
   if (missing && anime.idMal) {
     const pics = await fetchJikanPictures(anime.idMal);
-    if (pics.length > 0) {
+    if (pics.length > 1) {
       for (let i = 0; i < total; i++) {
         if (!out[i]) out[i] = pics[i % pics.length];
       }
     }
   }
 
-  // 3) Fallback banner/cover
-  for (let i = 0; i < total; i++) {
-    if (!out[i]) out[i] = cycle[i % Math.max(cycle.length, 1)] || "";
-  }
-
-  return out as string[];
+  // 3) Sin fallback a coverImage/bannerImage: preferimos dejar vacío para que
+  //    la UI muestre el número de episodio antes que una portada global que
+  //    no corresponde al capítulo. Devolvemos "" en los huecos restantes.
+  return out.map((v) => v || "");
 }
 
 /** Hook React con caché en memoria por anime. */
