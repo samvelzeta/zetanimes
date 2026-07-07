@@ -184,7 +184,7 @@ export default function Home() {
             {/* ===== Columna principal ===== */}
             <div className="lg:col-span-8 space-y-2 min-w-0">
               <LazySection minHeight={400}>
-                <BentoEpisodes />
+                <BentoEpisodes skip={5} hideHero title="⚡ Más Episodios Recientes" />
               </LazySection>
 
               <div className="border-t border-border/40 pt-2">

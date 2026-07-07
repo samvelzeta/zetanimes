@@ -10,7 +10,15 @@ import { useEffect } from "react";
 import AdCard from "@/components/ads/AdCard";
 import LazyImage from "@/components/LazyImage";
 
-export default function BentoEpisodes() {
+export default function BentoEpisodes({
+  skip = 0,
+  hideHero = false,
+  title = "🔥 Nuevos Episodios",
+}: {
+  skip?: number;
+  hideHero?: boolean;
+  title?: string;
+} = {}) {
   const { isPremium } = useAuth();
   // Pedimos 25 para tener margen real tras filtrar ocultos (admin puede ocultar varios chinos).
   const { data, isLoading } = useQuery({
@@ -38,17 +46,19 @@ export default function BentoEpisodes() {
   useEffect(() => onApprovedChange(() => { refetchApproved(); }), [refetchApproved]);
 
   const noHidden = (data?.media || []).filter((a) => !hidden.has(a.id));
-  const allItems = filterApprovedReleasing(noHidden, approvedSet);
-  // Premium: 5 cuadros. Free: 4 cuadros + 1 anuncio.
-  const items = allItems.slice(0, isPremium ? 5 : 4);
+  const allItems = filterApprovedReleasing(noHidden, approvedSet).slice(skip);
+  // Modo sin hero: 4 tarjetas iguales (o 3 + anuncio para free).
+  // Modo hero: 5 cuadros premium / 4 + anuncio free.
+  const maxItems = hideHero ? (isPremium ? 4 : 3) : (isPremium ? 5 : 4);
+  const items = allItems.slice(0, maxItems);
 
   if (isLoading) {
     return (
       <section className="px-4 mb-8">
-        <h2 className="text-base font-bold text-foreground tracking-tight mb-3">🔥 Nuevos Episodios</h2>
+        <h2 className="text-base font-bold text-foreground tracking-tight mb-3">{title}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 auto-rows-[180px]">
-          {Array(5).fill(0).map((_, i) => (
-            <div key={i} className={`bg-secondary rounded-xl animate-pulse ${i === 0 ? "col-span-2 row-span-2" : ""}`} />
+          {Array(hideHero ? 4 : 5).fill(0).map((_, i) => (
+            <div key={i} className={`bg-secondary rounded-xl animate-pulse ${!hideHero && i === 0 ? "col-span-2 row-span-2" : ""}`} />
           ))}
         </div>
       </section>
@@ -57,11 +67,31 @@ export default function BentoEpisodes() {
 
   if (!items.length) return null;
 
+  if (hideHero) {
+    return (
+      <section className="px-4 mb-8">
+        <h2 className="text-base font-bold text-foreground tracking-tight mb-3">{title}</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 auto-rows-[180px]">
+          {items.map((anime) => (
+            <BentoCard key={anime.id} anime={anime} />
+          ))}
+          {!isPremium && (
+            <div className="relative overflow-hidden rounded-xl bg-secondary neon-card flex items-center justify-center">
+              <div className="w-full h-full [&>div]:!w-full [&>div]:!h-full [&_.aspect-\[3\/4\]]:!aspect-auto [&_.aspect-\[3\/4\]]:!h-full">
+                <AdCard size="default" />
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   const [hero, ...rest] = items;
 
   return (
     <section className="px-4 mb-8">
-      <h2 className="text-base font-bold text-foreground tracking-tight mb-3">🔥 Nuevos Episodios</h2>
+      <h2 className="text-base font-bold text-foreground tracking-tight mb-3">{title}</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 auto-rows-[180px]">
         <BentoCard anime={hero} isHero className="col-span-2 row-span-2" />
         {rest.map((anime) => (
