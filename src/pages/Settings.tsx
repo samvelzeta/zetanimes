@@ -121,19 +121,9 @@ export default function SettingsPage() {
   const handleResetDefaults = () => {
     handleAccentChange(ACCENT_COLORS[0]);
     handleFontChange("default");
-    setAutoPlay(true);
-    setCountdown(false);
-    setDataSaver(false);
-    setHideGore(false);
-    setReducedMotion(false);
-    setKeepScreenOn(false);
-    localStorage.removeItem("zet_autoplay");
-    localStorage.removeItem("zet_countdown");
-    localStorage.removeItem("zet_datasaver");
-    localStorage.removeItem("zet_hidegore");
-    localStorage.removeItem("zet_reduced_motion");
-    localStorage.removeItem("zet_keep_awake");
-    document.documentElement.classList.remove("zet-reduced-motion");
+    resetPreferences();
+    toast.success("Restablecido a valores predeterminados");
+  };
     toast.success("Restablecido a valores predeterminados");
   };
 
