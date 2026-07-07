@@ -93,6 +93,13 @@ export default function AnimeDetail() {
     });
   }, [rawDescription, animeId]);
 
+  const totalEpsForThumbs = (anime as any)?.nextAiringEpisode?.episode
+    ? (anime as any).nextAiringEpisode.episode - 1
+    : ((anime as any)?.episodes || 0);
+  const episodeThumbs = useEpisodeThumbnails(anime as any, totalEpsForThumbs);
+
+
+
   const handleToggleList = async (list: ListType) => {
     if (!user) { setShowAuthModal(true); return; }
     setLoadingList(true);
