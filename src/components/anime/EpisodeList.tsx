@@ -35,6 +35,7 @@ interface Props {
   cover: string;
   animeTitle: string;
   streamingEpisodes?: StreamingEp[];
+  thumbnails?: string[];
   selected?: number;
   watched?: Set<string>;
   slug?: string;
