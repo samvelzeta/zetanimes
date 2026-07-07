@@ -73,7 +73,7 @@ export default function EpisodeList({
       <div className="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
         {shown.map((n) => {
           const s = streamingEpisodes?.[n - 1];
-          const thumb = s?.thumbnail || cover;
+          const thumb = thumbnails?.[n - 1] || s?.thumbnail || cover;
           const epTitle = s?.title?.replace(/^Episode\s*\d+\s*[-–]?\s*/i, "") || `Capítulo ${n}`;
           const epSlug = slug ? `${slug}-${n}` : "";
           const isWatched = epSlug ? !!watched?.has(epSlug) : false;
