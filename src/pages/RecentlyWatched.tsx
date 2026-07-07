@@ -92,7 +92,7 @@ export default function RecentlyWatched() {
   const [history, setHistoryState] = useState<WatchEntry[]>(() =>
     user ? readHistoryCache(user.id, profileId) : []
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !user || readHistoryCache(user.id, profileId).length === 0);
 
   const setHistory = (updater: WatchEntry[] | ((prev: WatchEntry[]) => WatchEntry[])) => {
     setHistoryState((prev) => {
