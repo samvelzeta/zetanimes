@@ -124,8 +124,7 @@ export default function SettingsPage() {
     resetPreferences();
     toast.success("Restablecido a valores predeterminados");
   };
-    toast.success("Restablecido a valores predeterminados");
-  };
+
 
   return (
     <div className="min-h-screen pb-24">
