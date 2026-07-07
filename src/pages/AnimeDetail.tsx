@@ -443,15 +443,19 @@ export default function AnimeDetail() {
           <AdBannerInline size="468x60" />
         </div>
 
-        {/* SECUELAS */}
+        {/* SECUELAS / PRECUELAS */}
         {(() => {
-          const rel = (anime.relations?.edges || []).filter(
+          const all = (anime.relations?.edges || []).filter(
             (e: any) => e.node.type === "ANIME" && (e.relationType === "SEQUEL" || e.relationType === "PREQUEL")
           );
-          if (rel.length === 0) return null;
+          if (all.length === 0) return null;
+          // Precuela SIEMPRE a la izquierda, Secuela a la derecha.
+          const prequels = all.filter((e: any) => e.relationType === "PREQUEL");
+          const sequels = all.filter((e: any) => e.relationType === "SEQUEL");
+          const rel = [...prequels, ...sequels];
           return (
             <div className="mt-6 max-w-7xl mx-auto lg:px-8">
-              <h2 className="px-4 lg:px-0 text-sm font-black text-foreground mb-3 uppercase tracking-wider">Secuela</h2>
+              <h2 className="px-4 lg:px-0 text-sm font-black text-foreground mb-3 uppercase tracking-wider">Temporadas relacionadas</h2>
               <div className="flex gap-4 overflow-x-auto hide-scrollbar px-4 lg:px-0 pb-1 lg:grid lg:grid-cols-4 lg:overflow-visible">
                 {rel.map((edge: any) => {
                   const label = edge.relationType === "SEQUEL" ? "Secuela" : "Precuela";
