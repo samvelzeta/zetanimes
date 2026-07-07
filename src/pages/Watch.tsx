@@ -843,6 +843,7 @@ export default function Watch() {
                 currentEpisode={displayedEpisode}
                 totalEpisodes={totalEpisodes}
                 onSelectEpisode={(n) => selectEpisode(n)}
+                episodeThumbnails={episodeThumbs}
                 subtitles={activeSubtitles}
                 fullscreenContainerRef={playerWrapperRef}
                 onControlsVisibilityChange={setPlayerControlsVisible}
