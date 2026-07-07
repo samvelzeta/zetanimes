@@ -274,7 +274,7 @@ export default function Profile() {
                     width: "160%",
                     height: "160%",
                     transform: "translate(-50%, -50%)",
-                    zIndex: 3,
+                    zIndex: 1,
                   }}
                 >
                   <svg className="gear-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.55 }}>
@@ -300,7 +300,7 @@ export default function Profile() {
                 {/* Z-1: Photo */}
                 <div
                   className="relative w-full h-full rounded-full overflow-hidden"
-                  style={{ zIndex: 1, filter: "drop-shadow(0 20px 40px hsl(var(--primary) / 0.35)) drop-shadow(0 8px 16px rgb(0 0 0 / 0.4))" }}
+                  style={{ zIndex: 10, filter: "drop-shadow(0 20px 40px hsl(var(--primary) / 0.35)) drop-shadow(0 8px 16px rgb(0 0 0 / 0.4))" }}
                 >
                   {displayAvatar ? (
                     <img src={displayAvatar} alt="" className="w-full h-full object-cover" />
