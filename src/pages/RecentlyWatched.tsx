@@ -101,12 +101,30 @@ export default function RecentlyWatched() {
     setHistory([]);
   };
 
-  const removeAnime = async (anime_id: number) => {
+  // Set de anime_id que están animando la salida — se ocultan del DOM al terminar.
+  const [exiting, setExiting] = useState<Set<number>>(new Set());
+
+  const removeAnime = (anime_id: number) => {
     if (!user) return;
-    let q = supabase.from("watch_history").delete().eq("user_id", user.id).eq("anime_id", anime_id);
-    q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
-    await q;
-    setHistory((prev) => prev.filter((h) => h.anime_id !== anime_id));
+    // Fase 1+2: marcar como saliendo (dispara la animación combinada)
+    setExiting((prev) => {
+      const next = new Set(prev);
+      next.add(anime_id);
+      return next;
+    });
+    // Fase 3: al terminar animación (eject 450ms + collapse 400ms = ~850ms),
+    // borrar de estado y de la BD.
+    window.setTimeout(async () => {
+      let q = supabase.from("watch_history").delete().eq("user_id", user.id).eq("anime_id", anime_id);
+      q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
+      await q;
+      setHistory((prev) => prev.filter((h) => h.anime_id !== anime_id));
+      setExiting((prev) => {
+        const next = new Set(prev);
+        next.delete(anime_id);
+        return next;
+      });
+    }, 900);
   };
 
   const grouped = useMemo(() => groupHistory(history), [history]);
