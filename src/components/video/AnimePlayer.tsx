@@ -1151,6 +1151,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
             <div ref={epScrollRef} className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
               {Array.from({ length: totalEpisodes }, (_, i) => i + 1).map((n) => {
                 const active = n === currentEpisode;
+                const thumb = episodeThumbnails?.[n - 1];
                 return (
                   <button
                     key={n}
@@ -1161,8 +1162,17 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                         : "border border-transparent hover:bg-white/5 hover:border-white/10"
                     }`}
                   >
-                    <div className={`w-16 h-10 rounded-md flex-shrink-0 bg-white/5 flex items-center justify-center ${active ? "ring-1 ring-primary/60" : ""}`}>
-                      <span className={`text-xs font-mono tabular-nums ${active ? "text-primary" : "text-white/50"}`}>
+                    <div className={`relative w-20 h-12 rounded-md flex-shrink-0 overflow-hidden bg-white/5 ${active ? "ring-1 ring-primary/60" : ""}`}>
+                      {thumb ? (
+                        <img src={thumb} alt="" loading="lazy" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className={`text-xs font-mono tabular-nums ${active ? "text-primary" : "text-white/50"}`}>
+                            {String(n).padStart(2, "0")}
+                          </span>
+                        </div>
+                      )}
+                      <span className="absolute top-0.5 left-0.5 px-1 rounded bg-black/70 text-[9px] font-black text-white leading-tight">
                         {String(n).padStart(2, "0")}
                       </span>
                     </div>
