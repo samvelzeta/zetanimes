@@ -306,6 +306,7 @@ export default function Watch() {
   const hasSeekeForCurrentLang = hasCurrentSeekeConfig;
   const seekeMax = Math.max(latestCurrent || 0, latestOpposite || 0);
   const totalEpisodes = hasAnySeekeConfig ? seekeMax : baseTotalEpisodes;
+  const episodeThumbs = useEpisodeThumbnails(anilistData as any, totalEpisodes);
   // Tope efectivo de navegación según el idioma actual:
   // - Con Seeke en idioma actual → estricto a su latest_episode.
   // - Sin Seeke en idioma actual pero con Seeke en el opuesto → usar el opuesto.
