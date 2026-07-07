@@ -53,7 +53,7 @@ interface Props {
  * si no, el cover del anime recortado a 16:9.
  */
 export default function EpisodeList({
-  total, cover, animeTitle, streamingEpisodes,
+  total, cover, animeTitle, streamingEpisodes, thumbnails,
   selected, watched, slug, maxAvailable,
   onSelect, onToggleWatched, linkTo, pageSize = 24,
 }: Props) {
