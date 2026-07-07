@@ -18,9 +18,12 @@ if (isWebView()) {
   document.documentElement.classList.add("zet-apk-webview");
 }
 
-// Aplicar reduced-motion al inicio si el usuario lo activó
+// Aplicar preferencias visuales al inicio (antes de que React monte) para evitar flash
 if (localStorage.getItem("zet_reduced_motion") === "true") {
   document.documentElement.classList.add("zet-reduced-motion");
+}
+if (localStorage.getItem("zet_datasaver") === "true") {
+  document.documentElement.classList.add("zet-data-saver");
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
