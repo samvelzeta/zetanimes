@@ -41,6 +41,8 @@ export interface ThumbnailSource {
 
 export async function getEpisodeThumbnails(anime: ThumbnailSource, total: number): Promise<string[]> {
   if (!total || total <= 0) return [];
+  const cover = anime.coverImage?.extraLarge || anime.coverImage?.large || "";
+  const banner = anime.bannerImage || "";
 
   const out: (string | null)[] = new Array(total).fill(null);
 
@@ -51,22 +53,16 @@ export async function getEpisodeThumbnails(anime: ThumbnailSource, total: number
     if (t) out[i] = t;
   }
 
-  // 2) Jikan pictures: capturas oficiales del anime. No son 1:1 por capítulo,
-  //    pero son escenas reales de la serie (no la portada global), así que las
-  //    ciclamos únicamente para huecos y sólo si hay varias distintas.
-  const missing = out.some((v) => !v);
-  if (missing && anime.idMal) {
-    const pics = await fetchJikanPictures(anime.idMal);
-    if (pics.length > 1) {
-      for (let i = 0; i < total; i++) {
-        if (!out[i]) out[i] = pics[i % pics.length];
-      }
-    }
+  // 2) Fallback a portada global de ESTA temporada. Evitamos deliberadamente
+  //    Jikan /pictures porque suele incluir key visuals de arcos posteriores
+  //    u otras temporadas y da la sensación de "spoilers/escenas adelantadas".
+  //    Preferimos usar el banner de la serie cuando existe (más cinematográfico)
+  //    y caer a la cover si no hay banner.
+  const fallback = banner || cover || "";
+  for (let i = 0; i < total; i++) {
+    if (!out[i]) out[i] = fallback;
   }
 
-  // 3) Sin fallback a coverImage/bannerImage: preferimos dejar vacío para que
-  //    la UI muestre el número de episodio antes que una portada global que
-  //    no corresponde al capítulo. Devolvemos "" en los huecos restantes.
   return out.map((v) => v || "");
 }
 
