@@ -15,6 +15,7 @@ import AdBannerInline from "@/components/ads/AdBannerInline";
 import SlugOverrideAdmin from "@/components/admin/SlugOverrideAdmin";
 import LikeButton from "@/components/anime/LikeButton";
 import EpisodeList from "@/components/anime/EpisodeList";
+import { useEpisodeThumbnails } from "@/lib/episode-thumbnails";
 import TechInfoBlock from "@/components/anime/TechInfoBlock";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 
@@ -91,6 +92,13 @@ export default function AnimeDetail() {
       setTranslatedDesc(t);
     });
   }, [rawDescription, animeId]);
+
+  const totalEpsForThumbs = (anime as any)?.nextAiringEpisode?.episode
+    ? (anime as any).nextAiringEpisode.episode - 1
+    : ((anime as any)?.episodes || 0);
+  const episodeThumbs = useEpisodeThumbnails(anime as any, totalEpsForThumbs);
+
+
 
   const handleToggleList = async (list: ListType) => {
     if (!user) { setShowAuthModal(true); return; }
@@ -407,7 +415,7 @@ export default function AnimeDetail() {
             <div className="flex gap-3 overflow-x-auto hide-scrollbar px-4 lg:px-0 pb-1">
               {Array.from({ length: totalEps }, (_, i) => i + 1).map((ep) => {
                 const meta = streamingEpisodes?.[ep - 1];
-                const thumb = meta?.thumbnail || cover || "";
+                const thumb = episodeThumbs[ep - 1] || meta?.thumbnail || cover || "";
                 const epTitle = meta?.title?.replace(/^Episode\s*\d+\s*[-:·—]?\s*/i, "") || "";
                 return (
                   <Link

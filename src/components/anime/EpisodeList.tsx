@@ -35,6 +35,7 @@ interface Props {
   cover: string;
   animeTitle: string;
   streamingEpisodes?: StreamingEp[];
+  thumbnails?: string[];
   selected?: number;
   watched?: Set<string>;
   slug?: string;
@@ -52,7 +53,7 @@ interface Props {
  * si no, el cover del anime recortado a 16:9.
  */
 export default function EpisodeList({
-  total, cover, animeTitle, streamingEpisodes,
+  total, cover, animeTitle, streamingEpisodes, thumbnails,
   selected, watched, slug, maxAvailable,
   onSelect, onToggleWatched, linkTo, pageSize = 24,
 }: Props) {
@@ -72,7 +73,7 @@ export default function EpisodeList({
       <div className="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
         {shown.map((n) => {
           const s = streamingEpisodes?.[n - 1];
-          const thumb = s?.thumbnail || cover;
+          const thumb = thumbnails?.[n - 1] || s?.thumbnail || cover;
           const epTitle = s?.title?.replace(/^Episode\s*\d+\s*[-–]?\s*/i, "") || `Capítulo ${n}`;
           const epSlug = slug ? `${slug}-${n}` : "";
           const isWatched = epSlug ? !!watched?.has(epSlug) : false;

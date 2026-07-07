@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { isWebView, saveVideoProgress, getVideoProgress } from "@/lib/webview";
 import { resolveEpisodeCount } from "@/lib/episode-count";
 import EpisodeList from "@/components/anime/EpisodeList";
+import { useEpisodeThumbnails } from "@/lib/episode-thumbnails";
 
 type Lang = "sub" | "latino";
 
@@ -305,6 +306,7 @@ export default function Watch() {
   const hasSeekeForCurrentLang = hasCurrentSeekeConfig;
   const seekeMax = Math.max(latestCurrent || 0, latestOpposite || 0);
   const totalEpisodes = hasAnySeekeConfig ? seekeMax : baseTotalEpisodes;
+  const episodeThumbs = useEpisodeThumbnails(anilistData as any, totalEpisodes);
   // Tope efectivo de navegación según el idioma actual:
   // - Con Seeke en idioma actual → estricto a su latest_episode.
   // - Sin Seeke en idioma actual pero con Seeke en el opuesto → usar el opuesto.
@@ -841,6 +843,7 @@ export default function Watch() {
                 currentEpisode={displayedEpisode}
                 totalEpisodes={totalEpisodes}
                 onSelectEpisode={(n) => selectEpisode(n)}
+                episodeThumbnails={episodeThumbs}
                 subtitles={activeSubtitles}
                 fullscreenContainerRef={playerWrapperRef}
                 onControlsVisibilityChange={setPlayerControlsVisible}
@@ -1026,6 +1029,7 @@ export default function Watch() {
               cover={anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || ""}
               animeTitle={anilistData ? getTitle(anilistData) : ""}
               streamingEpisodes={(anilistData as any)?.streamingEpisodes}
+              thumbnails={episodeThumbs}
               selected={selectedEp}
               watched={watchedSet}
               slug={zetSlug}
