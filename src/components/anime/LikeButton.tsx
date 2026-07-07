@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Heart, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getLikeCount, hasUserLiked, toggleLike, compactCount } from "@/lib/anime-likes";
+import { getLikeCount, hasUserLiked, toggleLike, compactCount, getCachedLikeCount, hasCachedUserLike } from "@/lib/anime-likes";
 import { toast } from "sonner";
 
 interface Props {
@@ -18,6 +18,11 @@ export default function LikeButton({ anilistId, className = "" }: Props) {
 
   useEffect(() => {
     if (!anilistId) return;
+    // Hidratar instantáneamente desde localStorage para evitar flicker
+    const cachedCount = getCachedLikeCount(anilistId);
+    if (cachedCount !== null) setCount(cachedCount);
+    if (user?.id) setLiked(hasCachedUserLike(user.id, anilistId));
+
     let cancel = false;
     (async () => {
       const [c, l] = await Promise.all([

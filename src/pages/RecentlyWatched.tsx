@@ -71,15 +71,42 @@ function groupHistory(history: WatchEntry[]): GroupedAnime[] {
   return Array.from(map.values());
 }
 
+const HISTORY_CACHE_PREFIX = "zet:history:";
+function historyCacheKey(userId: string, profileId: string | null) {
+  return HISTORY_CACHE_PREFIX + userId + ":" + (profileId ?? "default");
+}
+function readHistoryCache(userId: string, profileId: string | null): WatchEntry[] {
+  try {
+    const raw = localStorage.getItem(historyCacheKey(userId, profileId));
+    return raw ? (JSON.parse(raw) as WatchEntry[]) : [];
+  } catch { return []; }
+}
+function writeHistoryCache(userId: string, profileId: string | null, list: WatchEntry[]) {
+  try { localStorage.setItem(historyCacheKey(userId, profileId), JSON.stringify(list.slice(0, 100))); } catch {}
+}
+
 export default function RecentlyWatched() {
   const { user } = useAuth();
   const { activeProfile } = useProfiles();
   const profileId = activeProfile?.id ?? null;
-  const [history, setHistory] = useState<WatchEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [history, setHistoryState] = useState<WatchEntry[]>(() =>
+    user ? readHistoryCache(user.id, profileId) : []
+  );
+  const [loading, setLoading] = useState(() => !user || readHistoryCache(user.id, profileId).length === 0);
+
+  const setHistory = (updater: WatchEntry[] | ((prev: WatchEntry[]) => WatchEntry[])) => {
+    setHistoryState((prev) => {
+      const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+      if (user) writeHistoryCache(user.id, profileId, next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
+    // Hidratar instantáneo desde cache antes de tocar red
+    const cached = readHistoryCache(user.id, profileId);
+    if (cached.length) setHistoryState(cached);
     loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, profileId]);
@@ -89,7 +116,8 @@ export default function RecentlyWatched() {
     let q = supabase.from("watch_history").select("*").eq("user_id", user.id);
     q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
     const { data } = await q.order("created_at", { ascending: false }).limit(100);
-    setHistory((data as unknown as WatchEntry[]) || []);
+    const list = (data as unknown as WatchEntry[]) || [];
+    setHistory(list);
     setLoading(false);
   };
 

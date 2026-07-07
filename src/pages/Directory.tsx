@@ -6,6 +6,9 @@ import AnimeCard from "@/components/anime/AnimeCard";
 import { Filter, X, Tv, SearchX, Loader2 } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
+import { usePreferences } from "@/contexts/PreferencesContext";
+
+const GORE_GENRES = new Set(["Horror", "Ecchi"]);
 
 const GENRES = ["Acción","Aventura","Comedia","Drama","Fantasía","Horror","Misterio","Romance","Sci-Fi","Slice of Life","Sobrenatural","Sports","Thriller"];
 const GENRE_MAP: Record<string, string> = {
@@ -87,11 +90,16 @@ export default function Directory() {
     refetchOnMount: "always",
   });
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
+  const { preferences } = usePreferences();
 
   const rawMedia = isMovies
     ? (moviesInfinite.data?.pages.flatMap((p) => p.media) || [])
     : (data?.media || []);
-  const animes = rawMedia.filter((a) => !hiddenSet.has(a.id));
+  const animes = rawMedia.filter((a) => {
+    if (hiddenSet.has(a.id)) return false;
+    if (preferences.hideGore && Array.isArray(a.genres) && a.genres.some((g: string) => GORE_GENRES.has(g))) return false;
+    return true;
+  });
   const loading = isMovies ? moviesInfinite.isLoading : isLoading;
 
   // Intersection observer para scroll infinito de Películas

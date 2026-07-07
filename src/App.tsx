@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProfilesProvider } from "@/contexts/ProfilesContext";
+import { PreferencesProvider } from "@/contexts/PreferencesContext";
 import ProfileGate from "@/components/profiles/ProfileGate";
 import Layout from "@/components/Layout";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -54,6 +55,7 @@ const App = () => (
         <ScrollToTop />
         <AuthProvider>
           <ProfilesProvider>
+            <PreferencesProvider>
             <ProfileGate />
             <Suspense fallback={<RouteFallback />}>
               <Routes>
@@ -77,6 +79,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
+            </PreferencesProvider>
           </ProfilesProvider>
         </AuthProvider>
       </BrowserRouter>
