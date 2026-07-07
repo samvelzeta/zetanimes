@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import { updateProfile } from "@/lib/account-profiles";
+import { usePreferences } from "@/contexts/PreferencesContext";
 
 const FONT_OPTIONS = [
   { id: "default", name: "Predeterminada", css: "" },
@@ -47,13 +48,15 @@ export function initFont() {
 export default function SettingsPage() {
   const { user, profile, refreshProfile, isPremium } = useAuth();
   const { activeProfile, refresh: refreshProfiles } = useProfiles();
+  const { preferences, setPreference, resetPreferences } = usePreferences();
+  const { autoPlay, countdown, dataSaver, hideGore, reducedMotion, keepScreenOn } = preferences;
+  const setAutoPlay = (v: boolean) => setPreference("autoPlay", v);
+  const setCountdown = (v: boolean) => setPreference("countdown", v);
+  const setDataSaver = (v: boolean) => setPreference("dataSaver", v);
+  const setHideGore = (v: boolean) => setPreference("hideGore", v);
+  const setReducedMotion = (v: boolean) => setPreference("reducedMotion", v);
+  const setKeepScreenOn = (v: boolean) => setPreference("keepScreenOn", v);
   const [selectedAccent, setSelectedAccent] = useState<AccentColor>(getAccentColor);
-  const [autoPlay, setAutoPlay] = useState(() => localStorage.getItem("zet_autoplay") !== "false");
-  const [countdown, setCountdown] = useState(() => localStorage.getItem("zet_countdown") === "true");
-  const [dataSaver, setDataSaver] = useState(() => localStorage.getItem("zet_datasaver") === "true");
-  const [hideGore, setHideGore] = useState(() => localStorage.getItem("zet_hidegore") === "true");
-  const [reducedMotion, setReducedMotion] = useState(() => localStorage.getItem("zet_reduced_motion") === "true");
-  const [keepScreenOn, setKeepScreenOn] = useState(() => localStorage.getItem("zet_keep_awake") === "true");
   const [selectedFont, setSelectedFont] = useState(() => localStorage.getItem("zet_font") || "default");
 
   // Edit name
@@ -87,20 +90,8 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
-    localStorage.setItem("zet_autoplay", String(autoPlay));
-    localStorage.setItem("zet_countdown", String(countdown));
-    localStorage.setItem("zet_datasaver", String(dataSaver));
-    localStorage.setItem("zet_hidegore", String(hideGore));
-    localStorage.setItem("zet_reduced_motion", String(reducedMotion));
-    localStorage.setItem("zet_keep_awake", String(keepScreenOn));
-
-    // Aplicar reduced motion
-    if (reducedMotion) {
-      document.documentElement.classList.add("zet-reduced-motion");
-    } else {
-      document.documentElement.classList.remove("zet-reduced-motion");
-    }
-
+    // Las preferencias globales ya se persisten automáticamente al cambiar el switch.
+    // Este botón queda como confirmación explícita para el usuario.
     toast.success("Configuración guardada");
   };
 
