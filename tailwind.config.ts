@@ -80,7 +80,6 @@ export default {
             height: "0",
           },
         },
-      },
         "trash-lid-close": {
           "0%": { transform: "rotate(0deg)" },
           "100%": { transform: "rotate(-25deg) translateY(-1px)" },
