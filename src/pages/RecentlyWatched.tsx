@@ -101,12 +101,30 @@ export default function RecentlyWatched() {
     setHistory([]);
   };
 
-  const removeAnime = async (anime_id: number) => {
+  // Set de anime_id que están animando la salida — se ocultan del DOM al terminar.
+  const [exiting, setExiting] = useState<Set<number>>(new Set());
+
+  const removeAnime = (anime_id: number) => {
     if (!user) return;
-    let q = supabase.from("watch_history").delete().eq("user_id", user.id).eq("anime_id", anime_id);
-    q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
-    await q;
-    setHistory((prev) => prev.filter((h) => h.anime_id !== anime_id));
+    // Fase 1+2: marcar como saliendo (dispara la animación combinada)
+    setExiting((prev) => {
+      const next = new Set(prev);
+      next.add(anime_id);
+      return next;
+    });
+    // Fase 3: al terminar animación (eject 450ms + collapse 400ms = ~850ms),
+    // borrar de estado y de la BD.
+    window.setTimeout(async () => {
+      let q = supabase.from("watch_history").delete().eq("user_id", user.id).eq("anime_id", anime_id);
+      q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
+      await q;
+      setHistory((prev) => prev.filter((h) => h.anime_id !== anime_id));
+      setExiting((prev) => {
+        const next = new Set(prev);
+        next.delete(anime_id);
+        return next;
+      });
+    }, 900);
   };
 
   const grouped = useMemo(() => groupHistory(history), [history]);
@@ -251,58 +269,74 @@ export default function RecentlyWatched() {
             <div className="space-y-2">
               {rest.map((g) => {
                 const pct = Math.round(g.latestEntry.progress_percent || 0);
+                const isExiting = exiting.has(g.anime_id);
                 return (
                   <div
                     key={g.anime_id}
-                    className="group flex flex-row items-center gap-3 bg-card/50 hover:bg-card p-3 rounded-lg border border-border/40 hover:border-primary/40 transition"
+                    // Wrapper: colapsa altura al final para que la lista suba fluido
+                    className={`overflow-hidden transition-all duration-500 ${
+                      isExiting ? "animate-row-collapse" : ""
+                    }`}
                   >
-                    <Link
-                      to={`/watch/${g.anime_id}?ep=${g.latestEpisode}`}
-                      className="flex flex-row items-center gap-3 flex-1 min-w-0"
+                    <div
+                      // Inner: hace el retroceso + disparo lateral
+                      className={`group flex flex-row items-center gap-3 bg-card/50 hover:bg-card p-3 rounded-lg border border-border/40 hover:border-primary/40 transition-colors ${
+                        isExiting ? "animate-row-eject pointer-events-none" : ""
+                      }`}
                     >
-                      {/* Thumb cuadrado */}
-                      <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-secondary">
-                        {g.anime_cover ? (
-                          <img src={g.anime_cover} alt={g.anime_title} className="w-full h-full object-cover" loading="lazy" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Play className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-foreground line-clamp-1">{g.anime_title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Ep. {g.latestEpisode} · {g.episodesCount} vist{g.episodesCount === 1 ? "o" : "os"}
-                          {g.completedCount > 0 && ` · ${g.completedCount} ✓`}
-                        </p>
-                        <div className="mt-1.5 h-1 rounded-full bg-black/40 overflow-hidden">
-                          <div
-                            className="h-full bg-primary"
-                            style={{ width: `${pct}%` }}
-                          />
+                      <Link
+                        to={`/watch/${g.anime_id}?ep=${g.latestEpisode}`}
+                        className="flex flex-row items-center gap-3 flex-1 min-w-0"
+                      >
+                        {/* Thumb cuadrado */}
+                        <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-secondary">
+                          {g.anime_cover ? (
+                            <img src={g.anime_cover} alt={g.anime_title} className="w-full h-full object-cover" loading="lazy" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Play className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    </Link>
 
-                    {/* Play circular */}
-                    <Link
-                      to={`/watch/${g.anime_id}?ep=${g.latestEpisode}`}
-                      className="flex-shrink-0 w-9 h-9 rounded-full bg-primary/15 hover:bg-primary/90 hover:text-primary-foreground text-primary flex items-center justify-center transition"
-                      aria-label="Continuar"
-                    >
-                      <Play className="w-4 h-4 fill-current ml-0.5" />
-                    </Link>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-foreground line-clamp-1">{g.anime_title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Ep. {g.latestEpisode} · {g.episodesCount} vist{g.episodesCount === 1 ? "o" : "os"}
+                            {g.completedCount > 0 && ` · ${g.completedCount} ✓`}
+                          </p>
+                          <div className="mt-1.5 h-1 rounded-full bg-black/40 overflow-hidden">
+                            <div
+                              className="h-full bg-primary"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </Link>
 
-                    <button
-                      onClick={() => removeAnime(g.anime_id)}
-                      className="flex-shrink-0 w-8 h-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                      aria-label="Eliminar"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      {/* Play circular */}
+                      <Link
+                        to={`/watch/${g.anime_id}?ep=${g.latestEpisode}`}
+                        className="flex-shrink-0 w-9 h-9 rounded-full bg-primary/15 hover:bg-primary/90 hover:text-primary-foreground text-primary flex items-center justify-center transition"
+                        aria-label="Continuar"
+                      >
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                      </Link>
+
+                      <button
+                        onClick={() => removeAnime(g.anime_id)}
+                        disabled={isExiting}
+                        className="flex-shrink-0 w-8 h-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                        aria-label="Eliminar"
+                      >
+                        <Trash2
+                          className={`w-3.5 h-3.5 origin-bottom ${
+                            isExiting ? "animate-trash-lid-close" : ""
+                          }`}
+                        />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
