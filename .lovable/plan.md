@@ -1,87 +1,65 @@
-# Rediseño del Directorio — Experience-First
+# Directorio "Revista Interactiva" — Fusión de propuestas
 
-Cambio grande y visual del `src/pages/Directory.tsx`. Se mantiene toda la lógica de datos (AniList queries, filtros ocultos, gore, scroll infinito de películas, aprobados, ads) — solo cambia la capa de presentación.
+Unifico el layout editorial actual con el enfoque de storytelling narrativo. Conservo toda la lógica de negocio (queries AniList, scroll infinito, gore, aprobados, ads, cache).
 
-## 1. Hero Carousel Editorial (arriba)
+## 1. Identidad de carga
+- `ZenLoader` (rayo verde `#00ff88` con glow pulsante) reemplaza cualquier spinner restante en Directorio.
+- Skeleton usa el rayo centrado con opacidad baja + shimmer encima.
 
-- Reemplaza el título "Directorio" + botón Filtros por un carrusel full-width.
-- Alturas: `100vh` desktop, `60vh` tablet, `50vh` móvil.
-- Fuente: top 5-6 animes de `getTrending` (ya cacheado).
-- Cada slide: banner alta resolución con `blur-sm` sutil + gradiente negro inferior + título en fuente serif (Playfair Display o Cinzel via Google Fonts), sinopsis corta, botón "Ver detalles" con glassmorphism (`backdrop-blur bg-white/10`).
-- Autoplay 6s, dots + flechas laterales en desktop.
-- Etiqueta "DIRECTORIO" pequeña, ligera, esquina superior izquierda superpuesta como firma.
+## 2. Cabecera híbrida
+- **Desktop/tablet**: `HeroCarousel` full-width con:
+  - Título Playfair Display, botones glassmorphism.
+  - Etiqueta "DIRECTORIO" arriba-izq.
+  - **Botón pausa** nuevo: congela el auto-avance y muestra un icono `Play` para reanudar.
+- **Móvil**: altura 40vh + **subtítulo estático** debajo ("El inicio de una nueva leyenda") en tipografía serif ligera.
 
-## 2. Panel Catálogo Inteligente (Drawer lateral)
+## 3. Panel Catálogo (Drawer)
+Se conservan Categorías temáticas, sliders (año/rating), estado, "Para ti".
+- Añado sección **"Perfiles de Intriga"**: 3 animes destacados (trending alto + averageScore≥80) con mini-card horizontal: portada pequeña + título + una data curiosa auto-generada ("★ 9.1 · Estreno 2021 · Trending #2"). Al click abre el anime.
+- Si no hay historial en "Para ti" → copy "Explora nuestras selecciones destacadas".
 
-- Botón "Catálogo" flotante: esquina sup-der en desktop/tablet, FAB inferior-der en móvil.
-- Drawer con `Sheet` de shadcn (ya disponible) — side="right" desktop, side="bottom" móvil.
-- Fondo glassmorphism oscuro (`bg-black/70 backdrop-blur-xl`).
-- Contiene tres bloques:
-  **A) Categorías Temáticas** (mapeadas a géneros AniList existentes):
-  - El despertar de los héroes → Action + Adventure
-  - Oscuridad pura → Horror + Psychological + Thriller
-  - Viajes inolvidables → Adventure + Fantasy
-  - Venganza y redención → Drama + Thriller
-  - Mundos de fantasía → Fantasy + Supernatural
-  - Ciencia ficción profunda → Sci-Fi + Mecha
-  **B) Filtros avanzados** — sliders año (2000-actual) y rating (0-10) + botones estado (En emisión / Finalizado / Todos).
-  **C) Recomendaciones "✨ Para ti"** — basadas en historial local (`recently-watched` / likes en localStorage). Si no hay historial → top rated como fallback. Tarjetas horizontales pequeñas.
-- Persistencia: estado en `localStorage` key `zet:directory-catalog`.
+## 4. Grid asimétrico + Perfiles de Intriga intercalados
+- Mantengo `AsymmetricCard` con patrón actual (landscape/portrait/square).
+- Cada 5 posiciones inserto una **`StoryCard`** (2×1 en desktop, 1×1 en móvil):
+  - Layout horizontal: portada 40% + panel derecho con título serif, sinopsis extendida (3-4 líneas), chips con `averageScore`, año, género principal, y sello "Descubre por qué".
+  - Hover: expansión sutil + glow primario.
+  - Aparece con animación de "revelación" (fade + translateY + stagger).
 
-## 3. Bento Grid Asimétrico
+## 5. Sección "Cine ZetAnime"
+- Nuevo componente `CinemaSection` renderizado tras el bloque principal cuando NO estamos ya en modo películas.
+- Fondo `bg-zinc-900/50` con degradado sutil de transición.
+- Título serif pequeño "Cine ZetAnime".
+- Scroll horizontal con `snap-x`, cards 21:9, sombras profundas, sin flechas.
+- Hover: parallax ligero (translateX en la img) + overlay ghost con título/año/"Ver ahora".
+- Fuente: `getMovies()` (query ya existente), primeros 12.
 
-- Desktop (≥1024px): grid de 3 cols, primer item ocupa 2x2, resto 1x1. Aspect 2:3.
-- Tablet (768-1023px): 2 cols uniformes.
-- Móvil (<768px): scroll vertical de tarjetas anchas al 90%, con overlay siempre visible (título + sinopsis corta sobre gradiente).
-- Cada tarjeta:
-  - Sin texto estático debajo.
-  - Overlay con gradiente `from-black/90 to-transparent` con título + sinopsis 80 chars, visible en hover (desktop) o siempre (móvil).
-  - Hover: `scale-105`, halo/glow del `--primary`, transición 0.3s.
-- Skeleton shimmer animado mientras carga (keyframe `shimmer` horizontal).
+## 6. Ranking y filtro móvil
+- `StickyRanking` desktop se mantiene (ya sticky lateral derecho).
+- En móvil aparece al final de la lista (antes del footer) — versión colapsada.
+- Drawer y filtro móvil comparten `CatalogState` en localStorage (ya lo hacen).
 
-## 4. Micro-interacciones
+## 7. Título "Directorio"
+- Etiqueta pequeña serif alineada a la izquierda dentro del hero (ya presente). Mantengo.
 
-- Transiciones al cambiar filtro/categoría: fade + stagger 50ms usando animaciones CSS existentes (`animate-fade-in`).
-- Scroll suave.
+## 8. Micro-interacciones
+- Transición al cambiar filtros: `animate-fade-in` con stagger CSS (nth-child delays).
+- StoryCard: keyframe `story-reveal` (clip-path o translateY+opacity).
+
+## 9. Responsive
+- Móvil: hero 40vh + subtítulo, grid 2col scroll vertical, cine 200px, ranking al final.
+- Tablet: hero 60vh, grid 2col con alguna Story 2×1, ranking lateral.
+- Desktop: hero full, grid 3-4col asimétrico + Story cards intercaladas, ranking sticky, cine 400px.
 
 ## Detalles técnicos
+Archivos nuevos:
+- `src/components/directory/StoryCard.tsx` — tarjeta de intriga con datos AniList.
+- `src/components/directory/CinemaSection.tsx` — scroll horizontal 21:9 con parallax.
+- `src/components/directory/IntrigueProfiles.tsx` — mini bloque dentro del drawer.
 
-- Nuevo componente `src/components/directory/HeroCarousel.tsx`.
-- Nuevo componente `src/components/directory/CatalogDrawer.tsx`.
-- Nuevo componente `src/components/directory/BentoAnimeCard.tsx`.
-- `Directory.tsx` reescrito para orquestar los 3 bloques y mantener las queries existentes (AniList + hidden + approved + películas infinite).
-- Fuente serif: agregar `<link>` Google Fonts (Playfair Display) en `index.html` y clase util en `index.css`.
-- Keyframe `shimmer` en `index.css`.
-- Se conservan `AdBannerInline` entre filtros y grid, filtros gore, hidden animes.
+Archivos editados:
+- `src/components/directory/HeroCarousel.tsx` — añadir botón pausa + subtítulo móvil.
+- `src/components/directory/CatalogDrawer.tsx` — insertar `IntrigueProfiles`.
+- `src/pages/Directory.tsx` — intercalar `StoryCard` cada 5 items, montar `CinemaSection`, mover ranking móvil al final.
+- `src/index.css` — keyframes `story-reveal`, `cinema-parallax` opcional.
 
-## Fuera de alcance
-
-- Feedback háptico/sonoro (opcional, se omite).
-- Sincronía carrusel↔grid ("si slide es AoT, primera fila destaca relacionados") — se omite en esta iteración; el grid sigue reaccionando a categoría/filtros del drawer, no al slide activo.
-
-ajustes y sugerencias extras para tener en cuenta y sera el veredicto final:  
-Ajuste al "Hero Carousel"
-
-- **Sugerencia:** Asegúrate de que, en móvil, el carrusel no ocupe tanto espacio. El **50vh** que propone la IA puede ocultar demasiado contenido importante en pantallas pequeñas (el usuario quiere ver el "Directorio" rápido).
-- **Corrección sugerida:** "En móvil, limita el Hero Carousel a **40vh** y asegúrate de que el título no sea tan grande que tape la imagen, para que el usuario siempre vea un adelanto del contenido de abajo."
-
-### 2. Sobre el "Bento Grid" (Efectos de texto)
-
-- **Sugerencia:** En el diseño que propone la IA para móvil, dice que la sinopsis estará "siempre visible" sobre el gradiente. En móvil, eso a veces puede saturar la pantalla pequeña y hacer que el diseño se sienta desordenado.
-- **Corrección sugerida:** "En móvil, haz que la sinopsis sea **colapsable o limita el texto a 2 líneas** para que la imagen del anime mantenga el protagonismo, y solo muestra el título claramente."
-
-### 3. Integración de tus proyectos (Zen y Zani)
-
-- **Oportunidad:** Como estás usando a tus mascotas Zen y Zani para tus proyectos, ¿por qué no le pides que, en el **Skeleton Loading** (cuando las imágenes están cargando), el efecto de "shimmer" o carga tenga un icono minimalista de Zen o Zani animado? Es un detalle de *branding* que las grandes empresas no dejan pasar.
-
-### ¿Cómo proceder?
-
-Si estás de acuerdo con esto, responde a la IA con este mensaje para cerrar el plan y comenzar la implementación:
-
-> "La propuesta está excelente. Solo haz estos dos ajustes finales:
->
-> 1. En móvil, ajusta el Hero Carousel a **40vh** para no ocultar demasiado el directorio.
-> 2. En el grid móvil, limita la sinopsis a **2 líneas** para mantener el diseño limpio.
-> 3. **Detalle Pro:** En el esqueleto de carga (skeleton loading), usa un icono sutil de mis mascotas (Zen o Zani) como parte de la animación de carga.
->
-> Procedemos con la implementación tal cual lo detallaste."
+Nada de business logic cambia: fetch, filtros, aprobados, gore, ads y cache permanecen intactos.
