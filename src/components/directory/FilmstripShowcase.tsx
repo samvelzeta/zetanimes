@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Play, Info, Pause, ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import LazyImage from "@/components/LazyImage";
+import { useTranslatedDesc } from "@/hooks/useTranslatedDesc";
 
 interface Props {
   items: AniListMedia[];
