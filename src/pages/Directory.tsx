@@ -5,9 +5,11 @@ import {
   getTrending,
   getTopRated,
   getMovies,
+  getUpcomingMovies,
   searchAnime,
   type AniListMedia,
 } from "@/lib/anilist";
+
 import { SearchX } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
@@ -72,6 +74,13 @@ export default function Directory() {
     queryFn: () => getMovies(1, 14, null),
     staleTime: 1000 * 60 * 15,
   });
+
+  const upcomingMoviesQuery = useQuery({
+    queryKey: ["directory-upcoming-movies"],
+    queryFn: () => getUpcomingMovies(1, 20),
+    staleTime: 1000 * 60 * 60,
+  });
+
 
   const charactersQuery = useQuery({
     queryKey: ["directory-characters"],
@@ -213,7 +222,11 @@ export default function Directory() {
       </div>
 
       <CinemaAccordion items={cinemaList} loading={cinemaQuery.isLoading} />
-      <CinemaExtras items={cinemaList} />
+      <CinemaExtras
+        items={cinemaList}
+        upcomingItems={(upcomingMoviesQuery.data?.media || []).filter((a) => !hiddenSet.has(a.id))}
+      />
+
 
       {/* Estadísticas de personajes */}
       <CharacterStats characters={characters} />

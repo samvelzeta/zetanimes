@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getRecentlyUpdated } from "@/lib/anilist";
+import { getRecentlyUpdated, getRecentReleasedMovies } from "@/lib/anilist";
 import { getApprovedAnimeIds, approveAnime, unapproveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +58,15 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 15,
   });
 
+  // Películas recientemente estrenadas (AniList) — también entran a pendientes
+  // para que el admin las revise cuando ya "salieron".
+  const { data: movies, isLoading: lm } = useQuery({
+    queryKey: ["recent-released-movies", 1],
+    queryFn: () => getRecentReleasedMovies(1, 30),
+    staleTime: 1000 * 60 * 30,
+  });
+
+
   const { data: approvedArr, refetch: refetchApproved } = useQuery({
     queryKey: ["approved-anime-ids"],
     queryFn: async () => Array.from(await getApprovedAnimeIds(true)),
@@ -82,13 +91,13 @@ export default function PendingApproval() {
 
   const all = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
-    for (const p of [p1, p2, p3]) {
+    for (const p of [p1, p2, p3, movies]) {
       for (const m of (p?.media || []) as AiringItem[]) {
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
     return Array.from(map.values());
-  }, [p1, p2, p3]);
+  }, [p1, p2, p3, movies]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -100,7 +109,8 @@ export default function PendingApproval() {
     });
   }, [all, query, approvedSet, showApproved]);
 
-  const loading = l1 || l2 || l3;
+  const loading = l1 || l2 || l3 || lm;
+
   const pendingCount = all.filter((a) => !approvedSet.has(a.id)).length;
   const approvedCount = all.filter((a) => approvedSet.has(a.id)).length;
 

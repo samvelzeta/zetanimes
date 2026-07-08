@@ -1,12 +1,15 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Ticket, Clapperboard, Film, Star, Calendar, Clock, Quote, Trophy, Sparkles, Popcorn } from "lucide-react";
+import { Ticket, Clapperboard, Film, Star, Calendar, Quote, Trophy, Sparkles, Popcorn, CalendarClock } from "lucide-react";
 import LazyImage from "@/components/LazyImage";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 
+
 interface Props {
   items: AniListMedia[];
+  upcomingItems?: AniListMedia[];
 }
+
 
 /**
  * CinemaExtras — sección Cine ampliada con módulos editoriales:
@@ -20,38 +23,65 @@ interface Props {
  * - Timeline por décadas
  * - Constelación de géneros
  */
-export default function CinemaExtras({ items }: Props) {
+export default function CinemaExtras({ items, upcomingItems = [] }: Props) {
   if (!items || items.length < 2) return null;
 
   const feature = items[0];
   const rest = items.slice(1, 9);
   const titles = items.slice(0, 12).map(getTitle);
-  const now = new Date().getFullYear();
+  const now = new Date();
+  const nowYear = now.getFullYear();
+  const nowTs = now.getTime();
 
-  const upcoming = useMemo(
-    () =>
-      items
-        .filter((a) => (a.seasonYear || 0) >= now || a.status === "NOT_YET_RELEASED")
-        .slice(0, 6),
-    [items, now]
-  );
+  // Fecha de estreno como timestamp (o null si no hay)
+  const releaseTs = (a: AniListMedia): number | null => {
+    const s = a.startDate;
+    if (!s?.year) return null;
+    return new Date(s.year, (s.month || 1) - 1, s.day || 1).getTime();
+  };
+
+  // Próximos estrenos = películas NOT_YET_RELEASED de AniList (carrusel real)
+  const upcoming = useMemo(() => {
+    const pool = upcomingItems.length > 0
+      ? upcomingItems
+      : items.filter((a) => a.status === "NOT_YET_RELEASED" || (a.seasonYear || 0) > nowYear);
+    return pool
+      .slice()
+      .sort((a, b) => {
+        const ta = releaseTs(a) ?? Number.MAX_SAFE_INTEGER;
+        const tb = releaseTs(b) ?? Number.MAX_SAFE_INTEGER;
+        return ta - tb;
+      })
+      .slice(0, 12);
+  }, [items, upcomingItems, nowYear]);
+
+
+
+
 
   const topBox = useMemo(
     () => [...items].filter((a) => a.averageScore).sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0)).slice(0, 5),
     [items]
   );
 
+  // Línea del tiempo: SOLO películas taquilleras (score alto). Se mantiene actualizada
+  // con los datos de AniList — cambia solo, no lleva datos falsos.
   const decades = useMemo(() => {
+    const BLOCKBUSTER_MIN = 75; // score AniList (0-100)
     const map = new Map<number, AniListMedia[]>();
     for (const a of items) {
       const y = a.seasonYear;
       if (!y) continue;
+      if ((a.averageScore || 0) < BLOCKBUSTER_MIN) continue;
       const d = Math.floor(y / 10) * 10;
       if (!map.has(d)) map.set(d, []);
       map.get(d)!.push(a);
     }
+    // Ordena las pelis de cada década por score desc para mostrar las mejores
+    for (const arr of map.values()) arr.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
     return Array.from(map.entries()).sort((a, b) => b[0] - a[0]);
   }, [items]);
+
 
   const genreStats = useMemo(() => {
     const map = new Map<string, number>();
@@ -69,9 +99,8 @@ export default function CinemaExtras({ items }: Props) {
     return quotes[(feature.id || 0) % quotes.length];
   }, [feature.id]);
 
-  const showtimes = ["14:30", "17:15", "19:45", "22:00"];
-
   return (
+
     <div className="mt-4">
       {/* Marquee de títulos */}
       <div className="relative border-y border-white/10 overflow-hidden bg-black/30">
@@ -121,18 +150,8 @@ export default function CinemaExtras({ items }: Props) {
                 </span>
               ))}
             </div>
-            {/* Programación */}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {showtimes.map((h) => (
-                <span
-                  key={h}
-                  className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-black/40 backdrop-blur px-3 py-1 text-[10px] font-mono text-white/85"
-                >
-                  <Clock className="w-3 h-3 text-primary" /> {h}
-                </span>
-              ))}
-            </div>
           </div>
+
         </Link>
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -247,9 +266,13 @@ export default function CinemaExtras({ items }: Props) {
                       {getTitle(a)}
                     </p>
                   </div>
-                  <p className="mt-1 text-[9px] tracking-[0.3em] uppercase text-primary/80 text-center">
-                    {a.seasonYear || "TBA"}
+                  <p className="mt-1 text-[9px] tracking-[0.3em] uppercase text-primary/80 text-center inline-flex items-center justify-center gap-1 w-full">
+                    <CalendarClock className="w-2.5 h-2.5" />
+                    {a.startDate?.year
+                      ? `${String(a.startDate.day || 1).padStart(2, "0")}/${String(a.startDate.month || 1).padStart(2, "0")}/${a.startDate.year}`
+                      : a.seasonYear || "TBA"}
                   </p>
+
                 </Link>
               ))}
             </div>
