@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import { useTranslatedDesc } from "@/hooks/useTranslatedDesc";
 
 interface Props {
   anime: AniListMedia;
@@ -12,7 +13,7 @@ interface Props {
  */
 export default function StoryCard({ anime, index = 0 }: Props) {
   const title = getTitle(anime);
-  const raw = (anime.description || "").replace(/<[^>]+>/g, "").trim();
+  const raw = useTranslatedDesc(anime.description, anime.id);
   // Primera frase como "gancho"
   const firstStop = raw.search(/[.!?]\s/);
   const hook = firstStop > 40 ? raw.slice(0, firstStop + 1) : raw.slice(0, 220);

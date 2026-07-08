@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Play, Info, Pause, ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import LazyImage from "@/components/LazyImage";
+import { useTranslatedDesc } from "@/hooks/useTranslatedDesc";
 
 interface Props {
   items: AniListMedia[];
@@ -32,7 +33,7 @@ export default function FilmstripShowcase({ items }: Props) {
 
   const go = (dir: 1 | -1) => setIndex((i) => (i + dir + slides.length) % slides.length);
   const current = slides[index];
-  const desc = (current.description || "").replace(/<[^>]+>/g, "").slice(0, 220);
+  const desc = useTranslatedDesc(current.description, current.id, 220);
 
   return (
     <section className="relative w-full h-[70vh] md:h-[86vh] overflow-hidden bg-background">

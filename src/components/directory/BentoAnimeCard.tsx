@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Play } from "lucide-react";
 import LazyImage from "@/components/LazyImage";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import { useTranslatedDesc } from "@/hooks/useTranslatedDesc";
 import ZetMascot from "./ZetMascot";
 
 /** Skeleton con shimmer + mascota flotante para el grid Bento. */
@@ -33,7 +34,7 @@ export default function BentoAnimeCard({ anime, hero = false, className = "" }: 
     anime.coverImage?.extraLarge ||
     anime.coverImage?.large ||
     "";
-  const desc = (anime.description || "").replace(/<[^>]+>/g, "").slice(0, 90);
+  const desc = useTranslatedDesc(anime.description, anime.id, 90);
 
   return (
     <Link

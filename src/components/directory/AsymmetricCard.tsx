@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import LazyImage from "@/components/LazyImage";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import { useTranslatedDesc } from "@/hooks/useTranslatedDesc";
 import ZenLoader from "./ZenLoader";
 
 export type AsymmetricVariant = "portrait" | "square" | "landscape";
@@ -35,7 +36,7 @@ export default function AsymmetricCard({ anime, variant = "portrait" }: Props) {
   const useBanner = variant !== "portrait" && anime.bannerImage;
   const img =
     (useBanner ? anime.bannerImage : anime.coverImage?.extraLarge || anime.coverImage?.large) || "";
-  const desc = (anime.description || "").replace(/<[^>]+>/g, "").slice(0, 100);
+  const desc = useTranslatedDesc(anime.description, anime.id, 100);
 
   return (
     <Link
