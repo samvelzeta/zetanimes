@@ -139,7 +139,3 @@ export default function HeroCarousel({ items }: Props) {
     </section>
   );
 }
-
-    </section>
-  );
-}
