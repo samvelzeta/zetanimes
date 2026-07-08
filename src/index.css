@@ -633,3 +633,49 @@ h1, h2, h3, .heading-steam {
   animation: none !important;
   transform: none !important;
 }
+
+/* ============ Directory — Experience-First ============ */
+@keyframes directory-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.directory-shimmer {
+  background: linear-gradient(
+    100deg,
+    hsl(var(--secondary) / 0.55) 20%,
+    hsl(var(--primary) / 0.15) 40%,
+    hsl(var(--secondary) / 0.55) 60%
+  );
+  background-size: 200% 100%;
+  animation: directory-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes directory-mascot-float {
+  0%,100% { transform: translateY(0) rotate(-4deg); }
+  50%     { transform: translateY(-6px) rotate(4deg); }
+}
+.directory-mascot {
+  color: hsl(var(--primary));
+  animation: directory-mascot-float 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px hsl(var(--primary) / 0.55));
+}
+.directory-glass {
+  background: linear-gradient(135deg, hsl(var(--background) / 0.55), hsl(var(--background) / 0.25));
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid hsl(var(--primary) / 0.18);
+}
+.directory-card {
+  transition: transform 0.35s ease, box-shadow 0.35s ease, filter 0.35s ease;
+}
+.directory-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    0 0 0 1px hsl(var(--primary) / 0.4),
+    0 18px 40px -12px hsl(var(--primary) / 0.55);
+}
+.directory-hero-title {
+  font-family: "Cinzel", "EB Garamond", serif;
+  letter-spacing: 0.04em;
+  text-shadow: 0 4px 24px rgb(0 0 0 / 0.75);
+}
+

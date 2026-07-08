@@ -1,86 +1,78 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { getPopular, getByGenre, getTrending, getTopRated, getThisSeason, getMovies } from "@/lib/anilist";
-import AnimeCard from "@/components/anime/AnimeCard";
-import { Filter, X, Tv, SearchX, Loader2 } from "lucide-react";
+import {
+  getTrending,
+  getTopRated,
+  getMovies,
+  searchAnime,
+  type AniListMedia,
+} from "@/lib/anilist";
+import { Loader2, SearchX, Film } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { usePreferences } from "@/contexts/PreferencesContext";
+import HeroCarousel from "@/components/directory/HeroCarousel";
+import CatalogDrawer, {
+  loadCatalogState,
+  THEMED_CATEGORIES,
+  type CatalogState,
+} from "@/components/directory/CatalogDrawer";
+import BentoAnimeCard, { BentoSkeleton } from "@/components/directory/BentoAnimeCard";
 
 const GORE_GENRES = new Set(["Horror", "Ecchi"]);
-
-const GENRES = ["Acción","Aventura","Comedia","Drama","Fantasía","Horror","Misterio","Romance","Sci-Fi","Slice of Life","Sobrenatural","Sports","Thriller"];
-const GENRE_MAP: Record<string, string> = {
-  "Acción": "Action", "Aventura": "Adventure", "Comedia": "Comedy", "Drama": "Drama",
-  "Fantasía": "Fantasy", "Horror": "Horror", "Misterio": "Mystery", "Romance": "Romance",
-  "Sci-Fi": "Sci-Fi", "Slice of Life": "Slice of Life", "Sobrenatural": "Supernatural",
-  "Sports": "Sports", "Thriller": "Thriller",
-};
-
-const YEARS = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i);
-const STATUSES = [
-  { label: "En emisión", value: "RELEASING" },
-  { label: "Finalizado", value: "FINISHED" },
-  { label: "Próximamente", value: "NOT_YET_RELEASED" },
-];
-
-const QUICK_FILTERS = [
-  { key: "trending", label: "🔥 Tendencia" },
-  { key: "popular",  label: "⭐ Popular"   },
-  { key: "top",      label: "🏆 Top Rating" },
-  { key: "season",   label: "🌸 Temporada" },
-  { key: "movies",   label: "🎬 Películas" },
-];
-
-// Reverse map: English genre -> Spanish label
-const REVERSE_GENRE_MAP: Record<string, string> = Object.fromEntries(
-  Object.entries(GENRE_MAP).map(([es, en]) => [en, es])
-);
 
 export default function Directory() {
   const [searchParams] = useSearchParams();
   const genreParam = searchParams.get("genre");
 
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [quickFilter, setQuickFilter] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [catalog, setCatalog] = useState<CatalogState>(() => loadCatalogState());
+  const [moviesMode, setMoviesMode] = useState(false);
 
-  // Auto-select genre from URL param
+  // URL ?genre= → activa la categoría temática que contenga ese género
   useEffect(() => {
-    if (genreParam) {
-      const spanishName = REVERSE_GENRE_MAP[genreParam] || genreParam;
-      setSelectedGenre(spanishName);
-      setQuickFilter(null);
-    }
+    if (!genreParam) return;
+    const match = THEMED_CATEGORIES.find((c) => c.genres.includes(genreParam));
+    if (match) setCatalog((s) => ({ ...s, categoryKey: match.key }));
   }, [genreParam]);
 
-  const isMovies = quickFilter === "movies";
-  const genreEn = selectedGenre ? (GENRE_MAP[selectedGenre] || selectedGenre) : null;
+  const activeCategory = THEMED_CATEGORIES.find((c) => c.key === catalog.categoryKey);
+  const activeGenres = activeCategory?.genres || [];
 
-  // Infinite query for Películas (con o sin género)
+  // Hero: siempre trending para tono aspiracional
+  const { data: heroData } = useQuery({
+    queryKey: ["directory-hero"],
+    queryFn: () => getTrending(1, 8),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Contenido principal
+  const mainQuery = useQuery({
+    queryKey: ["directory-main", catalog.categoryKey],
+    queryFn: () =>
+      activeGenres.length > 0
+        ? searchAnime("", 1, 40, activeGenres)
+        : getTrending(1, 40),
+    staleTime: 1000 * 60 * 5,
+    enabled: !moviesMode,
+  });
+
+  // Películas (infinite)
   const moviesInfinite = useInfiniteQuery({
-    queryKey: ["directory-movies", genreEn],
-    queryFn: ({ pageParam = 1 }) => getMovies(pageParam, 30, genreEn),
-    getNextPageParam: (last) => (last.pageInfo.hasNextPage ? last.pageInfo.currentPage + 1 : undefined),
+    queryKey: ["directory-movies-experience"],
+    queryFn: ({ pageParam = 1 }) => getMovies(pageParam, 30, null),
+    getNextPageParam: (last) =>
+      last.pageInfo.hasNextPage ? last.pageInfo.currentPage + 1 : undefined,
     initialPageParam: 1,
-    enabled: isMovies,
+    enabled: moviesMode,
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["directory", selectedGenre, selectedYear, selectedStatus, quickFilter],
-    queryFn: () => {
-      if (quickFilter === "trending") return getTrending(1, 30);
-      if (quickFilter === "top") return getTopRated(1, 30);
-      if (quickFilter === "season") return getThisSeason(1, 30);
-      if (selectedGenre) return getByGenre(genreEn!, 1, 30);
-      return getPopular(1, 30);
-    },
-    staleTime: 1000 * 60 * 5,
-    enabled: !isMovies,
+  // Recomendaciones — top rated como base curada
+  const { data: recData } = useQuery({
+    queryKey: ["directory-recommendations"],
+    queryFn: () => getTopRated(1, 12),
+    staleTime: 1000 * 60 * 30,
   });
 
   const { data: hiddenIds } = useQuery({
@@ -92,20 +84,31 @@ export default function Directory() {
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
   const { preferences } = usePreferences();
 
-  const rawMedia = isMovies
-    ? (moviesInfinite.data?.pages.flatMap((p) => p.media) || [])
-    : (data?.media || []);
-  const animes = rawMedia.filter((a) => {
+  const passesFilters = (a: AniListMedia): boolean => {
     if (hiddenSet.has(a.id)) return false;
-    if (preferences.hideGore && Array.isArray(a.genres) && a.genres.some((g: string) => GORE_GENRES.has(g))) return false;
+    if (preferences.hideGore && Array.isArray(a.genres) && a.genres.some((g) => GORE_GENRES.has(g))) return false;
+    // Año
+    const y = a.seasonYear;
+    if (y) {
+      if (y < catalog.yearRange[0] || y > catalog.yearRange[1]) return false;
+    }
+    // Rating
+    if (catalog.ratingMin > 0 && (a.averageScore ?? 0) < catalog.ratingMin) return false;
+    // Estado
+    if (catalog.status !== "ALL" && a.status !== catalog.status) return false;
     return true;
-  });
-  const loading = isMovies ? moviesInfinite.isLoading : isLoading;
+  };
 
-  // Intersection observer para scroll infinito de Películas
+  const raw = moviesMode
+    ? moviesInfinite.data?.pages.flatMap((p) => p.media) || []
+    : mainQuery.data?.media || [];
+  const animes = raw.filter(passesFilters);
+  const loading = moviesMode ? moviesInfinite.isLoading : mainQuery.isLoading;
+
+  // Infinite scroll sentinel para películas
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!isMovies) return;
+    if (!moviesMode) return;
     const el = sentinelRef.current;
     if (!el) return;
     const io = new IntersectionObserver((entries) => {
@@ -115,151 +118,88 @@ export default function Directory() {
     }, { rootMargin: "600px" });
     io.observe(el);
     return () => io.disconnect();
-  }, [isMovies, moviesInfinite.hasNextPage, moviesInfinite.isFetchingNextPage, moviesInfinite.fetchNextPage]);
+  }, [moviesMode, moviesInfinite.hasNextPage, moviesInfinite.isFetchingNextPage, moviesInfinite.fetchNextPage]);
 
-  const clearFilters = () => {
-    setSelectedGenre(null);
-    setSelectedYear(null);
-    setSelectedStatus(null);
-    setQuickFilter(null);
-  };
-
-  const hasActiveFilters = selectedGenre || selectedYear || selectedStatus || quickFilter;
+  const recommendations = (recData?.media || []).filter((a) => !hiddenSet.has(a.id));
 
   return (
-    <div className="min-h-screen pt-4 px-4 pb-24">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-black text-foreground tracking-tight">Directorio</h1>
+    <div className="min-h-screen pb-24 -mt-12">
+      {/* Hero Carousel (edge-to-edge, quita padding top del layout con -mt-12) */}
+      <HeroCarousel items={heroData?.media || []} />
+
+      {/* Drawer flotante */}
+      <CatalogDrawer state={catalog} onChange={setCatalog} recommendations={recommendations} />
+
+      {/* Encabezado de sección + toggle Películas */}
+      <div className="px-4 md:px-8 mt-8 mb-6 flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-[10px] tracking-[0.4em] uppercase text-primary/80">Explora</p>
+          <h1 className="directory-hero-title text-3xl md:text-4xl font-bold text-foreground mt-1">
+            {moviesMode
+              ? "Películas"
+              : activeCategory
+              ? activeCategory.label
+              : "Tendencia curada"}
+          </h1>
+        </div>
         <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${showFilters ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+          onClick={() => setMoviesMode((m) => !m)}
+          className={`px-4 py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all ${
+            moviesMode
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary text-muted-foreground hover:text-foreground"
+          }`}
         >
-          <Filter className="w-3.5 h-3.5" />
-          Filtros
+          <Film className="w-3.5 h-3.5" /> Películas
         </button>
       </div>
 
-      {/* Quick filters */}
-      <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-3 pb-1">
-        <button
-          onClick={clearFilters}
-          className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${!hasActiveFilters ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
-        >
-          Todos
-        </button>
-        {QUICK_FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => { setQuickFilter(f.key); if (f.key !== "movies") setSelectedGenre(null); }}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${quickFilter === f.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="px-4 md:px-8">
+        <AdBannerInline size="728x90" className="mb-6" />
       </div>
 
-      {/* Genre chips */}
-      <div className="flex gap-2 overflow-x-auto hide-scrollbar mb-3 pb-1">
-        {GENRES.map((g) => (
-          <button
-            key={g}
-            onClick={() => { setSelectedGenre(selectedGenre === g ? null : g); if (!isMovies) setQuickFilter(null); }}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedGenre === g ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
-          >
-            {g}
-          </button>
-        ))}
-      </div>
+      {/* Bento Grid */}
+      <div className="px-4 md:px-8">
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 auto-rows-auto">
+            <BentoSkeleton hero />
+            {Array(6).fill(0).map((_, i) => <BentoSkeleton key={i} />)}
+          </div>
+        ) : animes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <SearchX className="w-10 h-10 text-muted" />
+            <p className="text-muted-foreground text-sm">No hay resultados con estos filtros.</p>
+            <button
+              onClick={() => setCatalog(loadCatalogState())}
+              className="text-xs text-primary hover:underline"
+            >
+              Ajustar catálogo
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 animate-fade-in">
+            {animes.map((anime, i) => (
+              <BentoAnimeCard key={anime.id} anime={anime} hero={i === 0} />
+            ))}
+          </div>
+        )}
 
-      {/* Advanced filters */}
-      {showFilters && (
-        <div className="bg-secondary/50 border border-border rounded-xl p-3 mb-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-foreground">Filtros Avanzados</span>
-            {hasActiveFilters && (
-              <button onClick={clearFilters} className="text-[10px] text-primary flex items-center gap-0.5">
-                <X className="w-3 h-3" /> Limpiar
-              </button>
+        {moviesMode && !loading && (
+          <>
+            <div ref={sentinelRef} className="h-10" />
+            {moviesInfinite.isFetchingNextPage && (
+              <div className="flex justify-center py-6">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
             )}
-          </div>
-
-          {/* Year */}
-          <div>
-            <span className="text-[10px] font-medium text-muted-foreground mb-1 block">Año</span>
-            <div className="flex gap-1.5 overflow-x-auto hide-scrollbar">
-              {YEARS.slice(0, 15).map((y) => (
-                <button
-                  key={y}
-                  onClick={() => setSelectedYear(selectedYear === y ? null : y)}
-                  className={`flex-shrink-0 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all ${selectedYear === y ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-                >
-                  {y}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Status */}
-          <div>
-            <span className="text-[10px] font-medium text-muted-foreground mb-1 block">Estado</span>
-            <div className="flex gap-1.5">
-              {STATUSES.map((s) => (
-                <button
-                  key={s.value}
-                  onClick={() => setSelectedStatus(selectedStatus === s.value ? null : s.value)}
-                  className={`flex-shrink-0 px-2.5 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-1 ${selectedStatus === s.value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
-                >
-                  <Tv className="w-3 h-3" />
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Banner 728x90 entre filtros y grid de resultados */}
-      <AdBannerInline size="728x90" className="mb-4" />
-
-      {/* Results */}
-      {loading ? (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-          {Array(18).fill(0).map((_, i) => (
-            <div key={i}>
-              <div className="aspect-[3/4] bg-secondary rounded-xl animate-pulse" />
-              <div className="h-3 w-20 bg-secondary rounded mt-2 animate-pulse" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-          {animes.map((anime) => (
-            <AnimeCard key={anime.id} anime={anime} size="grid" showStatus />
-          ))}
-        </div>
-      )}
-
-      {/* Sentinel + spinner para scroll infinito (solo Películas) */}
-      {isMovies && !loading && (
-        <>
-          <div ref={sentinelRef} className="h-10" />
-          {moviesInfinite.isFetchingNextPage && (
-            <div className="flex justify-center py-6">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-          )}
-          {!moviesInfinite.hasNextPage && animes.length > 0 && (
-            <p className="text-center text-[10px] text-muted-foreground py-6">No hay más películas</p>
-          )}
-        </>
-      )}
-
-      {!loading && animes.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <SearchX className="w-10 h-10 text-muted" />
-          <p className="text-muted-foreground text-sm">No encontramos resultados.</p>
-        </div>
-      )}
+            {!moviesInfinite.hasNextPage && animes.length > 0 && (
+              <p className="text-center text-[10px] text-muted-foreground py-6">
+                No hay más películas
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
