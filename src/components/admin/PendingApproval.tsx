@@ -58,6 +58,15 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 15,
   });
 
+  // Películas recientemente estrenadas (AniList) — también entran a pendientes
+  // para que el admin las revise cuando ya "salieron".
+  const { data: movies, isLoading: lm } = useQuery({
+    queryKey: ["recent-released-movies", 1],
+    queryFn: () => getRecentReleasedMovies(1, 30),
+    staleTime: 1000 * 60 * 30,
+  });
+
+
   const { data: approvedArr, refetch: refetchApproved } = useQuery({
     queryKey: ["approved-anime-ids"],
     queryFn: async () => Array.from(await getApprovedAnimeIds(true)),
