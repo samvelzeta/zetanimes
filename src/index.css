@@ -924,3 +924,14 @@ h1, h2, h3, .heading-steam {
 
 
 
+
+/* Filmstrip marquee */
+@keyframes filmstrip-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.filmstrip-marquee {
+  display: inline-block;
+  animation: filmstrip-marquee 40s linear infinite;
+  will-change: transform;
+}
