@@ -1,53 +1,87 @@
-# Plan por bloques
+# Rediseño del Directorio — Experience-First
 
-Voy a dividir todos tus pedidos en 6 bloques. Después de aprobar, empiezo por el **Bloque 1** y avanzo secuencialmente. Si se cortan los créditos, retomamos en el bloque siguiente sin perder contexto.
+Cambio grande y visual del `src/pages/Directory.tsx`. Se mantiene toda la lógica de datos (AniList queries, filtros ocultos, gore, scroll infinito de películas, aprobados, ads) — solo cambia la capa de presentación.
 
----
+## 1. Hero Carousel Editorial (arriba)
 
-## Bloque 1 — Exportación Excel + arreglo emisión + carrusel real
-1. **Exportar Excel** en Descargas → pestaña "Completados":
-   - Botón "Exportar" abre modal con opciones: Todos · Solo películas · Solo en emisión · Solo finalizados · Solo con enlaces · Por año.
-   - Genera `.xlsx` con: título, romaji, estado, tipo, episodios, año, géneros, slug, links guardados.
-2. **En emisión → "Añadir a Ver después"** en lugar de "Ver ahora" (en cards de Home / Directorio / Search).
-3. **Reemplazar `MarqueeText`** por un **carrusel real continuo** (loop derecha → izquierda sin fade). Pausa al hover/tap. Se aplica automáticamente en las mismas ubicaciones (AnimeCard, VideoManager, DownloadTracker).
+- Reemplaza el título "Directorio" + botón Filtros por un carrusel full-width.
+- Alturas: `100vh` desktop, `60vh` tablet, `50vh` móvil.
+- Fuente: top 5-6 animes de `getTrending` (ya cacheado).
+- Cada slide: banner alta resolución con `blur-sm` sutil + gradiente negro inferior + título en fuente serif (Playfair Display o Cinzel via Google Fonts), sinopsis corta, botón "Ver detalles" con glassmorphism (`backdrop-blur bg-white/10`).
+- Autoplay 6s, dots + flechas laterales en desktop.
+- Etiqueta "DIRECTORIO" pequeña, ligera, esquina superior izquierda superpuesta como firma.
 
-## Bloque 2 — Home hero + Similares + variedad semanal
-1. **Título del hero (Home)**: si supera 100 caracteres → recorte con "…" (igual que la descripción).
-2. **Sección "Similares" en /anime/:id**:
-   - Eliminar `SIDE_STORY`, `OTHER`, `SUMMARY`, `CHARACTER`, `SPIN_OFF`.
-   - Mantener solo `SEQUEL` y `PREQUEL` en **2 paneles anchos** (uno al lado del otro / apilados en móvil) con la imagen de la temporada correspondiente y el texto "Secuela" / "Precuela" superpuesto.
-3. **Acción / Fantasía / Descubre**:
-   - Rotación semanal determinista (seed = año-semana) para variar animes.
-   - Mezcla finalizados + en emisión, evita repetir los "clásicos" (blacklist configurable de IDs sobre-usados).
-   - Sigue respetando `hidden_home_animes`.
+## 2. Panel Catálogo Inteligente (Drawer lateral)
 
-## Bloque 3 — Player rediseñado
-1. Quitar marco decorativo → player ocupa **todo el ancho** (edge-to-edge en móvil).
-2. Mantener la **línea de color** (borde/acento) también en fullscreen.
-3. **Botón de volver** superpuesto arriba-izquierda dentro del player, con hit-area limitado a esa esquina (no interfiere con controles).
-4. **Selector de temporada desplegable dentro del player** (chip arriba, junto al título).
+- Botón "Catálogo" flotante: esquina sup-der en desktop/tablet, FAB inferior-der en móvil.
+- Drawer con `Sheet` de shadcn (ya disponible) — side="right" desktop, side="bottom" móvil.
+- Fondo glassmorphism oscuro (`bg-black/70 backdrop-blur-xl`).
+- Contiene tres bloques:
+  **A) Categorías Temáticas** (mapeadas a géneros AniList existentes):
+  - El despertar de los héroes → Action + Adventure
+  - Oscuridad pura → Horror + Psychological + Thriller
+  - Viajes inolvidables → Adventure + Fantasy
+  - Venganza y redención → Drama + Thriller
+  - Mundos de fantasía → Fantasy + Supernatural
+  - Ciencia ficción profunda → Sci-Fi + Mecha
+  **B) Filtros avanzados** — sliders año (2000-actual) y rating (0-10) + botones estado (En emisión / Finalizado / Todos).
+  **C) Recomendaciones "✨ Para ti"** — basadas en historial local (`recently-watched` / likes en localStorage). Si no hay historial → top rated como fallback. Tarjetas horizontales pequeñas.
+- Persistencia: estado en `localStorage` key `zet:directory-catalog`.
 
-## Bloque 4 — Nuevo listado de capítulos
-1. Rediseño estilo imagen 2:
-   - **Imagen del capítulo a la izquierda**, texto a la derecha (número + título).
-   - **Sin ícono de descarga**.
-   - Imagen: intenta thumbnail de AniList (`streamingEpisodes.thumbnail`); si no existe usa el cover del anime con crop 16:9 consistente.
-2. Este bloque de capítulos se muestra:
-   - **Debajo de la sinopsis** en la página de info.
-   - **Dentro del player** (colapsable) en la vista de Watch.
-3. Títulos y romaji: si > 100 chars → colapsado con "…" y botón "Ver más".
+## 3. Bento Grid Asimétrico
 
-## Bloque 5 — Likes por anime (ligero)
-1. Tabla `anime_likes` mínima: `anilist_id`, `user_id`, `created_at` (PK compuesta).
-2. RLS: usuario solo ve/edita sus propios likes; conteo público vía view/RPC.
-3. Botón corazón en la card de info del anime + contador comprimido (13.1K).
+- Desktop (≥1024px): grid de 3 cols, primer item ocupa 2x2, resto 1x1. Aspect 2:3.
+- Tablet (768-1023px): 2 cols uniformes.
+- Móvil (<768px): scroll vertical de tarjetas anchas al 90%, con overlay siempre visible (título + sinopsis corta sobre gradiente).
+- Cada tarjeta:
+  - Sin texto estático debajo.
+  - Overlay con gradiente `from-black/90 to-transparent` con título + sinopsis 80 chars, visible en hover (desktop) o siempre (móvil).
+  - Hover: `scale-105`, halo/glow del `--primary`, transición 0.3s.
+- Skeleton shimmer animado mientras carga (keyframe `shimmer` horizontal).
 
-## Bloque 6 — Pulido y verificación
-1. Revisar responsive de todo lo anterior.
-2. Reemplazar todas las referencias sobrantes a `MarqueeText`.
-3. Corregir warnings de tipos.
-4. Screenshot con Playwright de las 3 vistas clave (Home hero, /anime/:id, /watch, /download tab completados).
+## 4. Micro-interacciones
 
----
+- Transiciones al cambiar filtro/categoría: fade + stagger 50ms usando animaciones CSS existentes (`animate-fade-in`).
+- Scroll suave.
 
-**Empiezo por el Bloque 1 apenas confirmes.** Si prefieres cambiar el orden o quitar algo, dímelo antes.
+## Detalles técnicos
+
+- Nuevo componente `src/components/directory/HeroCarousel.tsx`.
+- Nuevo componente `src/components/directory/CatalogDrawer.tsx`.
+- Nuevo componente `src/components/directory/BentoAnimeCard.tsx`.
+- `Directory.tsx` reescrito para orquestar los 3 bloques y mantener las queries existentes (AniList + hidden + approved + películas infinite).
+- Fuente serif: agregar `<link>` Google Fonts (Playfair Display) en `index.html` y clase util en `index.css`.
+- Keyframe `shimmer` en `index.css`.
+- Se conservan `AdBannerInline` entre filtros y grid, filtros gore, hidden animes.
+
+## Fuera de alcance
+
+- Feedback háptico/sonoro (opcional, se omite).
+- Sincronía carrusel↔grid ("si slide es AoT, primera fila destaca relacionados") — se omite en esta iteración; el grid sigue reaccionando a categoría/filtros del drawer, no al slide activo.
+
+ajustes y sugerencias extras para tener en cuenta y sera el veredicto final:  
+Ajuste al "Hero Carousel"
+
+- **Sugerencia:** Asegúrate de que, en móvil, el carrusel no ocupe tanto espacio. El **50vh** que propone la IA puede ocultar demasiado contenido importante en pantallas pequeñas (el usuario quiere ver el "Directorio" rápido).
+- **Corrección sugerida:** "En móvil, limita el Hero Carousel a **40vh** y asegúrate de que el título no sea tan grande que tape la imagen, para que el usuario siempre vea un adelanto del contenido de abajo."
+
+### 2. Sobre el "Bento Grid" (Efectos de texto)
+
+- **Sugerencia:** En el diseño que propone la IA para móvil, dice que la sinopsis estará "siempre visible" sobre el gradiente. En móvil, eso a veces puede saturar la pantalla pequeña y hacer que el diseño se sienta desordenado.
+- **Corrección sugerida:** "En móvil, haz que la sinopsis sea **colapsable o limita el texto a 2 líneas** para que la imagen del anime mantenga el protagonismo, y solo muestra el título claramente."
+
+### 3. Integración de tus proyectos (Zen y Zani)
+
+- **Oportunidad:** Como estás usando a tus mascotas Zen y Zani para tus proyectos, ¿por qué no le pides que, en el **Skeleton Loading** (cuando las imágenes están cargando), el efecto de "shimmer" o carga tenga un icono minimalista de Zen o Zani animado? Es un detalle de *branding* que las grandes empresas no dejan pasar.
+
+### ¿Cómo proceder?
+
+Si estás de acuerdo con esto, responde a la IA con este mensaje para cerrar el plan y comenzar la implementación:
+
+> "La propuesta está excelente. Solo haz estos dos ajustes finales:
+>
+> 1. En móvil, ajusta el Hero Carousel a **40vh** para no ocultar demasiado el directorio.
+> 2. En el grid móvil, limita la sinopsis a **2 líneas** para mantener el diseño limpio.
+> 3. **Detalle Pro:** En el esqueleto de carga (skeleton loading), usa un icono sutil de mis mascotas (Zen o Zani) como parte de la animación de carga.
+>
+> Procedemos con la implementación tal cual lo detallaste."
