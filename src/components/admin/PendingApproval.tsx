@@ -218,7 +218,7 @@ export default function PendingApproval() {
 
   useEffect(() => onApprovedChange(() => { refetchApproved(); refetchSeeke(); }), [refetchApproved, refetchSeeke]);
 
-  const loading = l1 || l2 || l3 || lm;
+  const loading = l1 || l2 || l3 || lm || lm2 || lm3;
 
   const pendingCount = all.filter((a) => !approvedSet.has(a.id)).length;
   const approvedCount = all.filter((a) => approvedSet.has(a.id)).length;
