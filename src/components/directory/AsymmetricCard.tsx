@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import LazyImage from "@/components/LazyImage";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import { useTranslatedDesc } from "@/hooks/useTranslatedDesc";
 import ZenLoader from "./ZenLoader";
 
 export type AsymmetricVariant = "portrait" | "square" | "landscape";
