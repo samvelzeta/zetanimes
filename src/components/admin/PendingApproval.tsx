@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getRecentlyUpdated, getRecentReleasedMovies } from "@/lib/anilist";
+import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovies } from "@/lib/anilist";
 import { getApprovedAnimeIds, approveAnime, unapproveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,6 +67,19 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 30,
   });
 
+  // También traemos las películas que se muestran en Directorio (populares + próximas)
+  // para que TODA película sin enlace madre Seeke aparezca aquí.
+  const { data: dirMovies, isLoading: lm2 } = useQuery({
+    queryKey: ["directory-movies-pending", 1],
+    queryFn: () => getMovies(1, 30, null),
+    staleTime: 1000 * 60 * 30,
+  });
+  const { data: dirUpcoming, isLoading: lm3 } = useQuery({
+    queryKey: ["directory-upcoming-movies-pending", 1],
+    queryFn: () => getUpcomingMovies(1, 20),
+    staleTime: 1000 * 60 * 60,
+  });
+
 
   const { data: approvedArr, refetch: refetchApproved } = useQuery({
     queryKey: ["approved-anime-ids"],
@@ -100,13 +113,13 @@ export default function PendingApproval() {
 
   const airingItems = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
-    for (const p of [p1, p2, p3, movies]) {
+    for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming]) {
       for (const m of (p?.media || []) as AiringItem[]) {
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies]);
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming]);
 
   // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
   const { data: prequelMap } = useQuery({
@@ -205,7 +218,7 @@ export default function PendingApproval() {
 
   useEffect(() => onApprovedChange(() => { refetchApproved(); refetchSeeke(); }), [refetchApproved, refetchSeeke]);
 
-  const loading = l1 || l2 || l3 || lm;
+  const loading = l1 || l2 || l3 || lm || lm2 || lm3;
 
   const pendingCount = all.filter((a) => !approvedSet.has(a.id)).length;
   const approvedCount = all.filter((a) => approvedSet.has(a.id)).length;
