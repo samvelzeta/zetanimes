@@ -113,13 +113,13 @@ export default function PendingApproval() {
 
   const airingItems = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
-    for (const p of [p1, p2, p3, movies]) {
+    for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming]) {
       for (const m of (p?.media || []) as AiringItem[]) {
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies]);
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming]);
 
   // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
   const { data: prequelMap } = useQuery({
