@@ -174,24 +174,24 @@ export default function AnimeDetail() {
   const studio = (anime as any).studios?.nodes?.find((s: any) => s.isAnimationStudio)?.name || (anime as any).studios?.nodes?.[0]?.name;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* ========= HERO CINEMATOGRÁFICO (mismo lenguaje que FilmstripShowcase) ========= */}
+    <div className="min-h-screen text-foreground" style={{ backgroundColor: "#100e17" }}>
+      {/* ========= HERO — póster como fondo, título centrado ========= */}
       <section className="relative w-full h-[78vh] md:h-[92vh] overflow-hidden">
-        {/* Fondo nítido + capa blur para profundidad */}
         <img
           src={banner || cover}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: "center 20%" }}
+          style={{ objectPosition: "center 25%" }}
         />
-        <img
-          src={banner || cover}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover scale-110 blur-3xl opacity-30"
-          aria-hidden
+        {/* Overlays: oscuro por abajo + viñeta general para llevar la vista al título */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(16,14,23,0.55) 0%, rgba(16,14,23,0.25) 30%, rgba(16,14,23,0.85) 75%, #100e17 100%)",
+          }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/30 to-background pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/20 pointer-events-none" />
+        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
         {/* Volver */}
         <Link
@@ -210,156 +210,127 @@ export default function AnimeDetail() {
           <div className="mt-1 h-px w-10 bg-primary/60" />
         </div>
 
-        {/* Contenido narrativo abajo */}
-        <div className="absolute inset-x-0 bottom-0 z-10 px-5 md:px-14 pb-10 md:pb-14 pt-8 bg-gradient-to-t from-background via-background/80 to-transparent">
-          <div className="max-w-6xl mx-auto grid md:grid-cols-[220px_1fr] gap-6 md:gap-10 items-end">
-            {/* Poster (desktop) */}
-            <div className="hidden md:block relative group">
-              <div
-                aria-hidden
-                className="absolute -inset-[2px] rounded-2xl opacity-70 group-hover:opacity-100 transition-opacity"
-                style={{ background: "linear-gradient(140deg, hsl(var(--primary)/0.9), transparent 50%, hsl(var(--primary)/0.35))" }}
-              />
-              <img
-                src={cover}
-                alt={title}
-                className="relative w-full aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] transition-transform duration-500 group-hover:scale-[1.02]"
-              />
-              {anime.status === "RELEASING" && (
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1 rounded-full directory-glass border border-primary/40">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                  </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90">En emisión</span>
-                </div>
-              )}
+        {/* Estado en emisión — píldora sutil arriba a la derecha */}
+        {anime.status === "RELEASING" && (
+          <div className="absolute top-14 md:top-20 right-4 md:right-8 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full directory-glass border border-primary/40">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90">En emisión</span>
+          </div>
+        )}
+
+        {/* Título centrado + acciones */}
+        <div className="absolute inset-x-0 bottom-0 z-10 px-4 md:px-8 pb-12 md:pb-16 pt-10 flex flex-col items-center text-center">
+          <p className="text-[10px] md:text-xs tracking-[0.45em] uppercase text-primary/90 mb-3">
+            {anime.seasonYear ? `${anime.season || ""} ${anime.seasonYear}` : "Publicación"}
+            {studio ? <span className="text-white/50"> · {studio}</span> : null}
+          </p>
+          <h1
+            className="directory-hero-title font-black text-white leading-[1.05] uppercase tracking-tight text-3xl sm:text-5xl md:text-6xl max-w-4xl"
+            style={{ textShadow: "0 2px 24px rgba(0,0,0,0.7)" }}
+          >
+            {title}
+          </h1>
+          {anime.title.romaji && anime.title.romaji !== anime.title.english && (
+            <p className="mt-2 text-xs md:text-sm text-white/50 font-light tracking-[0.25em] uppercase max-w-3xl">
+              {anime.title.romaji}
+            </p>
+          )}
+
+          {/* Fila de acciones principales — Ver ahora + Like */}
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <Link
+              to={`/watch/${animeId}?ep=1`}
+              className="rounded-full px-6 py-3 text-sm font-bold bg-primary text-primary-foreground inline-flex items-center gap-2 hover:scale-105 transition-transform shadow-[0_10px_30px_hsl(var(--primary)/0.5)] uppercase tracking-wider"
+            >
+              <Play className="w-4 h-4 fill-current" /> Ver ahora
+            </Link>
+            <div className="directory-glass rounded-full px-2 py-1.5">
+              <LikeButton anilistId={animeId} />
             </div>
+          </div>
 
-            {/* Info */}
-            <div className="min-w-0">
-              <p className="text-[10px] md:text-xs tracking-[0.45em] uppercase text-primary/90 mb-2">
-                {anime.seasonYear ? `${anime.season || ""} ${anime.seasonYear}` : "Publicación"}
-                {studio ? <span className="text-white/50"> · {studio}</span> : null}
-              </p>
-              <h1 className="directory-hero-title text-3xl sm:text-4xl md:text-6xl font-bold text-white leading-[1.05] uppercase tracking-tight">
-                {title}
-              </h1>
-              {anime.title.romaji && anime.title.romaji !== anime.title.english && (
-                <p className="mt-2 text-xs md:text-sm text-white/50 font-light tracking-[0.2em] uppercase">
-                  {anime.title.romaji}
-                </p>
-              )}
-              {anime.genres?.length ? (
-                <p className="mt-3 text-[11px] uppercase tracking-widest text-white/60">
-                  {anime.genres.slice(0, 4).join(" · ")}
-                  {anime.averageScore ? (
-                    <span className="text-primary ml-3 font-mono">★ {(anime.averageScore / 10).toFixed(1)}</span>
-                  ) : null}
-                </p>
-              ) : null}
-
-              {/* Acción principal + like */}
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <Link
-                  to={`/watch/${animeId}?ep=1`}
-                  className="rounded-full px-6 py-3 text-sm font-bold bg-primary text-primary-foreground inline-flex items-center gap-2 hover:scale-105 transition-transform shadow-[0_10px_30px_hsl(var(--primary)/0.5)]"
+          {/* Barra de estados — 5 iconos, glass sutil, ≤80% ancho */}
+          <div
+            className="mt-4 mx-auto flex items-center justify-around gap-1 p-1.5 rounded-2xl border border-white/10"
+            style={{
+              backgroundColor: "#17141d",
+              width: "min(80%, 380px)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+            }}
+          >
+            {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
+              const isActive = activeLists.includes(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() => handleToggleList(type)}
+                  disabled={loadingList}
+                  aria-label={label}
+                  title={label}
+                  className={`flex-1 inline-flex items-center justify-center h-9 rounded-xl transition-all disabled:opacity-50 ${
+                    isActive
+                      ? "bg-primary/25 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
+                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                  }`}
                 >
-                  <Play className="w-4 h-4 fill-current" /> Ver ahora
-                </Link>
-                <div className="directory-glass rounded-full px-2 py-1.5">
-                  <LikeButton anilistId={animeId} />
-                </div>
-                {anime.status === "RELEASING" && (
-                  <div className="md:hidden flex items-center gap-2 px-3 py-1.5 rounded-full directory-glass border border-primary/40">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                    </span>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90">En emisión</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Deck de listas — glass horizontal */}
-              <div className="mt-4 inline-flex flex-wrap items-center gap-1 p-1.5 rounded-2xl directory-glass border border-white/10">
-                {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
-                  const isActive = activeLists.includes(type);
-                  return (
-                    <button
-                      key={type}
-                      onClick={() => handleToggleList(type)}
-                      disabled={loadingList}
-                      title={label}
-                      className={`inline-flex items-center gap-1.5 px-3 h-9 rounded-xl text-[10px] uppercase tracking-[0.2em] font-bold transition-all disabled:opacity-50 ${
-                        isActive
-                          ? "bg-primary/25 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
-                          : "text-white/70 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 ${isActive ? "fill-current" : ""}`} />
-                      <span className="hidden sm:inline">{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                  <Icon className={`w-4 h-4 ${isActive ? "fill-current" : ""}`} />
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* ========= CUERPO EDITORIAL ========= */}
-      <div className="max-w-6xl mx-auto px-4 md:px-8 pb-24 pt-10 space-y-14">
-        {/* Poster móvil + metadata */}
-        <section className="md:hidden -mt-24 relative z-10 flex justify-center">
-          <img
-            src={cover}
-            alt={title}
-            className="w-40 aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] border border-white/10"
-          />
-        </section>
-
-        {/* Tira metadata */}
-        <section className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] uppercase tracking-[0.25em] text-muted-foreground border-y border-white/5 py-4">
-          <span className={`px-3 py-1 rounded-full text-primary-foreground text-[10px] font-bold ${getStatusColor(anime.status)}`}>
-            {getStatusLabel(anime.status)}
-          </span>
-          {viewCount > 0 && (
-            <span className="inline-flex items-center gap-1.5">
-              <Eye className="w-3.5 h-3.5 text-primary" /> {formatViews(viewCount)}
+      <div className="max-w-4xl mx-auto px-4 md:px-8 pb-24 pt-8 space-y-12">
+        {/* Metadata unificada — una sola fila minimalista */}
+        <section className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[11px] uppercase tracking-[0.3em] text-white/70 border-y border-white/5 py-4">
+          {anime.episodes && (
+            <span className="inline-flex items-center gap-2">
+              <Tv className="w-3.5 h-3.5 text-primary" />
+              {anime.episodes} EPS
             </span>
           )}
           {anime.averageScore && (
-            <span className="inline-flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" /> {(anime.averageScore / 10).toFixed(1)}
+            <span className="inline-flex items-center gap-2">
+              <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+              {(anime.averageScore / 10).toFixed(1)}
             </span>
           )}
-          {anime.episodes && (
-            <span className="inline-flex items-center gap-1.5">
-              <Tv className="w-3.5 h-3.5" /> {anime.episodes} eps
+          {anime.seasonYear && (
+            <span className="inline-flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-primary" />
+              {anime.season} {anime.seasonYear}
             </span>
           )}
           {anime.format && (
-            <span className="inline-flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-2">
               {anime.format === "MOVIE" ? <Film className="w-3.5 h-3.5" /> : <Tv className="w-3.5 h-3.5" />}
               {anime.format === "TV" ? "Serie" : anime.format === "MOVIE" ? "Película" : anime.format}
             </span>
           )}
-          {anime.seasonYear && (
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" /> {anime.season} {anime.seasonYear}
+          {viewCount > 0 && (
+            <span className="inline-flex items-center gap-2">
+              <Eye className="w-3.5 h-3.5 text-primary" />
+              {formatViews(viewCount)}
             </span>
           )}
+          <span className={`px-3 py-1 rounded-full text-primary-foreground text-[10px] font-bold ${getStatusColor(anime.status)}`}>
+            {getStatusLabel(anime.status)}
+          </span>
         </section>
 
-        {/* Géneros como chips editoriales */}
+        {/* Géneros */}
         {anime.genres?.length > 0 && (
-          <section className="flex flex-wrap gap-2 -mt-8">
+          <section className="flex flex-wrap justify-center gap-2">
             {anime.genres.map((g: string) => (
               <Link
                 key={g}
                 to={`/directory?genre=${g}`}
-                className="directory-glass rounded-full px-3 py-1 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground hover:text-primary hover:border-primary/40 transition"
+                className="directory-glass rounded-full px-3 py-1 text-[10px] font-light tracking-[0.25em] uppercase text-white/70 hover:text-primary hover:border-primary/40 transition"
               >
                 {g}
               </Link>
@@ -367,21 +338,12 @@ export default function AnimeDetail() {
           </section>
         )}
 
-        {/* Ficha técnica */}
-        <section>
-          {isOwner ? (
-            <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
-          ) : (
-            <TechInfoBlock title={title} studio={studio} format={anime.format} />
-          )}
-        </section>
-
-        {/* Sinopsis editorial */}
+        {/* Sinopsis */}
         {description && (
           <section>
             <SectionHeader eyebrow="Editorial" title="Sinopsis" />
-            <div className="max-w-3xl directory-glass rounded-2xl p-6 border border-white/10">
-              <p className={`font-serif-body italic text-base md:text-lg leading-relaxed text-foreground/85 ${!showFullDesc && isLongDesc ? "line-clamp-5" : ""}`}>
+            <div className="rounded-2xl p-6 border border-white/10" style={{ backgroundColor: "#17141d" }}>
+              <p className={`font-serif-body italic text-base md:text-lg leading-relaxed text-white/85 ${!showFullDesc && isLongDesc ? "line-clamp-5" : ""}`}>
                 "{showFullDesc || !isLongDesc ? description : description.slice(0, SYNOPSIS_LIMIT * 2)}"
               </p>
               {isLongDesc && (
@@ -397,32 +359,54 @@ export default function AnimeDetail() {
           </section>
         )}
 
-        {/* Capítulos */}
+        {/* Ficha técnica / Admin slug — solo owner */}
+        {isOwner ? (
+          <section>
+            <SlugOverrideAdmin anilistId={animeId} animeTitle={title} coverImage={cover} />
+          </section>
+        ) : (
+          <section>
+            <TechInfoBlock title={title} studio={studio} format={anime.format} />
+          </section>
+        )}
+
+        {/* Capítulos — lista vertical limpia */}
         {totalEps > 0 && (
           <section>
             <SectionHeader eyebrow="Episodios" title={`Capítulos (${totalEps})`} />
-            <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1 -mx-4 px-4 md:mx-0 md:px-0">
+            <ol className="rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5" style={{ backgroundColor: "#17141d" }}>
               {Array.from({ length: totalEps }, (_, i) => i + 1).map((ep) => {
                 const meta = streamingEpisodes?.[ep - 1];
                 const thumb = episodeThumbs[ep - 1] || cover || "";
                 const epTitle = meta?.title?.replace(/^Episode\s*\d+\s*[-:·—]?\s*/i, "") || "";
                 return (
-                  <Link
-                    key={ep}
-                    to={`/watch/${animeId}?ep=${ep}`}
-                    className="flex-none w-[140px] md:w-[200px] rounded-xl overflow-hidden bg-secondary/60 border border-white/5 hover:border-primary/40 transition group"
-                  >
-                    <div className="aspect-video w-full overflow-hidden">
-                      <img src={thumb} alt={`Ep ${ep}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
-                    </div>
-                    <div className="px-2.5 py-2">
-                      <p className="text-[10px] tracking-[0.3em] uppercase text-primary font-bold">Ep {String(ep).padStart(2, "0")}</p>
-                      <p className="text-xs text-white truncate leading-tight mt-0.5">{epTitle || "—"}</p>
-                    </div>
-                  </Link>
+                  <li key={ep}>
+                    <Link
+                      to={`/watch/${animeId}?ep=${ep}`}
+                      className="group flex items-center gap-4 px-3 md:px-4 py-3 hover:bg-white/[0.03] transition"
+                    >
+                      <div className="flex-none w-24 md:w-32 aspect-video rounded-lg overflow-hidden bg-black/40 border border-white/5">
+                        <img
+                          src={thumb}
+                          alt={`Ep ${ep}`}
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] tracking-[0.35em] uppercase text-primary font-bold">
+                          Ep {String(ep).padStart(2, "0")}
+                        </p>
+                        <p className="text-sm md:text-base text-white font-medium leading-tight mt-0.5 truncate">
+                          {epTitle || "—"}
+                        </p>
+                      </div>
+                      <Play className="w-4 h-4 text-white/40 group-hover:text-primary flex-shrink-0" />
+                    </Link>
+                  </li>
                 );
               })}
-            </div>
+            </ol>
           </section>
         )}
 
@@ -440,7 +424,7 @@ export default function AnimeDetail() {
           return (
             <section>
               <SectionHeader eyebrow="Saga" title="Temporadas relacionadas" />
-              <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-1 md:grid md:grid-cols-3 lg:grid-cols-4 md:overflow-visible -mx-4 px-4 md:mx-0 md:px-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {rel.map((edge: any) => {
                   const label = edge.relationType === "SEQUEL" ? "Secuela" : "Precuela";
                   const img = edge.node.bannerImage || edge.node.coverImage?.extraLarge || edge.node.coverImage?.large;
@@ -449,7 +433,7 @@ export default function AnimeDetail() {
                     <Link
                       key={edge.node.id}
                       to={`/anime/${edge.node.id}`}
-                      className="relative flex-none md:flex-auto w-[240px] md:w-auto h-[130px] rounded-xl overflow-hidden border border-primary/40 hover:border-primary transition group"
+                      className="relative h-[140px] rounded-xl overflow-hidden border border-primary/40 hover:border-primary transition group"
                     >
                       <img src={img} alt={relTitle} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" style={{ objectPosition: "center 20%" }} loading="lazy" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
@@ -474,7 +458,7 @@ export default function AnimeDetail() {
             <div className="flex gap-3 overflow-x-auto hide-scrollbar md:hidden -mx-4 px-4">
               {recommendations.map((rec: any) => <AnimeCard key={rec.id} anime={rec} size="small" />)}
             </div>
-            <div className="hidden md:grid grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-5">
+            <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 gap-5">
               {recommendations.map((rec: any) => {
                 const recTitle = rec.title?.english || rec.title?.romaji || "";
                 const recImg = rec.coverImage?.extraLarge || rec.coverImage?.large;
@@ -495,7 +479,7 @@ export default function AnimeDetail() {
                         </div>
                       )}
                     </div>
-                    <p className="mt-2 text-sm font-semibold text-foreground/90 line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                    <p className="mt-2 text-sm font-semibold text-white/90 line-clamp-2 leading-snug group-hover:text-primary transition-colors">
                       {recTitle}
                     </p>
                   </Link>
@@ -510,3 +494,4 @@ export default function AnimeDetail() {
     </div>
   );
 }
+
