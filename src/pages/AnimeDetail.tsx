@@ -174,7 +174,7 @@ export default function AnimeDetail() {
   const studio = (anime as any).studios?.nodes?.find((s: any) => s.isAnimationStudio)?.name || (anime as any).studios?.nodes?.[0]?.name;
 
   return (
-    <div className="min-h-screen bg-background text-foreground -mt-12">
+    <div className="min-h-screen bg-background text-foreground">
       {/* ========= HERO CINEMATOGRÁFICO (mismo lenguaje que FilmstripShowcase) ========= */}
       <section className="relative w-full h-[78vh] md:h-[92vh] overflow-hidden">
         {/* Fondo nítido + capa blur para profundidad */}
