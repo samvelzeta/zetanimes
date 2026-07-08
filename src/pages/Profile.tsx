@@ -266,7 +266,8 @@ export default function Profile() {
                     />
                   </>
                 )}
-                {/* Engranaje centrado como marco alrededor del avatar + polvo Minecraft */}
+                {/* Engranaje centrado como marco alrededor del avatar + polvo Minecraft — solo premium/owner */}
+                {(isPremium || isOwner) && (
                 <div
                   className="gear-emitter"
                   aria-hidden
@@ -299,6 +300,7 @@ export default function Profile() {
                     );
                   })}
                 </div>
+                )}
                 {/* Z-1: Photo */}
                 <div
                   className="relative w-full h-full rounded-full overflow-hidden"
