@@ -133,6 +133,32 @@ export async function getMovies(page = 1, perPage = 30, genre?: string | null): 
   return processPage(result);
 }
 
+/** Películas anunciadas / próximamente en AniList. */
+export async function getUpcomingMovies(page = 1, perPage = 20): Promise<PageResult> {
+  const result = await withIdbCache(`upcoming-movies:${page}:${perPage}`, async () => {
+    const data = await queryAniList(
+      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,status:NOT_YET_RELEASED,isAdult:false){...MediaFields}}}`,
+      { page, perPage }
+    );
+    return data.Page;
+  }, 6 * 60 * 60 * 1000);
+  return processPage(result);
+}
+
+/** Películas ya estrenadas recientemente (RELEASING/FINISHED) ordenadas por fecha desc. */
+export async function getRecentReleasedMovies(page = 1, perPage = 30): Promise<PageResult> {
+  const result = await withIdbCache(`recent-released-movies:${page}:${perPage}`, async () => {
+    const data = await queryAniList(
+      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:START_DATE_DESC,type:ANIME,format:MOVIE,status_in:[RELEASING,FINISHED],isAdult:false){...MediaFields}}}`,
+      { page, perPage }
+    );
+    return data.Page;
+  }, 6 * 60 * 60 * 1000);
+  return processPage(result);
+}
+
+
+
 export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult> {
   const now = new Date();
   const month = now.getMonth();
