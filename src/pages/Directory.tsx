@@ -72,6 +72,13 @@ export default function Directory() {
     staleTime: 1000 * 60 * 15,
   });
 
+  const charactersQuery = useQuery({
+    queryKey: ["directory-characters"],
+    queryFn: () => getPopularCharacters(1, 25),
+    staleTime: 1000 * 60 * 60,
+  });
+
+
   const { data: hiddenIds } = useQuery({
     queryKey: ["hidden-anime-ids"],
     queryFn: async () => Array.from(await getHiddenAnimeIds()),
