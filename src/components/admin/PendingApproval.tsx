@@ -74,7 +74,7 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 5,
   });
   const approvedSet = useMemo(() => new Set<number>(approvedArr || []), [approvedArr]);
-  useEffect(() => onApprovedChange(() => { refetchApproved(); }), [refetchApproved]);
+  
 
   // ¿Qué animes ya tienen enlace madre Seeke (episode=0)? Este set es el que
   // determina si una temporada puede considerarse "lista" para aprobarse sola.
