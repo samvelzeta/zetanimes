@@ -97,11 +97,25 @@ export default function Directory() {
     refetchOnMount: "always",
   });
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
+
+  // Ids con enlace madre Seeke — las películas SIN este enlace se ocultan del directorio
+  // (deben pasar por "Pendientes de aprobación" primero).
+  const { data: seekeMasterSet } = useQuery({
+    queryKey: ["directory-seeke-master-ids"],
+    queryFn: () => getAnimeIdsWithSeekeMaster(),
+    staleTime: 1000 * 60 * 5,
+  });
+
   const { preferences } = usePreferences();
+
+  const isMovie = (a: AniListMedia) => a.format === "MOVIE";
+  const movieHasSeeke = (a: AniListMedia) => !!seekeMasterSet && seekeMasterSet.has(a.id);
 
   const passesFilters = (a: AniListMedia): boolean => {
     if (hiddenSet.has(a.id)) return false;
     if (preferences.hideGore && Array.isArray(a.genres) && a.genres.some((g) => GORE_GENRES.has(g))) return false;
+    // Películas sin enlace madre Seeke → se ocultan (van a Pendientes)
+    if (isMovie(a) && !movieHasSeeke(a)) return false;
     const y = a.seasonYear;
     if (y && (y < catalog.yearRange[0] || y > catalog.yearRange[1])) return false;
     if (catalog.ratingMin > 0 && (a.averageScore ?? 0) < catalog.ratingMin) return false;
