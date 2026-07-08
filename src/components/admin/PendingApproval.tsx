@@ -91,13 +91,13 @@ export default function PendingApproval() {
 
   const all = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
-    for (const p of [p1, p2, p3]) {
+    for (const p of [p1, p2, p3, movies]) {
       for (const m of (p?.media || []) as AiringItem[]) {
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
     return Array.from(map.values());
-  }, [p1, p2, p3]);
+  }, [p1, p2, p3, movies]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -109,7 +109,8 @@ export default function PendingApproval() {
     });
   }, [all, query, approvedSet, showApproved]);
 
-  const loading = l1 || l2 || l3;
+  const loading = l1 || l2 || l3 || lm;
+
   const pendingCount = all.filter((a) => !approvedSet.has(a.id)).length;
   const approvedCount = all.filter((a) => approvedSet.has(a.id)).length;
 
