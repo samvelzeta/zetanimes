@@ -75,6 +75,13 @@ export default function Directory() {
     staleTime: 1000 * 60 * 15,
   });
 
+  const upcomingMoviesQuery = useQuery({
+    queryKey: ["directory-upcoming-movies"],
+    queryFn: () => getUpcomingMovies(1, 20),
+    staleTime: 1000 * 60 * 60,
+  });
+
+
   const charactersQuery = useQuery({
     queryKey: ["directory-characters"],
     queryFn: () => getPopularCharacters(1, 25),
