@@ -150,18 +150,8 @@ export default function CinemaExtras({ items, upcomingItems = [] }: Props) {
                 </span>
               ))}
             </div>
-            {/* Programación */}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {showtimes.map((h) => (
-                <span
-                  key={h}
-                  className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-black/40 backdrop-blur px-3 py-1 text-[10px] font-mono text-white/85"
-                >
-                  <Clock className="w-3 h-3 text-primary" /> {h}
-                </span>
-              ))}
-            </div>
           </div>
+
         </Link>
 
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
