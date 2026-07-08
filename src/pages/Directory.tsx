@@ -28,6 +28,7 @@ import CharacterStats from "@/components/directory/CharacterStats";
 import CinemaAccordion from "@/components/directory/CinemaAccordion";
 import StickyRanking from "@/components/directory/StickyRanking";
 import { getPopularCharacters } from "@/lib/anilist-characters";
+import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
 
 
 const GORE_GENRES = new Set(["Horror", "Ecchi"]);
