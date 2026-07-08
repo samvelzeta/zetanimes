@@ -211,7 +211,11 @@ export default function Directory() {
         </div>
       </div>
 
-      <CinemaSection items={cinemaList} loading={cinemaQuery.isLoading} />
+      <CinemaAccordion items={cinemaList} loading={cinemaQuery.isLoading} />
+
+      {/* Estadísticas de personajes */}
+      <CharacterStats characters={characters} />
+
 
       {/* Ranking móvil compacto al final */}
       {rankingList.length > 0 && (
