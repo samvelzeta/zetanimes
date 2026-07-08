@@ -29,8 +29,41 @@ export default function ApiDebugPanel() {
   const [rawJson, setRawJson] = useState<any>(null);
   const [seekeJson, setSeekeJson] = useState<any>(null);
   const [requestUrl, setRequestUrl] = useState("");
-  const [seekeUrl, setSeekeUrl] = useState("https://flixlat.com/es/detail/drama/Q7KLWpsDuwCBm24xji2Bf-Erased");
+  const [seekeUrl, setSeekeUrl] = useState("");
+  const [dbUrls, setDbUrls] = useState<{ sub: string[]; latino: string[] }>({ sub: [], latino: [] });
+  const [loadingDbUrls, setLoadingDbUrls] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cargar enlaces madre Seeke guardados en video_cache para el anime seleccionado
+  // (episode=0). Cada idioma se guarda en una fila separada.
+  const loadSeekeUrlsFromDb = async (anilistId: number, currentLang: "sub" | "latino") => {
+    setLoadingDbUrls(true);
+    try {
+      const { data, error } = await supabase
+        .from("video_cache")
+        .select("lang, sources")
+        .eq("anilist_id", anilistId)
+        .eq("episode", 0);
+      if (error) throw error;
+      const out: { sub: string[]; latino: string[] } = { sub: [], latino: [] };
+      for (const row of (data || []) as any[]) {
+        const seeke = row?.sources?.seeke;
+        const arr = Array.isArray(seeke) ? seeke.filter((u: any) => typeof u === "string" && u.trim()) : [];
+        const key = row.lang === "latino" ? "latino" : "sub";
+        out[key].push(...arr);
+      }
+      setDbUrls(out);
+      const first = out[currentLang][0] || out[currentLang === "sub" ? "latino" : "sub"][0] || "";
+      setSeekeUrl(first);
+      if (!first) {
+        toast.info("No hay enlace madre Seeke guardado en la BD para este anime");
+      }
+    } catch (e: any) {
+      toast.error(`No se pudo leer video_cache: ${e?.message || e}`);
+    } finally {
+      setLoadingDbUrls(false);
+    }
+  };
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
