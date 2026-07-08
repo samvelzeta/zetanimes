@@ -12,7 +12,8 @@ import { SearchX } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { usePreferences } from "@/contexts/PreferencesContext";
-import VerticalCarousel from "@/components/directory/VerticalCarousel";
+import FilmstripShowcase from "@/components/directory/FilmstripShowcase";
+import CinemaExtras from "@/components/directory/CinemaExtras";
 import CatalogDrawer, {
   loadCatalogState,
   THEMED_CATEGORIES,
@@ -145,7 +146,7 @@ export default function Directory() {
 
   return (
     <div className="min-h-screen pb-24 -mt-12">
-      <VerticalCarousel items={heroList} />
+      <FilmstripShowcase items={heroList} />
 
 
       {/* Subtítulo móvil */}
@@ -212,6 +213,7 @@ export default function Directory() {
       </div>
 
       <CinemaAccordion items={cinemaList} loading={cinemaQuery.isLoading} />
+      <CinemaExtras items={cinemaList} />
 
       {/* Estadísticas de personajes */}
       <CharacterStats characters={characters} />
