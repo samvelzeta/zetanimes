@@ -99,9 +99,8 @@ export default function CinemaExtras({ items, upcomingItems = [] }: Props) {
     return quotes[(feature.id || 0) % quotes.length];
   }, [feature.id]);
 
-  const showtimes = ["14:30", "17:15", "19:45", "22:00"];
-
   return (
+
     <div className="mt-4">
       {/* Marquee de títulos */}
       <div className="relative border-y border-white/10 overflow-hidden bg-black/30">
