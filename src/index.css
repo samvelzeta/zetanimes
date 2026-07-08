@@ -679,3 +679,19 @@ h1, h2, h3, .heading-steam {
   text-shadow: 0 4px 24px rgb(0 0 0 / 0.75);
 }
 
+/* ZenLoader — rayo firma de ZetAnime */
+@keyframes zen-bolt-pulse {
+  0%, 100% { opacity: 0.35; filter: drop-shadow(0 0 4px hsl(var(--primary) / 0.4)); transform: scale(0.94); }
+  50%      { opacity: 1;    filter: drop-shadow(0 0 14px hsl(var(--primary) / 0.9)); transform: scale(1.06); }
+}
+.zen-bolt {
+  color: hsl(var(--primary));
+  animation: zen-bolt-pulse 1.4s ease-in-out infinite;
+}
+
+/* Scrollbar fino para ranking sticky */
+.scrollbar-thin::-webkit-scrollbar { width: 4px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--primary) / 0.35); border-radius: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+
