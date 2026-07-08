@@ -236,7 +236,7 @@ export default function HeaderBar() {
                           </p>
                           <span className="text-[10px] text-white/50 flex-shrink-0 tabular-nums mt-0.5">{timeAgo(n.created_at)}</span>
                         </div>
-                        <p className="text-xs text-[#888888] mt-1 leading-[1.55] line-clamp-2">{n.message}</p>
+                        <p className="text-xs text-[#a0a0a0] mt-1 leading-[1.55] whitespace-pre-wrap break-words max-h-40 overflow-y-auto pr-1 notif-scroll">{n.message}</p>
                       </div>
 
                       <button
