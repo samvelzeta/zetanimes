@@ -1,12 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Ticket, Clapperboard, Film, Star, Calendar, Clock, Quote, Trophy, Sparkles, Popcorn } from "lucide-react";
+import { Ticket, Clapperboard, Film, Star, Calendar, Quote, Trophy, Sparkles, Popcorn, CalendarClock } from "lucide-react";
 import LazyImage from "@/components/LazyImage";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import { getApprovedAnimeIds, approveAnime } from "@/lib/approved-animes";
 
 interface Props {
   items: AniListMedia[];
+  upcomingItems?: AniListMedia[];
 }
+
 
 /**
  * CinemaExtras — sección Cine ampliada con módulos editoriales:
