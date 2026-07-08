@@ -174,7 +174,7 @@ export default function AnimeDetail() {
   const studio = (anime as any).studios?.nodes?.find((s: any) => s.isAnimationStudio)?.name || (anime as any).studios?.nodes?.[0]?.name;
 
   return (
-    <div className="min-h-screen text-foreground" style={{ backgroundColor: "#100e17" }}>
+    <div className="min-h-screen bg-background text-foreground">
       {/* ========= HERO — póster como fondo, título centrado ========= */}
       <section className="relative w-full h-[78vh] md:h-[92vh] overflow-hidden">
         <img
