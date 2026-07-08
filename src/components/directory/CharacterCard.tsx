@@ -49,7 +49,7 @@ export default function CharacterCard({ character: c, index = 0 }: Props) {
       style={{ animationDelay: `${(index % 5) * 60}ms` }}
     >
       {/* Retrato */}
-      <div className="relative">
+      <div className="relative overflow-hidden">
         <LazyImage
           src={c.image}
           alt={c.name}

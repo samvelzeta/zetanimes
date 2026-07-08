@@ -724,7 +724,8 @@ h1, h2, h3, .heading-steam {
   position: relative;
   display: flex;
   justify-content: center;
-  height: 320px;
+  height: 360px;
+  padding-top: 24px;
   max-width: 720px;
 }
 .charstats-card {
@@ -738,19 +739,20 @@ h1, h2, h3, .heading-steam {
   border: 1px solid hsl(var(--primary) / 0.15);
   border-radius: 14px;
   box-shadow: -1rem 0 3rem hsl(0 0% 0% / 0.6);
-  transition: transform 0.4s ease-out, left 0.4s ease-out, box-shadow 0.4s ease-out;
+  transition: transform 0.4s ease-out, left 0.4s ease-out, box-shadow 0.4s ease-out, z-index 0s;
   padding: 16px 18px;
   left: 0;
 }
 .charstats-card:not(:first-child) { margin-left: -60px; }
 .charstats-card:hover {
   transform: translateY(-16px);
+  z-index: 999 !important;
   box-shadow:
     -1rem 0 3rem hsl(0 0% 0% / 0.7),
     0 0 0 1px hsl(var(--primary) / 0.5),
     0 24px 60px -18px hsl(var(--primary) / 0.55);
 }
-.charstats-card:hover ~ .charstats-card { left: 60px; }
+.charstats-card:hover ~ .charstats-card { left: 60px; z-index: 1 !important; }
 .charstats-eyebrow {
   font-size: 9px;
   letter-spacing: 0.4em;
