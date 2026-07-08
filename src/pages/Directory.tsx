@@ -5,9 +5,11 @@ import {
   getTrending,
   getTopRated,
   getMovies,
+  getUpcomingMovies,
   searchAnime,
   type AniListMedia,
 } from "@/lib/anilist";
+
 import { SearchX } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
