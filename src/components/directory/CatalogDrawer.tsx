@@ -6,6 +6,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "react-router-dom";
 import LazyImage from "@/components/LazyImage";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import IntrigueProfiles from "./IntrigueProfiles";
+
 
 export interface CatalogState {
   categoryKey: string | null;
