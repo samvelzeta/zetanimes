@@ -11,13 +11,15 @@ interface Props {
 
 export default function HeroCarousel({ items }: Props) {
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const slides = items.slice(0, 6);
 
   useEffect(() => {
-    if (slides.length < 2) return;
+    if (slides.length < 2 || paused) return;
     const t = setInterval(() => setIndex((i) => (i + 1) % slides.length), 6000);
     return () => clearInterval(t);
-  }, [slides.length]);
+  }, [slides.length, paused]);
+
 
   if (!slides.length) {
     return (
