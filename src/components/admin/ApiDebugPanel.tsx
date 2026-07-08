@@ -263,49 +263,91 @@ export default function ApiDebugPanel() {
                 <div>
                   <p className="text-xs font-bold text-foreground">Prueba Seeke / Flixlat</p>
                   <p className="text-[10px] text-muted-foreground">
-                    Enlace madre precargado desde la BD (video_cache · ep 0) para <b>{lang}</b>.
+                    Enlace madre precargado desde la BD (video_cache · ep 0) según idioma Seeke.
                   </p>
                 </div>
                 <button
-                  onClick={() => selected && loadSeekeUrlsFromDb(selected.id, lang)}
+                  onClick={() => selected && loadSeekeUrlsFromDb(selected.id, seekeLang)}
                   disabled={loadingDbUrls}
                   className="h-7 px-2 rounded-lg bg-secondary text-foreground text-[10px] font-bold flex items-center gap-1 hover:bg-muted disabled:opacity-50"
-                  title="Recargar enlace desde video_cache"
+                  title="Recargar enlaces desde video_cache"
                 >
                   {loadingDbUrls ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
                   BD
                 </button>
               </div>
-              <div className="flex flex-wrap gap-1 text-[10px]">
-                <span className={`px-1.5 py-0.5 rounded-full font-bold ${dbUrls.sub.length ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                  🇯🇵 sub: {dbUrls.sub.length}
-                </span>
-                <span className={`px-1.5 py-0.5 rounded-full font-bold ${dbUrls.latino.length ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                  🌎 latino: {dbUrls.latino.length}
-                </span>
+
+              {/* Switch de idioma DEDICADO al Seeke — independiente del switch inferior de la API JSON */}
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Idioma Seeke:</span>
+                {(["sub", "latino"] as const).map((l) => {
+                  const count = dbUrls[l].length;
+                  const active = seekeLang === l;
+                  return (
+                    <button
+                      key={l}
+                      onClick={() => setSeekeLang(l)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition ${active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {l === "sub" ? "🇯🇵 Sub" : "🌎 Latino"}
+                      <span className={`text-[9px] px-1 rounded-full ${count > 0 ? "bg-green-500/25 text-green-500" : "bg-destructive/20 text-destructive"}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
+
               <div className="flex gap-2 flex-wrap">
                 <Input
                   value={seekeUrl}
                   onChange={(e) => setSeekeUrl(e.target.value)}
-                  placeholder="Pega o edita la URL base Seeke…"
+                  placeholder={`Pega o edita la URL base Seeke (${seekeLang})…`}
                   className="min-w-[260px] flex-1 h-9 bg-background border-primary/30 rounded-xl font-mono text-xs"
                 />
-                <button onClick={requestSeeke} disabled={seekeLoading || !seekeUrl.trim()} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center gap-2 disabled:opacity-50">
+                <button
+                  onClick={requestSeeke}
+                  disabled={seekeLoading || seekeBothLoading || !seekeUrl.trim()}
+                  className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center gap-2 disabled:opacity-50"
+                >
                   {seekeLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  Probar Seeke EP {episode}
+                  Probar {seekeLang === "sub" ? "🇯🇵" : "🌎"} EP {episode}
+                </button>
+                <button
+                  onClick={requestSeekeBoth}
+                  disabled={seekeBothLoading || seekeLoading || (!dbUrls.sub.length && !dbUrls.latino.length)}
+                  title="Envía a la VPS la URL guardada de CADA idioma"
+                  className="px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-bold flex items-center gap-2 hover:bg-muted disabled:opacity-50"
+                >
+                  {seekeBothLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Probar ambos
                 </button>
               </div>
               {seekeJson && (
                 <>
-                  {(() => {
+                  {seekeJson.both ? (
+                    <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
+                      {seekeJson.results.map((r: any) => {
+                        const subs = r?.response?.subtitles;
+                        const count = Array.isArray(subs) ? subs.length : 0;
+                        return (
+                          <span
+                            key={r.lang}
+                            className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${r.ok ? (count > 0 ? "bg-green-500/15 text-green-500" : "bg-primary/15 text-primary") : "bg-destructive/15 text-destructive"}`}
+                          >
+                            {r.lang === "sub" ? "🇯🇵" : "🌎"} {r.ok ? "OK" : "ERR"} · <Subtitles className="w-3 h-3" /> {count}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (() => {
                     const subs = seekeJson?.response?.subtitles;
                     const count = Array.isArray(subs) ? subs.length : 0;
                     const hasEs = Array.isArray(subs) && subs.some((s: any) => (s?.lang || "").toLowerCase().startsWith("es"));
                     return (
                       <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
-                        <span className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${count > 0 ? "bg-green-500/15 text-green-500" : "bg-destructive/15 text-destructive"}`}>
-                          <Subtitles className="w-3 h-3" /> subs: {count}
+                        <span className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${seekeJson.ok ? (count > 0 ? "bg-green-500/15 text-green-500" : "bg-primary/15 text-primary") : "bg-destructive/15 text-destructive"}`}>
+                          {seekeLang === "sub" ? "🇯🇵" : "🌎"} <Subtitles className="w-3 h-3" /> subs: {count}
                         </span>
                         {count > 0 && (
                           <span className={`px-2 py-0.5 rounded-full ${hasEs ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
@@ -324,6 +366,7 @@ export default function ApiDebugPanel() {
                 </>
               )}
             </div>
+
 
 
             <div className="flex gap-2 flex-wrap">
