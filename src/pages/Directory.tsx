@@ -12,7 +12,7 @@ import { SearchX, Film } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { usePreferences } from "@/contexts/PreferencesContext";
-import HeaderBento from "@/components/directory/HeaderBento";
+import HeroCarousel from "@/components/directory/HeroCarousel";
 import CatalogDrawer, {
   loadCatalogState,
   THEMED_CATEGORIES,
@@ -22,26 +22,26 @@ import AsymmetricCard, {
   AsymmetricSkeleton,
   type AsymmetricVariant,
 } from "@/components/directory/AsymmetricCard";
+import StoryCard from "@/components/directory/StoryCard";
+import CinemaSection from "@/components/directory/CinemaSection";
 import StickyRanking from "@/components/directory/StickyRanking";
 import ZenLoader from "@/components/directory/ZenLoader";
 
 const GORE_GENRES = new Set(["Horror", "Ecchi"]);
 
-/**
- * Patrón asimétrico repetible (masonry visual):
- *  posiciones dentro del ciclo → variant
- *  ciclo de 7 para romper la simetría y evitar filas iguales
- */
 const PATTERN: AsymmetricVariant[] = [
-  "landscape", // 1
-  "portrait",  // 2
-  "portrait",  // 3
-  "square",    // 4
-  "portrait",  // 5
-  "landscape", // 6
-  "portrait",  // 7
+  "landscape",
+  "portrait",
+  "portrait",
+  "square",
+  "portrait",
+  "landscape",
+  "portrait",
 ];
 const variantFor = (i: number): AsymmetricVariant => PATTERN[i % PATTERN.length];
+
+// Cada 5 posiciones inserta un "Perfil de intriga"
+const STORY_EVERY = 5;
 
 export default function Directory() {
   const [searchParams] = useSearchParams();
@@ -59,14 +59,12 @@ export default function Directory() {
   const activeCategory = THEMED_CATEGORIES.find((c) => c.key === catalog.categoryKey);
   const activeGenres = activeCategory?.genres || [];
 
-  // Header Bento — trending curado
   const { data: heroData } = useQuery({
     queryKey: ["directory-hero"],
     queryFn: () => getTrending(1, 8),
     staleTime: 1000 * 60 * 10,
   });
 
-  // Ranking semanal
   const { data: rankingData } = useQuery({
     queryKey: ["directory-ranking"],
     queryFn: () => getTopRated(1, 12),
@@ -91,6 +89,14 @@ export default function Directory() {
     initialPageParam: 1,
     enabled: moviesMode,
     staleTime: 1000 * 60 * 5,
+  });
+
+  // Cine ZetAnime — cargar sólo cuando NO estamos en modo películas
+  const cinemaQuery = useQuery({
+    queryKey: ["directory-cinema"],
+    queryFn: () => getMovies(1, 14, null),
+    staleTime: 1000 * 60 * 15,
+    enabled: !moviesMode,
   });
 
   const { data: hiddenIds } = useQuery({
@@ -120,15 +126,18 @@ export default function Directory() {
   const animes = raw.filter(passesFilters);
   const loading = moviesMode ? moviesInfinite.isLoading : mainQuery.isLoading;
 
-  // Header — el primero es el "feature del mes"; separamos para que no se dupliquen abajo
   const heroList = (heroData?.media || []).filter((a) => !hiddenSet.has(a.id));
-  const feature = heroList[0] || null;
-  const primary = heroList[1] || null;
-  const bentoQuickRanking = (rankingData?.media || []).filter((a) => !hiddenSet.has(a.id)).slice(0, 3);
-  const stickyRanking = (rankingData?.media || []).filter((a) => !hiddenSet.has(a.id));
+  const rankingList = (rankingData?.media || []).filter((a) => !hiddenSet.has(a.id));
+  const cinemaList = (cinemaQuery.data?.media || []).filter((a) => !hiddenSet.has(a.id));
 
-  const heroIds = new Set([feature?.id, primary?.id].filter(Boolean) as number[]);
-  const gridAnimes = animes.filter((a) => !heroIds.has(a.id));
+  // Seleccionar candidatos para StoryCard (mayor score)
+  const storyPool = useMemo(
+    () =>
+      [...animes]
+        .filter((a) => (a.averageScore ?? 0) >= 75 && (a.description || "").length > 80)
+        .sort((a, b) => (b.averageScore ?? 0) - (a.averageScore ?? 0)),
+    [animes]
+  );
 
   // Infinite scroll
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -145,15 +154,42 @@ export default function Directory() {
     return () => io.disconnect();
   }, [moviesMode, moviesInfinite.hasNextPage, moviesInfinite.isFetchingNextPage, moviesInfinite.fetchNextPage]);
 
+  // Construir grid con StoryCards intercaladas
+  const usedStoryIds = new Set<number>();
+  const gridNodes: React.ReactNode[] = [];
+  let visualIndex = 0;
+  animes.forEach((anime, i) => {
+    gridNodes.push(
+      <AsymmetricCard key={`a-${anime.id}`} anime={anime} variant={variantFor(visualIndex)} />
+    );
+    visualIndex++;
+    if ((i + 1) % STORY_EVERY === 0) {
+      const pick = storyPool.find((s) => !usedStoryIds.has(s.id) && s.id !== anime.id);
+      if (pick) {
+        usedStoryIds.add(pick.id);
+        gridNodes.push(
+          <StoryCard key={`s-${pick.id}`} anime={pick} index={Math.floor(i / STORY_EVERY)} />
+        );
+      }
+    }
+  });
+
   return (
-    <div className="min-h-screen pb-24">
-      {/* Header Bento asimétrico (reemplaza el carrusel) */}
-      <HeaderBento feature={feature} primary={primary} ranking={bentoQuickRanking} />
+    <div className="min-h-screen pb-24 -mt-12">
+      {/* Hero carousel editorial */}
+      <HeroCarousel items={heroList} />
 
-      {/* Drawer Catálogo (top-right) */}
-      <CatalogDrawer state={catalog} onChange={setCatalog} recommendations={stickyRanking} />
+      {/* Subtítulo móvil estático */}
+      <div className="md:hidden px-5 mt-4 mb-1 text-center">
+        <p className="directory-hero-title text-sm text-foreground/80 italic">
+          El inicio de una nueva leyenda
+        </p>
+      </div>
 
-      {/* Encabezado sección + toggle películas */}
+      {/* Drawer Catálogo */}
+      <CatalogDrawer state={catalog} onChange={setCatalog} recommendations={rankingList} />
+
+      {/* Encabezado + toggle películas */}
       <div className="px-4 md:px-8 mt-10 mb-5 flex items-end justify-between gap-4 flex-wrap">
         <div>
           <p className="text-[10px] tracking-[0.4em] uppercase text-primary/80">Explora</p>
@@ -181,9 +217,7 @@ export default function Directory() {
         <AdBannerInline size="728x90" className="mb-6" />
       </div>
 
-      {/* Layout con sidebar sticky */}
       <div className="px-4 md:px-8 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-        {/* Grid asimétrico */}
         <div>
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
@@ -191,7 +225,7 @@ export default function Directory() {
                 <AsymmetricSkeleton key={i} variant={variantFor(i)} />
               ))}
             </div>
-          ) : gridAnimes.length === 0 ? (
+          ) : animes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3">
               <SearchX className="w-10 h-10 text-muted" />
               <p className="text-muted-foreground text-sm">No hay resultados con estos filtros.</p>
@@ -204,9 +238,7 @@ export default function Directory() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 animate-fade-in">
-              {gridAnimes.map((anime, i) => (
-                <AsymmetricCard key={anime.id} anime={anime} variant={variantFor(i)} />
-              ))}
+              {gridNodes}
             </div>
           )}
 
@@ -218,7 +250,7 @@ export default function Directory() {
                   <ZenLoader size={40} />
                 </div>
               )}
-              {!moviesInfinite.hasNextPage && gridAnimes.length > 0 && (
+              {!moviesInfinite.hasNextPage && animes.length > 0 && (
                 <p className="text-center text-[10px] text-muted-foreground py-6">
                   No hay más películas
                 </p>
@@ -227,9 +259,48 @@ export default function Directory() {
           )}
         </div>
 
-        {/* Sidebar ranking sticky (desktop) */}
-        <StickyRanking items={stickyRanking} />
+        {/* Ranking sticky (desktop) */}
+        <StickyRanking items={rankingList} />
       </div>
+
+      {/* Cine ZetAnime — sólo fuera de moviesMode */}
+      {!moviesMode && (
+        <CinemaSection items={cinemaList} loading={cinemaQuery.isLoading} />
+      )}
+
+      {/* Ranking móvil al final */}
+      {rankingList.length > 0 && (
+        <section className="lg:hidden px-4 md:px-8 mt-10">
+          <p className="text-[10px] tracking-[0.4em] uppercase text-primary/80">Ranking</p>
+          <h2 className="directory-hero-title text-xl font-bold text-foreground mt-1 mb-4">
+            Top semanal
+          </h2>
+          <ol className="space-y-2">
+            {rankingList.slice(0, 10).map((a, i) => (
+              <li
+                key={a.id}
+                className="flex items-center gap-3 p-2 rounded-lg bg-secondary/40 border border-primary/10"
+              >
+                <span
+                  className={`directory-hero-title text-lg font-bold w-6 text-center ${
+                    i < 3 ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <p className="text-sm text-foreground font-medium line-clamp-1 flex-1">
+                  {a.title.english || a.title.romaji}
+                </p>
+                {a.averageScore && (
+                  <span className="text-xs text-primary font-mono">
+                    ★ {(a.averageScore / 10).toFixed(1)}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </div>
   );
 }
