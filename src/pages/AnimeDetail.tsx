@@ -252,7 +252,7 @@ export default function AnimeDetail() {
           <div
             className="mt-4 mx-auto flex items-center justify-around gap-1 p-1.5 rounded-2xl border border-white/10"
             style={{
-              backgroundColor: "#17141d",
+              backgroundColor: "hsl(var(--secondary) / 0.6)",
               width: "min(80%, 380px)",
               boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
             }}
@@ -338,7 +338,7 @@ export default function AnimeDetail() {
         {description && (
           <section>
             <SectionHeader eyebrow="Editorial" title="Sinopsis" />
-            <div className="rounded-2xl p-6 border border-white/10" style={{ backgroundColor: "#17141d" }}>
+            <div className="rounded-2xl p-6 border border-white/10" style={{ backgroundColor: "hsl(var(--secondary) / 0.5)" }}>
               <p className={`font-serif-body italic text-base md:text-lg leading-relaxed text-white/85 ${!showFullDesc && isLongDesc ? "line-clamp-5" : ""}`}>
                 "{showFullDesc || !isLongDesc ? description : description.slice(0, SYNOPSIS_LIMIT * 2)}"
               </p>
@@ -370,7 +370,7 @@ export default function AnimeDetail() {
         {totalEps > 0 && (
           <section>
             <SectionHeader eyebrow="Episodios" title={`Capítulos (${totalEps})`} />
-            <ol className="rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5" style={{ backgroundColor: "#17141d" }}>
+            <ol className="rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5" style={{ backgroundColor: "hsl(var(--secondary) / 0.5)" }}>
               {Array.from({ length: totalEps }, (_, i) => i + 1).map((ep) => {
                 const meta = streamingEpisodes?.[ep - 1];
                 const thumb = episodeThumbs[ep - 1] || cover || "";
