@@ -226,6 +226,53 @@ function PendingCard({
     navigate("/admin?tab=videos");
   };
 
+  const persistLink = async (url: string) => {
+    if (url && url !== existingUrl) {
+      const save = await saveCachedVideo({
+        slug,
+        episode: 0,
+        lang,
+        sources: { seeke: [url] },
+        anilist_id: anime.id,
+        anime_title: title,
+      });
+      if (!save.success) throw new Error(save.error || "No se pudo guardar el enlace");
+      setExistingUrl(url);
+    }
+  };
+
+  const handleSaveOnly = async () => {
+    const url = seekeUrl.trim();
+    if (!url) {
+      toast.error(`Pega el enlace Seeke (${lang}) antes de guardar`);
+      return;
+    }
+    if (url === existingUrl) {
+      toast.info("Ese enlace ya está guardado");
+      return;
+    }
+    setBusy(true);
+    try {
+      await persistLink(url);
+      await logAdminActivity({
+        area: "videos",
+        action: "save_anime_link",
+        summary: `Enlace ${lang} guardado (sin aprobar): ${title}`,
+        target_type: "anime",
+        target_id: String(anime.id),
+        anilist_id: anime.id,
+        anime_title: title,
+        metadata: { seeke: url, lang, approved: false },
+      });
+      toast.success(`Enlace ${lang} guardado (pendiente de aprobar)`);
+      onChanged();
+    } catch (e: any) {
+      toast.error(e?.message || "Error al guardar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleApprove = async () => {
     const url = seekeUrl.trim();
     // Se puede aprobar sin nuevo URL si ya hay uno existente para este idioma
@@ -235,20 +282,7 @@ function PendingCard({
     }
     setBusy(true);
     try {
-      if (url && url !== existingUrl) {
-        // saveCachedVideo ya sobrescribe/borra cualquier fila previa para
-        // (anilist_id, episode=0, lang), quedando el nuevo enlace como único.
-        const save = await saveCachedVideo({
-          slug,
-          episode: 0,
-          lang,
-          sources: { seeke: [url] },
-          anilist_id: anime.id,
-          anime_title: title,
-        });
-        if (!save.success) throw new Error(save.error || "No se pudo guardar el enlace");
-        setExistingUrl(url);
-      }
+      await persistLink(url);
       if (!approved) {
         const res = await approveAnime(anime.id, url || null as any);
         if (!res.success) throw new Error(res.error || "No se pudo aprobar");
