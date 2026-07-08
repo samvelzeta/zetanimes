@@ -12,7 +12,7 @@ import { SearchX } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { usePreferences } from "@/contexts/PreferencesContext";
-import HeroCarousel from "@/components/directory/HeroCarousel";
+import VerticalCarousel from "@/components/directory/VerticalCarousel";
 import CatalogDrawer, {
   loadCatalogState,
   THEMED_CATEGORIES,
@@ -20,8 +20,12 @@ import CatalogDrawer, {
 } from "@/components/directory/CatalogDrawer";
 import DynamicBlock, { DynamicBlockSkeleton } from "@/components/directory/DynamicBlock";
 import StoryCard from "@/components/directory/StoryCard";
-import CinemaSection from "@/components/directory/CinemaSection";
+import CharacterCard from "@/components/directory/CharacterCard";
+import CharacterStats from "@/components/directory/CharacterStats";
+import CinemaAccordion from "@/components/directory/CinemaAccordion";
 import StickyRanking from "@/components/directory/StickyRanking";
+import { getPopularCharacters } from "@/lib/anilist-characters";
+
 
 const GORE_GENRES = new Set(["Horror", "Ecchi"]);
 const STORY_EVERY = 6; // intercala una Crónica cada 6 bloques
@@ -68,6 +72,13 @@ export default function Directory() {
     staleTime: 1000 * 60 * 15,
   });
 
+  const charactersQuery = useQuery({
+    queryKey: ["directory-characters"],
+    queryFn: () => getPopularCharacters(1, 25),
+    staleTime: 1000 * 60 * 60,
+  });
+
+
   const { data: hiddenIds } = useQuery({
     queryKey: ["hidden-anime-ids"],
     queryFn: async () => Array.from(await getHiddenAnimeIds()),
@@ -103,9 +114,12 @@ export default function Directory() {
     [animes]
   );
 
-  // Construye la secuencia masonry con Crónicas intercaladas
+  // Construye la secuencia masonry con Crónicas + Personajes intercalados
+  const characters = charactersQuery.data || [];
   const usedStoryIds = new Set<number>();
+  const usedCharIds = new Set<number>();
   const blocks: React.ReactNode[] = [];
+  let charCursor = 0;
   animes.forEach((a, i) => {
     const feature = (a.averageScore ?? 0) >= 85 || i % 11 === 0;
     blocks.push(<DynamicBlock key={`b-${a.id}`} anime={a} feature={feature} />);
@@ -118,11 +132,21 @@ export default function Directory() {
         );
       }
     }
+    // Personaje cada 4 bloques (desfasado del ciclo de Crónicas)
+    if ((i + 1) % 4 === 0 && charCursor < characters.length) {
+      const ch = characters.find((c) => !usedCharIds.has(c.id));
+      if (ch) {
+        usedCharIds.add(ch.id);
+        charCursor++;
+        blocks.push(<CharacterCard key={`c-${ch.id}`} character={ch} index={charCursor} />);
+      }
+    }
   });
 
   return (
     <div className="min-h-screen pb-24 -mt-12">
-      <HeroCarousel items={heroList} />
+      <VerticalCarousel items={heroList} />
+
 
       {/* Subtítulo móvil */}
       <div className="md:hidden px-5 mt-4 mb-1 text-center">
@@ -187,7 +211,11 @@ export default function Directory() {
         </div>
       </div>
 
-      <CinemaSection items={cinemaList} loading={cinemaQuery.isLoading} />
+      <CinemaAccordion items={cinemaList} loading={cinemaQuery.isLoading} />
+
+      {/* Estadísticas de personajes */}
+      <CharacterStats characters={characters} />
+
 
       {/* Ranking móvil compacto al final */}
       {rankingList.length > 0 && (
