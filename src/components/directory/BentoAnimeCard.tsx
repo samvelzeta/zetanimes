@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Play } from "lucide-react";
 import LazyImage from "@/components/LazyImage";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
+import { useTranslatedDesc } from "@/hooks/useTranslatedDesc";
 import ZetMascot from "./ZetMascot";
 
 /** Skeleton con shimmer + mascota flotante para el grid Bento. */
