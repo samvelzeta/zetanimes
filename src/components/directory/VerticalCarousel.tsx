@@ -184,6 +184,38 @@ export default function VerticalCarousel({ items }: Props) {
         ))}
       </div>
 
+      {/* Filmstrip móvil — posters miniatura cinematográficos */}
+      <div className="md:hidden absolute bottom-16 left-0 right-0 z-20 px-5">
+        <div className="flex gap-2 overflow-hidden">
+          {slides.map((a, i) => {
+            const offset = (i - index + slides.length) % slides.length;
+            if (offset > 3) return null;
+            const isCurrent = offset === 0;
+            return (
+              <button
+                key={`mp-${a.id}`}
+                onClick={() => setIndex(i)}
+                aria-label={getTitle(a)}
+                className={`relative flex-shrink-0 rounded-lg overflow-hidden border transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  isCurrent
+                    ? "w-20 h-28 border-primary shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.7)]"
+                    : "w-14 h-20 border-white/10 opacity-60"
+                }`}
+              >
+                <LazyImage
+                  src={a.coverImage?.large || a.coverImage?.extraLarge || ""}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+                {isCurrent && (
+                  <div className="absolute inset-x-0 bottom-0 h-1 bg-primary animate-pulse" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <button
         onClick={() => setPaused((p) => !p)}
         aria-label={paused ? "Reanudar" : "Pausar"}
@@ -192,5 +224,6 @@ export default function VerticalCarousel({ items }: Props) {
         {paused ? <Play className="w-4 h-4 fill-current" /> : <Pause className="w-4 h-4" />}
       </button>
     </section>
+
   );
 }
