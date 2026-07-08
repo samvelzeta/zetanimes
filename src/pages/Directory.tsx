@@ -240,7 +240,7 @@ export default function Directory() {
       <CinemaAccordion items={cinemaList} loading={cinemaQuery.isLoading} />
       <CinemaExtras
         items={cinemaList}
-        upcomingItems={(upcomingMoviesQuery.data?.media || []).filter((a) => !hiddenSet.has(a.id))}
+        upcomingItems={(upcomingMoviesQuery.data?.media || []).filter((a) => !hiddenSet.has(a.id) && movieHasSeeke(a))}
       />
 
 
