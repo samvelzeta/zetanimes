@@ -33,7 +33,7 @@ export default function FilmstripShowcase({ items }: Props) {
 
   const go = (dir: 1 | -1) => setIndex((i) => (i + dir + slides.length) % slides.length);
   const current = slides[index];
-  const desc = (current.description || "").replace(/<[^>]+>/g, "").slice(0, 220);
+  const desc = useTranslatedDesc(current.description, current.id, 220);
 
   return (
     <section className="relative w-full h-[70vh] md:h-[86vh] overflow-hidden bg-background">
