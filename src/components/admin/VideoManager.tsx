@@ -371,6 +371,16 @@ export default function VideoManager() {
       return;
     }
 
+    // Auto-registrar en tracker como "completed" apenas queda el enlace madre.
+    await ensureTrackerCompleted({
+      anilistId: selected.id,
+      title: selected.title,
+      cover: selected.cover,
+      totalEpisodes: selected.totalEpisodes,
+    });
+
+
+
     // 2) Bucle: pedir cap N → guardar SOLO en su episode=N (no como fallback del 1)
     for (let ep = 1; ep <= totalEps; ep++) {
       if (stopAutoFetchRef.current) {
