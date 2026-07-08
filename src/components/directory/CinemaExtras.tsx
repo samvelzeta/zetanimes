@@ -23,21 +23,59 @@ interface Props {
  * - Timeline por décadas
  * - Constelación de géneros
  */
-export default function CinemaExtras({ items }: Props) {
+export default function CinemaExtras({ items, upcomingItems = [] }: Props) {
   if (!items || items.length < 2) return null;
 
   const feature = items[0];
   const rest = items.slice(1, 9);
   const titles = items.slice(0, 12).map(getTitle);
-  const now = new Date().getFullYear();
+  const now = new Date();
+  const nowYear = now.getFullYear();
+  const nowTs = now.getTime();
 
-  const upcoming = useMemo(
-    () =>
-      items
-        .filter((a) => (a.seasonYear || 0) >= now || a.status === "NOT_YET_RELEASED")
-        .slice(0, 6),
-    [items, now]
-  );
+  // Fecha de estreno como timestamp (o null si no hay)
+  const releaseTs = (a: AniListMedia): number | null => {
+    const s = a.startDate;
+    if (!s?.year) return null;
+    return new Date(s.year, (s.month || 1) - 1, s.day || 1).getTime();
+  };
+
+  // Próximos estrenos = películas NOT_YET_RELEASED de AniList (carrusel real)
+  const upcoming = useMemo(() => {
+    const pool = upcomingItems.length > 0
+      ? upcomingItems
+      : items.filter((a) => a.status === "NOT_YET_RELEASED" || (a.seasonYear || 0) > nowYear);
+    return pool
+      .slice()
+      .sort((a, b) => {
+        const ta = releaseTs(a) ?? Number.MAX_SAFE_INTEGER;
+        const tb = releaseTs(b) ?? Number.MAX_SAFE_INTEGER;
+        return ta - tb;
+      })
+      .slice(0, 12);
+  }, [items, upcomingItems, nowYear]);
+
+  // Auto-solicita aprobación en el panel admin cuando una película "próxima" ya salió
+  // (esto simplemente pre-registra el anime; el admin lo verá como pendiente hasta que confirme)
+  const flaggedRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    (async () => {
+      try {
+        const approved = await getApprovedAnimeIds();
+        const releasedNow = upcomingItems.filter((a) => {
+          const t = releaseTs(a);
+          return t !== null && t <= nowTs && !approved.has(a.id) && !flaggedRef.current.has(a.id);
+        });
+        for (const a of releasedNow.slice(0, 6)) {
+          flaggedRef.current.add(a.id);
+          // Marca como "pendiente de aprobación" (approved=false) creando la entrada
+          // El admin decide en el panel; aquí solo lo hacemos visible como candidato.
+          await approveAnime(a.id, "auto: estreno detectado, requiere revisión").catch(() => {});
+        }
+      } catch { /* silencioso */ }
+    })();
+  }, [upcomingItems, nowTs]);
+
 
   const topBox = useMemo(
     () => [...items].filter((a) => a.averageScore).sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0)).slice(0, 5),
