@@ -1,6 +1,4 @@
 import { Link } from "react-router-dom";
-import { Sparkles, Star, Calendar, TrendingUp } from "lucide-react";
-import LazyImage from "@/components/LazyImage";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 
 interface Props {
@@ -9,87 +7,90 @@ interface Props {
 }
 
 /**
- * "Perfil de Intriga" — tarjeta editorial que rompe el grid con storytelling.
- * En desktop ocupa 2 columnas (span 2). En móvil ocupa 2 columnas también (full-row del grid 2-col).
+ * Crónicas de Intriga — tarjeta editorial minimalista.
+ * Sin foco en la miniatura: prioriza el "gancho" narrativo (curiosidad, dato, premio).
  */
 export default function StoryCard({ anime, index = 0 }: Props) {
   const title = getTitle(anime);
-  const desc = (anime.description || "")
-    .replace(/<[^>]+>/g, "")
-    .trim();
-  const cover =
-    anime.coverImage?.extraLarge || anime.coverImage?.large || "";
-  const banner = anime.bannerImage || cover;
-  const year = anime.seasonYear;
+  const raw = (anime.description || "").replace(/<[^>]+>/g, "").trim();
+  // Primera frase como "gancho"
+  const firstStop = raw.search(/[.!?]\s/);
+  const hook = firstStop > 40 ? raw.slice(0, firstStop + 1) : raw.slice(0, 220);
+
   const score = anime.averageScore ? (anime.averageScore / 10).toFixed(1) : null;
-  const mainGenre = anime.genres?.[0];
-  const trending = (anime.popularity ?? 0) > 100000;
+  const year = anime.seasonYear;
+  const eps = anime.episodes;
+  const genre = anime.genres?.[0];
+
+  // Etiqueta editorial rotativa
+  const labels = [
+    "Crónica",
+    "Dossier",
+    "Retrato",
+    "Perfil",
+    "Apunte editorial",
+  ];
+  const label = labels[index % labels.length];
+
+  // Dato curioso auto-generado
+  const curiosities: string[] = [];
+  if ((anime.popularity ?? 0) > 200000) curiosities.push("Fenómeno global");
+  if ((anime.averageScore ?? 0) >= 85) curiosities.push("Aclamado por la crítica");
+  if (eps && eps <= 12) curiosities.push("Formato breve · una sola temporada");
+  else if (eps && eps >= 50) curiosities.push("Saga longeva");
+  if (year && year <= 2005) curiosities.push("Clásico atemporal");
+  if (curiosities.length === 0 && genre) curiosities.push(`Referente en ${genre}`);
 
   return (
     <Link
       to={`/anime/${anime.id}`}
-      className="story-card group relative col-span-2 xl:col-span-2 block overflow-hidden rounded-2xl bg-secondary border border-primary/15 hover:border-primary/50 transition-colors"
+      className="story-card group block break-inside-avoid mb-3 md:mb-4 relative overflow-hidden rounded-2xl border border-white/10 hover:border-primary/50 transition-colors"
       style={{
-        aspectRatio: "16 / 9",
+        background:
+          "linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--secondary)/0.4) 100%)",
         animationDelay: `${(index % 5) * 60}ms`,
       }}
     >
-      {/* Fondo banner difuminado */}
-      <LazyImage
-        src={banner}
-        alt={title}
-        className="absolute inset-0 w-full h-full object-cover opacity-40 blur-[3px] scale-110 group-hover:scale-125 transition-transform duration-700"
-      />
-      <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/30" />
-
-      <div className="relative h-full flex items-stretch">
-        {/* Portada */}
-        <div className="w-[40%] max-w-[220px] flex-shrink-0 p-3 md:p-4">
-          <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl">
-            <LazyImage src={cover} alt={title} className="w-full h-full object-cover" />
-            <div className="absolute top-2 left-2 directory-glass px-2 py-1 rounded-full flex items-center gap-1 text-[10px] text-white font-semibold">
-              <Sparkles className="w-3 h-3 text-primary" />
-              Descubre
-            </div>
-          </div>
-        </div>
-
-        {/* Panel derecho */}
-        <div className="flex-1 min-w-0 p-3 md:p-5 flex flex-col justify-center">
-          <p className="text-[10px] tracking-[0.35em] uppercase text-primary/80 mb-1.5">
-            Perfil de intriga
-          </p>
-          <h3 className="directory-hero-title text-base md:text-2xl font-bold text-foreground line-clamp-2 leading-tight">
-            {title}
-          </h3>
-          {desc && (
-            <p className="mt-2 text-[11px] md:text-sm text-muted-foreground line-clamp-3 md:line-clamp-4 leading-relaxed">
-              {desc}
-            </p>
+      <div className="relative p-5 md:p-6">
+        {/* Cabecera editorial */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-[9px] tracking-[0.4em] uppercase text-primary/80">
+            {label}
+          </span>
+          <span className="h-px flex-1 bg-white/10" />
+          {score && (
+            <span className="text-[10px] font-mono text-primary">★ {score}</span>
           )}
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {score && (
-              <span className="inline-flex items-center gap-1 text-[10px] md:text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-semibold">
-                <Star className="w-3 h-3 fill-current" /> {score}
-              </span>
-            )}
-            {year && (
-              <span className="inline-flex items-center gap-1 text-[10px] md:text-xs px-2 py-0.5 rounded-full bg-white/5 text-foreground/80">
-                <Calendar className="w-3 h-3" /> {year}
-              </span>
-            )}
-            {mainGenre && (
-              <span className="text-[10px] md:text-xs px-2 py-0.5 rounded-full bg-white/5 text-foreground/70">
-                {mainGenre}
-              </span>
-            )}
-            {trending && (
-              <span className="inline-flex items-center gap-1 text-[10px] md:text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary/90">
-                <TrendingUp className="w-3 h-3" /> Trending
-              </span>
-            )}
-          </div>
         </div>
+
+        {/* Título serif */}
+        <h3 className="directory-hero-title text-lg md:text-2xl font-bold text-foreground leading-snug line-clamp-3 group-hover:text-primary transition-colors">
+          {title}
+        </h3>
+
+        {/* Hook narrativo */}
+        {hook && (
+          <p className="mt-3 text-[12px] md:text-sm text-muted-foreground leading-relaxed line-clamp-5 font-serif-body italic">
+            "{hook}"
+          </p>
+        )}
+
+        {/* Metadatos editoriales */}
+        <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-widest text-white/40">
+            {[year, genre].filter(Boolean).join(" · ")}
+          </p>
+          <span className="text-[10px] text-primary/80 group-hover:text-primary transition-colors">
+            Leer más →
+          </span>
+        </div>
+
+        {/* Curiosidad */}
+        {curiosities[0] && (
+          <p className="mt-3 text-[10px] text-white/50 italic">
+            {curiosities[0]}
+          </p>
+        )}
       </div>
     </Link>
   );
