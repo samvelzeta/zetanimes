@@ -3,9 +3,63 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Play, Info, Pause } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import LazyImage from "@/components/LazyImage";
+import { useTranslatedDesc } from "@/hooks/useTranslatedDesc";
 
 interface Props {
   items: AniListMedia[];
+}
+
+function HeroSlide({ anime, active }: { anime: AniListMedia; active: boolean }) {
+  const img =
+    anime.bannerImage ||
+    anime.coverImage?.extraLarge ||
+    anime.coverImage?.large ||
+    "";
+  const title = getTitle(anime);
+  const desc = useTranslatedDesc(anime.description, anime.id, 220);
+  return (
+    <div
+      className={`absolute inset-0 transition-opacity duration-1000 ${
+        active ? "opacity-100" : "opacity-0 pointer-events-none"
+      }`}
+    >
+      <LazyImage
+        src={img}
+        alt={title}
+        className="w-full h-full object-cover scale-105 blur-[2px]"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/20 to-transparent" />
+      <div
+        className={`absolute bottom-8 sm:bottom-14 left-4 sm:left-10 right-4 sm:right-auto max-w-xl transition-all duration-700 ${
+          active ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+        }`}
+      >
+        <h2 className="directory-hero-title text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight line-clamp-2">
+          {title}
+        </h2>
+        {desc && (
+          <p className="hidden sm:block mt-3 text-sm md:text-base text-white/75 line-clamp-3 font-serif-body">
+            {desc}
+          </p>
+        )}
+        <div className="mt-4 sm:mt-6 flex items-center gap-3">
+          <Link
+            to={`/anime/${anime.id}`}
+            className="directory-glass rounded-full px-5 py-2.5 text-xs sm:text-sm font-medium text-white inline-flex items-center gap-2 hover:scale-105 hover:bg-primary/30 transition-all"
+          >
+            <Info className="w-4 h-4" /> Ver detalles
+          </Link>
+          <Link
+            to={`/anime/${anime.id}`}
+            className="rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold bg-primary text-primary-foreground inline-flex items-center gap-2 hover:scale-105 transition-all"
+          >
+            <Play className="w-4 h-4 fill-current" /> Ver ahora
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 
