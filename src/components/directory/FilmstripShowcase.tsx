@@ -60,13 +60,14 @@ export default function FilmstripShowcase({ items }: Props) {
         </div>
       </div>
 
-      {/* Firma superior */}
-      <div className="absolute top-4 left-4 md:top-6 md:left-8 z-20 pointer-events-none">
+      {/* Firma superior — desplazada bajo el header fijo */}
+      <div className="absolute top-14 md:top-20 left-4 md:left-8 z-20 pointer-events-none">
         <p className="text-[10px] md:text-xs font-light tracking-[0.45em] text-white/70 uppercase">
-          Directorio · Filmstrip
+          Filmstrip · En cartel
         </p>
         <div className="mt-1 h-px w-10 bg-primary/60" />
       </div>
+
 
       {/* Tira 3D horizontal */}
       <div

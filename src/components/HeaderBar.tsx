@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import { Bell, X, Users } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ProfileSelector from "@/components/profiles/ProfileSelector";
 
@@ -26,6 +26,17 @@ export default function HeaderBar() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [lastSeenId, setLastSeenId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+
+  const pageTitle = location.pathname.startsWith("/directory")
+    ? "Directorio"
+    : location.pathname.startsWith("/recent")
+    ? "Recientes"
+    : location.pathname.startsWith("/search")
+    ? "Buscar"
+    : location.pathname.startsWith("/mylists")
+    ? "Mis Listas"
+    : "";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -103,7 +114,7 @@ export default function HeaderBar() {
 
   return (
     <div className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 glass-header transition-all duration-300 ${scrolled ? "scrolled" : ""}`}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 min-w-0">
         <Link to={user ? "/profile" : "/auth"} className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/30 flex-shrink-0">
           {activeProfile?.avatar_url || profile?.avatar_url ? (
             <img src={activeProfile?.avatar_url || profile?.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -113,10 +124,23 @@ export default function HeaderBar() {
             </div>
           )}
         </Link>
+        {pageTitle && (
+          <span className="hidden lg:inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.35em] text-primary">
+            <span className="h-px w-6 bg-primary/60" />
+            {pageTitle}
+          </span>
+        )}
       </div>
 
-      <div className="flex items-center gap-6">
-        <Link to="/" className="text-sm font-black text-foreground tracking-tight drop-shadow-md">ZetAnime</Link>
+      <div className="flex items-center gap-6 min-w-0">
+        <Link to="/" className="text-sm font-black text-foreground tracking-tight drop-shadow-md flex items-center gap-2 truncate">
+          <span className={pageTitle ? "hidden sm:inline" : ""}>ZetAnime</span>
+          {pageTitle && (
+            <span className="lg:hidden text-primary font-bold tracking-[0.2em] uppercase text-[11px]">
+              <span className="hidden sm:inline text-white/40 mr-2">·</span>{pageTitle}
+            </span>
+          )}
+        </Link>
         <nav className="hidden lg:flex items-center gap-5 text-xs font-bold">
           <Link to="/" className="text-foreground/80 hover:text-primary transition">Inicio</Link>
           <Link to="/recent" className="text-foreground/80 hover:text-primary transition">Recientes</Link>
@@ -124,6 +148,7 @@ export default function HeaderBar() {
           <Link to="/search" className="text-foreground/80 hover:text-primary transition">Buscar</Link>
         </nav>
       </div>
+
 
       <div className="relative">
         <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur flex items-center justify-center hover:bg-muted transition relative">
