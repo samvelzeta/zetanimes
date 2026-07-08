@@ -291,6 +291,13 @@ export default function VideoManager() {
         clearSeekeEpisodeCache();
         clearProgress();
         setEpStatuses({});
+        // ⇢ Sincroniza tracker: si no existe, se crea y queda en "completed".
+        await ensureTrackerCompleted({
+          anilistId: selected.id,
+          title: selected.title,
+          cover: selected.cover,
+          totalEpisodes: selected.totalEpisodes,
+        });
       }
 
       // 2. Guardar también en API externa (si está caída no rompe — DB ya guardó)
