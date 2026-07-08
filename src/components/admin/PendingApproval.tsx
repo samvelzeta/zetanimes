@@ -411,6 +411,17 @@ function PendingCard({
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
             {approved ? "Actualizar" : "Aprobar"}
           </button>
+          {!approved && (
+            <button
+              onClick={handleSaveOnly}
+              disabled={busy || !seekeUrl.trim() || seekeUrl.trim() === existingUrl}
+              title="Guarda el enlace del idioma sin aprobar (útil para esperar el segundo idioma)"
+              className="h-8 px-2 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-muted disabled:opacity-50"
+            >
+              <Save className="w-3.5 h-3.5" />
+              Guardar
+            </button>
+          )}
           <button
             onClick={openAdvanced}
             disabled={busy}
