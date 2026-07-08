@@ -37,9 +37,11 @@ const MEDIA_FRAGMENT = `
     format
     countryOfOrigin
     tags { name }
+    startDate { year month day }
     nextAiringEpisode { airingAt episode }
   }
 `;
+
 
 async function processPage<T extends PageResult>(page: T, options?: { skipCuration?: boolean }): Promise<T> {
   const curated = await applyAnimeCurationPage(page, options);
