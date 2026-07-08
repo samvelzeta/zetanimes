@@ -719,5 +719,206 @@ h1, h2, h3, .heading-steam {
   scroll-behavior: smooth;
 }
 
+/* ============ Character Stats — cartas apiladas fan-out ============ */
+.charstats-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  height: 320px;
+  max-width: 720px;
+}
+.charstats-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 300px;
+  width: 210px;
+  background: linear-gradient(160deg, hsl(var(--secondary) / 0.9), hsl(var(--background)));
+  border: 1px solid hsl(var(--primary) / 0.15);
+  border-radius: 14px;
+  box-shadow: -1rem 0 3rem hsl(0 0% 0% / 0.6);
+  transition: transform 0.4s ease-out, left 0.4s ease-out, box-shadow 0.4s ease-out;
+  padding: 16px 18px;
+  left: 0;
+}
+.charstats-card:not(:first-child) { margin-left: -60px; }
+.charstats-card:hover {
+  transform: translateY(-16px);
+  box-shadow:
+    -1rem 0 3rem hsl(0 0% 0% / 0.7),
+    0 0 0 1px hsl(var(--primary) / 0.5),
+    0 24px 60px -18px hsl(var(--primary) / 0.55);
+}
+.charstats-card:hover ~ .charstats-card { left: 60px; }
+.charstats-eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: hsl(var(--primary) / 0.9);
+}
+.charstats-title {
+  font-family: "Cinzel", "EB Garamond", serif;
+  font-size: 15px;
+  color: hsl(var(--foreground));
+  margin-top: 4px;
+  line-height: 1.2;
+  max-width: 170px;
+}
+.charstats-source {
+  font-size: 10px;
+  color: hsl(var(--muted-foreground));
+  margin-top: 2px;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.charstats-bar {
+  position: relative;
+  margin-top: 10px;
+  height: 4px;
+  width: 150px;
+}
+.charstats-bar-empty { background-color: hsl(var(--border)); width: 100%; height: 100%; border-radius: 2px; }
+.charstats-bar-filled {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(35 100% 55%) 100%);
+  transition: width 0.6s ease-out;
+}
+.charstats-card:hover .charstats-bar-filled { width: var(--w, 100%); }
+.charstats-circle {
+  position: relative;
+  margin-top: 14px;
+  width: 120px;
+  height: 120px;
+}
+.charstats-circle svg { transform: rotate(-90deg); overflow: visible; }
+.charstats-stroke-bg { fill: none; stroke: hsl(var(--border)); stroke-width: 3; }
+.charstats-stroke {
+  fill: none;
+  stroke: hsl(var(--primary));
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 360;
+  stroke-dashoffset: 360;
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1);
+  filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.4));
+}
+.charstats-avatar {
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: hsl(var(--secondary));
+}
+.charstats-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.charstats-value {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: hsl(var(--primary));
+  background: hsl(var(--background));
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--primary) / 0.4);
+}
+.charstats-footer {
+  margin-top: 16px;
+  display: flex;
+  gap: 6px;
+  font-size: 10px;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+@media (max-width: 768px) {
+  .charstats-container {
+    flex-direction: column;
+    align-items: center;
+    height: auto;
+    gap: 14px;
+  }
+  .charstats-card { width: 88%; max-width: 320px; height: auto; padding-bottom: 24px; }
+  .charstats-card:not(:first-child) { margin-left: 0; }
+  .charstats-card:hover { transform: none; }
+  .charstats-card:hover ~ .charstats-card { left: 0; }
+  .charstats-bar-filled { width: var(--w, 100%); }
+}
+
+/* ============ Cinema Accordion (movies) ============ */
+.cinema-accordion {
+  width: 100%;
+  max-width: 1100px;
+  height: 380px;
+  overflow: hidden;
+  box-shadow: 0 0 30px 4px hsl(0 0% 0% / 0.55);
+  border-radius: 18px;
+}
+.cinema-accordion ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  width: 1500px;
+  height: 100%;
+}
+.cinema-accordion li {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: calc((100% - 100vw) / 6);
+  min-width: 90px;
+  height: 100%;
+  border-left: 1px solid hsl(var(--border));
+  transition: all 0.55s cubic-bezier(0.22,1,0.36,1);
+  overflow: hidden;
+}
+/* Distribuir en cols proporcionales al ancho del acordeón */
+.cinema-accordion ul li { width: 160px; }
+.cinema-accordion ul:hover li { width: 90px; }
+.cinema-accordion ul li:hover { width: 620px; }
+.cinema-accordion-item {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.cinema-accordion-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.55s ease;
+}
+.cinema-accordion li:hover .cinema-accordion-img { transform: scale(1.04); }
+.cinema-accordion-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, hsl(0 0% 0% / 0.85) 100%);
+  display: flex;
+  align-items: flex-end;
+}
+.cinema-accordion-caption {
+  padding: 16px 20px;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.cinema-accordion li:hover .cinema-accordion-caption {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
 
 
