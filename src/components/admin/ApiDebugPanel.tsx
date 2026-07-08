@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Bug, Check, Loader2, Search, Send, X } from "lucide-react";
+import { AlertCircle, Bug, Check, Loader2, Search, Send, X, Database, Subtitles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, getTitle, type AniListMedia } from "@/lib/anilist";
 import { getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
 import { getSlugOverride } from "@/lib/slug-overrides";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const ZET_BASE = "https://zetapi-api.samvelzeta.workers.dev/api";
