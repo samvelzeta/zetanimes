@@ -64,17 +64,24 @@ export default function CinemaExtras({ items, upcomingItems = [] }: Props) {
     [items]
   );
 
+  // Línea del tiempo: SOLO películas taquilleras (score alto). Se mantiene actualizada
+  // con los datos de AniList — cambia solo, no lleva datos falsos.
   const decades = useMemo(() => {
+    const BLOCKBUSTER_MIN = 75; // score AniList (0-100)
     const map = new Map<number, AniListMedia[]>();
     for (const a of items) {
       const y = a.seasonYear;
       if (!y) continue;
+      if ((a.averageScore || 0) < BLOCKBUSTER_MIN) continue;
       const d = Math.floor(y / 10) * 10;
       if (!map.has(d)) map.set(d, []);
       map.get(d)!.push(a);
     }
+    // Ordena las pelis de cada década por score desc para mostrar las mejores
+    for (const arr of map.values()) arr.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
     return Array.from(map.entries()).sort((a, b) => b[0] - a[0]);
   }, [items]);
+
 
   const genreStats = useMemo(() => {
     const map = new Map<string, number>();
