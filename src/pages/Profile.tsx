@@ -194,7 +194,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-background text-foreground relative">
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => navigate("/")}
         aria-label="Volver"
         className="fixed top-6 left-6 z-50 w-10 h-10 rounded-full bg-neutral-900/80 border border-neutral-700 backdrop-blur-sm flex items-center justify-center text-foreground/80 hover:text-primary hover:border-primary/60 hover:bg-neutral-900 transition-all shadow-lg"
       >
