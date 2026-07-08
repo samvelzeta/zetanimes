@@ -222,7 +222,11 @@ export default function Directory() {
       </div>
 
       <CinemaAccordion items={cinemaList} loading={cinemaQuery.isLoading} />
-      <CinemaExtras items={cinemaList} />
+      <CinemaExtras
+        items={cinemaList}
+        upcomingItems={(upcomingMoviesQuery.data?.media || []).filter((a) => !hiddenSet.has(a.id))}
+      />
+
 
       {/* Estadísticas de personajes */}
       <CharacterStats characters={characters} />
