@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Play, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Info, Pause } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import LazyImage from "@/components/LazyImage";
 
 interface Props {
   items: AniListMedia[];
 }
+
 
 export default function HeroCarousel({ items }: Props) {
   const [index, setIndex] = useState(0);
