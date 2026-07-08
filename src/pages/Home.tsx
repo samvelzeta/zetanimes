@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTrending, getPopular, getTopRated, getThisSeason, getByGenre } from "@/lib/anilist";
-import HeroBanner from "@/components/anime/HeroBanner";
+import VerticalCarousel from "@/components/directory/VerticalCarousel";
 import HorizontalList from "@/components/anime/HorizontalList";
 import LatestEpisodes from "@/components/anime/LatestEpisodes";
 import BentoEpisodes from "@/components/anime/BentoEpisodes";
@@ -140,7 +140,7 @@ export default function Home() {
   if (isTV) {
     return (
       <div className="min-h-screen space-y-6">
-        <HeroBanner animes={filterFn(trending?.media)} />
+        <VerticalCarousel items={filterFn(trending?.media)} />
         <LatestEpisodes />
         <BentoEpisodes />
         <GenreList />
@@ -160,7 +160,7 @@ export default function Home() {
     <>
       {!splashDone && <SplashScreen onComplete={handleSplashComplete} ready={initialReady} />}
       <div className="min-h-screen">
-        <HeroBanner animes={filterFn(trending?.media)} />
+        <VerticalCarousel items={filterFn(trending?.media)} />
 
         <div className="mt-6 space-y-2">
           {/* Above-the-fold: montar inmediato */}
