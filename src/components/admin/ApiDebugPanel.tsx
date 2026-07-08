@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Bug, Check, Loader2, Search, Send, X } from "lucide-react";
+import { AlertCircle, Bug, Check, Loader2, Search, Send, X, Database, Subtitles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAnime, getTitle, type AniListMedia } from "@/lib/anilist";
 import { getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
 import { getSlugOverride } from "@/lib/slug-overrides";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const ZET_BASE = "https://zetapi-api.samvelzeta.workers.dev/api";
@@ -28,8 +29,41 @@ export default function ApiDebugPanel() {
   const [rawJson, setRawJson] = useState<any>(null);
   const [seekeJson, setSeekeJson] = useState<any>(null);
   const [requestUrl, setRequestUrl] = useState("");
-  const [seekeUrl, setSeekeUrl] = useState("https://flixlat.com/es/detail/drama/Q7KLWpsDuwCBm24xji2Bf-Erased");
+  const [seekeUrl, setSeekeUrl] = useState("");
+  const [dbUrls, setDbUrls] = useState<{ sub: string[]; latino: string[] }>({ sub: [], latino: [] });
+  const [loadingDbUrls, setLoadingDbUrls] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cargar enlaces madre Seeke guardados en video_cache para el anime seleccionado
+  // (episode=0). Cada idioma se guarda en una fila separada.
+  const loadSeekeUrlsFromDb = async (anilistId: number, currentLang: "sub" | "latino") => {
+    setLoadingDbUrls(true);
+    try {
+      const { data, error } = await supabase
+        .from("video_cache")
+        .select("lang, sources")
+        .eq("anilist_id", anilistId)
+        .eq("episode", 0);
+      if (error) throw error;
+      const out: { sub: string[]; latino: string[] } = { sub: [], latino: [] };
+      for (const row of (data || []) as any[]) {
+        const seeke = row?.sources?.seeke;
+        const arr = Array.isArray(seeke) ? seeke.filter((u: any) => typeof u === "string" && u.trim()) : [];
+        const key = row.lang === "latino" ? "latino" : "sub";
+        out[key].push(...arr);
+      }
+      setDbUrls(out);
+      const first = out[currentLang][0] || out[currentLang === "sub" ? "latino" : "sub"][0] || "";
+      setSeekeUrl(first);
+      if (!first) {
+        toast.info("No hay enlace madre Seeke guardado en la BD para este anime");
+      }
+    } catch (e: any) {
+      toast.error(`No se pudo leer video_cache: ${e?.message || e}`);
+    } finally {
+      setLoadingDbUrls(false);
+    }
+  };
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -62,10 +96,23 @@ export default function ApiDebugPanel() {
     });
     setEpisode(1);
     setRawJson(null);
+    setSeekeJson(null);
     setRequestUrl("");
+    setSeekeUrl("");
+    setDbUrls({ sub: [], latino: [] });
     setQuery("");
     setResults([]);
+    // Auto-cargar enlace madre Seeke desde video_cache
+    await loadSeekeUrlsFromDb(anime.id, lang);
   };
+
+  // Cuando cambia idioma, si hay URL guardada para ese idioma, actualízala en el input
+  useEffect(() => {
+    if (!selected) return;
+    const urls = dbUrls[lang];
+    if (urls && urls.length > 0) setSeekeUrl(urls[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   const requestEpisode = async (ep = episode, selectedLang = lang) => {
     if (!selected) return;
@@ -165,28 +212,72 @@ export default function ApiDebugPanel() {
 
           <div className="space-y-3 min-w-0">
             <div className="rounded-xl border border-primary/30 bg-secondary/40 p-3 space-y-3">
-              <div>
-                <p className="text-xs font-bold text-foreground">Prueba Seeke / Flixlat</p>
-                <p className="text-[10px] text-muted-foreground">Envía la URL base exacta + capítulo a la API. No usa slug ni modifica la URL.</p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold text-foreground">Prueba Seeke / Flixlat</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Enlace madre precargado desde la BD (video_cache · ep 0) para <b>{lang}</b>.
+                  </p>
+                </div>
+                <button
+                  onClick={() => selected && loadSeekeUrlsFromDb(selected.id, lang)}
+                  disabled={loadingDbUrls}
+                  className="h-7 px-2 rounded-lg bg-secondary text-foreground text-[10px] font-bold flex items-center gap-1 hover:bg-muted disabled:opacity-50"
+                  title="Recargar enlace desde video_cache"
+                >
+                  {loadingDbUrls ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
+                  BD
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1 text-[10px]">
+                <span className={`px-1.5 py-0.5 rounded-full font-bold ${dbUrls.sub.length ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                  🇯🇵 sub: {dbUrls.sub.length}
+                </span>
+                <span className={`px-1.5 py-0.5 rounded-full font-bold ${dbUrls.latino.length ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                  🌎 latino: {dbUrls.latino.length}
+                </span>
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Input
                   value={seekeUrl}
                   onChange={(e) => setSeekeUrl(e.target.value)}
-                  placeholder="https://flixlat.com/es/detail/..."
+                  placeholder="Pega o edita la URL base Seeke…"
                   className="min-w-[260px] flex-1 h-9 bg-background border-primary/30 rounded-xl font-mono text-xs"
                 />
-                <button onClick={requestSeeke} disabled={seekeLoading} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center gap-2 disabled:opacity-50">
+                <button onClick={requestSeeke} disabled={seekeLoading || !seekeUrl.trim()} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold flex items-center gap-2 disabled:opacity-50">
                   {seekeLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                   Probar Seeke EP {episode}
                 </button>
               </div>
               {seekeJson && (
-                <pre className="max-h-60 overflow-auto rounded-lg border border-border bg-background/60 p-3 text-[10px] text-foreground whitespace-pre-wrap break-words font-mono">
-                  {JSON.stringify(seekeJson, null, 2)}
-                </pre>
+                <>
+                  {(() => {
+                    const subs = seekeJson?.response?.subtitles;
+                    const count = Array.isArray(subs) ? subs.length : 0;
+                    const hasEs = Array.isArray(subs) && subs.some((s: any) => (s?.lang || "").toLowerCase().startsWith("es"));
+                    return (
+                      <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
+                        <span className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${count > 0 ? "bg-green-500/15 text-green-500" : "bg-destructive/15 text-destructive"}`}>
+                          <Subtitles className="w-3 h-3" /> subs: {count}
+                        </span>
+                        {count > 0 && (
+                          <span className={`px-2 py-0.5 rounded-full ${hasEs ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                            {hasEs ? "incluye ES" : "sin ES"}
+                          </span>
+                        )}
+                        {seekeJson?.response?.cached && (
+                          <span className="px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">cache</span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                  <pre className="max-h-60 overflow-auto rounded-lg border border-border bg-background/60 p-3 text-[10px] text-foreground whitespace-pre-wrap break-words font-mono">
+                    {JSON.stringify(seekeJson, null, 2)}
+                  </pre>
+                </>
               )}
             </div>
+
 
             <div className="flex gap-2 flex-wrap">
               {(["sub", "latino"] as const).map((l) => (
