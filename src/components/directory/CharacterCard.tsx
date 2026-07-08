@@ -19,7 +19,15 @@ interface Props {
 export default function CharacterCard({ character: c, index = 0 }: Props) {
   const bio = c.description;
   const firstStop = bio.search(/[.!?]\s/);
-  const hook = firstStop > 60 ? bio.slice(0, firstStop + 1) : bio.slice(0, 260);
+  const rawHook = firstStop > 60 ? bio.slice(0, firstStop + 1) : bio.slice(0, 260);
+  const [hook, setHook] = useState(rawHook);
+
+  useEffect(() => {
+    if (!rawHook) return;
+    let alive = true;
+    translateText(rawHook, `char_hook_${c.id}`).then((t) => { if (alive && t) setHook(t); });
+    return () => { alive = false; };
+  }, [rawHook, c.id]);
 
   // "Poderes / rasgos" — busca líneas clave
   const powerHints: string[] = [];
