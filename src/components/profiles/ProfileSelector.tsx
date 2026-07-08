@@ -101,119 +101,206 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center overflow-y-auto animate-fade-in">
-      {/* Vignette de fondo */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background))_70%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent pointer-events-none" />
+  // Zen dropdown (menú de acciones minimalista arriba-derecha)
+  const [menuOpen, setMenuOpen] = useState(false);
 
-      <div className={`relative max-w-5xl w-full ${isSelectionMode ? "min-h-screen flex flex-col justify-center px-4 py-8 md:py-12" : "min-h-screen flex flex-col justify-center px-4 py-8 md:py-12"}`}>
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-4">
-            <Sparkles className="w-3 h-3 text-primary" />
-            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
-              {isPremium || isOwner ? <><Crown className="w-3 h-3 inline mr-1" />Premium</> : "Gratis"}
-            </span>
-          </div>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-3">
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex flex-col items-center overflow-y-auto animate-fade-in"
+      style={{
+        // Fondo "terciopelo oscuro" con textura sutil de fibra de carbono
+        backgroundColor: "#050505",
+        backgroundImage:
+          "repeating-linear-gradient(45deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.008) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, rgba(255,255,255,0.02) 0%, transparent 65%)",
+      }}
+    >
+      {/* Zen menu — engranaje arriba a la derecha */}
+      {isSelectionMode && (
+        <div className="absolute top-5 right-5 z-10">
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-500 hover:text-neutral-200 transition-colors"
+            aria-label="Opciones"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <circle cx="12" cy="12" r="2.5" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.16.38.48.66.85.83.24.12.5.18.78.18H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.03Z" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0" onClick={() => setMenuOpen(false)} />
+              <div
+                className="absolute right-0 mt-2 w-52 rounded-xl overflow-hidden animate-fade-in"
+                style={{
+                  backgroundColor: "#0a0a0a",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
+                }}
+              >
+                {(allowManageToggle || manageMode) && (
+                  <button
+                    onClick={() => { setMenuOpen(false); setManage(!manage); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-neutral-100 hover:bg-white/[0.03] transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" strokeWidth={1.4} />
+                    {manage ? "Listo" : "Gestionar"}
+                  </button>
+                )}
+                {onClose && (
+                  <button
+                    onClick={() => { setMenuOpen(false); onClose(); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-neutral-100 hover:bg-white/[0.03] transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.4} />
+                    Volver
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="relative max-w-5xl w-full min-h-screen flex flex-col justify-center px-4 py-8 md:py-16">
+        <div className="text-center mb-16 md:mb-20">
+          <h1
+            className="font-serif font-light text-neutral-300"
+            style={{
+              fontSize: "clamp(1.75rem, 4vw, 2.75rem)",
+              letterSpacing: "0.18em",
+              fontWeight: 300,
+            }}
+          >
             {selfEditOnly ? "Editar perfil" : manage ? "Gestionar perfiles" : "¿Quién está viendo?"}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {selfEditOnly ? "Solo puedes personalizar este perfil" : `${profiles.length} de ${maxProfiles} perfiles ${isPremium || isOwner ? "(Premium)" : "(Gratis)"}`}
-          </p>
+          {/* Detalle "X de Y" solo cuando estamos gestionando; en la selección se elimina para reducir ruido */}
+          {manage && !selfEditOnly && (
+            <p className="mt-4 text-[10px] uppercase tracking-[0.35em] text-neutral-600 font-light">
+              {profiles.length} / {maxProfiles}
+            </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 max-w-3xl mx-auto justify-items-center place-content-center">
-          {visibleProfiles.map((p, idx) => (
-            <div
-              key={p.id}
-              className={`flex flex-col items-center gap-3 animate-fade-in ${totalCards === 3 && idx === 2 ? "col-span-2 md:col-span-1" : ""}`}
-              style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "backwards" }}
-            >
-              <button
-                onClick={() => handlePick(p)}
-                className="group relative w-32 h-32 sm:w-36 sm:h-36 rounded-lg overflow-hidden ring-2 ring-border hover:ring-4 hover:ring-primary transition-all duration-300 hover:scale-110 hover:shadow-[0_0_40px_hsl(var(--primary)/0.5)]"
-                style={{ background: p.accent_color || "hsl(var(--muted))" }}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-10 md:gap-14 max-w-3xl mx-auto justify-items-center place-content-center">
+          {visibleProfiles.map((p, idx) => {
+            // Aura: jade para el perfil principal, ámbar para PIN, primary para el resto
+            const auraColor = p.is_default
+              ? "rgba(52, 211, 153, 0.55)"      // jade
+              : p.pin_enabled
+              ? "rgba(245, 158, 11, 0.55)"      // ámbar
+              : "hsl(var(--primary) / 0.55)";
+            return (
+              <div
+                key={p.id}
+                className={`flex flex-col items-center gap-5 animate-fade-in ${totalCards === 3 && idx === 2 ? "col-span-2 md:col-span-1" : ""}`}
+                style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "backwards" }}
               >
-                {p.avatar_url ? (
-                  <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-5xl font-black text-white">
-                    {p.name[0]?.toUpperCase()}
-                  </div>
-                )}
-                {p.pin_enabled && (
-                  <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-background/80 backdrop-blur-md flex items-center justify-center ring-1 ring-primary/40">
-                    <KeyRound className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
-              <span className="text-base font-bold truncate max-w-full">{p.name}</span>
-              {manage && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setEditing(p)}
-                    className="p-2 rounded-lg bg-secondary hover:bg-muted transition"
-                    title="Editar"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  {!selfEditOnly && profiles.length > 1 && (
-                    <button
-                      onClick={() => handleDelete(p)}
-                      className="p-2 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                <button
+                  onClick={() => handlePick(p)}
+                  className="group relative w-36 h-36 sm:w-44 sm:h-44 rounded-2xl overflow-hidden transition-all duration-500 hover:-translate-y-1 hover:scale-[1.04]"
+                  style={{
+                    background: p.accent_color || "#0f0f0f",
+                    // Aura permanente muy sutil + intensificada en hover vía CSS variables
+                    ["--aura" as any]: auraColor,
+                    boxShadow: `0 0 0 1px rgba(255,255,255,0.04), 0 20px 40px -20px ${auraColor}`,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 1px rgba(255,255,255,0.06), 0 0 45px 4px ${auraColor}, 0 25px 50px -15px ${auraColor}`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = `0 0 0 1px rgba(255,255,255,0.04), 0 20px 40px -20px ${auraColor}`;
+                  }}
+                >
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-5xl font-light text-white/90">
+                      {p.name[0]?.toUpperCase()}
+                    </div>
                   )}
-                </div>
-              )}
-            </div>
-          ))}
+                </button>
+                <span
+                  className="text-[11px] uppercase text-neutral-400 font-light truncate max-w-full"
+                  style={{ letterSpacing: "0.28em" }}
+                >
+                  {p.name}
+                </span>
+                {manage && (
+                  <div className="flex gap-2 -mt-2">
+                    <button
+                      onClick={() => setEditing(p)}
+                      className="p-2 rounded-full text-neutral-500 hover:text-neutral-200 hover:bg-white/[0.04] transition"
+                      title="Editar"
+                    >
+                      <Pencil className="w-3.5 h-3.5" strokeWidth={1.4} />
+                    </button>
+                    {!selfEditOnly && profiles.length > 1 && (
+                      <button
+                        onClick={() => handleDelete(p)}
+                        className="p-2 rounded-full text-neutral-500 hover:text-destructive hover:bg-white/[0.04] transition"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" strokeWidth={1.4} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {showAddButton && (() => {
             const idx = visibleProfiles.length;
             return (
               <div
                 key="add-btn"
-                className={`flex flex-col items-center gap-3 animate-fade-in ${totalCards === 3 && idx === 2 ? "col-span-2 md:col-span-1" : ""}`}
+                className={`flex flex-col items-center gap-5 animate-fade-in ${totalCards === 3 && idx === 2 ? "col-span-2 md:col-span-1" : ""}`}
                 style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "backwards" }}
               >
                 <button
                   onClick={() => setCreating(true)}
-                  className="w-32 h-32 sm:w-36 sm:h-36 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all hover:scale-110 flex items-center justify-center group"
+                  className="w-36 h-36 sm:w-44 sm:h-44 rounded-2xl flex items-center justify-center group transition-all duration-500 hover:-translate-y-1 hover:scale-[1.04]"
+                  style={{
+                    border: "1px dashed rgba(255,255,255,0.1)",
+                    background: "rgba(255,255,255,0.015)",
+                  }}
                   title={`Añadir perfil (${profiles.length}/${maxProfiles})`}
                 >
-                  <Plus className="w-12 h-12 text-muted-foreground group-hover:text-primary transition" />
+                  <Plus className="w-8 h-8 text-neutral-600 group-hover:text-neutral-300 transition" strokeWidth={1.2} />
                 </button>
-                <span className="text-base font-bold text-muted-foreground">
-                  Añadir perfil <span className="text-[10px] opacity-70">({profiles.length}/{maxProfiles})</span>
+                <span
+                  className="text-[11px] uppercase text-neutral-500 font-light"
+                  style={{ letterSpacing: "0.28em" }}
+                >
+                  Añadir
                 </span>
               </div>
             );
           })()}
         </div>
 
-        <div className="mt-12 flex justify-center gap-3">
-          {profiles.length > 0 && (manageMode || allowManageToggle) && (
-            <button
-              onClick={() => setManage(!manage)}
-              className="px-5 py-2.5 rounded-lg border border-border hover:border-primary text-sm font-bold transition"
-            >
-              {manage ? "Listo" : "Gestionar perfiles"}
-            </button>
-          )}
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-lg bg-card border border-border text-sm font-bold flex items-center gap-2 hover:bg-secondary transition"
-            >
-              <ArrowLeft className="w-4 h-4" /> Volver
-            </button>
-          )}
-        </div>
+        {/* En modo gestión mantenemos los botones inferiores; en selección los ocultamos (van al Zen menu) */}
+        {manage && (
+          <div className="mt-16 flex justify-center gap-3">
+            {profiles.length > 0 && (manageMode || allowManageToggle) && (
+              <button
+                onClick={() => setManage(!manage)}
+                className="px-6 py-2.5 rounded-full text-[11px] uppercase tracking-[0.25em] font-light text-neutral-400 hover:text-neutral-100 border border-white/10 hover:border-white/25 transition"
+              >
+                {manage ? "Listo" : "Gestionar"}
+              </button>
+            )}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="px-6 py-2.5 rounded-full text-[11px] uppercase tracking-[0.25em] font-light text-neutral-400 hover:text-neutral-100 border border-white/10 hover:border-white/25 flex items-center gap-2 transition"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.4} /> Volver
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
