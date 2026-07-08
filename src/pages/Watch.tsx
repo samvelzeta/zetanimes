@@ -447,22 +447,28 @@ export default function Watch() {
   const shouldShowLanguageControls = (hasDbBothLanguages && dbLikeCount > 0) || hasApiOnlyOppositeLang;
   const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls && !hasSeekeBothLanguages;
   const sortedSources = useMemo(() => {
+    // REGLA ESTRICTA: el reproductor SOLO recibe fuentes del idioma seleccionado.
+    // Antes se colaban fuentes del idioma opuesto y, si la actual fallaba, el
+    // fallback interno saltaba al opuesto (JP↔LAT sin acción del usuario).
+    // Ahora el cambio de idioma es 100% manual vía el toggle.
+    const onlyCurrentLang = rawSources.filter((s) => s.lang === lang);
+    // Fallback de seguridad: si el idioma actual no tiene fuentes pero el otro
+    // sí, devolvemos igual solo las del actual (vacío) — la UI mostrará el
+    // mensaje de "sin servidores" y el usuario decide cambiar de idioma.
+    const pool = onlyCurrentLang;
     if (shouldShowLanguageControls) {
-      // Cuando hay DB-like en el idioma actual, priorízalo. Si solo hay API en
-      // ese idioma (caso AV1-LAT cuando Seeke solo trae JP), prioriza cualquier
-      // fuente de ese idioma.
       const hasDbLikeForLang = dbLangAvailability[lang] > 0;
-      return [...rawSources].sort((a, b) => {
-        const aMatch = a.lang === lang && (hasDbLikeForLang ? (a.origin === "db" || a.origin === "hls" || a.origin === "seeke") : true);
-        const bMatch = b.lang === lang && (hasDbLikeForLang ? (b.origin === "db" || b.origin === "hls" || b.origin === "seeke") : true);
+      return [...pool].sort((a, b) => {
+        const aMatch = hasDbLikeForLang ? (a.origin === "db" || a.origin === "hls" || a.origin === "seeke") : true;
+        const bMatch = hasDbLikeForLang ? (b.origin === "db" || b.origin === "hls" || b.origin === "seeke") : true;
         const aRank = aMatch ? 0 : 1;
         const bRank = bMatch ? 0 : 1;
         return aRank - bRank || sourcePriority(a) - sourcePriority(b);
       });
     }
-    return activeSourceIdx > 0 && activeSourceIdx < rawSources.length
-      ? [rawSources[activeSourceIdx], ...rawSources.filter((_, i) => i !== activeSourceIdx)]
-      : rawSources;
+    return activeSourceIdx > 0 && activeSourceIdx < pool.length
+      ? [pool[activeSourceIdx], ...pool.filter((_, i) => i !== activeSourceIdx)]
+      : pool;
   }, [activeSourceIdx, rawSources, shouldShowLanguageControls, lang, dbLangAvailability]);
   const activeLang = sortedSources[0]?.lang || lang;
   // Subtítulos softsub vienen del API (modo japonés). Usar el del idioma activo.
