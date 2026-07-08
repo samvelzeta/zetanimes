@@ -3,6 +3,54 @@ import { Link } from "react-router-dom";
 import { Play, Info, Pause } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import LazyImage from "@/components/LazyImage";
+import { useTranslatedDesc } from "@/hooks/useTranslatedDesc";
+
+function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number; index: number; total: number }) {
+  const desc = useTranslatedDesc(a.description, a.id, 240);
+  const active = i === index;
+  return (
+    <article
+      className={`absolute inset-0 flex flex-col justify-center transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        active
+          ? "opacity-100 translate-y-0"
+          : i < index
+          ? "opacity-0 -translate-y-8 pointer-events-none"
+          : "opacity-0 translate-y-8 pointer-events-none"
+      }`}
+    >
+      <p className="text-[10px] tracking-[0.4em] uppercase text-primary/80 mb-3">
+        Episodio {String(i + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+      </p>
+      <h2 className="directory-hero-title text-3xl sm:text-5xl md:text-6xl font-bold text-white leading-tight line-clamp-3">
+        {getTitle(a)}
+      </h2>
+      {a.genres?.length ? (
+        <p className="mt-3 text-[11px] uppercase tracking-widest text-white/60">
+          {a.genres.slice(0, 3).join(" · ")}
+        </p>
+      ) : null}
+      {desc && (
+        <p className="hidden md:block mt-5 text-sm text-white/70 max-w-lg font-serif-body italic line-clamp-4">
+          "{desc}"
+        </p>
+      )}
+      <div className="mt-5 md:mt-8 flex items-center gap-3">
+        <Link
+          to={`/anime/${a.id}`}
+          className="rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold bg-primary text-primary-foreground inline-flex items-center gap-2 hover:scale-105 transition-transform"
+        >
+          <Play className="w-4 h-4 fill-current" /> Ver ahora
+        </Link>
+        <Link
+          to={`/anime/${a.id}`}
+          className="directory-glass rounded-full px-5 py-2.5 text-xs sm:text-sm font-medium text-white inline-flex items-center gap-2 hover:bg-primary/25 transition-colors"
+        >
+          <Info className="w-4 h-4" /> Detalles
+        </Link>
+      </div>
+    </article>
+  );
+}
 
 interface Props {
   items: AniListMedia[];
