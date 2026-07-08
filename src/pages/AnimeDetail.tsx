@@ -174,7 +174,7 @@ export default function AnimeDetail() {
   const studio = (anime as any).studios?.nodes?.find((s: any) => s.isAnimationStudio)?.name || (anime as any).studios?.nodes?.[0]?.name;
 
   return (
-    <div className="min-h-screen text-foreground" style={{ backgroundColor: "#100e17" }}>
+    <div className="min-h-screen bg-background text-foreground">
       {/* ========= HERO — póster como fondo, título centrado ========= */}
       <section className="relative w-full h-[78vh] md:h-[92vh] overflow-hidden">
         <img
@@ -184,14 +184,10 @@ export default function AnimeDetail() {
           style={{ objectPosition: "center 25%" }}
         />
         {/* Overlays: oscuro por abajo + viñeta general para llevar la vista al título */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to bottom, rgba(16,14,23,0.55) 0%, rgba(16,14,23,0.25) 30%, rgba(16,14,23,0.85) 75%, #100e17 100%)",
-          }}
-        />
-        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+        {/* Overlays: degradado dark suave hacia el fondo natural + viñeta */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-background/30 to-background pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-background/30 pointer-events-none" />
+
 
         {/* Volver */}
         <Link
@@ -256,7 +252,7 @@ export default function AnimeDetail() {
           <div
             className="mt-4 mx-auto flex items-center justify-around gap-1 p-1.5 rounded-2xl border border-white/10"
             style={{
-              backgroundColor: "#17141d",
+              backgroundColor: "hsl(var(--secondary) / 0.6)",
               width: "min(80%, 380px)",
               boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
             }}
@@ -342,7 +338,7 @@ export default function AnimeDetail() {
         {description && (
           <section>
             <SectionHeader eyebrow="Editorial" title="Sinopsis" />
-            <div className="rounded-2xl p-6 border border-white/10" style={{ backgroundColor: "#17141d" }}>
+            <div className="rounded-2xl p-6 border border-white/10" style={{ backgroundColor: "hsl(var(--secondary) / 0.5)" }}>
               <p className={`font-serif-body italic text-base md:text-lg leading-relaxed text-white/85 ${!showFullDesc && isLongDesc ? "line-clamp-5" : ""}`}>
                 "{showFullDesc || !isLongDesc ? description : description.slice(0, SYNOPSIS_LIMIT * 2)}"
               </p>
@@ -374,7 +370,7 @@ export default function AnimeDetail() {
         {totalEps > 0 && (
           <section>
             <SectionHeader eyebrow="Episodios" title={`Capítulos (${totalEps})`} />
-            <ol className="rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5" style={{ backgroundColor: "#17141d" }}>
+            <ol className="rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5" style={{ backgroundColor: "hsl(var(--secondary) / 0.5)" }}>
               {Array.from({ length: totalEps }, (_, i) => i + 1).map((ep) => {
                 const meta = streamingEpisodes?.[ep - 1];
                 const thumb = episodeThumbs[ep - 1] || cover || "";
