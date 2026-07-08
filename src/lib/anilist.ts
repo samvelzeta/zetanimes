@@ -76,11 +76,13 @@ export interface AniListMedia {
   format: string | null;
   countryOfOrigin?: string | null;
   tags?: { name: string }[];
+  startDate?: { year: number | null; month: number | null; day: number | null } | null;
   nextAiringEpisode: { airingAt: number; episode: number } | null;
   streamingEpisodes?: { title: string; thumbnail: string; url: string; site: string }[];
   relations?: { edges: { relationType: string; node: { id: number; title: { romaji: string; english: string | null }; coverImage: { large: string }; format: string; type: string } }[] };
   recommendations?: { nodes: { mediaRecommendation: { id: number; title: { romaji: string; english: string | null }; coverImage: { large: string; extraLarge: string }; averageScore: number; status: string; format: string } }[] };
 }
+
 
 interface PageResult {
   pageInfo: { total: number; currentPage: number; lastPage: number; hasNextPage: boolean };
