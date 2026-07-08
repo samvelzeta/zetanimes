@@ -134,20 +134,67 @@ export default function ApiDebugPanel() {
     setLoading(false);
   };
 
+  const [seekeLang, setSeekeLang] = useState<"sub" | "latino">("sub");
+  const [seekeBothLoading, setSeekeBothLoading] = useState(false);
+
+  // Al cambiar el idioma DEL SEEKE, autopobla el input con la URL guardada
+  // para ese idioma (si existe).
+  useEffect(() => {
+    if (!selected) return;
+    const urls = dbUrls[seekeLang];
+    if (urls && urls.length > 0) setSeekeUrl(urls[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seekeLang]);
+
+  const runSeekeFor = async (langKey: "sub" | "latino", explicitUrl?: string) => {
+    const baseUrl = (explicitUrl ?? seekeUrl).trim();
+    if (!baseUrl) throw new Error(`Sin URL Seeke para ${langKey}`);
+    const data = await getSeekeEpisode(baseUrl, episode);
+    return { ok: true, lang: langKey, request: { url: baseUrl, ep: episode }, response: data };
+  };
+
   const requestSeeke = async () => {
     if (!seekeUrl.trim()) return toast.error("Pega la URL base de Seeke/Flixlat");
-    const baseUrl = seekeUrl.trim();
     setSeekeLoading(true);
     setSeekeJson(null);
     try {
-      const data = await getSeekeEpisode(baseUrl, episode);
-      setSeekeJson({ ok: true, request: { url: baseUrl, ep: episode }, response: data });
-      toast.success("Seeke respondió correctamente");
+      const out = await runSeekeFor(seekeLang);
+      setSeekeJson(out);
+      toast.success(`Seeke ${seekeLang} respondió correctamente`);
     } catch (error: any) {
-      setSeekeJson({ ok: false, request: { url: baseUrl, ep: episode }, error: String(error?.message || error) });
-      toast.error("Seeke no devolvió video");
+      setSeekeJson({ ok: false, lang: seekeLang, request: { url: seekeUrl.trim(), ep: episode }, error: String(error?.message || error) });
+      toast.error(`Seeke ${seekeLang} no devolvió video`);
     }
     setSeekeLoading(false);
+  };
+
+  const requestSeekeBoth = async () => {
+    if (!selected) return;
+    const subUrl = dbUrls.sub[0];
+    const latUrl = dbUrls.latino[0];
+    if (!subUrl && !latUrl) return toast.error("No hay enlaces Seeke guardados en la BD");
+    setSeekeBothLoading(true);
+    setSeekeJson(null);
+    const results: any[] = [];
+    for (const [langKey, url] of [["sub", subUrl], ["latino", latUrl]] as const) {
+      if (!url) {
+        results.push({ ok: false, lang: langKey, error: "sin URL guardada" });
+        continue;
+      }
+      try {
+        results.push(await runSeekeFor(langKey, url));
+      } catch (error: any) {
+        results.push({ ok: false, lang: langKey, request: { url, ep: episode }, error: String(error?.message || error) });
+      }
+    }
+    setSeekeJson({ both: true, ep: episode, results });
+    const okCount = results.filter((r) => r.ok).length;
+    okCount === 2
+      ? toast.success("Seeke respondió en ambos idiomas")
+      : okCount === 1
+      ? toast.warning("Seeke respondió solo en un idioma")
+      : toast.error("Seeke no respondió en ninguno");
+    setSeekeBothLoading(false);
   };
 
   const episodes = Array.from({ length: Math.max(1, selected?.totalEpisodes || 0) }, (_, i) => i + 1);
