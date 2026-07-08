@@ -180,8 +180,9 @@ export default function Directory() {
         <AdBannerInline size="728x90" className="mb-6" />
       </div>
 
-      <div className="px-4 md:px-8 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-        <div>
+      <div className="px-4 md:px-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_260px] gap-6">
+        <div className="min-w-0">
+
           {loading ? (
             <div className="columns-2 md:columns-3 xl:columns-4 gap-3 md:gap-4">
               {Array.from({ length: 12 }).map((_, i) => (
