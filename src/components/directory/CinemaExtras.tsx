@@ -266,9 +266,13 @@ export default function CinemaExtras({ items, upcomingItems = [] }: Props) {
                       {getTitle(a)}
                     </p>
                   </div>
-                  <p className="mt-1 text-[9px] tracking-[0.3em] uppercase text-primary/80 text-center">
-                    {a.seasonYear || "TBA"}
+                  <p className="mt-1 text-[9px] tracking-[0.3em] uppercase text-primary/80 text-center inline-flex items-center justify-center gap-1 w-full">
+                    <CalendarClock className="w-2.5 h-2.5" />
+                    {a.startDate?.year
+                      ? `${String(a.startDate.day || 1).padStart(2, "0")}/${String(a.startDate.month || 1).padStart(2, "0")}/${a.startDate.year}`
+                      : a.seasonYear || "TBA"}
                   </p>
+
                 </Link>
               ))}
             </div>
