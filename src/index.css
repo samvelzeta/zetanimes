@@ -935,3 +935,10 @@ h1, h2, h3, .heading-steam {
   animation: filmstrip-marquee 40s linear infinite;
   will-change: transform;
 }
+
+/* Ken Burns cinematic zoom */
+@keyframes kenburns {
+  0% { transform: scale(1.05) translate(0, 0); }
+  100% { transform: scale(1.25) translate(-2%, -3%); }
+}
+
