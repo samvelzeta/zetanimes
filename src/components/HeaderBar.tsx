@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
-import { Bell, X, Users } from "lucide-react";
+import { Bell, X, Users, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
