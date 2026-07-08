@@ -46,7 +46,26 @@ const RouteFallback = () => (
   </div>
 );
 
-const App = () => (
+// Prefetch de rutas comunes en idle → navegación instantánea sin bajón de fps
+const prefetchRoutes = () => {
+  const idle =
+    (window as any).requestIdleCallback ||
+    ((cb: any) => setTimeout(cb, 1200));
+  idle(() => {
+    import("@/pages/Directory");
+    import("@/pages/AnimeDetail");
+    import("@/pages/Search");
+    import("@/pages/RecentlyWatched");
+    import("@/pages/Profile");
+    import("@/pages/MyLists");
+    import("@/pages/Watch");
+    import("@/pages/Settings");
+  });
+};
+
+const App = () => {
+  useEffect(prefetchRoutes, []);
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
