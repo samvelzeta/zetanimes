@@ -126,9 +126,9 @@ export default function Directory() {
   const animes = (mainQuery.data?.media || []).filter(passesFilters);
   const loading = mainQuery.isLoading;
 
-  const heroList = (heroData?.media || []).filter((a) => !hiddenSet.has(a.id));
-  const rankingList = (rankingData?.media || []).filter((a) => !hiddenSet.has(a.id));
-  const cinemaList = (cinemaQuery.data?.media || []).filter((a) => !hiddenSet.has(a.id));
+  const heroList = (heroData?.media || []).filter((a) => !hiddenSet.has(a.id) && (!isMovie(a) || movieHasSeeke(a)));
+  const rankingList = (rankingData?.media || []).filter((a) => !hiddenSet.has(a.id) && (!isMovie(a) || movieHasSeeke(a)));
+  const cinemaList = (cinemaQuery.data?.media || []).filter((a) => !hiddenSet.has(a.id) && movieHasSeeke(a));
 
   // Reutiliza los mismos datos ya cargados (sin llamadas extra)
   const storyPool = useMemo(
