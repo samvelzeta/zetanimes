@@ -63,11 +63,14 @@ export default function VerticalCarousel({ items }: Props) {
 
       {/* Firma */}
       <div className="absolute top-14 left-4 sm:top-20 sm:left-8 z-20 pointer-events-none">
-        <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase">
+        <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase leading-relaxed">
           En cartel · Estreno
+          <br />
+          <span className="text-primary/90">Esto te ofrece Zani</span>
         </p>
         <div className="mt-1 h-px w-10 bg-primary/60" />
       </div>
+
 
 
       {/* Grid con carrusel vertical */}

@@ -29,7 +29,7 @@ export default function HeaderBar() {
   const location = useLocation();
 
   const pageTitle = location.pathname.startsWith("/directory")
-    ? "Directorio"
+    ? "Directorio de Zen"
     : location.pathname.startsWith("/recent")
     ? "Recientes"
     : location.pathname.startsWith("/search")
