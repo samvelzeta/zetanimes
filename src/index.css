@@ -690,8 +690,34 @@ h1, h2, h3, .heading-steam {
 }
 
 /* Scrollbar fino para ranking sticky */
-.scrollbar-thin::-webkit-scrollbar { width: 4px; }
+.scrollbar-thin::-webkit-scrollbar { width: 4px; height: 6px; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--primary) / 0.35); border-radius: 4px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+/* StoryCard — Perfil de Intriga: revelación */
+@keyframes story-reveal {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+.story-card {
+  animation: story-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.story-card:hover {
+  box-shadow:
+    0 0 0 1px hsl(var(--primary) / 0.55),
+    0 24px 60px -18px hsl(var(--primary) / 0.55);
+}
+
+/* Cinema — parallax ligero al hover */
+.cinema-card .cinema-img {
+  transition: transform 0.7s ease;
+}
+.cinema-card:hover .cinema-img {
+  transform: scale(1.06) translateX(-1.5%);
+}
+.cinema-scroller {
+  scroll-behavior: smooth;
+}
+
 
 
