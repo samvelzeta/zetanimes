@@ -127,8 +127,19 @@ export default function HeroCarousel({ items }: Props) {
               />
             ))}
           </div>
+          <button
+            onClick={() => setPaused((p) => !p)}
+            aria-label={paused ? "Reanudar" : "Pausar"}
+            className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 z-20 w-9 h-9 rounded-full directory-glass flex items-center justify-center text-white hover:bg-primary/30 transition"
+          >
+            {paused ? <Play className="w-4 h-4 fill-current" /> : <Pause className="w-4 h-4" />}
+          </button>
         </>
       )}
+    </section>
+  );
+}
+
     </section>
   );
 }
