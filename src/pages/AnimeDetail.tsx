@@ -370,39 +370,51 @@ export default function AnimeDetail() {
         {totalEps > 0 && (
           <section>
             <SectionHeader eyebrow="Episodios" title={`Capítulos (${totalEps})`} />
-            <ol className="rounded-2xl overflow-hidden border border-white/10 divide-y divide-white/5" style={{ backgroundColor: "hsl(var(--secondary) / 0.5)" }}>
-              {Array.from({ length: totalEps }, (_, i) => i + 1).map((ep) => {
-                const meta = streamingEpisodes?.[ep - 1];
-                const thumb = episodeThumbs[ep - 1] || cover || "";
-                const epTitle = meta?.title?.replace(/^Episode\s*\d+\s*[-:·—]?\s*/i, "") || "";
-                return (
-                  <li key={ep}>
-                    <Link
-                      to={`/watch/${animeId}?ep=${ep}`}
-                      className="group flex items-center gap-4 px-3 md:px-4 py-3 hover:bg-white/[0.03] transition"
-                    >
-                      <div className="flex-none w-24 md:w-32 aspect-video rounded-lg overflow-hidden bg-black/40 border border-white/5">
-                        <img
-                          src={thumb}
-                          alt={`Ep ${ep}`}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] tracking-[0.35em] uppercase text-primary font-bold">
-                          Ep {String(ep).padStart(2, "0")}
-                        </p>
-                        <p className="text-sm md:text-base text-white font-medium leading-tight mt-0.5 truncate">
-                          {epTitle || "—"}
-                        </p>
-                      </div>
-                      <Play className="w-4 h-4 text-white/40 group-hover:text-primary flex-shrink-0" />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
+            <div
+              className="rounded-2xl border border-white/10 overflow-hidden"
+              style={{ backgroundColor: "hsl(var(--secondary) / 0.5)" }}
+            >
+              <ol
+                className="divide-y divide-white/5 overflow-y-auto overscroll-contain"
+                style={{ maxHeight: "min(60vh, 480px)" }}
+              >
+                {Array.from({ length: totalEps }, (_, i) => i + 1).map((ep) => {
+                  const meta = streamingEpisodes?.[ep - 1];
+                  const thumb = episodeThumbs[ep - 1] || cover || "";
+                  const epTitle = meta?.title?.replace(/^Episode\s*\d+\s*[-:·—]?\s*/i, "") || "";
+                  return (
+                    <li key={ep}>
+                      <Link
+                        to={`/watch/${animeId}?ep=${ep}`}
+                        className="group flex items-center gap-4 px-3 md:px-4 py-3 hover:bg-white/[0.03] transition"
+                      >
+                        <div className="flex-none w-24 md:w-32 aspect-video rounded-lg overflow-hidden bg-black/40 border border-white/5">
+                          <img
+                            src={thumb}
+                            alt={`Ep ${ep}`}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] tracking-[0.35em] uppercase text-primary font-bold">
+                            Ep {String(ep).padStart(2, "0")}
+                          </p>
+                          <p className="text-sm md:text-base text-white font-medium leading-tight mt-0.5 line-clamp-2">
+                            {epTitle || "—"}
+                          </p>
+                        </div>
+                        <Play className="w-4 h-4 text-white/40 group-hover:text-primary flex-shrink-0" />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ol>
+              <p className="text-center text-[9px] uppercase tracking-[0.35em] text-white/40 py-2 border-t border-white/5">
+                Desliza dentro del recuadro
+              </p>
+            </div>
+
           </section>
         )}
 
