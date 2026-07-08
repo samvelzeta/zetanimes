@@ -26,6 +26,17 @@ export default function HeaderBar() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [lastSeenId, setLastSeenId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+
+  const pageTitle = location.pathname.startsWith("/directory")
+    ? "Directorio"
+    : location.pathname.startsWith("/recent")
+    ? "Recientes"
+    : location.pathname.startsWith("/search")
+    ? "Buscar"
+    : location.pathname.startsWith("/mylists")
+    ? "Mis Listas"
+    : "";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
