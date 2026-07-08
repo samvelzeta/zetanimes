@@ -1,15 +1,16 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRecentlyUpdated, getRecentReleasedMovies } from "@/lib/anilist";
 import { getApprovedAnimeIds, approveAnime, unapproveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save } from "lucide-react";
+import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
+import { getPrequelChain, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
 
 
 type AiringItem = {
