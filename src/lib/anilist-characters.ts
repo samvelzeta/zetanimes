@@ -1,5 +1,6 @@
 // Personajes populares de AniList para el Directorio (bio, poderes, anime origen).
 import { idbGet, idbSet } from "@/lib/idb-cache";
+import { translateText } from "@/lib/translate";
 
 const ANILIST_URL = "https://graphql.anilist.co";
 const TTL = 6 * 60 * 60 * 1000; // 6h
