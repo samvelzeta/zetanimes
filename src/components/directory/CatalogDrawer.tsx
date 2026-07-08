@@ -198,11 +198,11 @@ export default function CatalogDrawer({ state, onChange, recommendations }: Prop
           </section>
 
           {/* Recomendaciones */}
-          {recommendations.length > 0 && (
-            <section>
-              <h3 className="text-xs font-bold uppercase tracking-widest text-white/60 mb-3 flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-primary" /> Para ti
-              </h3>
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white/60 mb-3 flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-primary" /> Para ti
+            </h3>
+            {recommendations.length > 0 ? (
               <div className="space-y-2">
                 {recommendations.slice(0, 5).map((a) => (
                   <Link
@@ -231,8 +231,17 @@ export default function CatalogDrawer({ state, onChange, recommendations }: Prop
                   </Link>
                 ))}
               </div>
-            </section>
-          )}
+            ) : (
+              <p className="text-xs text-white/50 italic">
+                Explora nuestras selecciones destacadas.
+              </p>
+            )}
+          </section>
+
+          {/* Perfiles de intriga */}
+          <IntrigueProfiles items={recommendations} onNavigate={() => setOpen(false)} />
+
+
 
           <button
             onClick={() => onChange(DEFAULT_STATE)}
