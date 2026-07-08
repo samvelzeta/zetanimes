@@ -76,7 +76,15 @@ export default function PendingApproval() {
   const approvedSet = useMemo(() => new Set<number>(approvedArr || []), [approvedArr]);
   useEffect(() => onApprovedChange(() => { refetchApproved(); }), [refetchApproved]);
 
-  // ¿Qué animes ya tienen algún enlace Seeke registrado? (para el badge)
+  // ¿Qué animes ya tienen enlace madre Seeke (episode=0)? Este set es el que
+  // determina si una temporada puede considerarse "lista" para aprobarse sola.
+  const { data: seekeMasterSet, refetch: refetchSeeke } = useQuery({
+    queryKey: ["approval-seeke-master-ids"],
+    queryFn: async () => getAnimeIdsWithSeekeMaster(),
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // Cualquier fila en video_cache (para badge "con enlace" general)
   const { data: withVideo } = useQuery({
     queryKey: ["approval-videocache-ids"],
     queryFn: async () => {
@@ -90,7 +98,7 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 2,
   });
 
-  const all = useMemo<AiringItem[]>(() => {
+  const airingItems = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
     for (const p of [p1, p2, p3, movies]) {
       for (const m of (p?.media || []) as AiringItem[]) {
@@ -99,6 +107,91 @@ export default function PendingApproval() {
     }
     return Array.from(map.values());
   }, [p1, p2, p3, movies]);
+
+  // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
+  const { data: prequelMap } = useQuery({
+    queryKey: ["approval-prequel-chains", airingItems.map((a) => a.id).join(",")],
+    enabled: airingItems.length > 0,
+    queryFn: async () => {
+      const out = new Map<number, PrequelNode[]>();
+      // Concurrencia limitada para no saturar AniList (5 en paralelo).
+      const ids = airingItems.map((a) => a.id);
+      const CONC = 5;
+      for (let i = 0; i < ids.length; i += CONC) {
+        const slice = ids.slice(i, i + CONC);
+        const results = await Promise.all(slice.map((id) => getPrequelChain(id).catch(() => [])));
+        slice.forEach((id, idx) => out.set(id, results[idx] || []));
+      }
+      return out;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+
+  // Inyecta las precuelas SIN enlace madre Seeke como items adicionales de pendientes.
+  const all = useMemo<AiringItem[]>(() => {
+    if (!prequelMap || !seekeMasterSet) return airingItems;
+    const merged = new Map<number, AiringItem>();
+    airingItems.forEach((a) => merged.set(a.id, a));
+    for (const [, chain] of prequelMap) {
+      for (const p of chain) {
+        if (seekeMasterSet.has(p.id)) continue;
+        if (merged.has(p.id)) continue;
+        merged.set(p.id, {
+          id: p.id,
+          title: { english: p.title, romaji: p.title },
+          coverImage: { large: p.cover, extraLarge: p.cover },
+          status: p.status || "FINISHED",
+          episodes: p.episodes ?? null,
+          averageScore: null,
+        });
+      }
+    }
+    return Array.from(merged.values());
+  }, [airingItems, prequelMap, seekeMasterSet]);
+
+  // Auto-aprobar: si el item TIENE enlace madre Seeke y TODAS sus precuelas
+  // también → lo mandamos directo a "aprobados" sin que el admin toque nada.
+  const autoApproveRunRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (!seekeMasterSet || !prequelMap) return;
+    const runOnce = autoApproveRunRef.current;
+    (async () => {
+      for (const item of airingItems) {
+        if (runOnce.has(item.id)) continue;
+        if (approvedSet.has(item.id)) continue;
+        if (!seekeMasterSet.has(item.id)) continue;
+        const chain = prequelMap.get(item.id) || [];
+        const allPrequelsReady = chain.every((p) => seekeMasterSet.has(p.id));
+        if (!allPrequelsReady) continue;
+        runOnce.add(item.id);
+        try {
+          const res = await approveAnime(item.id);
+          if (res.success) {
+            await supabase.from("anime_download_tracker").upsert({
+              anilist_id: item.id,
+              title: titleOf(item),
+              cover_image: item.coverImage?.large || null,
+              total_episodes: item.episodes || 0,
+              status: "completed",
+              airing_status: item.status || null,
+              updated_at: new Date().toISOString(),
+            } as any, { onConflict: "anilist_id" });
+            await logAdminActivity({
+              area: "videos",
+              action: "auto_approve_anime",
+              summary: `Auto-aprobado (tenía Seeke + precuelas listas): ${titleOf(item)}`,
+              target_type: "anime",
+              target_id: String(item.id),
+              anilist_id: item.id,
+              anime_title: titleOf(item),
+            });
+          }
+        } catch (e) {
+          console.warn("[auto-approve] failed", item.id, e);
+        }
+      }
+    })();
+  }, [airingItems, seekeMasterSet, prequelMap, approvedSet]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -109,6 +202,8 @@ export default function PendingApproval() {
       return titleOf(a).toLowerCase().includes(q) || String(a.id).includes(q);
     });
   }, [all, query, approvedSet, showApproved]);
+
+  useEffect(() => onApprovedChange(() => { refetchApproved(); refetchSeeke(); }), [refetchApproved, refetchSeeke]);
 
   const loading = l1 || l2 || l3 || lm;
 
