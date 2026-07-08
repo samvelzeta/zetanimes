@@ -96,10 +96,23 @@ export default function ApiDebugPanel() {
     });
     setEpisode(1);
     setRawJson(null);
+    setSeekeJson(null);
     setRequestUrl("");
+    setSeekeUrl("");
+    setDbUrls({ sub: [], latino: [] });
     setQuery("");
     setResults([]);
+    // Auto-cargar enlace madre Seeke desde video_cache
+    await loadSeekeUrlsFromDb(anime.id, lang);
   };
+
+  // Cuando cambia idioma, si hay URL guardada para ese idioma, actualízala en el input
+  useEffect(() => {
+    if (!selected) return;
+    const urls = dbUrls[lang];
+    if (urls && urls.length > 0) setSeekeUrl(urls[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   const requestEpisode = async (ep = episode, selectedLang = lang) => {
     if (!selected) return;
