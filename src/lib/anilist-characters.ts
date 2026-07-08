@@ -53,7 +53,7 @@ function cleanDesc(raw: string | null): string {
 }
 
 export async function getPopularCharacters(page = 1, perPage = 25): Promise<AniListCharacter[]> {
-  const key = `anilist:chars:popular:p${page}:n${perPage}:v2`;
+  const key = `anilist:chars:popular:p${page}:n${perPage}:v3-es`;
   const cached = await idbGet<AniListCharacter[]>(key);
   if (cached) return cached;
   try {
@@ -64,7 +64,7 @@ export async function getPopularCharacters(page = 1, perPage = 25): Promise<AniL
     });
     const json = await res.json();
     const chars = json?.data?.Page?.characters || [];
-    const out: AniListCharacter[] = chars
+    const base: AniListCharacter[] = chars
       .filter((c: any) => c?.image?.large && c?.description)
       .map((c: any) => {
         const media = c.media?.nodes?.[0];
@@ -81,6 +81,19 @@ export async function getPopularCharacters(page = 1, perPage = 25): Promise<AniL
           animeCover: media?.coverImage?.large || null,
         };
       });
+
+    // Traducimos las bios al español en paralelo (con cache por-personaje en translateText).
+    const out = await Promise.all(
+      base.map(async (c) => {
+        try {
+          const translated = await translateText(c.description, `char_bio_${c.id}`);
+          return { ...c, description: translated || c.description };
+        } catch {
+          return c;
+        }
+      })
+    );
+
     idbSet(key, out, TTL);
     return out;
   } catch {
