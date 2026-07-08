@@ -184,14 +184,10 @@ export default function AnimeDetail() {
           style={{ objectPosition: "center 25%" }}
         />
         {/* Overlays: oscuro por abajo + viñeta general para llevar la vista al título */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to bottom, rgba(16,14,23,0.55) 0%, rgba(16,14,23,0.25) 30%, rgba(16,14,23,0.85) 75%, #100e17 100%)",
-          }}
-        />
-        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+        {/* Overlays: degradado dark suave hacia el fondo natural + viñeta */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-background/30 to-background pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-background/30 pointer-events-none" />
+
 
         {/* Volver */}
         <Link
