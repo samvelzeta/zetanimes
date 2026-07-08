@@ -1,5 +1,6 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Ticket, Clapperboard, Film, Star, Calendar } from "lucide-react";
+import { Ticket, Clapperboard, Film, Star, Calendar, Clock, Quote, Trophy, Sparkles, Popcorn } from "lucide-react";
 import LazyImage from "@/components/LazyImage";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 
@@ -8,17 +9,67 @@ interface Props {
 }
 
 /**
- * CinemaExtras — extiende la sección Cine con:
+ * CinemaExtras — sección Cine ampliada con módulos editoriales:
  * - Marquee de títulos en cartel
- * - Spotlight ("Hoy en cartel") con la película destacada
- * - Poster wall con las restantes
+ * - Spotlight "Hoy en cartel" + Poster wall
+ * - Cartel de próximos estrenos
  * - Ticket-strip con datos rápidos
+ * - Cita del crítico (rotativa)
+ * - Top taquilla (score)
+ * - Programación por franja horaria
+ * - Timeline por décadas
+ * - Constelación de géneros
  */
 export default function CinemaExtras({ items }: Props) {
   if (!items || items.length < 2) return null;
+
   const feature = items[0];
   const rest = items.slice(1, 9);
   const titles = items.slice(0, 12).map(getTitle);
+  const now = new Date().getFullYear();
+
+  const upcoming = useMemo(
+    () =>
+      items
+        .filter((a) => (a.seasonYear || 0) >= now || a.status === "NOT_YET_RELEASED")
+        .slice(0, 6),
+    [items, now]
+  );
+
+  const topBox = useMemo(
+    () => [...items].filter((a) => a.averageScore).sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0)).slice(0, 5),
+    [items]
+  );
+
+  const decades = useMemo(() => {
+    const map = new Map<number, AniListMedia[]>();
+    for (const a of items) {
+      const y = a.seasonYear;
+      if (!y) continue;
+      const d = Math.floor(y / 10) * 10;
+      if (!map.has(d)) map.set(d, []);
+      map.get(d)!.push(a);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[0] - a[0]);
+  }, [items]);
+
+  const genreStats = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of items) for (const g of a.genres || []) map.set(g, (map.get(g) || 0) + 1);
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  }, [items]);
+
+  const critic = useMemo(() => {
+    const quotes = [
+      { text: "Una experiencia visual que redefine la animación contemporánea.", src: "The Reel Critique" },
+      { text: "Emoción pura en 24 fotogramas por segundo.", src: "Kinema Zeta" },
+      { text: "Un renacer del cine de autor japonés.", src: "Cahiers du Anime" },
+      { text: "Imprescindible en cualquier cartelera que se respete.", src: "Butaca Central" },
+    ];
+    return quotes[(feature.id || 0) % quotes.length];
+  }, [feature.id]);
+
+  const showtimes = ["14:30", "17:15", "19:45", "22:00"];
 
   return (
     <div className="mt-4">
@@ -33,8 +84,8 @@ export default function CinemaExtras({ items }: Props) {
         </div>
       </div>
 
+      {/* Spotlight + Poster wall */}
       <div className="px-4 md:px-8 mt-10 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-6">
-        {/* Spotlight: Hoy en cartel */}
         <Link
           to={`/anime/${feature.id}`}
           className="cinema-spotlight relative block rounded-3xl overflow-hidden border border-primary/20 bg-secondary/40 group"
@@ -70,10 +121,20 @@ export default function CinemaExtras({ items }: Props) {
                 </span>
               ))}
             </div>
+            {/* Programación */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {showtimes.map((h) => (
+                <span
+                  key={h}
+                  className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-black/40 backdrop-blur px-3 py-1 text-[10px] font-mono text-white/85"
+                >
+                  <Clock className="w-3 h-3 text-primary" /> {h}
+                </span>
+              ))}
+            </div>
           </div>
         </Link>
 
-        {/* Poster wall */}
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {rest.map((a, i) => (
             <Link
@@ -89,9 +150,7 @@ export default function CinemaExtras({ items }: Props) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
               <div className="absolute bottom-1.5 left-1.5 right-1.5">
-                <p className="text-[9px] text-primary/90 font-mono">
-                  #{String(i + 2).padStart(2, "0")}
-                </p>
+                <p className="text-[9px] text-primary/90 font-mono">#{String(i + 2).padStart(2, "0")}</p>
                 <p className="text-[10px] text-white line-clamp-2 leading-tight">{getTitle(a)}</p>
               </div>
             </Link>
@@ -99,8 +158,177 @@ export default function CinemaExtras({ items }: Props) {
         </div>
       </div>
 
+      {/* Cita del crítico */}
+      <div className="mt-10 px-4 md:px-8">
+        <div className="relative rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/10 via-black/40 to-transparent p-6 md:p-10 overflow-hidden">
+          <Quote className="absolute top-4 left-4 w-16 h-16 text-primary/15" />
+          <div className="relative max-w-3xl mx-auto text-center">
+            <p className="directory-hero-title font-serif-body italic text-lg md:text-2xl text-white/90 leading-relaxed">
+              "{critic.text}"
+            </p>
+            <p className="mt-4 text-[10px] tracking-[0.45em] uppercase text-primary/80">
+              — {critic.src}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Top taquilla + Próximos estrenos */}
+      <div className="mt-10 px-4 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top taquilla */}
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy className="w-4 h-4 text-primary" />
+            <p className="text-[10px] tracking-[0.45em] uppercase text-primary/80">Top taquilla</p>
+          </div>
+          <ol className="space-y-2">
+            {topBox.map((a, i) => (
+              <li key={a.id}>
+                <Link
+                  to={`/anime/${a.id}`}
+                  className="group flex items-center gap-3 rounded-xl p-2 hover:bg-white/5 transition"
+                >
+                  <span className="directory-hero-title text-3xl font-black text-primary/70 w-10 text-center">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="flex-none w-10 aspect-[2/3] rounded overflow-hidden bg-secondary">
+                    <LazyImage
+                      src={a.coverImage?.large || ""}
+                      alt={getTitle(a)}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+                      {getTitle(a)}
+                    </p>
+                    <p className="text-[10px] text-white/50 uppercase tracking-widest">
+                      {a.seasonYear || "—"} · {a.genres?.[0] || "Cine"}
+                    </p>
+                  </div>
+                  <span className="text-primary font-mono text-xs">
+                    ★ {((a.averageScore || 0) / 10).toFixed(1)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Próximos estrenos */}
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Popcorn className="w-4 h-4 text-primary" />
+            <p className="text-[10px] tracking-[0.45em] uppercase text-primary/80">Próximos estrenos</p>
+          </div>
+          {upcoming.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic font-serif-body py-6 text-center">
+              Sin fechas confirmadas por ahora.
+            </p>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-2">
+              {upcoming.map((a) => (
+                <Link
+                  key={a.id}
+                  to={`/anime/${a.id}`}
+                  className="flex-none w-32 group"
+                >
+                  <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-white/10 group-hover:border-primary/50 transition">
+                    <LazyImage
+                      src={a.coverImage?.extraLarge || a.coverImage?.large || ""}
+                      alt={getTitle(a)}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                    <div className="absolute top-1.5 left-1.5 rounded-md bg-primary text-primary-foreground text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5">
+                      Próximo
+                    </div>
+                    <p className="absolute bottom-1.5 left-1.5 right-1.5 text-[10px] text-white font-semibold line-clamp-2 leading-tight">
+                      {getTitle(a)}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-[9px] tracking-[0.3em] uppercase text-primary/80 text-center">
+                    {a.seasonYear || "TBA"}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Constelación de géneros */}
+      {genreStats.length > 0 && (
+        <div className="mt-10 px-4 md:px-8">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-black/40 to-secondary/30 p-5 md:p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <p className="text-[10px] tracking-[0.45em] uppercase text-primary/80">Constelación de géneros</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {genreStats.map(([g, n]) => {
+                const size = 10 + Math.min(8, n);
+                return (
+                  <Link
+                    key={g}
+                    to={`/directory?genre=${encodeURIComponent(g)}`}
+                    className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-black/40 px-3 py-1.5 hover:border-primary hover:bg-primary/10 transition"
+                    style={{ fontSize: `${size}px` }}
+                  >
+                    <span className="uppercase tracking-[0.25em] text-white/85">{g}</span>
+                    <span className="text-primary font-mono text-[10px]">×{n}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Timeline por décadas */}
+      {decades.length > 1 && (
+        <div className="mt-10 px-4 md:px-8">
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-5 md:p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <Calendar className="w-4 h-4 text-primary" />
+              <p className="text-[10px] tracking-[0.45em] uppercase text-primary/80">Línea del tiempo</p>
+            </div>
+            <div className="relative">
+              <div className="absolute left-0 right-0 top-4 h-px bg-primary/25" />
+              <div className="flex gap-6 overflow-x-auto hide-scrollbar pb-2">
+                {decades.map(([d, arr]) => (
+                  <div key={d} className="relative flex-none min-w-[120px]">
+                    <div className="w-2 h-2 rounded-full bg-primary mx-auto mb-2 ring-4 ring-primary/20" />
+                    <p className="directory-hero-title text-center text-lg font-bold text-white">{d}s</p>
+                    <p className="text-center text-[10px] tracking-[0.3em] uppercase text-white/50 mt-0.5">
+                      {arr.length} film{arr.length === 1 ? "" : "s"}
+                    </p>
+                    <div className="mt-2 flex justify-center gap-1">
+                      {arr.slice(0, 3).map((a) => (
+                        <Link
+                          key={a.id}
+                          to={`/anime/${a.id}`}
+                          className="w-8 aspect-[2/3] rounded overflow-hidden border border-white/10 hover:border-primary transition"
+                          title={getTitle(a)}
+                        >
+                          <LazyImage
+                            src={a.coverImage?.large || ""}
+                            alt={getTitle(a)}
+                            className="w-full h-full object-cover"
+                          />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Ticket strip con datos rápidos */}
-      <div className="mt-8 px-4 md:px-8">
+      <div className="mt-10 px-4 md:px-8">
         <div className="rounded-2xl border border-dashed border-primary/30 bg-black/30 p-4 md:p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <Stat icon={<Film className="w-4 h-4" />} label="En cartelera" value={String(items.length)} />
           <Stat
