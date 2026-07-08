@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getRecentlyUpdated } from "@/lib/anilist";
+import { getRecentlyUpdated, getRecentReleasedMovies } from "@/lib/anilist";
 import { getApprovedAnimeIds, approveAnime, unapproveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
