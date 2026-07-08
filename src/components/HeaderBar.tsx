@@ -206,7 +206,7 @@ export default function HeaderBar() {
                   const color = accentHex[n.type] || accentHex.info;
                   const Body = (
                     <div
-                      className={`activity-card group relative flex items-start gap-3 pl-4 pr-3 py-3 rounded-xl overflow-hidden transition-all duration-300 ease-out ${n.link ? "cursor-pointer" : "cursor-default"} ${isDismissing ? "opacity-0 scale-0 blur-[10px]" : "opacity-100 scale-100 blur-0"}`}
+                      className={`group relative flex items-start gap-3 pl-4 pr-3 py-3 rounded-xl overflow-hidden transition-all duration-300 ease-out hover:bg-white/[0.06] ${n.link ? "cursor-pointer" : "cursor-default"} ${isDismissing ? "opacity-0 scale-0 blur-[10px]" : "opacity-100 scale-100 blur-0"}`}
                       style={{
                         background: "rgba(255,255,255,0.03)",
                         border: "1px solid rgba(255,255,255,0.05)",
