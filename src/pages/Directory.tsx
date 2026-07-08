@@ -114,9 +114,12 @@ export default function Directory() {
     [animes]
   );
 
-  // Construye la secuencia masonry con Crónicas intercaladas
+  // Construye la secuencia masonry con Crónicas + Personajes intercalados
+  const characters = charactersQuery.data || [];
   const usedStoryIds = new Set<number>();
+  const usedCharIds = new Set<number>();
   const blocks: React.ReactNode[] = [];
+  let charCursor = 0;
   animes.forEach((a, i) => {
     const feature = (a.averageScore ?? 0) >= 85 || i % 11 === 0;
     blocks.push(<DynamicBlock key={`b-${a.id}`} anime={a} feature={feature} />);
@@ -129,11 +132,21 @@ export default function Directory() {
         );
       }
     }
+    // Personaje cada 4 bloques (desfasado del ciclo de Crónicas)
+    if ((i + 1) % 4 === 0 && charCursor < characters.length) {
+      const ch = characters.find((c) => !usedCharIds.has(c.id));
+      if (ch) {
+        usedCharIds.add(ch.id);
+        charCursor++;
+        blocks.push(<CharacterCard key={`c-${ch.id}`} character={ch} index={charCursor} />);
+      }
+    }
   });
 
   return (
     <div className="min-h-screen pb-24 -mt-12">
-      <HeroCarousel items={heroList} />
+      <VerticalCarousel items={heroList} />
+
 
       {/* Subtítulo móvil */}
       <div className="md:hidden px-5 mt-4 mb-1 text-center">
