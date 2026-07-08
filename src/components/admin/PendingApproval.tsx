@@ -67,6 +67,19 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 30,
   });
 
+  // También traemos las películas que se muestran en Directorio (populares + próximas)
+  // para que TODA película sin enlace madre Seeke aparezca aquí.
+  const { data: dirMovies, isLoading: lm2 } = useQuery({
+    queryKey: ["directory-movies-pending", 1],
+    queryFn: () => getMovies(1, 30, null),
+    staleTime: 1000 * 60 * 30,
+  });
+  const { data: dirUpcoming, isLoading: lm3 } = useQuery({
+    queryKey: ["directory-upcoming-movies-pending", 1],
+    queryFn: () => getUpcomingMovies(1, 20),
+    staleTime: 1000 * 60 * 60,
+  });
+
 
   const { data: approvedArr, refetch: refetchApproved } = useQuery({
     queryKey: ["approved-anime-ids"],
