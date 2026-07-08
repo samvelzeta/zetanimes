@@ -1,0 +1,99 @@
+// Helpers para detectar temporadas anteriores (PREQUEL/PARENT) en AniList
+// y saber cuáles ya tienen enlace madre Seeke en video_cache.
+import { supabase } from "@/integrations/supabase/client";
+import { idbGet, idbSet } from "@/lib/idb-cache";
+
+const ANILIST_URL = "https://graphql.anilist.co";
+const TTL = 24 * 60 * 60 * 1000; // 24h
+
+export interface PrequelNode {
+  id: number;
+  title: string;
+  cover: string;
+  episodes: number | null;
+  status: string | null;
+  format: string | null;
+}
+
+const PREQUEL_TYPES = new Set(["PREQUEL", "PARENT"]);
+
+/** Fetch un anime individual con relaciones directas. Cacheado 24h en IDB. */
+async function fetchWithRelations(id: number): Promise<any | null> {
+  const key = `prequel-rel:${id}`;
+  const cached = await idbGet<any>(key);
+  if (cached) return cached;
+  try {
+    const res = await fetch(ANILIST_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `query($id:Int){Media(id:$id,type:ANIME){id title{romaji english}coverImage{large}episodes status format relations{edges{relationType node{id type format title{romaji english}coverImage{large}episodes status}}}}}`,
+        variables: { id },
+      }),
+    });
+    const json = await res.json();
+    const media = json?.data?.Media || null;
+    if (media) idbSet(key, media, TTL);
+    return media;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Obtiene la cadena de precuelas (temporadas anteriores) del anime dado,
+ * ordenada de más antigua a más reciente. Solo incluye TV / OVA / ONA / SPECIAL — descarta películas.
+ */
+export async function getPrequelChain(anilistId: number, maxDepth = 6): Promise<PrequelNode[]> {
+  const visited = new Set<number>([anilistId]);
+  const chain: PrequelNode[] = [];
+  let currentId = anilistId;
+
+  for (let i = 0; i < maxDepth; i++) {
+    const media = await fetchWithRelations(currentId);
+    if (!media) break;
+    const edge = (media.relations?.edges || []).find(
+      (e: any) =>
+        PREQUEL_TYPES.has(e.relationType) &&
+        e.node?.type === "ANIME" &&
+        e.node?.format !== "MOVIE" &&
+        !visited.has(e.node.id)
+    );
+    if (!edge) break;
+    const n = edge.node;
+    visited.add(n.id);
+    chain.push({
+      id: n.id,
+      title: n.title?.english || n.title?.romaji || `Anime #${n.id}`,
+      cover: n.coverImage?.large || "",
+      episodes: n.episodes ?? null,
+      status: n.status ?? null,
+      format: n.format ?? null,
+    });
+    currentId = n.id;
+  }
+
+  return chain.reverse(); // más antigua primero
+}
+
+/**
+ * Devuelve el conjunto de anilist_ids que YA tienen enlace madre Seeke
+ * (episode=0 y sources.seeke con al menos una URL). Lee todo en un solo query.
+ */
+export async function getAnimeIdsWithSeekeMaster(): Promise<Set<number>> {
+  const { data, error } = await supabase
+    .from("video_cache")
+    .select("anilist_id, sources")
+    .eq("episode", 0)
+    .not("anilist_id", "is", null)
+    .limit(5000);
+  if (error || !data) return new Set();
+  const out = new Set<number>();
+  for (const row of data as any[]) {
+    const seeke = row?.sources?.seeke;
+    if (Array.isArray(seeke) && seeke.length > 0 && row.anilist_id) {
+      out.add(row.anilist_id as number);
+    }
+  }
+  return out;
+}

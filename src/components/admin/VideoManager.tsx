@@ -43,6 +43,28 @@ function hasSeekeSource(sources?: CachedVideo["sources"]) {
   return (sources?.seeke?.length || 0) > 0;
 }
 
+async function ensureTrackerCompleted(params: {
+  anilistId: number;
+  title: string;
+  cover?: string | null;
+  totalEpisodes?: number | null;
+  airingStatus?: string | null;
+}) {
+  try {
+    await supabase.from("anime_download_tracker").upsert({
+      anilist_id: params.anilistId,
+      title: params.title,
+      cover_image: params.cover ?? null,
+      total_episodes: params.totalEpisodes ?? 0,
+      status: "completed",
+      airing_status: params.airingStatus ?? null,
+      updated_at: new Date().toISOString(),
+    } as any, { onConflict: "anilist_id" });
+  } catch (err) {
+    console.warn("[tracker] auto-completed upsert failed", err);
+  }
+}
+
 function getStoredProgress(): Record<string, Record<string, Record<string, string>>> {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -291,6 +313,13 @@ export default function VideoManager() {
         clearSeekeEpisodeCache();
         clearProgress();
         setEpStatuses({});
+        // ⇢ Sincroniza tracker: si no existe, se crea y queda en "completed".
+        await ensureTrackerCompleted({
+          anilistId: selected.id,
+          title: selected.title,
+          cover: selected.cover,
+          totalEpisodes: selected.totalEpisodes,
+        });
       }
 
       // 2. Guardar también en API externa (si está caída no rompe — DB ya guardó)
@@ -341,6 +370,16 @@ export default function VideoManager() {
       setAutoFetching(false);
       return;
     }
+
+    // Auto-registrar en tracker como "completed" apenas queda el enlace madre.
+    await ensureTrackerCompleted({
+      anilistId: selected.id,
+      title: selected.title,
+      cover: selected.cover,
+      totalEpisodes: selected.totalEpisodes,
+    });
+
+
 
     // 2) Bucle: pedir cap N → guardar SOLO en su episode=N (no como fallback del 1)
     for (let ep = 1; ep <= totalEps; ep++) {
