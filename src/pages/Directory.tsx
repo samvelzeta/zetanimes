@@ -12,7 +12,7 @@ import { SearchX } from "lucide-react";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { usePreferences } from "@/contexts/PreferencesContext";
-import HeroCarousel from "@/components/directory/HeroCarousel";
+import VerticalCarousel from "@/components/directory/VerticalCarousel";
 import CatalogDrawer, {
   loadCatalogState,
   THEMED_CATEGORIES,
@@ -20,8 +20,12 @@ import CatalogDrawer, {
 } from "@/components/directory/CatalogDrawer";
 import DynamicBlock, { DynamicBlockSkeleton } from "@/components/directory/DynamicBlock";
 import StoryCard from "@/components/directory/StoryCard";
-import CinemaSection from "@/components/directory/CinemaSection";
+import CharacterCard from "@/components/directory/CharacterCard";
+import CharacterStats from "@/components/directory/CharacterStats";
+import CinemaAccordion from "@/components/directory/CinemaAccordion";
 import StickyRanking from "@/components/directory/StickyRanking";
+import { getPopularCharacters } from "@/lib/anilist-characters";
+
 
 const GORE_GENRES = new Set(["Horror", "Ecchi"]);
 const STORY_EVERY = 6; // intercala una Crónica cada 6 bloques
