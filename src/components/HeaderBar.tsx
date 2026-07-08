@@ -230,9 +230,9 @@ export default function HeaderBar() {
 
                       <div className="flex-1 min-w-0 pr-6">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-bold text-white leading-tight flex items-center gap-2 min-w-0">
-                            <span className="truncate">{n.title}</span>
-                            {isUnread && <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />}
+                          <p className="text-sm font-bold text-white leading-tight flex items-start gap-2 min-w-0 flex-1">
+                            <span className="break-words flex-1">{n.title}</span>
+                            {isUnread && <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full mt-1.5" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />}
                           </p>
                           <span className="text-[10px] text-white/50 flex-shrink-0 tabular-nums mt-0.5">{timeAgo(n.created_at)}</span>
                         </div>
