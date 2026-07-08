@@ -942,3 +942,45 @@ h1, h2, h3, .heading-steam {
   100% { transform: scale(1.25) translate(-2%, -3%); }
 }
 
+
+/* ============================================
+   No-select en componentes interactivos (feel de app nativa)
+   Se desactiva el resaltado azul al arrastrar carruseles, tarjetas y botones.
+   Los párrafos, sinopsis y contenido editorial siguen siendo seleccionables.
+   ============================================ */
+button,
+a,
+[role="button"],
+.carousel,
+.accordian,
+.cinema-accordion,
+.cinema-accordion-item,
+.cinema-scroller,
+.cinema-card,
+.filmstrip-marquee,
+.carousel__item,
+.image_title,
+[class*="snap-x"],
+[class*="overflow-x-auto"] {
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Cursor grab en scrollers horizontales / acordeones arrastrables */
+.cinema-scroller,
+[class*="snap-x"][class*="overflow-x-auto"] {
+  cursor: grab;
+}
+.cinema-scroller:active,
+[class*="snap-x"][class*="overflow-x-auto"]:active,
+.cinema-accordion:active {
+  cursor: grabbing;
+}
+
+/* Las imágenes tampoco deberían "resaltarse" ni permitir drag fantasma */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
