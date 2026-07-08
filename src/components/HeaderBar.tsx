@@ -98,18 +98,24 @@ export default function HeaderBar() {
     if (opening && hasUnread) markAllSeen();
   };
 
+  const [dismissing, setDismissing] = useState<Set<string>>(new Set());
+
   const dismissNotif = async (notifId: string) => {
-    if (user) {
-      await supabase.from("notification_dismissals").insert({ user_id: user.id, notification_id: notifId });
-    }
-    setDismissed((prev) => new Set(prev).add(notifId));
+    setDismissing((prev) => new Set(prev).add(notifId));
+    setTimeout(async () => {
+      if (user) {
+        await supabase.from("notification_dismissals").insert({ user_id: user.id, notification_id: notifId });
+      }
+      setDismissed((prev) => new Set(prev).add(notifId));
+      setDismissing((prev) => { const n = new Set(prev); n.delete(notifId); return n; });
+    }, 280);
   };
 
-  const typeColors: Record<string, string> = {
-    danger: "bg-destructive/10 border-destructive/30 text-destructive",
-    warning: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400",
-    success: "bg-green-500/10 border-green-500/30 text-green-400",
-    info: "bg-primary/10 border-primary/30 text-primary",
+  const accentDot: Record<string, string> = {
+    danger: "bg-[#ff5470]",
+    warning: "bg-[#ffb547]",
+    success: "bg-[#00ff88]",
+    info: "bg-white/40",
   };
 
   return (
