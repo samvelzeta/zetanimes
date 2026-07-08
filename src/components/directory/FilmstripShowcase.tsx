@@ -27,13 +27,15 @@ export default function FilmstripShowcase({ items }: Props) {
     return () => clearInterval(timer.current);
   }, [paused, slides.length]);
 
+  const current = slides[index];
+  const desc = useTranslatedDesc(current?.description, current?.id ?? 0, 220);
+
   if (!slides.length) {
     return <div className="w-full h-[62vh] md:h-[78vh] bg-secondary directory-shimmer" />;
   }
 
   const go = (dir: 1 | -1) => setIndex((i) => (i + dir + slides.length) % slides.length);
-  const current = slides[index];
-  const desc = useTranslatedDesc(current.description, current.id, 220);
+
 
   return (
     <section className="relative w-full h-[70vh] md:h-[86vh] overflow-hidden bg-background">
