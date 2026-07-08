@@ -31,8 +31,8 @@ export default function VerticalCarousel({ items }: Props) {
   }
 
   return (
-    <section className="relative w-full h-[70vh] md:h-[86vh] overflow-hidden">
-      {/* Fondo dinámico difuminado del slide actual */}
+    <section className="relative w-full h-[86vh] md:h-[86vh] overflow-hidden">
+      {/* Fondo dinámico — nítido con parallax en móvil, difuminado en desktop */}
       {slides.map((a, i) => (
         <div
           key={`bg-${a.id}`}
@@ -40,22 +40,35 @@ export default function VerticalCarousel({ items }: Props) {
             i === index ? "opacity-100" : "opacity-0"
           }`}
         >
+          {/* Móvil: imagen nítida Ken Burns */}
           <LazyImage
             src={a.bannerImage || a.coverImage?.extraLarge || a.coverImage?.large || ""}
             alt=""
-            className="w-full h-full object-cover scale-110 blur-2xl opacity-60"
+            className={`md:hidden w-full h-full object-cover ${
+              i === index ? "animate-[kenburns_9s_ease-out_forwards]" : ""
+            }`}
+          />
+          {/* Desktop: blur cinematográfico */}
+          <LazyImage
+            src={a.bannerImage || a.coverImage?.extraLarge || a.coverImage?.large || ""}
+            alt=""
+            className="hidden md:block w-full h-full object-cover scale-110 blur-2xl opacity-60"
           />
         </div>
       ))}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background pointer-events-none" />
+      {/* Overlays diferenciados */}
+      <div className="md:hidden absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/10 pointer-events-none" />
+      <div className="md:hidden absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/40 pointer-events-none" />
+      <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background pointer-events-none" />
 
       {/* Firma */}
-      <div className="absolute top-4 left-4 sm:top-6 sm:left-8 z-20 pointer-events-none">
-        <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/60 uppercase">
-          Directorio · En cartel
+      <div className="absolute top-14 left-4 sm:top-20 sm:left-8 z-20 pointer-events-none">
+        <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase">
+          En cartel · Estreno
         </p>
         <div className="mt-1 h-px w-10 bg-primary/60" />
       </div>
+
 
       {/* Grid con carrusel vertical */}
       <div className="relative z-10 h-full grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-6 px-5 md:px-14 items-center">
