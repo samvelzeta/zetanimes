@@ -55,26 +55,8 @@ export default function CinemaExtras({ items, upcomingItems = [] }: Props) {
       .slice(0, 12);
   }, [items, upcomingItems, nowYear]);
 
-  // Auto-solicita aprobación en el panel admin cuando una película "próxima" ya salió
-  // (esto simplemente pre-registra el anime; el admin lo verá como pendiente hasta que confirme)
-  const flaggedRef = useRef<Set<number>>(new Set());
-  useEffect(() => {
-    (async () => {
-      try {
-        const approved = await getApprovedAnimeIds();
-        const releasedNow = upcomingItems.filter((a) => {
-          const t = releaseTs(a);
-          return t !== null && t <= nowTs && !approved.has(a.id) && !flaggedRef.current.has(a.id);
-        });
-        for (const a of releasedNow.slice(0, 6)) {
-          flaggedRef.current.add(a.id);
-          // Marca como "pendiente de aprobación" (approved=false) creando la entrada
-          // El admin decide en el panel; aquí solo lo hacemos visible como candidato.
-          await approveAnime(a.id, "auto: estreno detectado, requiere revisión").catch(() => {});
-        }
-      } catch { /* silencioso */ }
-    })();
-  }, [upcomingItems, nowTs]);
+
+
 
 
   const topBox = useMemo(
