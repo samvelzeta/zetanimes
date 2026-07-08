@@ -202,7 +202,8 @@ export default function Profile() {
       </button>
       <div className="max-w-[860px] mx-auto px-5 md:px-8 pt-16 md:pt-20 pb-32">
         <div className="arcane-card arcane-stagger overflow-hidden rounded-3xl border border-neutral-800/70 bg-white/[0.015] flex flex-col gap-8 p-6 md:p-10">
-          {/* Ambient Hextech particles */}
+          {/* Ambient Hextech particles — solo premium/owner */}
+          {(isPremium || isOwner) && (
           <div className="arcane-particles" aria-hidden>
             {Array.from({ length: 14 }).map((_, i) => {
               const left = (i * 7.3) % 100;
@@ -223,6 +224,7 @@ export default function Profile() {
               );
             })}
           </div>
+          )}
 
 
 
@@ -264,7 +266,8 @@ export default function Profile() {
                     />
                   </>
                 )}
-                {/* Engranaje centrado como marco alrededor del avatar + polvo Minecraft */}
+                {/* Engranaje centrado como marco alrededor del avatar + polvo Minecraft — solo premium/owner */}
+                {(isPremium || isOwner) && (
                 <div
                   className="gear-emitter"
                   aria-hidden
@@ -297,6 +300,7 @@ export default function Profile() {
                     );
                   })}
                 </div>
+                )}
                 {/* Z-1: Photo */}
                 <div
                   className="relative w-full h-full rounded-full overflow-hidden"

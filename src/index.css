@@ -567,8 +567,16 @@ h1, h2, h3, .heading-steam {
   100% { transform: translateY(-110vh) scale(1); opacity: 0; }
 }
 
-/* Desactivar el reflejo holográfico dentro del APK/WebView (rendimiento) */
+/* Desactivar reflejos/brillos hover dentro del APK/WebView (rendimiento) */
 .zet-apk-webview .arcane-card::after { display: none !important; }
+.zet-apk-webview .neon-card:hover { box-shadow: none !important; }
+.zet-apk-webview .neon-card:hover::before { animation: none !important; }
+.zet-apk-webview .mgmt-tile:hover,
+.zet-apk-webview .mgmt-tile:focus-visible {
+  box-shadow: none !important;
+  background: linear-gradient(180deg, hsl(var(--card) / 0.35), hsl(var(--background) / 0.15)) !important;
+  border-color: hsl(var(--border) / 0.55) !important;
+}
 
 /* ————— Engranaje con partículas de polvo estilo Minecraft ————— */
 .gear-emitter {
