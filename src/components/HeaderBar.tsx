@@ -111,11 +111,20 @@ export default function HeaderBar() {
     }, 280);
   };
 
-  const accentDot: Record<string, string> = {
-    danger: "bg-[#ff5470]",
-    warning: "bg-[#ffb547]",
-    success: "bg-[#00ff88]",
-    info: "bg-white/40",
+  const accentHex: Record<string, string> = {
+    danger: "#ff5470",
+    warning: "#ffcc00",
+    success: "#00ff88",
+    info: "#7aa2ff",
+  };
+
+  const timeAgo = (iso: string) => {
+    const diff = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+    if (diff < 60) return "ahora";
+    if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
+    if (diff < 604800) return `hace ${Math.floor(diff / 86400)} d`;
+    return new Date(iso).toLocaleDateString();
   };
 
   return (
