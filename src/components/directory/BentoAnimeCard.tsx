@@ -34,7 +34,7 @@ export default function BentoAnimeCard({ anime, hero = false, className = "" }: 
     anime.coverImage?.extraLarge ||
     anime.coverImage?.large ||
     "";
-  const desc = (anime.description || "").replace(/<[^>]+>/g, "").slice(0, 90);
+  const desc = useTranslatedDesc(anime.description, anime.id, 90);
 
   return (
     <Link
