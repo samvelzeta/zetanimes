@@ -1279,6 +1279,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_old_data: { Args: never; Returns: undefined }
       revoke_all_device_sessions: {
         Args: { _user_id: string }
         Returns: undefined

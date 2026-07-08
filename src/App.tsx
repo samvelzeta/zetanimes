@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -46,7 +46,26 @@ const RouteFallback = () => (
   </div>
 );
 
-const App = () => (
+// Prefetch de rutas comunes en idle → navegación instantánea sin bajón de fps
+const prefetchRoutes = () => {
+  const idle =
+    (window as any).requestIdleCallback ||
+    ((cb: any) => setTimeout(cb, 1200));
+  idle(() => {
+    import("@/pages/Directory");
+    import("@/pages/AnimeDetail");
+    import("@/pages/Search");
+    import("@/pages/RecentlyWatched");
+    import("@/pages/Profile");
+    import("@/pages/MyLists");
+    import("@/pages/Watch");
+    import("@/pages/Settings");
+  });
+};
+
+const App = () => {
+  useEffect(prefetchRoutes, []);
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -85,6 +104,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
