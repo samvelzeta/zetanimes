@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import LazyImage from "@/components/LazyImage";
 import { Sparkles, Heart } from "lucide-react";
 import type { AniListCharacter } from "@/lib/anilist-characters";
+import { translateText } from "@/lib/translate";
+
 
 interface Props {
   character: AniListCharacter;
