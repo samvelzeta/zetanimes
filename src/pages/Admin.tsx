@@ -446,12 +446,13 @@ function PremiumTab() {
   const [editing, setEditing] = useState<any | null>(null);
   const [planType, setPlanType] = useState<"basico" | "solo" | "duo">("solo");
   const [days, setDays] = useState<number>(365);
+  const [permanent, setPermanent] = useState<boolean>(false);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("profiles")
-      .select("user_id, username, display_name, subscription_status, plan_type, subscription_email, subscription_expires_at, subscription_updated_at")
-      .order("subscription_updated_at", { ascending: false }).limit(200);
+      .select("user_id, username, display_name, subscription_status, plan_type, subscription_email, subscription_expires_at, subscription_updated_at, created_at")
+      .order("created_at", { ascending: false }).limit(1000);
     setUsers((data as any[]) || []);
   };
   useEffect(() => { load(); }, []);
@@ -460,7 +461,9 @@ function PremiumTab() {
     if (!editing) return;
     setSaving(true);
     try {
-      const expires = status === "active" ? new Date(Date.now() + days * 86400000).toISOString() : null;
+      const expires = status === "active"
+        ? (permanent ? null : new Date(Date.now() + days * 86400000).toISOString())
+        : null;
       const { error } = await supabase.rpc("admin_set_user_subscription" as any, {
         _user_id: editing.user_id, _status: status,
         _plan_type: status === "active" ? planType : null, _expires_at: expires,
@@ -468,48 +471,63 @@ function PremiumTab() {
       if (error) throw error;
       await logAdminActivity({
         area: "payments", action: status === "active" ? "create" : "delete",
-        summary: `${status === "active" ? "Activó" : "Desactivó"} Premium ${status === "active" ? planType : ""} de ${editing.username || editing.user_id}`,
+        summary: `${status === "active" ? "Activó" : "Desactivó"} Premium ${status === "active" ? planType : ""}${status === "active" && permanent ? " PERMANENTE" : ""} de ${editing.username || editing.user_id}`,
         target_type: "user", target_id: editing.user_id,
       });
-      toast.success(status === "active" ? "Premium activado" : "Premium desactivado");
+      toast.success(status === "active" ? (permanent ? "Premium permanente activado" : "Premium activado") : "Premium desactivado");
       setEditing(null);
       await load();
     } catch (e: any) { toast.error("Error: " + e.message); }
     setSaving(false);
   };
 
-  const filtered = users.filter((u) =>
-    !searchQ ||
-    u.username?.toLowerCase().includes(searchQ.toLowerCase()) ||
-    u.display_name?.toLowerCase().includes(searchQ.toLowerCase()) ||
-    u.subscription_email?.toLowerCase().includes(searchQ.toLowerCase())
-  );
+  const filtered = users.filter((u) => {
+    if (!searchQ.trim()) return true;
+    const q = searchQ.toLowerCase();
+    return (
+      u.username?.toLowerCase().includes(q) ||
+      u.display_name?.toLowerCase().includes(q) ||
+      u.subscription_email?.toLowerCase().includes(q) ||
+      u.user_id?.toLowerCase().includes(q)
+    );
+  }).slice(0, 200);
 
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-border bg-secondary/60 p-4">
         <p className="text-xs text-muted-foreground leading-relaxed">
           Las suscripciones se activan automáticamente vía <strong>Ko-fi + Make.com → <code>kofi-webhook</code></strong>.
-          Aquí solo ajustas manualmente (regalo, error, etc.).
+          Aquí puedes ajustar manualmente (regalo, error, etc.) o marcar <strong className="text-primary">Permanente</strong> para membresías vitalicias sin caducidad.
         </p>
       </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Buscar por usuario o email..." className="pl-10 h-10 bg-secondary border-primary/30 rounded-xl" />
+        <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Buscar por usuario, nombre o email..." className="pl-10 h-10 bg-secondary border-primary/30 rounded-xl" />
       </div>
-      {filtered.map((u) => (
-        <div key={u.user_id} className="bg-secondary rounded-xl p-4 border border-border flex items-center justify-between">
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-foreground truncate">{u.display_name || u.username}</p>
-            <p className="text-[10px] text-muted-foreground truncate">
-              {u.subscription_email || "sin email Ko-fi"} · <span className={u.subscription_status === "active" ? "text-green-400" : "text-muted-foreground"}>{u.subscription_status}</span>
-              {u.plan_type ? ` · ${u.plan_type}` : ""}
-              {u.subscription_expires_at ? ` · vence ${new Date(u.subscription_expires_at).toLocaleDateString()}` : ""}
-            </p>
+      {filtered.map((u) => {
+        const isPermanent = u.subscription_status === "active" && !u.subscription_expires_at;
+        return (
+          <div key={u.user_id} className="bg-secondary rounded-xl p-4 border border-border flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-foreground truncate flex items-center gap-2">
+                {u.display_name || u.username}
+                {isPermanent && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/40">PERMANENTE</span>}
+              </p>
+              <p className="text-[10px] text-muted-foreground truncate">
+                {u.subscription_email || "sin email Ko-fi"} · <span className={u.subscription_status === "active" ? "text-green-400" : "text-muted-foreground"}>{u.subscription_status || "inactive"}</span>
+                {u.plan_type ? ` · ${u.plan_type}` : ""}
+                {u.subscription_expires_at ? ` · vence ${new Date(u.subscription_expires_at).toLocaleDateString()}` : (u.subscription_status === "active" ? " · sin caducidad" : "")}
+              </p>
+            </div>
+            <button onClick={() => {
+              setEditing(u);
+              setPlanType((u.plan_type as any) || "solo");
+              setDays(365);
+              setPermanent(isPermanent);
+            }} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold shrink-0">Editar</button>
           </div>
-          <button onClick={() => { setEditing(u); setPlanType((u.plan_type as any) || "solo"); setDays(365); }} className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold">Editar</button>
-        </div>
-      ))}
+        );
+      })}
       {filtered.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Sin usuarios</p>}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setEditing(null)}>
@@ -518,22 +536,34 @@ function PremiumTab() {
               <h2 className="text-base font-black text-foreground flex items-center gap-2"><Crown className="w-4 h-4 text-primary" /> Editar suscripción</h2>
               <button onClick={() => setEditing(null)} className="text-muted-foreground">✕</button>
             </div>
-            <p className="text-sm font-bold text-foreground">{editing.display_name || editing.username}</p>
+            <div>
+              <p className="text-sm font-bold text-foreground">{editing.display_name || editing.username}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{editing.subscription_email || `@${editing.username}`}</p>
+            </div>
             <div>
               <label className="text-[10px] text-primary mb-1 block">Plan</label>
               <select value={planType} onChange={(e) => setPlanType(e.target.value as any)} className="w-full h-10 bg-secondary border border-primary/30 rounded-xl px-3 text-sm text-foreground">
-                <option value="basico">Básico ($5/año)</option>
-                <option value="solo">Solo ($8/año)</option>
-                <option value="duo">Dúo ($10/año)</option>
+                <option value="basico">Básico</option>
+                <option value="solo">Solo</option>
+                <option value="duo">Dúo</option>
               </select>
             </div>
-            <div>
-              <label className="text-[10px] text-primary mb-1 block">Duración (días)</label>
-              <Input type="number" value={days} onChange={(e) => setDays(parseInt(e.target.value) || 365)} className="h-10 bg-secondary border-primary/30 rounded-xl" />
-            </div>
+            <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${permanent ? "bg-yellow-500/10 border-yellow-500/50" : "bg-secondary border-border"}`}>
+              <input type="checkbox" checked={permanent} onChange={(e) => setPermanent(e.target.checked)} className="w-4 h-4 accent-yellow-400" />
+              <div className="flex-1">
+                <p className="text-xs font-bold text-foreground flex items-center gap-1"><Crown className="w-3 h-3 text-yellow-400" /> Membresía permanente</p>
+                <p className="text-[10px] text-muted-foreground">Sin fecha de caducidad. Acceso vitalicio.</p>
+              </div>
+            </label>
+            {!permanent && (
+              <div>
+                <label className="text-[10px] text-primary mb-1 block">Duración (días)</label>
+                <Input type="number" value={days} onChange={(e) => setDays(parseInt(e.target.value) || 365)} className="h-10 bg-secondary border-primary/30 rounded-xl" />
+              </div>
+            )}
             <div className="flex gap-2 pt-2">
               <button onClick={() => applyUpdate("active")} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-1">
-                {saving && <Loader2 className="w-3 h-3 animate-spin" />} Activar
+                {saving && <Loader2 className="w-3 h-3 animate-spin" />} {permanent ? "Activar permanente" : "Activar"}
               </button>
               <button onClick={() => applyUpdate("inactive")} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-destructive text-white text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-1">
                 {saving && <Loader2 className="w-3 h-3 animate-spin" />} Desactivar
