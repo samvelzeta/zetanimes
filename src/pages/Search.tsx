@@ -65,6 +65,9 @@ export default function SearchPage() {
   const [debouncedQuery, setDebouncedQuery] = useState(initialQ);
   const [recent, setRecent] = useState<string[]>(getRecent());
   const [activeFilter, setActiveFilter] = useState<FilterKey>("ALL");
+  const [isFocused, setIsFocused] = useState(false);
+  const [iconSpin, setIconSpin] = useState(false);
+  const [lockedFilter, setLockedFilter] = useState<FilterKey | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
