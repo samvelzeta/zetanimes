@@ -263,7 +263,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 pt-6">
+      <div className="relative max-w-5xl mx-auto px-4 pt-6">
         {/* Empty state — bento minimal con recientes, sugerencias y tendencia */}
         {!hasQuery && (
           <div className="space-y-8 animate-in fade-in duration-300">
