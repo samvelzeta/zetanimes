@@ -1,5 +1,6 @@
-// Cache global de videos en Lovable Cloud (Supabase)
-// Animes con <12 eps se priorizan aquí; resto deja que Cloudflare cachee
+// Catálogo oficial de enlaces de reproducción en Lovable Cloud.
+// La memoria local de este módulo solo evita lecturas repetidas en la sesión;
+// la fuente de verdad son las tablas públicas de la base de datos.
 import { supabase } from "@/integrations/supabase/client";
 
 export interface VideoSources {
@@ -133,7 +134,7 @@ function hasSeekeSources(video: CachedVideo | null | undefined) {
 }
 
 /**
- * Busca primero en el cache global (DB). Devuelve null si no existe.
+ * Busca primero en el catálogo oficial de reproducción (DB). Devuelve null si no existe.
  */
 export async function getCachedVideo(
   slug: string,
@@ -211,7 +212,7 @@ export async function getCachedVideo(
 }
 
 /**
- * Guarda/actualiza un video en el cache global (admin).
+ * Guarda/actualiza un enlace oficial de reproducción (admin).
  */
 export async function saveCachedVideo(params: {
   slug: string;
@@ -344,7 +345,7 @@ export async function saveCachedVideo(params: {
 
 
 /**
- * Elimina del cache. Devuelve { success, error } para diagnosticar fallos RLS.
+ * Elimina un enlace oficial. Devuelve { success, error } para diagnosticar fallos RLS.
  */
 export async function deleteCachedVideo(
   slug: string,
@@ -427,7 +428,7 @@ export async function deleteAllVideoCache(): Promise<{ success: boolean; error?:
 }
 
 /**
- * Lista todos los videos guardados de un slug (admin).
+ * Lista todos los enlaces oficiales guardados de un slug (admin).
  */
 export async function listCachedVideosBySlug(slug: string, anilistId?: number): Promise<CachedVideo[]> {
   const normalizedSlug = normalizeSlug(slug);
@@ -468,7 +469,7 @@ export function clearRuntimeVideoCache() {
 }
 
 /**
- * Convierte el cache a formato compatible con AnimePlayer sources.
+ * Convierte el registro oficial a formato compatible con AnimePlayer sources.
  */
 export function cachedVideoToSources(cached: CachedVideo): { name: string; embed: string; type?: string }[] {
   const out: { name: string; embed: string; type?: string }[] = [];
@@ -478,14 +479,14 @@ export function cachedVideoToSources(cached: CachedVideo): { name: string; embed
   // Primero van las fuentes universales: principal y fallback deben probarse antes
   // de caer en enlaces específicos de PC/APK.
   seeke.forEach((url, i) => out.push({ name: `Seeke Base ${i + 1}`, embed: url, type: "seeke" }));
-  hls.forEach((url, i) => out.push({ name: `HLS Cache ${i + 1}`, embed: url, type: "hls" }));
-  mp4.forEach((url, i) => out.push({ name: `MP4 Cache ${i + 1}`, embed: url, type: "mp4" }));
-  embed.forEach((url, i) => out.push({ name: `Embed Cache ${i + 1}`, embed: url }));
+  hls.forEach((url, i) => out.push({ name: `HLS Oficial ${i + 1}`, embed: url, type: "hls" }));
+  mp4.forEach((url, i) => out.push({ name: `MP4 Oficial ${i + 1}`, embed: url, type: "mp4" }));
+  embed.forEach((url, i) => out.push({ name: `Embed Oficial ${i + 1}`, embed: url }));
 
   const preferred = platform === "mobile" ? mobile : pc;
   const secondary = platform === "mobile" ? pc : mobile;
-  preferred.forEach((url, i) => out.push({ name: `${platform === "mobile" ? "APK/Móvil" : "PC"} Cache ${i + 1}`, embed: url }));
-  secondary.forEach((url, i) => out.push({ name: `${platform === "mobile" ? "PC" : "APK/Móvil"} Cache ${i + 1}`, embed: url }));
+  preferred.forEach((url, i) => out.push({ name: `${platform === "mobile" ? "APK/Móvil" : "PC"} Oficial ${i + 1}`, embed: url }));
+  secondary.forEach((url, i) => out.push({ name: `${platform === "mobile" ? "PC" : "APK/Móvil"} Oficial ${i + 1}`, embed: url }));
 
   return out;
 }

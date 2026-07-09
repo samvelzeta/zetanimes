@@ -164,8 +164,8 @@ export async function saveBlocks(
 }
 
 /**
- * Latest_episode global por idioma.
- * - Sin bloques: usa la URL madre única guardada en `video_cache` (episode=0).
+   * Latest_episode global por idioma.
+   * - Sin bloques: usa la URL madre oficial guardada en DB (episode=0).
  * - Con bloques: pide a cada bloque su latest_episode y lo mapea a numeración
  *   global; devuelve el máximo absoluto.
  */

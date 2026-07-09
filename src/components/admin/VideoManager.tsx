@@ -150,7 +150,7 @@ export default function VideoManager() {
     setEpStatuses({});
     setVisibleRange({ start: 0, end: 50 });
     if (override) toast.success(`Usando slug manual: ${override}`);
-    // Cargar videos ya guardados de DB
+    // Cargar enlaces oficiales ya guardados de DB
     const saved = await listCachedVideosBySlug(slug, anime.id);
     setSavedVideos(saved);
   };
@@ -196,7 +196,7 @@ export default function VideoManager() {
 
   const checkEpisode = useCallback(async (slug: string, ep: number, l: string) => {
     const key = `${ep}-${l}`;
-    // Primero check en nuestra DB (más rápido y confiable)
+    // Primero check en nuestra DB oficial (más rápido y confiable)
     const cached = await getCachedVideo(slug, ep, l, selected?.id);
     if (cached) {
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
@@ -285,7 +285,7 @@ export default function VideoManager() {
     const saveEpisode = hasSeekeSource(sources) ? 0 : selectedEp;
 
     try {
-      // 1. Guardar en Lovable Cloud (DB) — fuente confiable
+      // 1. Guardar en Lovable Cloud (DB) — fuente oficial compartida para todos
       const dbRes = await saveCachedVideo({
         slug: selected.slug,
         episode: saveEpisode,
@@ -322,7 +322,7 @@ export default function VideoManager() {
         });
       }
 
-      // 2. Guardar también en API externa (si está caída no rompe — DB ya guardó)
+      // 2. Guardar también en API externa (si está caída no rompe — DB oficial ya guardó)
       try {
         await fetch(`${API_BASE}/api/admin/save-video`, {
           method: "POST",
@@ -333,7 +333,7 @@ export default function VideoManager() {
         console.warn("API externa falló pero DB guardó OK:", e);
       }
 
-      toast.success(isSeekeBase ? `URL base Seeke ${lang} guardada y capítulos viejos vaciados` : `EP ${selectedEp} guardado correctamente en DB global`);
+      toast.success(isSeekeBase ? `URL madre Seeke ${lang} guardada como enlace oficial` : `EP ${selectedEp} guardado como enlace oficial`);
       const key = `${selectedEp}-${lang}`;
       setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: true } }));
       const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
@@ -354,7 +354,7 @@ export default function VideoManager() {
     setAutoLog([`Iniciando ${selected.title} · ${lang} desde cap 1`]);
 
     const baseUrl = normalizeSeekeBaseUrl(primaryUrl);
-    // 1) Guardar URL base Seeke (episode=0) — sirve como fallback universal
+    // 1) Guardar URL madre Seeke (episode=0) — enlace oficial universal
     const saveBase = await saveCachedVideo({
       slug: selected.slug,
       episode: 0,
@@ -427,7 +427,7 @@ export default function VideoManager() {
         }
 
         setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: true } }));
-        setAutoLog((prev) => [`✔ Cap ${ep} guardado en su slot${result.cached ? " (cache)" : ""}`, ...prev].slice(0, 12));
+        setAutoLog((prev) => [`✔ Cap ${ep} guardado oficialmente${result.cached ? " (resuelto)" : ""}`, ...prev].slice(0, 12));
 
         // Pequeña pausa para no saturar el scraper
         await new Promise((r) => setTimeout(r, 250));
@@ -443,8 +443,7 @@ export default function VideoManager() {
     setAutoFetching(false);
   };
 
-  // Limpia el cache "basura" (todo lo que NO sea base Seeke). Útil tras pruebas
-  // NOTA: eliminado el borrado global y por-anime del cache. Los enlaces Seeke
+    // Limpieza legacy: eliminado el borrado global y por-anime. Los enlaces Seeke
   // solo se pueden reemplazar/eliminar individualmente desde "Ver guardados"
   // para no dejar toda la app sin fuentes de video.
 
@@ -485,7 +484,7 @@ export default function VideoManager() {
           <Film className="w-4 h-4 text-primary" /> Gestor de Videos
         </h3>
         <p className="text-[10px] text-muted-foreground">
-          Busca anime → episodio → URL. Se guarda en DB global (Lovable Cloud) + tu API. Para reemplazar un enlace Seeke, edítalo desde "Ver guardados" del anime.
+          Busca anime → episodio → URL. Se guarda como enlace oficial en Lovable Cloud + tu API. Para reemplazar un enlace Seeke, edítalo desde "Ver guardados" del anime.
         </p>
       </div>
 
@@ -532,7 +531,7 @@ export default function VideoManager() {
       {/* Lista de guardados (editar/eliminar) */}
       {selected && showSaved && (
         <div className="bg-secondary/50 rounded-xl border border-primary/30 p-3 space-y-2 max-h-64 overflow-y-auto">
-          <p className="text-[10px] font-bold text-primary mb-2">VIDEOS GUARDADOS EN DB</p>
+            <p className="text-[10px] font-bold text-primary mb-2">ENLACES OFICIALES EN DB</p>
           {savedVideos.length === 0 ? (
             <p className="text-xs text-muted-foreground">No hay videos guardados aún.</p>
           ) : (
@@ -708,7 +707,7 @@ export default function VideoManager() {
                 <button onClick={sendVideo} disabled={sending || !primaryUrl.trim()}
                   className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 transition flex items-center justify-center gap-2 disabled:opacity-50">
                   {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  Guardar EP {selectedEp} (DB + API)
+                  Guardar EP {selectedEp} oficial
                 </button>
               </>
             ) : (
