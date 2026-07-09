@@ -28,13 +28,14 @@ const SUGGESTIONS = [
   "Frieren",
 ];
 
-type FilterKey = "ALL" | "SERIES" | "MOVIE" | "MANGA";
-const FILTERS: { key: FilterKey; label: string; formats: string[] | null }[] = [
+type FilterKey = "ALL" | "SERIES" | "MOVIE" | "ONGOING";
+const FILTERS: { key: FilterKey; label: string; formats: string[] | null; status?: string }[] = [
   { key: "ALL", label: "Todo", formats: null },
   { key: "SERIES", label: "Series", formats: ["TV", "TV_SHORT", "ONA", "OVA", "SPECIAL"] },
   { key: "MOVIE", label: "Películas", formats: ["MOVIE"] },
-  { key: "MANGA", label: "Manga", formats: ["MANGA", "MANHWA", "MANHUA", "NOVEL", "ONE_SHOT"] },
+  { key: "ONGOING", label: "En emisión", formats: null, status: "RELEASING" },
 ];
+
 
 const RECENT_KEY = "zet:recent-searches";
 
@@ -113,9 +114,13 @@ export default function SearchPage() {
   const allAnimes = (data?.media || []).filter((a) => !hiddenSet.has(a.id));
   const animes = useMemo(() => {
     const filter = FILTERS.find((f) => f.key === activeFilter);
-    if (!filter || !filter.formats) return allAnimes;
-    return allAnimes.filter((a) => a.format && filter.formats!.includes(a.format));
+    if (!filter) return allAnimes;
+    let list = allAnimes;
+    if (filter.formats) list = list.filter((a) => a.format && filter.formats!.includes(a.format));
+    if (filter.status) list = list.filter((a) => (a as any).status === filter.status);
+    return list;
   }, [allAnimes, activeFilter]);
+
   const trendingList = (trending?.media || []).filter((a) => !hiddenSet.has(a.id)).slice(0, 6);
   const hasQuery = debouncedQuery.trim().length >= 2;
 
@@ -146,40 +151,71 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen pb-24 bg-background">
-      {/* Sticky glassmorphism header — same lenguaje visual que Home/Directory */}
-      <div className="sticky top-0 z-30 bg-background/70 backdrop-blur-2xl border-b border-border/40">
-        <div className="px-4 pt-5 pb-4 max-w-5xl mx-auto">
-          <div className="flex items-baseline justify-between mb-4">
-            <h1
-              className="text-2xl md:text-3xl font-black tracking-tight text-foreground"
-              style={{ fontFamily: "'Cinzel', serif" }}
-            >
-              Buscar
-            </h1>
+    <div className="relative min-h-screen pb-24 bg-background overflow-hidden">
+      {/* Aurora decorativa de fondo — mismo lenguaje que Home */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] overflow-hidden -z-0">
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full opacity-[0.18] blur-3xl bg-primary" />
+        <div className="absolute -top-20 -left-40 w-[500px] h-[400px] rounded-full opacity-[0.10] blur-3xl bg-primary" />
+        <div className="absolute -top-10 -right-20 w-[400px] h-[300px] rounded-full opacity-[0.08] blur-3xl bg-primary" />
+      </div>
+
+      {/* Sticky glassmorphism header */}
+      <div className="sticky top-0 z-30 bg-background/60 backdrop-blur-2xl border-b border-border/30 relative">
+        <div className="px-4 pt-6 pb-4 max-w-5xl mx-auto">
+          <div className="flex items-end justify-between mb-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-primary/70 font-semibold mb-1">
+                Explorar catálogo
+              </p>
+              <h1
+                className="text-3xl md:text-4xl font-black tracking-tight text-foreground leading-none"
+                style={{ fontFamily: "'Cinzel', serif" }}
+              >
+                Buscar
+              </h1>
+            </div>
             {hasQuery && (
-              <span className="text-xs text-muted-foreground tabular-nums">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums pb-1">
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${isFetching ? "bg-primary animate-pulse" : "bg-primary/50"}`} />
                 {isFetching ? "buscando…" : `${animes.length} resultado${animes.length !== 1 ? "s" : ""}`}
-              </span>
+              </div>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="relative group">
-            {/* Halo neón sutil al enfocar (mismo lenguaje que las cards del Home) */}
-            <div className="absolute -inset-px rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-r from-primary/40 via-primary/20 to-primary/40 blur-md" />
+            <div className="absolute -inset-[2px] rounded-[18px] opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none">
+              <div className="absolute inset-0 rounded-[18px] bg-gradient-to-r from-primary/60 via-primary/20 to-primary/60 blur-lg animate-pulse" />
+            </div>
 
-            <div className="relative flex items-center gap-2 rounded-2xl bg-secondary/40 border border-border/60 group-focus-within:border-primary/60 transition-colors">
-              <SearchIcon
-                className={`w-5 h-5 ml-4 shrink-0 transition-colors ${
-                  isFetching ? "text-primary animate-pulse" : "text-muted-foreground group-focus-within:text-primary"
-                }`}
-              />
+            <div
+              className="relative flex items-center gap-2 rounded-2xl border border-border/60 group-focus-within:border-primary/70 transition-all overflow-hidden"
+              style={{
+                background:
+                  "linear-gradient(135deg, hsl(var(--secondary) / 0.55) 0%, hsl(var(--background) / 0.75) 100%)",
+                boxShadow:
+                  "inset 0 1px 0 0 hsl(var(--foreground) / 0.04), 0 8px 32px -12px hsl(var(--background) / 0.9)",
+              }}
+            >
+              <div className="pointer-events-none absolute inset-0 opacity-0 group-focus-within:opacity-100 transition-opacity duration-700">
+                <div className="absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-primary/10 to-transparent skew-x-12" />
+              </div>
+
+              <div className="relative ml-3 flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 group-focus-within:bg-primary/20 transition-colors">
+                <SearchIcon
+                  className={`w-4 h-4 transition-all ${
+                    isFetching
+                      ? "text-primary animate-pulse scale-110"
+                      : "text-primary/70 group-focus-within:text-primary group-focus-within:scale-110"
+                  }`}
+                  strokeWidth={2.5}
+                />
+              </div>
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Título, género, estudio, personaje…"
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none py-3.5 text-base text-foreground placeholder:text-muted-foreground/60"
+                className="relative flex-1 min-w-0 bg-transparent border-0 outline-none py-3.5 text-base text-foreground placeholder:text-muted-foreground/50"
                 autoComplete="off"
                 spellCheck={false}
                 aria-label="Buscar"
@@ -188,21 +224,20 @@ export default function SearchPage() {
                 <button
                   type="button"
                   onClick={() => { setQuery(""); inputRef.current?.focus(); }}
-                  className="mr-1 p-1.5 rounded-full hover:bg-muted/60 transition-colors"
+                  className="relative mr-1 p-1.5 rounded-full hover:bg-muted/60 hover:rotate-90 transition-all duration-300"
                   aria-label="Limpiar"
                 >
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               )}
-              <kbd className="hidden md:inline-flex items-center gap-1 mr-3 text-[10px] font-mono text-muted-foreground/70 border border-border/60 rounded-md px-1.5 py-0.5">
+              <kbd className="relative hidden md:inline-flex items-center gap-1 mr-3 text-[10px] font-mono text-muted-foreground/70 border border-border/60 rounded-md px-1.5 py-0.5 bg-background/40">
                 ⏎
               </kbd>
             </div>
           </form>
 
-          {/* Filtros chip minimales — mismo estilo que directorio */}
-          <div className="mt-3 flex items-center gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0 mr-1" />
+          <div className="mt-4 flex items-center gap-2 overflow-x-auto scrollbar-none -mx-1 px-1">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
             {FILTERS.map((f) => {
               const active = activeFilter === f.key;
               return (
@@ -210,14 +245,17 @@ export default function SearchPage() {
                   key={f.key}
                   type="button"
                   onClick={() => setActiveFilter(f.key)}
-                  className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium tracking-wide transition-all ${
-                    active
-                      ? "bg-primary text-primary-foreground shadow-[0_0_20px_-4px_hsl(var(--primary)/0.6)]"
-                      : "bg-secondary/50 text-muted-foreground hover:text-foreground border border-border/50"
+                  className={`relative shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
+                    active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                   aria-pressed={active}
                 >
-                  {f.label}
+                  {active ? (
+                    <span className="absolute inset-0 rounded-full bg-primary shadow-[0_0_24px_-4px_hsl(var(--primary)/0.8)]" />
+                  ) : (
+                    <span className="absolute inset-0 rounded-full bg-secondary/40 border border-border/50" />
+                  )}
+                  <span className="relative">{f.label}</span>
                 </button>
               );
             })}
@@ -225,7 +263,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 pt-6">
+      <div className="relative max-w-5xl mx-auto px-4 pt-6">
         {/* Empty state — bento minimal con recientes, sugerencias y tendencia */}
         {!hasQuery && (
           <div className="space-y-8 animate-in fade-in duration-300">
