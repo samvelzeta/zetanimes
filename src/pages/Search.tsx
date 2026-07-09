@@ -4,7 +4,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchAnime } from "@/lib/anilist";
 import AnimeCard from "@/components/anime/AnimeCard";
 import AdBannerInline from "@/components/ads/AdBannerInline";
-import { Search as SearchIcon, X, Sparkles, TrendingUp, Cog } from "lucide-react";
+import { Search as SearchIcon, X, Sparkles, TrendingUp, Cog, Settings } from "lucide-react";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 
 const SUGGESTIONS = [
