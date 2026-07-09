@@ -390,11 +390,16 @@ export default function SearchPage() {
             )}
 
             {!isFetching && animes.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-                <SearchIcon className="w-12 h-12 text-muted-foreground/40" />
-                <p className="text-foreground font-semibold">Sin resultados</p>
+              <div className="flex flex-col items-center justify-center py-20 gap-4 text-center animate-in fade-in duration-300">
+                <div className="relative">
+                  <Cog className="w-16 h-16 text-red-500/40" />
+                  <X className="w-6 h-6 text-red-400 absolute inset-0 m-auto" strokeWidth={3} />
+                </div>
+                <p className="text-foreground font-bold tracking-wide" style={{ fontFamily: "'Cinzel', serif" }}>
+                  La maquinaria no encontró registros
+                </p>
                 <p className="text-sm text-muted-foreground max-w-xs">
-                  No encontramos "<span className="text-primary">{debouncedQuery}</span>". Probá con otro nombre.
+                  Sin resultados para "<span className="text-red-400/90">{debouncedQuery}</span>". Ajusta los engranajes e intenta otro término.
                 </p>
               </div>
             )}
@@ -405,12 +410,17 @@ export default function SearchPage() {
                   {animes.length} resultado{animes.length !== 1 ? "s" : ""} para "<span className="text-foreground font-medium">{debouncedQuery}</span>"
                 </p>
                 <div className="space-y-2">
-                  {animes.map((anime) => (
+                  {animes.map((anime, idx) => (
                     <button
                       key={anime.id}
                       onClick={() => navigate(`/anime/${anime.id}`)}
-                      className="group w-full flex gap-3 p-2 rounded-xl bg-secondary/30 hover:bg-secondary/70 border border-transparent hover:border-primary/40 transition-all text-left"
+                      className="group w-full flex gap-3 p-2 rounded-xl bg-secondary/30 hover:bg-secondary/70 border border-transparent hover:border-cyan-400/40 transition-all text-left animate-in slide-in-from-top-2 fade-in"
+                      style={{ animationDelay: `${Math.min(idx, 8) * 40}ms`, animationDuration: "300ms", animationFillMode: "backwards" }}
                     >
+                      <Cog
+                        className="w-3.5 h-3.5 text-amber-600/70 self-center flex-shrink-0 animate-spin group-hover:text-cyan-400 transition-colors"
+                        style={{ animationDuration: "6s" }}
+                      />
                       <div className="relative flex-shrink-0 w-14 h-20 rounded-lg overflow-hidden bg-secondary">
                         <img
                           src={anime.coverImage.large}
@@ -420,6 +430,7 @@ export default function SearchPage() {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
+
                       <div className="flex-1 min-w-0 py-1">
                         <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
                           {anime.title.english || anime.title.romaji}
