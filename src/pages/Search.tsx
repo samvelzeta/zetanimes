@@ -28,13 +28,14 @@ const SUGGESTIONS = [
   "Frieren",
 ];
 
-type FilterKey = "ALL" | "SERIES" | "MOVIE" | "MANGA";
-const FILTERS: { key: FilterKey; label: string; formats: string[] | null }[] = [
+type FilterKey = "ALL" | "SERIES" | "MOVIE" | "ONGOING";
+const FILTERS: { key: FilterKey; label: string; formats: string[] | null; status?: string }[] = [
   { key: "ALL", label: "Todo", formats: null },
   { key: "SERIES", label: "Series", formats: ["TV", "TV_SHORT", "ONA", "OVA", "SPECIAL"] },
   { key: "MOVIE", label: "Películas", formats: ["MOVIE"] },
-  { key: "MANGA", label: "Manga", formats: ["MANGA", "MANHWA", "MANHUA", "NOVEL", "ONE_SHOT"] },
+  { key: "ONGOING", label: "En emisión", formats: null, status: "RELEASING" },
 ];
+
 
 const RECENT_KEY = "zet:recent-searches";
 
