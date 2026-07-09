@@ -12,6 +12,8 @@ import {
   SlidersHorizontal,
   ArrowUpRight,
   Sparkles,
+  Cog,
+  Settings,
 } from "lucide-react";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 
