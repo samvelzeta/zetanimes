@@ -114,9 +114,13 @@ export default function SearchPage() {
   const allAnimes = (data?.media || []).filter((a) => !hiddenSet.has(a.id));
   const animes = useMemo(() => {
     const filter = FILTERS.find((f) => f.key === activeFilter);
-    if (!filter || !filter.formats) return allAnimes;
-    return allAnimes.filter((a) => a.format && filter.formats!.includes(a.format));
+    if (!filter) return allAnimes;
+    let list = allAnimes;
+    if (filter.formats) list = list.filter((a) => a.format && filter.formats!.includes(a.format));
+    if (filter.status) list = list.filter((a) => (a as any).status === filter.status);
+    return list;
   }, [allAnimes, activeFilter]);
+
   const trendingList = (trending?.media || []).filter((a) => !hiddenSet.has(a.id)).slice(0, 6);
   const hasQuery = debouncedQuery.trim().length >= 2;
 
