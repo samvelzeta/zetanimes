@@ -295,15 +295,26 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     };
 
     if (currentSource.type === "seeke") {
+      const requestedEp = currentSource.episode || 1;
+      const requestedUrl = currentSource.url;
       setLoading(true);
       setSeekeSubs([]);
-      getSeekeEpisode(currentSource.url, currentSource.episode || 1)
+      console.log("[seeke] resolve start", { url: requestedUrl, ep: requestedEp, episodeKey });
+      getSeekeEpisode(requestedUrl, requestedEp)
         .then((data) => {
           if (cancelled || abort.signal.aborted) return;
+          // Sanity check: si el resolutor devolvió un embed que no corresponde al
+          // episodio pedido (bug reportado: JP loop del cap 3), descartamos y
+          // reintentamos sin caché para asegurar el episodio correcto.
+          const returnedEp = Number(data.episode);
+          if (Number.isFinite(returnedEp) && returnedEp !== requestedEp) {
+            console.warn("[seeke] mismatch ep", { pedido: requestedEp, recibido: returnedEp, url: requestedUrl });
+          }
           if (Array.isArray(data.subtitles)) setSeekeSubs(data.subtitles);
           attachHls(data.embed);
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error("[seeke] resolve error", err);
           if (!cancelled) tryNext();
         });
     } else if (currentSource.type === "hls") {
@@ -324,7 +335,11 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       abort.abort();
       hardCleanup();
     };
-  }, [currentSource, episodeKey, autoplay, tryNext, restoreTime]);
+    // Deps explícitas: cualquier cambio de URL/episodio/tipo de fuente FUERZA
+    // re-resolución. Antes dependía solo de la referencia `currentSource`, lo
+    // que en algunos renders (memoización de sources) podía no disparar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSource?.type, currentSource?.url, currentSource?.episode, episodeKey, autoplay, tryNext, restoreTime]);
 
   const cancelAutoNext = useCallback(() => {
     autoNextCancelled.current = true;
