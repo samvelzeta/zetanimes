@@ -177,9 +177,31 @@ export default function SearchPage() {
           <form onSubmit={handleSubmit} className="relative group">
             <div className="absolute -inset-px rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-r from-primary/40 via-primary/20 to-primary/40 blur-md" />
 
-            <div className="relative flex items-center gap-2 rounded-2xl bg-secondary/40 border border-border/60 group-focus-within:border-primary/60 transition-colors">
+            <div className="relative flex items-center gap-2 rounded-2xl bg-secondary/40 border border-border/60 group-focus-within:border-primary/60 transition-colors overflow-hidden">
+              {/* Engranajes decorativos integrados en el fondo */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <Cog
+                  className={`absolute -left-4 -top-5 w-20 h-20 text-primary/[0.08] ${
+                    isFocused || isFetching ? "animate-spin" : ""
+                  }`}
+                  style={{ animationDuration: "8s" }}
+                />
+                <Cog
+                  className={`absolute right-20 -bottom-6 w-16 h-16 text-primary/[0.07] ${
+                    isFocused || isFetching ? "animate-spin" : ""
+                  }`}
+                  style={{ animationDuration: "5s", animationDirection: "reverse" }}
+                />
+                <Cog
+                  className={`absolute right-40 -top-3 w-10 h-10 text-primary/[0.06] ${
+                    isFocused || isFetching ? "animate-spin" : ""
+                  }`}
+                  style={{ animationDuration: "10s" }}
+                />
+              </div>
+
               <SearchIcon
-                className={`w-5 h-5 ml-4 shrink-0 transition-colors ${
+                className={`relative w-5 h-5 ml-4 shrink-0 transition-colors ${
                   isFetching ? "text-primary animate-pulse" : "text-muted-foreground group-focus-within:text-primary"
                 }`}
               />
@@ -187,8 +209,10 @@ export default function SearchPage() {
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
                 placeholder="Título, género, estudio, personaje…"
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none py-3.5 text-base text-foreground placeholder:text-muted-foreground/60"
+                className="relative flex-1 min-w-0 bg-transparent border-0 outline-none py-3.5 text-base text-foreground placeholder:text-muted-foreground/60"
                 autoComplete="off"
                 spellCheck={false}
                 aria-label="Buscar"
@@ -197,35 +221,74 @@ export default function SearchPage() {
                 <button
                   type="button"
                   onClick={() => { setQuery(""); inputRef.current?.focus(); }}
-                  className="mr-1 p-1.5 rounded-full hover:bg-muted/60 transition-colors"
+                  className="relative mr-1 p-1.5 rounded-full hover:bg-muted/60 transition-colors"
                   aria-label="Limpiar"
                 >
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               )}
-              <kbd className="hidden md:inline-flex items-center gap-1 mr-3 text-[10px] font-mono text-muted-foreground/70 border border-border/60 rounded-md px-1.5 py-0.5">
+              <kbd className="relative hidden md:inline-flex items-center gap-1 mr-2 text-[10px] font-mono text-muted-foreground/70 border border-border/60 rounded-md px-1.5 py-0.5">
                 ⏎
               </kbd>
+              {/* Engranaje dorado con cristal cian — botón submit */}
+              <button
+                type="submit"
+                onClick={() => {
+                  setIconSpin(true);
+                  setTimeout(() => setIconSpin(false), 500);
+                  inputRef.current?.focus();
+                }}
+                aria-label="Buscar"
+                className="relative mr-2 w-9 h-9 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+                style={{
+                  background: "radial-gradient(circle at 30% 30%, #d4a24c 0%, #8b5a1c 60%, #3d2810 100%)",
+                  boxShadow:
+                    "inset 0 1px 2px rgba(255,220,150,0.55), inset 0 -2px 4px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35)",
+                }}
+              >
+                <Settings
+                  className={`w-5 h-5 text-amber-950 transition-transform duration-500 ${iconSpin ? "rotate-90" : ""} ${isFetching ? "animate-spin" : ""}`}
+                  strokeWidth={2.5}
+                />
+                <span
+                  className="absolute w-1.5 h-1.5 rounded-full pointer-events-none"
+                  style={{
+                    background: "radial-gradient(circle, #a5f3fc 0%, #06b6d4 60%, #0e7490 100%)",
+                    boxShadow: "0 0 6px 2px rgba(34,211,238,0.75)",
+                  }}
+                />
+              </button>
             </div>
           </form>
 
-          {/* Filtros chip minimales */}
+          {/* Filtros chip con mini engranaje */}
           <div className="mt-3 flex items-center gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1">
             <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0 mr-1" />
             {FILTERS.map((f) => {
               const active = activeFilter === f.key;
+              const locked = lockedFilter === f.key;
               return (
                 <button
                   key={f.key}
                   type="button"
-                  onClick={() => setActiveFilter(f.key)}
-                  className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium tracking-wide transition-all ${
+                  onClick={() => {
+                    setLockedFilter(f.key);
+                    setTimeout(() => setLockedFilter(null), 600);
+                    setActiveFilter(f.key);
+                  }}
+                  className={`shrink-0 flex items-center gap-1.5 pl-2 pr-3 py-1 rounded-full text-xs font-medium tracking-wide transition-all ${
                     active
                       ? "bg-primary text-primary-foreground shadow-[0_0_20px_-4px_hsl(var(--primary)/0.6)]"
                       : "bg-secondary/50 text-muted-foreground hover:text-foreground border border-border/50"
                   }`}
                   aria-pressed={active}
                 >
+                  <Cog
+                    className={`w-3 h-3 ${active ? "text-primary-foreground" : "text-muted-foreground/70"} ${
+                      locked ? "animate-spin" : active ? "animate-spin" : ""
+                    }`}
+                    style={{ animationDuration: locked ? "0.6s" : "6s" }}
+                  />
                   {f.label}
                 </button>
               );
