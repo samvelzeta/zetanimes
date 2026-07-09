@@ -997,3 +997,12 @@ img {
 .notif-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
 .notif-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 .notif-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+
+/* Steampunk search: brief reverse spin then stop */
+@keyframes steampunk-reverse-brief {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-180deg); }
+}
+.steampunk-reverse-brief {
+  animation: steampunk-reverse-brief 1s ease-out forwards;
+}
