@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ProfileSelector from "@/components/profiles/ProfileSelector";
+import { useUserXP, rankColor, rankName } from "@/hooks/useUserXP";
 
 interface Notification {
   id: string;
