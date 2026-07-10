@@ -1032,7 +1032,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
             </div>
           </div>
-          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 overflow-hidden">
+          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5">
             <div className="flex min-w-0 flex-nowrap items-center gap-1 sm:gap-3 overflow-hidden">
               <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto shrink-0 items-center justify-center text-white hover:text-primary hover:drop-shadow-[0_0_10px_hsl(var(--primary))] transition">
                 {playing ? <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> : <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />}
