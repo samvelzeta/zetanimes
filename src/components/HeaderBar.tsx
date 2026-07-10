@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ProfileSelector from "@/components/profiles/ProfileSelector";
+import { useUserXP, rankColor, rankName } from "@/hooks/useUserXP";
 
 interface Notification {
   id: string;
@@ -165,7 +166,9 @@ export default function HeaderBar() {
       </div>
 
 
-      <div className="relative">
+      <div className="flex items-center gap-2">
+        {user && <XPChip />}
+        <div className="relative">
         <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur flex items-center justify-center hover:bg-muted transition relative">
           <Bell className="w-4 h-4 text-foreground" />
           {hasUnread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
@@ -258,9 +261,25 @@ export default function HeaderBar() {
             )}
           </div>
         )}
+        </div>
       </div>
 
       {showProfileSwitcher && <ProfileSelector onClose={() => setShowProfileSwitcher(false)} />}
     </div>
+  );
+}
+
+function XPChip() {
+  const { xp } = useUserXP();
+  const color = rankColor(xp.rank_slug);
+  return (
+    <Link
+      to="/profile"
+      className="hidden sm:flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-secondary/80 backdrop-blur border border-border hover:border-primary/40 transition"
+      title={`${rankName(xp.rank_slug)} · Nivel ${xp.level} · ${xp.xp.toLocaleString()} XP`}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+      <span className="text-[10px] font-bold tabular-nums" style={{ color }}>Nv {xp.level}</span>
+    </Link>
   );
 }
