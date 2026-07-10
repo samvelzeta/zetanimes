@@ -1281,23 +1281,83 @@ img {
 
 /* Animación gachapón: sacudida y flash */
 @keyframes zf-gacha-shake {
-  0%, 100% { transform: rotate(0); }
-  20% { transform: rotate(-12deg); }
-  40% { transform: rotate(14deg); }
-  60% { transform: rotate(-10deg); }
-  80% { transform: rotate(8deg); }
+  0%, 100% { transform: rotate(0) scale(1); }
+  20% { transform: rotate(-12deg) scale(1.03); }
+  40% { transform: rotate(14deg) scale(0.98); }
+  60% { transform: rotate(-10deg) scale(1.04); }
+  80% { transform: rotate(8deg) scale(0.99); }
 }
-.zf-gacha-shake { animation: zf-gacha-shake 0.6s ease-in-out infinite; }
+.zf-gacha-shake { animation: zf-gacha-shake 0.5s ease-in-out infinite; }
 
-@keyframes zf-gacha-reveal {
-  0% { transform: scale(0.6); opacity: 0; filter: blur(20px); }
-  60% { transform: scale(1.15); opacity: 1; filter: blur(0); }
-  100% { transform: scale(1); opacity: 1; }
+/* Z desaparece con explosión */
+@keyframes zf-z-burst {
+  0%   { transform: scale(1);   opacity: 1; filter: blur(0) brightness(1); }
+  40%  { transform: scale(1.6); opacity: 1; filter: blur(0) brightness(2); text-shadow: 0 0 40px currentColor, 0 0 80px currentColor; }
+  70%  { transform: scale(2.4); opacity: 0.4; filter: blur(6px) brightness(3); }
+  100% { transform: scale(3.2); opacity: 0; filter: blur(14px) brightness(4); }
 }
-.zf-gacha-reveal { animation: zf-gacha-reveal 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+.zf-z-burst { animation: zf-z-burst 0.7s cubic-bezier(0.4, 0, 0.6, 1) forwards; }
+
+/* Flash de luz al abrir la cápsula */
+@keyframes zf-gacha-flash {
+  0% { opacity: 0; transform: scale(0.2); }
+  40% { opacity: 1; transform: scale(2.2); }
+  100% { opacity: 0; transform: scale(3.5); }
+}
+.zf-gacha-flash {
+  position: absolute; inset: -20%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #fff 0%, currentColor 30%, transparent 70%);
+  pointer-events: none;
+  animation: zf-gacha-flash 0.9s ease-out forwards;
+  z-index: 5;
+}
+
+/* Reveal del premio: aparece grande y se asienta */
+@keyframes zf-gacha-reveal {
+  0%   { transform: scale(0.3) rotate(-20deg); opacity: 0; filter: blur(24px); }
+  50%  { transform: scale(1.25) rotate(6deg); opacity: 1; filter: blur(0); }
+  75%  { transform: scale(0.95) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.zf-gacha-reveal { animation: zf-gacha-reveal 1.1s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+
+/* Halo pulsante para el premio ya revelado */
+@keyframes zf-prize-halo {
+  0%, 100% { box-shadow: 0 0 30px 4px var(--zf-halo, rgba(255,255,255,0.4)); }
+  50%      { box-shadow: 0 0 60px 12px var(--zf-halo, rgba(255,255,255,0.7)); }
+}
+.zf-prize-halo { animation: zf-prize-halo 2s ease-in-out infinite; }
+
+/* Partículas / rayos radiales */
+@keyframes zf-rays-spin { to { transform: rotate(360deg); } }
+.zf-gacha-rays {
+  position: absolute; inset: -30%;
+  background: conic-gradient(from 0deg, transparent 0deg 8deg, var(--zf-ray, rgba(255,255,255,0.3)) 8deg 12deg, transparent 12deg 30deg,
+    var(--zf-ray, rgba(255,255,255,0.3)) 30deg 34deg, transparent 34deg 60deg,
+    var(--zf-ray, rgba(255,255,255,0.3)) 60deg 64deg, transparent 64deg 90deg,
+    var(--zf-ray, rgba(255,255,255,0.3)) 90deg 94deg, transparent 94deg 130deg,
+    var(--zf-ray, rgba(255,255,255,0.3)) 130deg 134deg, transparent 134deg 170deg,
+    var(--zf-ray, rgba(255,255,255,0.3)) 170deg 174deg, transparent 174deg 210deg,
+    var(--zf-ray, rgba(255,255,255,0.3)) 210deg 214deg, transparent 214deg 250deg,
+    var(--zf-ray, rgba(255,255,255,0.3)) 250deg 254deg, transparent 254deg 290deg,
+    var(--zf-ray, rgba(255,255,255,0.3)) 290deg 294deg, transparent 294deg 330deg,
+    var(--zf-ray, rgba(255,255,255,0.3)) 330deg 334deg, transparent 334deg 360deg);
+  border-radius: 9999px;
+  filter: blur(1px);
+  animation: zf-rays-spin 6s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+  mask: radial-gradient(circle, transparent 30%, #000 45%, transparent 75%);
+  -webkit-mask: radial-gradient(circle, transparent 30%, #000 45%, transparent 75%);
+}
 
 .zet-reduced-motion .zf-gacha-shake,
 .zet-reduced-motion .zf-gacha-reveal,
+.zet-reduced-motion .zf-z-burst,
+.zet-reduced-motion .zf-gacha-flash,
+.zet-reduced-motion .zf-prize-halo,
+.zet-reduced-motion .zf-gacha-rays,
 .zet-reduced-motion .zf-frame-z::after,
 .zet-reduced-motion .zf-frame-z > img,
 .zet-reduced-motion .zf-frame-blood > img { animation: none !important; }
