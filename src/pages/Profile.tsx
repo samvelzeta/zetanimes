@@ -93,20 +93,47 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, profileId]);
 
+  // Mantiene las estadísticas sincronizadas en vivo: si el usuario ve un
+  // episodio en otro dispositivo o pestaña, al volver a Profile o al recibir
+  // el cambio en realtime, las horas / episodios se actualizan solos.
+  useEffect(() => {
+    if (!user) return;
+    const onVisible = () => { if (document.visibilityState === "visible") loadStats(); };
+    document.addEventListener("visibilitychange", onVisible);
+    const channel = supabase
+      .channel(`watch-history-stats-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "watch_history", filter: `user_id=eq.${user.id}` },
+        () => { loadStats(); }
+      )
+      .subscribe();
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const loadStats = async () => {
     if (!user) return;
-    const buildScope = <Q extends { eq: any; is: any }>(q: Q) =>
-      profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
-
-    const listsQ = buildScope(
-      supabase.from("anime_lists").select("*", { count: "exact", head: true }).eq("user_id", user.id) as any
-    );
-    const epsQ = buildScope(
-      supabase.from("watch_history").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("completed", true) as any
-    );
-    const histQ = buildScope(
-      supabase.from("watch_history").select("watch_duration_seconds").eq("user_id", user.id) as any
-    );
+    // Stats globales de la cuenta: agregamos TODO el watch_history / anime_lists del
+    // usuario (todos los perfiles y entradas legacy sin profile_id) para que las
+    // horas y episodios vistos se mantengan sincronizados entre dispositivos y
+    // aunque el usuario cambie de perfil o vuelva a iniciar sesión en otro lugar.
+    const listsQ = supabase
+      .from("anime_lists")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    const epsQ = supabase
+      .from("watch_history")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("completed", true);
+    const histQ = supabase
+      .from("watch_history")
+      .select("watch_duration_seconds")
+      .eq("user_id", user.id);
 
     const [{ count: lists }, { count: episodes }, { data: historyData }] = await Promise.all([listsQ, epsQ, histQ]);
     const totalSeconds = (historyData || []).reduce((acc: number, h: any) => acc + (h.watch_duration_seconds || 0), 0);
