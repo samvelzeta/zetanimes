@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Sparkles, Type } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Type } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 import { useSubtitlePrefs, subtitleStyle, subtitlePositionClass } from "@/hooks/useSubtitlePrefs";
-import { useAmbilight } from "@/hooks/useAmbilight";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import SubtitleSettings from "@/components/premium/SubtitleSettings";
 
@@ -180,11 +179,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSubPrefs, setShowSubPrefs] = useState(false);
-  const [ambilight, setAmbilight] = useState(false);
   const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs();
   const { permissions } = usePlanPermissions();
   const isPremium = permissions.slug !== "free";
-  useAmbilight(videoRef, containerRef, ambilight);
   const subtitleOptions = useMemo(
     () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
     [effectiveSubtitles]
@@ -1034,8 +1031,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
             </div>
           </div>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-between gap-x-2 gap-y-2 flex-wrap sm:flex-nowrap">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap sm:flex-nowrap">
               <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary hover:drop-shadow-[0_0_10px_hsl(var(--primary))] transition shrink-0">
                 {playing ? <Play className="w-5 h-5 fill-current" /> : <Zap className="w-5 h-5 fill-current" />}
               </button>
@@ -1093,18 +1090,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                 {formatTime(progress)} <span className="text-white/30 mx-0.5">/</span> {formatTime(duration)}
               </span>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              {/* Ambilight (premium) */}
-              {isPremium && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setAmbilight((v) => !v); showControlsTemp(); }}
-                  className={`transition ${ambilight ? "text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]" : "text-white/80 hover:text-primary"}`}
-                  aria-label="Modo cine Ambilight"
-                  title={ambilight ? "Ambilight: ON" : "Ambilight: OFF"}
-                >
-                  <Sparkles className="w-5 h-5" />
-                </button>
-              )}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-nowrap">
               {/* Personalizar subtítulos */}
               <div className="relative">
                 <button

@@ -126,9 +126,18 @@ export default function VideoManager() {
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await searchAnime(val, 1, 10, [], { skipCuration: true });
-        setSearchResults(res.media || []);
-      } catch { setSearchResults([]); }
+        const res = await searchAnime(val, 1, 20, [], { skipCuration: true });
+        const media = res?.media || [];
+        setSearchResults(media);
+        if (media.length === 0) {
+          console.warn("[VideoManager] búsqueda sin resultados", { term: val, raw: res });
+          toast.info(`Sin resultados para "${val}"`);
+        }
+      } catch (e: any) {
+        console.error("[VideoManager] error de búsqueda", e);
+        toast.error(`Error de búsqueda: ${e?.message || "desconocido"}`);
+        setSearchResults([]);
+      }
       setSearching(false);
     }, 400);
   };

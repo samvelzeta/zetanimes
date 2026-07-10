@@ -5,12 +5,13 @@ import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovi
 import { getApprovedAnimeIds, approveAnime, unapproveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch } from "lucide-react";
+import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch, EyeOff, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
 import { getPrequelChain, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
+import { listHiddenPending, hidePendingAnime, unhidePendingAnime } from "@/lib/hidden-pending-animes";
 
 
 type AiringItem = {
@@ -41,6 +42,13 @@ export default function PendingApproval() {
   const qc = useQueryClient();
   const [query, setQuery] = useState("");
   const [showApproved, setShowApproved] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
+  const { data: hiddenList = [], refetch: refetchHidden } = useQuery({
+    queryKey: ["hidden-pending-animes"],
+    queryFn: listHiddenPending,
+    staleTime: 1000 * 60,
+  });
+  const hiddenSet = useMemo(() => new Set<number>(hiddenList.map((h) => h.anilist_id)), [hiddenList]);
 
   // 3 páginas de RELEASING para tener suficiente pool
   const { data: p1, isLoading: l1 } = useQuery({
@@ -210,18 +218,25 @@ export default function PendingApproval() {
     const q = query.trim().toLowerCase();
     return all.filter((a) => {
       const isApproved = approvedSet.has(a.id);
-      if (showApproved ? !isApproved : isApproved) return false;
+      const isHidden = hiddenSet.has(a.id);
+      if (showHidden) {
+        if (!isHidden) return false;
+      } else {
+        if (isHidden) return false;
+        if (showApproved ? !isApproved : isApproved) return false;
+      }
       if (!q) return true;
       return titleOf(a).toLowerCase().includes(q) || String(a.id).includes(q);
     });
-  }, [all, query, approvedSet, showApproved]);
+  }, [all, query, approvedSet, showApproved, showHidden, hiddenSet]);
 
   useEffect(() => onApprovedChange(() => { refetchApproved(); refetchSeeke(); }), [refetchApproved, refetchSeeke]);
 
   const loading = l1 || l2 || l3 || lm || lm2 || lm3;
 
-  const pendingCount = all.filter((a) => !approvedSet.has(a.id)).length;
-  const approvedCount = all.filter((a) => approvedSet.has(a.id)).length;
+  const pendingCount = all.filter((a) => !approvedSet.has(a.id) && !hiddenSet.has(a.id)).length;
+  const approvedCount = all.filter((a) => approvedSet.has(a.id) && !hiddenSet.has(a.id)).length;
+  const hiddenCount = hiddenSet.size;
 
   return (
     <div className="space-y-4">
@@ -241,20 +256,29 @@ export default function PendingApproval() {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setShowApproved(false)}
+            onClick={() => { setShowApproved(false); setShowHidden(false); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              !showApproved ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              !showApproved && !showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             Pendientes ({pendingCount})
           </button>
           <button
-            onClick={() => setShowApproved(true)}
+            onClick={() => { setShowApproved(true); setShowHidden(false); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              showApproved ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              showApproved && !showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             Aprobados ({approvedCount})
+          </button>
+          <button
+            onClick={() => { setShowHidden(true); setShowApproved(false); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+              showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+            title="Animes ocultados temporalmente por 7 días"
+          >
+            <EyeOff className="w-3 h-3" /> Ocultos ({hiddenCount})
           </button>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -267,6 +291,7 @@ export default function PendingApproval() {
           </div>
         </div>
       </div>
+
 
       {loading && (
         <div className="flex items-center justify-center py-16 text-muted-foreground text-sm gap-2">
@@ -287,10 +312,13 @@ export default function PendingApproval() {
             anime={a}
             approved={approvedSet.has(a.id)}
             hasVideo={withVideo?.has(a.id) ?? false}
+            hidden={hiddenSet.has(a.id)}
             onChanged={() => {
               refetchApproved();
+              refetchHidden();
               qc.invalidateQueries({ queryKey: ["approved-anime-ids"] });
               qc.invalidateQueries({ queryKey: ["approval-videocache-ids"] });
+              qc.invalidateQueries({ queryKey: ["hidden-pending-animes"] });
             }}
           />
         ))}
@@ -303,11 +331,13 @@ function PendingCard({
   anime,
   approved,
   hasVideo,
+  hidden,
   onChanged,
 }: {
   anime: AiringItem;
   approved: boolean;
   hasVideo: boolean;
+  hidden: boolean;
   onChanged: () => void;
 }) {
   const navigate = useNavigate();
@@ -558,6 +588,53 @@ function PendingCard({
               className="h-8 px-2 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center hover:bg-destructive/15 hover:text-destructive disabled:opacity-50"
             >
               <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {hidden ? (
+            <button
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await unhidePendingAnime(anime.id);
+                  toast.success("Vuelve a la bandeja");
+                  onChanged();
+                } catch (e: any) {
+                  toast.error(e?.message || "Error");
+                } finally { setBusy(false); }
+              }}
+              disabled={busy}
+              title="Volver a mostrar en la bandeja"
+              className="h-8 px-2 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-muted disabled:opacity-50"
+            >
+              <Eye className="w-3.5 h-3.5" /> Mostrar
+            </button>
+          ) : (
+            <button
+              onClick={async () => {
+                if (!confirm(`¿Ocultar "${title}" de la bandeja durante 7 días?`)) return;
+                setBusy(true);
+                try {
+                  await hidePendingAnime(anime.id, `oculto desde bandeja`);
+                  await logAdminActivity({
+                    area: "videos",
+                    action: "hide_pending_anime",
+                    summary: `Ocultado 7 días: ${title}`,
+                    target_type: "anime",
+                    target_id: String(anime.id),
+                    anilist_id: anime.id,
+                    anime_title: title,
+                  });
+                  toast.success("Oculto por 7 días");
+                  onChanged();
+                } catch (e: any) {
+                  toast.error(e?.message || "Error al ocultar");
+                } finally { setBusy(false); }
+              }}
+              disabled={busy}
+              title="Ocultar temporalmente (7 días)"
+              className="h-8 px-2 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-yellow-600/15 hover:text-yellow-500 disabled:opacity-50"
+            >
+              <EyeOff className="w-3.5 h-3.5" />
             </button>
           )}
         </div>

@@ -894,11 +894,6 @@ export default function Watch() {
             <span className="text-muted-foreground"> • “{currentEpisodeTitle}”</span>
           )}
         </p>
-        {synopsis && (
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-3">
-            {synopsis}
-          </p>
-        )}
         {inWebView && (
           <p className="text-[10px] text-muted-foreground/70 mb-3">📱 APK{zetSlug && ` • ${zetSlug}`}</p>
         )}
