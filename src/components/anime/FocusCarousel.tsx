@@ -14,6 +14,16 @@ interface Props {
   linkTo?: string;
 }
 
+function DubbedTag({ anime }: { anime: AniListMedia }) {
+  const dubbed = useIsDubbed(anime);
+  if (!dubbed) return null;
+  return (
+    <p className="text-[9px] font-semibold tracking-[0.25em] uppercase text-primary/90 mt-0.5">
+      Doblado
+    </p>
+  );
+}
+
 export default function FocusCarousel({ title, emoji, animes, loading, linkTo }: Props) {
   const items = animes.slice(0, 15);
   const [activeIdx, setActiveIdx] = useState(0);
