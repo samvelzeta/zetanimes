@@ -16,7 +16,7 @@ export default function AuthPage() {
       {/* Split screen layout */}
       <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
         {/* LEFT PANEL - Ambient scene */}
-        <div className="relative hidden lg:flex items-center justify-center overflow-hidden border-r border-cyan-500/20">
+        <div className="relative hidden lg:flex items-center justify-center overflow-hidden border-r border-orange-500/20">
           <div
             className="absolute inset-0 bg-cover bg-center opacity-40"
             style={{
@@ -27,18 +27,18 @@ export default function AuthPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0f] via-transparent to-[#0a0a0f]/90" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-transparent" />
           {/* Cyan glow blobs */}
-          <div className="absolute top-20 left-20 w-72 h-72 rounded-full bg-cyan-500/20 blur-[120px]" />
+          <div className="absolute top-20 left-20 w-72 h-72 rounded-full bg-orange-500/20 blur-[120px]" />
           <div className="absolute bottom-32 right-16 w-96 h-96 rounded-full bg-orange-500/10 blur-[140px]" />
 
           <div className="relative z-10 max-w-md px-10 text-center">
-            <p className="text-[10px] tracking-[0.5em] uppercase text-cyan-400/80 font-semibold mb-4">
+            <p className="text-[10px] tracking-[0.5em] uppercase text-orange-400/80 font-semibold mb-4">
               ZetAnime · Universo
             </p>
             <h2
               className="text-5xl xl:text-6xl font-black leading-[0.95] text-white"
               style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
             >
-              Entra al mundo <span className="text-cyan-400">anime</span> sin límites.
+              Entra al mundo <span className="text-orange-400">anime</span> sin límites.
             </h2>
             <p className="mt-6 text-sm text-white/60 leading-relaxed">
               Miles de series, doblaje latino, transmisión sin cortes y una comunidad que vive el anime como tú.
@@ -50,41 +50,41 @@ export default function AuthPage() {
         <div className="relative flex items-center justify-center px-4 sm:px-8 py-10 lg:py-6">
           {/* Ambient background on mobile */}
           <div className="absolute inset-0 lg:hidden">
-            <div className="absolute top-10 right-10 w-64 h-64 rounded-full bg-cyan-500/15 blur-[100px]" />
+            <div className="absolute top-10 right-10 w-64 h-64 rounded-full bg-orange-500/15 blur-[100px]" />
             <div className="absolute bottom-20 left-10 w-64 h-64 rounded-full bg-orange-500/10 blur-[100px]" />
           </div>
 
           <div className="relative w-full max-w-md">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 text-[11px] tracking-[0.2em] uppercase text-cyan-400/70 hover:text-cyan-300 transition-colors mb-6"
+              className="inline-flex items-center gap-1.5 text-[11px] tracking-[0.2em] uppercase text-orange-400/70 hover:text-orange-300 transition-colors mb-6"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Volver al inicio
             </Link>
 
             {/* Login container with sharp corners + cyan glow */}
             <div
-              className="relative bg-[#12121a]/90 backdrop-blur-xl border border-cyan-500/30 p-7 sm:p-9"
+              className="relative bg-[#12121a]/90 backdrop-blur-xl border border-orange-500/30 p-7 sm:p-9"
               style={{
                 clipPath:
                   "polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)",
                 boxShadow:
-                  "0 0 0 1px rgba(34,211,238,0.08), 0 0 30px rgba(34,211,238,0.15), 0 0 80px rgba(34,211,238,0.08), inset 0 0 30px rgba(34,211,238,0.03)",
+                  "0 0 0 1px rgba(255,140,40,0.08), 0 0 30px rgba(255,140,40,0.15), 0 0 80px rgba(255,140,40,0.08), inset 0 0 30px rgba(255,140,40,0.03)",
               }}
             >
               {/* Corner accents */}
-              <div className="absolute top-0 right-0 w-6 h-[1px] bg-cyan-400/60" />
-              <div className="absolute top-0 right-0 w-[1px] h-6 bg-cyan-400/60" />
-              <div className="absolute bottom-0 left-0 w-6 h-[1px] bg-cyan-400/60" />
-              <div className="absolute bottom-0 left-0 w-[1px] h-6 bg-cyan-400/60" />
+              <div className="absolute top-0 right-0 w-6 h-[1px] bg-orange-400/60" />
+              <div className="absolute top-0 right-0 w-[1px] h-6 bg-orange-400/60" />
+              <div className="absolute bottom-0 left-0 w-6 h-[1px] bg-orange-400/60" />
+              <div className="absolute bottom-0 left-0 w-[1px] h-6 bg-orange-400/60" />
 
               <div className="text-center mb-7">
                 <div className="w-20 h-20 mx-auto mb-4 relative">
-                  <div className="absolute inset-0 rounded-full bg-cyan-500/20 blur-xl" />
+                  <div className="absolute inset-0 rounded-full bg-orange-500/20 blur-xl" />
                   <img
                     src={logoUrl}
                     alt="ZetAnime"
-                    className="relative w-20 h-20 object-contain drop-shadow-[0_0_12px_rgba(34,211,238,0.5)]"
+                    className="relative w-20 h-20 object-contain drop-shadow-[0_0_12px_rgba(255,140,40,0.5)]"
                   />
                 </div>
                 <h1
@@ -97,7 +97,7 @@ export default function AuthPage() {
                     ? "Crear Cuenta"
                     : "Recuperar Acceso"}
                 </h1>
-                <p className="text-[11px] tracking-[0.3em] uppercase text-cyan-400/70 mt-2">
+                <p className="text-[11px] tracking-[0.3em] uppercase text-orange-400/70 mt-2">
                   {mode === "login"
                     ? "Bienvenido de vuelta"
                     : mode === "register"
@@ -123,12 +123,12 @@ export default function AuthPage() {
 
 /* ---------------- Shared styles ---------------- */
 const inputCls =
-  "h-11 bg-black/40 border border-cyan-500/25 rounded-none text-white placeholder:text-white/30 " +
-  "focus:border-cyan-400 focus-visible:ring-0 focus-visible:ring-offset-0 " +
-  "focus:shadow-[0_0_0_1px_rgba(34,211,238,0.6),0_0_20px_rgba(34,211,238,0.25)] transition-all";
+  "h-11 bg-black/40 border border-orange-500/25 rounded-none text-white placeholder:text-white/30 " +
+  "focus:border-orange-400 focus-visible:ring-0 focus-visible:ring-offset-0 " +
+  "focus:shadow-[0_0_0_1px_rgba(255,140,40,0.6),0_0_20px_rgba(255,140,40,0.25)] transition-all";
 
 const labelCls =
-  "text-[10px] tracking-[0.3em] uppercase text-cyan-400/70 font-semibold mb-2 block";
+  "text-[10px] tracking-[0.3em] uppercase text-orange-400/70 font-semibold mb-2 block";
 
 const primaryBtn =
   "w-full py-3 font-bold text-sm text-white uppercase tracking-[0.25em] " +
@@ -172,12 +172,12 @@ function LoginForm({
         <label className={labelCls}>Contraseña</label>
         <div className="relative">
           <Input value={password} onChange={(e) => setPassword(e.target.value)} type={showPw ? "text" : "password"} placeholder="••••••••" className={`${inputCls} pr-10`} />
-          <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-400/60 hover:text-cyan-300">
+          <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-400/60 hover:text-orange-300">
             {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
       </div>
-      <button type="button" onClick={() => onSwitch("forgot")} className="text-[11px] tracking-[0.2em] uppercase text-cyan-400/70 hover:text-cyan-300 transition-colors">
+      <button type="button" onClick={() => onSwitch("forgot")} className="text-[11px] tracking-[0.2em] uppercase text-orange-400/70 hover:text-orange-300 transition-colors">
         ¿Olvidaste tu contraseña?
       </button>
       <button type="submit" disabled={loading} className={primaryBtn}>
@@ -185,7 +185,7 @@ function LoginForm({
       </button>
       <p className="text-center text-xs text-white/50">
         ¿No tienes cuenta?{" "}
-        <button type="button" onClick={() => onSwitch("register")} className="text-cyan-400 font-bold hover:text-cyan-300 hover:underline">
+        <button type="button" onClick={() => onSwitch("register")} className="text-orange-400 font-bold hover:text-orange-300 hover:underline">
           Regístrate
         </button>
       </p>
@@ -245,7 +245,7 @@ function RegisterForm({
         <label className={labelCls}>Contraseña</label>
         <div className="relative">
           <Input value={password} onChange={(e) => setPassword(e.target.value)} type={showPw ? "text" : "password"} placeholder="••••••••" className={`${inputCls} pr-10`} />
-          <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-400/60 hover:text-cyan-300">
+          <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-400/60 hover:text-orange-300">
             {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
@@ -255,10 +255,10 @@ function RegisterForm({
         <Input value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} type={showPw ? "text" : "password"} placeholder="••••••••" className={inputCls} />
       </div>
       <label className="flex items-start gap-2 text-xs text-white/60 cursor-pointer">
-        <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="mt-0.5 accent-cyan-400" />
+        <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="mt-0.5 accent-orange-400" />
         <span>
-          Acepto las <Link to="/terms" className="text-cyan-400 hover:underline">Políticas de Privacidad</Link> y{" "}
-          <Link to="/terms" className="text-cyan-400 hover:underline">Términos y Condiciones</Link>
+          Acepto las <Link to="/terms" className="text-orange-400 hover:underline">Políticas de Privacidad</Link> y{" "}
+          <Link to="/terms" className="text-orange-400 hover:underline">Términos y Condiciones</Link>
         </span>
       </label>
       <button type="submit" disabled={loading} className={primaryBtn}>
@@ -266,7 +266,7 @@ function RegisterForm({
       </button>
       <p className="text-center text-xs text-white/50">
         ¿Ya tienes cuenta?{" "}
-        <button type="button" onClick={() => onSwitch("login")} className="text-cyan-400 font-bold hover:text-cyan-300 hover:underline">
+        <button type="button" onClick={() => onSwitch("login")} className="text-orange-400 font-bold hover:text-orange-300 hover:underline">
           Inicia sesión
         </button>
       </p>
@@ -297,7 +297,7 @@ function ForgotForm({ onSwitch }: { onSwitch: (m: "login" | "register" | "forgot
     return (
       <div className="text-center space-y-4">
         <p className="text-sm text-white/80">📧 Revisa tu correo electrónico para restablecer tu contraseña.</p>
-        <button onClick={() => onSwitch("login")} className="text-cyan-400 text-sm font-bold hover:text-cyan-300 hover:underline">
+        <button onClick={() => onSwitch("login")} className="text-orange-400 text-sm font-bold hover:text-orange-300 hover:underline">
           Volver al login
         </button>
       </div>
@@ -313,7 +313,7 @@ function ForgotForm({ onSwitch }: { onSwitch: (m: "login" | "register" | "forgot
       <button type="submit" disabled={loading} className={primaryBtn}>
         {loading && <Loader2 className="w-4 h-4 animate-spin" />} Enviar enlace
       </button>
-      <button type="button" onClick={() => onSwitch("login")} className="text-[11px] tracking-[0.2em] uppercase text-cyan-400/70 hover:text-cyan-300 transition-colors block mx-auto">
+      <button type="button" onClick={() => onSwitch("login")} className="text-[11px] tracking-[0.2em] uppercase text-orange-400/70 hover:text-orange-300 transition-colors block mx-auto">
         Volver al login
       </button>
     </form>
