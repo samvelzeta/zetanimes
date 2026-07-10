@@ -32,6 +32,11 @@ import PremiumScreen from "@/components/profiles/PremiumScreen";
 import { setActiveProfileId } from "@/lib/account-profiles";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import ProfileBanner from "@/components/premium/ProfileBanner";
+import UserName from "@/components/premium/UserName";
+import XPBar from "@/components/premium/XPBar";
+import CosmeticsPicker from "@/components/premium/CosmeticsPicker";
+import { useUserCosmetics } from "@/hooks/useUserCosmetics";
 
 type PanelId = null | "manage" | "contact";
 
