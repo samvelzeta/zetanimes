@@ -975,31 +975,37 @@ export default function Watch() {
 
       {/* Navegación de episodios — tres botones limpios, Siguiente con acento naranja */}
       <div className="px-4 mb-4">
-        <div className="flex items-stretch gap-2">
+        <div className="flex flex-row flex-nowrap items-center justify-between gap-2 w-full">
           <button
             onClick={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
             disabled={selectedEp <= 1}
-            className="flex-1 py-2.5 px-3 rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+            style={{ flex: 1, minWidth: 0 }}
+            className="py-2.5 px-2 sm:px-3 rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 whitespace-nowrap overflow-hidden"
           >
-            <ChevronLeft className="w-4 h-4" /> Anterior
+            <ChevronLeft className="w-4 h-4 shrink-0" />
+            <span className="truncate">Anterior</span>
           </button>
           <button
             onClick={() => setShowEpisodes((v) => !v)}
-            className="flex-[1.4] py-2.5 px-3 rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
+            style={{ flex: 1.2, minWidth: 0 }}
+            className="py-2.5 px-2 sm:px-3 rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 whitespace-nowrap overflow-hidden"
             aria-label="Mostrar lista de episodios"
           >
-            <List className="w-4 h-4 text-muted-foreground" />
-            <span>EPISODIOS ({selectedEp}/{totalEpisodes})</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showEpisodes ? "rotate-180" : ""}`} />
+            <List className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="truncate">EPISODIOS ({selectedEp}/{totalEpisodes})</span>
+            <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${showEpisodes ? "rotate-180" : ""}`} />
           </button>
           <button
             onClick={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
             disabled={selectedEp >= maxEpisodeForLang}
-            className="flex-1 py-2.5 px-3 rounded-lg bg-primary text-primary-foreground border border-primary hover:bg-primary/90 text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 shadow-[0_0_12px_hsl(var(--primary)/0.35)]"
+            style={{ flex: 1, minWidth: 0 }}
+            className="py-2.5 px-2 sm:px-3 rounded-lg bg-primary text-primary-foreground border border-primary hover:bg-primary/90 text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 shadow-[0_0_12px_hsl(var(--primary)/0.35)] whitespace-nowrap overflow-hidden"
           >
-            Siguiente <ChevronRight className="w-4 h-4" />
+            <span className="truncate">Siguiente</span>
+            <ChevronRight className="w-4 h-4 shrink-0" />
           </button>
         </div>
+
 
         <AdsterraBanner
           adKey="b411f21fa26a4e8427eb13433959b4e8"
