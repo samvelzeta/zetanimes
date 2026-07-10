@@ -28,6 +28,7 @@ const DownloadPage = lazy(() => import("@/pages/Download"));
 const VerifiedPage = lazy(() => import("@/pages/Verified"));
 const MyLists = lazy(() => import("@/pages/MyLists"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const Ranking = lazy(() => import("@/pages/Ranking"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
