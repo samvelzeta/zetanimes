@@ -35,8 +35,8 @@ async function fetchDubbedSlugs(): Promise<Set<string>> {
 }
 
 function candidatesFor(anime: Pick<AniListMedia, "title">): string[] {
-  const t = anime.title || {};
-  const raw = [t.english, t.romaji, (t as any).native].filter(Boolean) as string[];
+  const t: any = anime.title || {};
+  const raw = [t.english, t.romaji, t.native].filter(Boolean) as string[];
   const out = new Set<string>();
   for (const r of raw) {
     const k = toKebab(r);
