@@ -1658,9 +1658,26 @@ export type Database = {
       end_stream: { Args: { _session_id: string }; Returns: undefined }
       gacha_pull: { Args: { _pool: string }; Returns: Json }
       get_anime_like_count: { Args: { _anilist_id: number }; Returns: number }
+      get_leaderboard: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_frame: string
+          avatar_url: string
+          banner_preset: string
+          banner_url: string
+          display_name: string
+          lvl: number
+          name_effect: string
+          rank_position: number
+          rank_slug: string
+          user_id: string
+          xp: number
+        }[]
+      }
       get_user_max_profiles: { Args: { _user_id: string }; Returns: number }
       get_user_max_streams: { Args: { _user_id: string }; Returns: number }
       get_user_plan_slug: { Args: { _user_id: string }; Returns: string }
+      get_user_rank_position: { Args: { _user_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
