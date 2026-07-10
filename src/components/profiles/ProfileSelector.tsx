@@ -101,8 +101,8 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
     );
   }
 
-  // Zen dropdown (menú de acciones minimalista arriba-derecha)
-  const [menuOpen, setMenuOpen] = useState(false);
+
+
 
   return (
     <div
