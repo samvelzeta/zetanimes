@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Star, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import { useInViewport } from "@/hooks/useInViewport";
+import { useIsDubbed } from "@/hooks/useDubbedAnimes";
 import LazyImage from "@/components/LazyImage";
 
 interface Props {
