@@ -240,6 +240,7 @@ function LoginForm({
         </button>
       </p>
     </form>
+    </div>
   );
 }
 
