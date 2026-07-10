@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Lock, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserXP } from "@/hooks/useUserXP";
 import { useUserCosmetics } from "@/hooks/useUserCosmetics";
+import { useAdminBanners } from "@/hooks/useAdminBanners";
 import {
   AVATAR_FRAMES, NAME_EFFECTS, CURSOR_THEMES, BANNER_PRESETS,
-  isCosmeticUnlocked, type CosmeticRequirement,
+  isCosmeticUnlocked, type CosmeticRequirement, type BannerPresetDef,
 } from "@/lib/cosmetics";
 import AvatarFrame from "./AvatarFrame";
 import UserName from "./UserName";
@@ -25,6 +26,8 @@ export default function CosmeticsPicker() {
   const { user, isPremium, profile } = useAuth();
   const { xp } = useUserXP();
   const { cosmetics, update } = useUserCosmetics();
+  const { banners: adminBanners } = useAdminBanners();
+  const allBanners = useMemo<BannerPresetDef[]>(() => [...BANNER_PRESETS, ...adminBanners], [adminBanners]);
   const ctx = { level: xp.level, isPremium };
   const displayName = profile?.display_name || profile?.username || "Tu nombre";
 
@@ -159,7 +162,7 @@ export default function CosmeticsPicker() {
       {/* BANNER */}
       {tab === "banner" && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {BANNER_PRESETS.map((b) => {
+          {allBanners.map((b) => {
             const unlocked = isCosmeticUnlocked(b.requirement, ctx);
             const active = cosmetics.banner_preset === b.slug && !cosmetics.banner_url;
             return (

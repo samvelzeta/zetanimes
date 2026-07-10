@@ -37,6 +37,7 @@ import UserName from "@/components/premium/UserName";
 import XPBar from "@/components/premium/XPBar";
 import CosmeticsPicker from "@/components/premium/CosmeticsPicker";
 import { useUserCosmetics } from "@/hooks/useUserCosmetics";
+import AvatarFrame from "@/components/premium/AvatarFrame";
 
 type PanelId = null | "manage" | "contact";
 
@@ -312,55 +313,24 @@ export default function Profile() {
                     />
                   </>
                 )}
-                {/* Engranaje centrado como marco alrededor del avatar + polvo Minecraft — solo premium/owner */}
-                {(isPremium || isOwner) && (
-                <div
-                  className="gear-emitter"
-                  aria-hidden
-                  style={{
-                    top: "50%",
-                    left: "50%",
-                    width: "160%",
-                    height: "160%",
-                    transform: "translate(-50%, -50%)",
-                    zIndex: 1,
-                  }}
-                >
-                  <svg className="gear-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.55 }}>
-                    <path d="M19.14 12.94a7.97 7.97 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.9 7.9 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.65 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.97 7.97 0 0 0 0 1.88L2.77 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.39 1.04.7 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.59-.24 1.13-.55 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58Z" />
-                  </svg>
-                  {Array.from({ length: 10 }).map((_, i) => {
-                    const angle = i * 36;
-                    const delay = (i * 0.35).toFixed(2);
-                    const dur = 3.2 + (i % 3) * 0.5;
-                    return (
-                      <span
-                        key={i}
-                        className="dust"
-                        style={{
-                          ["--dust-angle" as any]: `${angle}deg`,
-                          animationDelay: `${delay}s`,
-                          animationDuration: `${dur}s`,
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-                )}
-                {/* Z-1: Photo */}
-                <div
-                  className="relative w-full h-full rounded-full overflow-hidden"
-                  style={{ zIndex: 10, filter: "drop-shadow(0 20px 40px hsl(var(--primary) / 0.35)) drop-shadow(0 8px 16px rgb(0 0 0 / 0.4))" }}
-                >
-                  {displayAvatar ? (
-                    <img src={displayAvatar} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/40 to-accent/20 flex items-center justify-center">
-                      <span className="text-4xl md:text-5xl font-thin text-foreground/70">
-                        {displayName[0]?.toUpperCase() || "U"}
-                      </span>
+                {/* Z-1: Photo con marco cosmético (reemplaza la antigua tuerca/engranaje) */}
+                <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 10 }}>
+                  <AvatarFrame frame={cosmetics.avatar_frame} size={null} className="!w-full !h-full">
+                    <div
+                      className="w-full h-full rounded-full overflow-hidden"
+                      style={{ filter: "drop-shadow(0 20px 40px hsl(var(--primary) / 0.35)) drop-shadow(0 8px 16px rgb(0 0 0 / 0.4))" }}
+                    >
+                      {displayAvatar ? (
+                        <img src={displayAvatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary/40 to-accent/20 flex items-center justify-center">
+                          <span className="text-4xl md:text-5xl font-thin text-foreground/70">
+                            {displayName[0]?.toUpperCase() || "U"}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </AvatarFrame>
                 </div>
               </div>
               {isMainProfile && permissions.custom_avatar_upload && (
