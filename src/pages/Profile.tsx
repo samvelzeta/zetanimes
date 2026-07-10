@@ -617,6 +617,18 @@ export default function Profile() {
         </SheetContent>
       </Sheet>
 
+      {/* Personalización premium (marcos, banners, nombres, cursor) */}
+      <Sheet open={showCosmetics} onOpenChange={setShowCosmetics}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Personalización</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <CosmeticsPicker />
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {showPremiumModal && <PremiumScreen onClose={() => setShowPremiumModal(false)} />}
       {showOwnProfileEditor && activeProfile && (
         <ProfileSelector
