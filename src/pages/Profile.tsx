@@ -93,18 +93,17 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, profileId]);
 
-  // Mantiene las estadísticas sincronizadas en vivo: si el usuario ve un
-  // episodio en otro dispositivo o pestaña, al volver a Profile o al recibir
-  // el cambio en realtime, las horas / episodios se actualizan solos.
+  // Realtime: si el mismo perfil ve un episodio en otro dispositivo, el
+  // contador agregado se refresca automáticamente sin recargar la página.
   useEffect(() => {
     if (!user) return;
     const onVisible = () => { if (document.visibilityState === "visible") loadStats(); };
     document.addEventListener("visibilitychange", onVisible);
     const channel = supabase
-      .channel(`watch-history-stats-${user.id}`)
+      .channel(`profile-stats-${user.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "watch_history", filter: `user_id=eq.${user.id}` },
+        { event: "*", schema: "public", table: "profile_stats", filter: `user_id=eq.${user.id}` },
         () => { loadStats(); }
       )
       .subscribe();
@@ -113,31 +112,26 @@ export default function Profile() {
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, profileId]);
 
   const loadStats = async () => {
     if (!user) return;
-    // Stats globales de la cuenta: agregamos TODO el watch_history / anime_lists del
-    // usuario (todos los perfiles y entradas legacy sin profile_id) para que las
-    // horas y episodios vistos se mantengan sincronizados entre dispositivos y
-    // aunque el usuario cambie de perfil o vuelva a iniciar sesión en otro lugar.
-    const listsQ = supabase
-      .from("anime_lists")
-      .select("*", { count: "exact", head: true })
+    // Lectura ultra ligera: una sola fila agregada por (user_id, profile_id)
+    // en `profile_stats`. Los triggers de la BD mantienen los contadores al
+    // día cada vez que se inserta/actualiza watch_history o anime_lists, así
+    // que el perfil no vuelve a escanear miles de filas para pintar 3 números.
+    let q = supabase
+      .from("profile_stats" as any)
+      .select("episodes_completed,total_watch_seconds,lists_count")
       .eq("user_id", user.id);
-    const epsQ = supabase
-      .from("watch_history")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("completed", true);
-    const histQ = supabase
-      .from("watch_history")
-      .select("watch_duration_seconds")
-      .eq("user_id", user.id);
-
-    const [{ count: lists }, { count: episodes }, { data: historyData }] = await Promise.all([listsQ, epsQ, histQ]);
-    const totalSeconds = (historyData || []).reduce((acc: number, h: any) => acc + (h.watch_duration_seconds || 0), 0);
-    setStats({ lists: lists || 0, episodes: episodes || 0, hours: Math.round((totalSeconds / 3600) * 10) / 10 });
+    q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
+    const { data } = await q.maybeSingle();
+    const row = (data as any) || { episodes_completed: 0, total_watch_seconds: 0, lists_count: 0 };
+    setStats({
+      lists: Number(row.lists_count) || 0,
+      episodes: Number(row.episodes_completed) || 0,
+      hours: Math.round(((Number(row.total_watch_seconds) || 0) / 3600) * 10) / 10,
+    });
   };
 
   const loadContacts = async () => {
