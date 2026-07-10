@@ -1157,3 +1157,56 @@ img {
 .zet-reduced-motion .zf-name-shiny,
 .zet-reduced-motion .zf-name-gradient,
 .zet-reduced-motion .zf-name-rainbow { animation: none !important; }
+
+/* ============================================================
+   RAREZA — halos y badges
+   ============================================================ */
+.zf-rarity-basico     { --zf-glow: rgba(148,163,184,0.35); }
+.zf-rarity-especial   { --zf-glow: rgba(16,185,129,0.55); }
+.zf-rarity-raro       { --zf-glow: rgba(59,130,246,0.65); }
+.zf-rarity-mitico     { --zf-glow: rgba(168,85,247,0.75); }
+.zf-rarity-legendario { --zf-glow: rgba(245,158,11,0.85); }
+.zf-rarity-z          { --zf-glow: rgba(255,0,92,0.95); }
+
+/* Marco Z: aura pulsante multicolor */
+.zf-frame-z::after {
+  content: ""; position: absolute; inset: -6px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, #ff005c, #ffcc00, #00e5ff, #a855f7, #ff005c);
+  filter: blur(10px) opacity(0.6);
+  animation: zf-spin 3s linear infinite;
+  z-index: 0;
+}
+
+/* Marco admin: sin fondo propio, la imagen overlay pinta el borde */
+.zf-frame-admin { padding: 0; }
+.zf-frame-admin::before { display: none; }
+
+/* Chip de rareza reutilizable */
+.rarity-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 9999px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+
+/* Animación gachapón: sacudida y flash */
+@keyframes zf-gacha-shake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-12deg); }
+  40% { transform: rotate(14deg); }
+  60% { transform: rotate(-10deg); }
+  80% { transform: rotate(8deg); }
+}
+.zf-gacha-shake { animation: zf-gacha-shake 0.6s ease-in-out infinite; }
+
+@keyframes zf-gacha-reveal {
+  0% { transform: scale(0.6); opacity: 0; filter: blur(20px); }
+  60% { transform: scale(1.15); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.zf-gacha-reveal { animation: zf-gacha-reveal 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+
+.zet-reduced-motion .zf-gacha-shake,
+.zet-reduced-motion .zf-gacha-reveal,
+.zet-reduced-motion .zf-frame-z::after { animation: none !important; }
