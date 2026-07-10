@@ -172,18 +172,18 @@ export const CURSOR_THEMES: CursorThemeDef[] = [
 // ============ BANNERS ============
 export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "aurora",    name: "Aurora",         rarity: "basico",     requirement: { type: "free" },                gradient: "linear-gradient(135deg,#0f1a3d 0%,#2b1055 40%,#7597de 80%,#ff6b9d 100%)" },
-  { slug: "sakura-g",  name: "Sakura",         rarity: "basico",     requirement: { type: "level", value: 5 },     gradient: "linear-gradient(135deg,#0d0221 0%,#4a1942 45%,#e75480 100%)" },
-  { slug: "cyber",     name: "Cyber city",     rarity: "especial",   requirement: { type: "level", value: 10 },    gradient: "linear-gradient(135deg,#000428 0%,#004e92 50%,#ff005c 100%)" },
+  { slug: "sakura-g",  name: "Sakura",         rarity: "basico",     requirement: { type: "level", value: 30 },    gradient: "linear-gradient(135deg,#0d0221 0%,#4a1942 45%,#e75480 100%)" },
+  { slug: "cyber",     name: "Cyber city",     rarity: "especial",   requirement: { type: "level", value: 50 },    gradient: "linear-gradient(135deg,#000428 0%,#004e92 50%,#ff005c 100%)" },
   { slug: "sunset",    name: "Atardecer",      rarity: "especial",   requirement: { type: "premium" },             gradient: "linear-gradient(135deg,#2b0a3d 0%,#ff5f6d 60%,#ffc371 100%)" },
   { slug: "ocean",     name: "Océano",         rarity: "raro",       requirement: { type: "premium" },             gradient: "linear-gradient(135deg,#001f3f 0%,#0074d9 50%,#7fdbff 100%)" },
   { slug: "forest",    name: "Bosque místico", rarity: "raro",       requirement: { type: "premium" },             gradient: "linear-gradient(135deg,#0b3d0b 0%,#245c2f 50%,#a6ff96 100%)" },
   { slug: "noir",      name: "Noir",           rarity: "especial",   requirement: { type: "premium" },             gradient: "linear-gradient(135deg,#0a0a0a 0%,#2b2b2b 50%,#e5e5e5 100%)" },
   { slug: "gold",      name: "Dorado",         rarity: "mitico",     requirement: { type: "premium" },             gradient: "linear-gradient(135deg,#1a1200 0%,#5c3d00 40%,#f5c542 80%,#fff2b3 100%)" },
   // Ilustraciones IA
-  { slug: "lotus",     name: "Loto",             rarity: "raro",       requirement: { type: "level", value: 6 },   gradient: `url("${bannerLotus}") center/cover no-repeat` },
-  { slug: "higanbana", name: "Higanbana (muerte)", rarity: "mitico",   requirement: { type: "level", value: 12 },  gradient: `url("${bannerHiganbana}") center/cover no-repeat` },
-  { slug: "ninjas",    name: "Ninjas nocturnos",   rarity: "mitico",   requirement: { type: "level", value: 15 },  gradient: `url("${bannerNinjas}") center/cover no-repeat` },
-  { slug: "swords",    name: "Espadas caídas",     rarity: "legendario", requirement: { type: "level", value: 22 }, gradient: `url("${bannerSwords}") center/cover no-repeat` },
+  { slug: "lotus",     name: "Loto",             rarity: "raro",       requirement: { type: "level", value: 70 },  gradient: `url("${bannerLotus}") center/cover no-repeat` },
+  { slug: "higanbana", name: "Higanbana (muerte)", rarity: "mitico",   requirement: { type: "level", value: 90 },  gradient: `url("${bannerHiganbana}") center/cover no-repeat` },
+  { slug: "ninjas",    name: "Ninjas nocturnos",   rarity: "mitico",   requirement: { type: "level", value: 90 },  gradient: `url("${bannerNinjas}") center/cover no-repeat` },
+  { slug: "swords",    name: "Espadas caídas",     rarity: "legendario", requirement: { type: "level", value: 120 }, gradient: `url("${bannerSwords}") center/cover no-repeat` },
   { slug: "isekai",    name: "Isekai",             rarity: "legendario", requirement: { type: "premium" },           gradient: `url("${bannerIsekai}") center/cover no-repeat` },
   { slug: "magic",     name: "Magia elemental",    rarity: "legendario", requirement: { type: "premium" },           gradient: `url("${bannerMagic}") center/cover no-repeat` },
   { slug: "eyes",      name: "Ojos ancestrales",   rarity: "z",          requirement: { type: "gacha" },             gradient: `url("${bannerEyes}") center/cover no-repeat` },
@@ -194,8 +194,8 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "z-void",    name: "Guardián del vacío",    rarity: "legendario", requirement: { type: "gacha" },             gradient: `url("${bannerZVoid}") center/cover no-repeat` },
   // Nuevos banners naturalistas
   { slug: "sakura-trees",     name: "Cerezos en flor (Z)", rarity: "z",          requirement: { type: "gacha" },            gradient: `url("${bannerSakuraTrees}") center/cover no-repeat` },
-  { slug: "swamp-far-red",    name: "Pantano lejano",      rarity: "mitico",     requirement: { type: "level", value: 18 }, gradient: `url("${bannerSwampFarRed}") center/cover no-repeat` },
-  { slug: "swamp-close-red",  name: "Loto rojo en el lodo",rarity: "legendario", requirement: { type: "level", value: 24 }, gradient: `url("${bannerSwampCloseRed}") center/cover no-repeat` },
+  { slug: "swamp-far-red",    name: "Pantano lejano",      rarity: "mitico",     requirement: { type: "level", value: 90 }, gradient: `url("${bannerSwampFarRed}") center/cover no-repeat` },
+  { slug: "swamp-close-red",  name: "Loto rojo en el lodo",rarity: "legendario", requirement: { type: "level", value: 120 }, gradient: `url("${bannerSwampCloseRed}") center/cover no-repeat` },
   { slug: "swamp-close-blue", name: "Loto azul lunar",     rarity: "legendario", requirement: { type: "premium" },          gradient: `url("${bannerSwampCloseBlue}") center/cover no-repeat` },
 ];
 
