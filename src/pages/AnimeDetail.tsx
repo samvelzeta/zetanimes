@@ -234,6 +234,11 @@ export default function AnimeDetail() {
               {anime.title.romaji}
             </p>
           )}
+          {isDubbed && (
+            <p className="mt-2 text-[10px] md:text-xs font-semibold tracking-[0.35em] uppercase text-primary/90">
+              · Doblado ·
+            </p>
+          )}
 
           {/* Fila de acciones principales — Ver ahora + Like */}
           <div className="mt-6 flex items-center justify-center gap-3">
