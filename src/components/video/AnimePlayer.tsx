@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Type } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Sparkles, Type } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 import { useSubtitlePrefs, subtitleStyle, subtitlePositionClass } from "@/hooks/useSubtitlePrefs";
@@ -179,6 +179,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSubPrefs, setShowSubPrefs] = useState(false);
+  const [ambilight, setAmbilight] = useState(false);
   const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs();
   const { permissions } = usePlanPermissions();
   const isPremium = permissions.slug !== "free";
@@ -1091,6 +1092,17 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               </span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-nowrap">
+              {/* Ambilight (premium) — solo UI, sin sistema de colores */}
+              {isPremium && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setAmbilight((v) => !v); showControlsTemp(); }}
+                  className={`transition ${ambilight ? "text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]" : "text-white/80 hover:text-primary"}`}
+                  aria-label="Modo cine Ambilight"
+                  title={ambilight ? "Ambilight: ON" : "Ambilight: OFF"}
+                >
+                  <Sparkles className="w-5 h-5" />
+                </button>
+              )}
               {/* Personalizar subtítulos */}
               <div className="relative">
                 <button
