@@ -283,12 +283,28 @@ function ForgotForm({ onSwitch }: { onSwitch: (m: "login" | "register" | "forgot
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return toast.error("Ingresa tu correo");
+
+    // Anti-spam: 2 minutos entre solicitudes por correo
+    const key = `zet:pwreset:${email.trim().toLowerCase()}`;
+    const last = Number(localStorage.getItem(key) || 0);
+    const elapsed = Date.now() - last;
+    const cooldown = 2 * 60 * 1000;
+    if (last && elapsed < cooldown) {
+      const secs = Math.ceil((cooldown - elapsed) / 1000);
+      const mm = Math.floor(secs / 60);
+      const ss = secs % 60;
+      return toast.error(
+        `Espera ${mm > 0 ? `${mm}m ` : ""}${ss}s antes de solicitar otro enlace.`
+      );
+    }
+
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
     if (error) return toast.error(error.message);
+    localStorage.setItem(key, String(Date.now()));
     setSent(true);
     toast.success("Correo enviado. Revisa tu bandeja.");
   };
