@@ -4,6 +4,7 @@ import { Play, Info, Pause } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import LazyImage from "@/components/LazyImage";
 import { useTranslatedDesc } from "@/hooks/useTranslatedDesc";
+import { useIsDubbed } from "@/hooks/useDubbedAnimes";
 
 function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number; index: number; total: number }) {
   const desc = useTranslatedDesc(a.description, a.id, 240);
