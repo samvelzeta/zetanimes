@@ -3,13 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Trash2, Plus, Upload, Loader2, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { RARITY_META, type Rarity } from "@/lib/cosmetics";
 
 interface Banner {
   id: string;
   name: string;
   image_url: string;
-  requirement_type: "free" | "level" | "premium";
+  requirement_type: "free" | "level" | "premium" | "gacha";
   requirement_value: number;
+  rarity: Rarity;
   position: number;
   active: boolean;
 }
