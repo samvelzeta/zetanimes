@@ -1,4 +1,5 @@
 // Gestión manual de slugs por anilist_id (corrige errores como HxH 2011 → Greed Island)
+// Ahora vive en la tabla unificada `slugs` (columna manual_slug).
 import { supabase } from "@/integrations/supabase/client";
 
 const overrideMem = new Map<number, string | null>();
@@ -6,7 +7,7 @@ const overrideMem = new Map<number, string | null>();
 export async function getSlugOverride(anilistId: number): Promise<string | null> {
   if (overrideMem.has(anilistId)) return overrideMem.get(anilistId)!;
   const { data } = await supabase
-    .from("slug_overrides")
+    .from("slugs")
     .select("manual_slug")
     .eq("anilist_id", anilistId)
     .maybeSingle();
@@ -24,12 +25,12 @@ export async function saveSlugOverride(params: {
   created_by?: string;
 }) {
   const { error } = await supabase
-    .from("slug_overrides")
+    .from("slugs")
     .upsert(
       {
         anilist_id: params.anilist_id,
         manual_slug: params.manual_slug,
-        anime_title: params.anime_title ?? null,
+        title: params.anime_title ?? null,
         cover_image: params.cover_image ?? null,
         notes: params.notes ?? null,
         created_by: params.created_by ?? null,
@@ -41,17 +42,26 @@ export async function saveSlugOverride(params: {
 }
 
 export async function deleteSlugOverride(anilistId: number) {
-  const { error } = await supabase.from("slug_overrides").delete().eq("anilist_id", anilistId);
+  // Solo limpiamos el manual_slug, mantenemos el cache automático (slug)
+  const { error } = await supabase
+    .from("slugs")
+    .update({ manual_slug: null, notes: null })
+    .eq("anilist_id", anilistId);
   overrideMem.delete(anilistId);
   return !error;
 }
 
 export async function listSlugOverrides() {
   const { data } = await supabase
-    .from("slug_overrides")
-    .select("*")
+    .from("slugs")
+    .select("anilist_id, manual_slug, title, cover_image, notes, created_by, created_at, updated_at")
+    .not("manual_slug", "is", null)
     .order("updated_at", { ascending: false });
-  return data || [];
+  // Compat: exponer campo anime_title como antes
+  return (data || []).map((r: any) => ({
+    ...r,
+    anime_title: r.title,
+  }));
 }
 
 /**
