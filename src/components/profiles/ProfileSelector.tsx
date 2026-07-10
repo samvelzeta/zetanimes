@@ -114,53 +114,7 @@ export default function ProfileSelector({ manageMode = false, onClose, onPick, a
           "repeating-linear-gradient(45deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.008) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, rgba(255,255,255,0.02) 0%, transparent 65%)",
       }}
     >
-      {/* Zen menu — engranaje arriba a la derecha */}
-      {isSelectionMode && (
-        <div className="absolute top-5 right-5 z-10">
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-500 hover:text-neutral-200 transition-colors"
-            aria-label="Opciones"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-              <circle cx="12" cy="12" r="2.5" />
-              <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.16.38.48.66.85.83.24.12.5.18.78.18H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.03Z" />
-            </svg>
-          </button>
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0" onClick={() => setMenuOpen(false)} />
-              <div
-                className="absolute right-0 mt-2 w-52 rounded-xl overflow-hidden animate-fade-in"
-                style={{
-                  backgroundColor: "#0a0a0a",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
-                }}
-              >
-                {(allowManageToggle || manageMode) && (
-                  <button
-                    onClick={() => { setMenuOpen(false); setManage(!manage); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-neutral-100 hover:bg-white/[0.03] transition-colors"
-                  >
-                    <Pencil className="w-3.5 h-3.5" strokeWidth={1.4} />
-                    {manage ? "Listo" : "Gestionar"}
-                  </button>
-                )}
-                {onClose && (
-                  <button
-                    onClick={() => { setMenuOpen(false); onClose(); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-neutral-400 hover:text-neutral-100 hover:bg-white/[0.03] transition-colors"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.4} />
-                    Volver
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      {/* Tuerca eliminada por preferencia del usuario. Acciones de gestión disponibles vía header/perfil. */}
 
       <div className="relative max-w-5xl w-full min-h-screen flex flex-col justify-center px-4 py-8 md:py-16">
         <div className="text-center mb-16 md:mb-20">
