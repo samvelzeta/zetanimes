@@ -13,6 +13,7 @@ export interface PullResult {
   name?: string;
   image_url?: string | null;
   rarity?: Rarity;
+  special?: boolean;
 }
 
 export function useGacha() {
