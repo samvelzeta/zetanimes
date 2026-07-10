@@ -22,7 +22,6 @@ export default function GachaPanel({ onOpenInventory }: Props) {
     setResult(null);
     setPhase("shake");
     try {
-      // Sacudida
       await new Promise((r) => setTimeout(r, 900));
       const res = await pull(pool);
       if (!res.ok) {
@@ -30,12 +29,13 @@ export default function GachaPanel({ onOpenInventory }: Props) {
         toast.error(res.reason === "no_tokens" ? "Sin fichas" : res.reason === "all_owned" ? "¡Ya tienes todo!" : "No se pudo tirar");
         return;
       }
-      // Estallido de la Z
       setPhase("burst");
       await new Promise((r) => setTimeout(r, 700));
-      // Reveal del premio
       setResult(res);
       setPhase("reveal");
+      if (res.special) {
+        toast.success(`🎉 ¡Felicidades! Recompensa especial: ${res.name}`, { duration: 6000 });
+      }
     } catch (e: any) {
       setPhase("idle");
       toast.error(e?.message ?? "error");
