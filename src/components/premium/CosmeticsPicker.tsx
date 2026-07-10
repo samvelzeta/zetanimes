@@ -88,9 +88,10 @@ export default function CosmeticsPicker() {
       {/* MARCOS */}
       {tab === "frame" && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {AVATAR_FRAMES.map((f) => {
-            const unlocked = isCosmeticUnlocked(f.requirement, ctx);
+          {allFrames.map((f) => {
+            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium, ownedGacha: ownedFrames, slug: f.slug });
             const active = cosmetics.avatar_frame === f.slug;
+            const meta = RARITY_META[f.rarity];
             return (
               <button
                 key={f.slug}
@@ -104,7 +105,8 @@ export default function CosmeticsPicker() {
                 <AvatarFrame frame={f.slug} size={64}>
                   <div className="w-full h-full bg-secondary" />
                 </AvatarFrame>
-                <span className="text-xs font-medium">{f.name}</span>
+                <span className="text-xs font-medium truncate max-w-full">{f.name}</span>
+                <span className="rarity-chip" style={{ color: meta.color }}>{meta.label}</span>
                 <span className="text-[10px] text-muted-foreground">{reqLabel(f.requirement)}</span>
                 {active && <Check className="absolute top-2 right-2 w-4 h-4 text-primary" />}
                 {!unlocked && <Lock className="absolute top-2 left-2 w-3.5 h-3.5 text-muted-foreground" />}
@@ -118,8 +120,9 @@ export default function CosmeticsPicker() {
       {tab === "name" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {NAME_EFFECTS.map((f) => {
-            const unlocked = isCosmeticUnlocked(f.requirement, ctx);
+            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium });
             const active = cosmetics.name_effect === f.slug;
+            const meta = RARITY_META[f.rarity];
             return (
               <button
                 key={f.slug}
@@ -132,7 +135,10 @@ export default function CosmeticsPicker() {
               >
                 <div className="flex flex-col items-start gap-1">
                   <UserName name={displayName} effect={f.slug} className="text-lg font-bold" />
-                  <span className="text-[10px] text-muted-foreground">{f.name} · {reqLabel(f.requirement)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="rarity-chip" style={{ color: meta.color }}>{meta.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{f.name} · {reqLabel(f.requirement)}</span>
+                  </div>
                 </div>
                 {active && <Check className="w-4 h-4 text-primary" />}
                 {!unlocked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
@@ -146,20 +152,22 @@ export default function CosmeticsPicker() {
       {tab === "cursor" && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {CURSOR_THEMES.map((f) => {
-            const unlocked = isCosmeticUnlocked(f.requirement, ctx);
+            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium });
             const active = cosmetics.cursor_theme === f.slug;
+            const meta = RARITY_META[f.rarity];
             return (
               <button
                 key={f.slug}
                 onClick={() => tryUpdate({ cursor_theme: f.slug }, unlocked, reqLabel(f.requirement))}
                 className={cn(
-                  "relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition min-h-[90px]",
+                  "relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition min-h-[100px]",
                   active ? "border-primary bg-primary/10" : "border-border hover:border-primary/50",
                   !unlocked && "opacity-60"
                 )}
                 style={{ cursor: unlocked ? f.cursor : "not-allowed" }}
               >
                 <span className="text-sm font-medium">{f.name}</span>
+                <span className="rarity-chip" style={{ color: meta.color }}>{meta.label}</span>
                 <span className="text-[10px] text-muted-foreground">{reqLabel(f.requirement)}</span>
                 {active && <Check className="absolute top-2 right-2 w-4 h-4 text-primary" />}
                 {!unlocked && <Lock className="absolute top-2 left-2 w-3.5 h-3.5 text-muted-foreground" />}
@@ -176,30 +184,35 @@ export default function CosmeticsPicker() {
       {tab === "banner" && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {allBanners.map((b) => {
-            const unlocked = isCosmeticUnlocked(b.requirement, ctx);
+            const unlocked = isCosmeticUnlocked(b.requirement, { level: xp.level, isPremium, ownedGacha: ownedBanners, slug: b.slug });
             const active = cosmetics.banner_preset === b.slug && !cosmetics.banner_url;
+            const meta = RARITY_META[b.rarity];
             return (
               <button
                 key={b.slug}
                 onClick={() => tryUpdate({ banner_preset: b.slug, banner_url: null }, unlocked, reqLabel(b.requirement))}
                 className={cn(
                   "relative rounded-xl border overflow-hidden aspect-[16/6] group transition",
-                  active ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/50",
+                  active ? "border-primary ring-2 ring-primary" : `border-border hover:border-primary/50`,
                   !unlocked && "opacity-60"
                 )}
-                style={{ background: b.gradient }}
+                style={{ background: b.gradient, boxShadow: active ? `0 0 12px ${meta.color}80` : undefined }}
               >
                 <div className="absolute inset-0 flex items-end justify-between p-2 bg-gradient-to-t from-black/70 to-transparent">
-                  <span className="text-xs font-semibold text-white">{b.name}</span>
-                  <span className="text-[10px] text-white/70">{reqLabel(b.requirement)}</span>
+                  <span className="text-xs font-semibold text-white truncate">{b.name}</span>
+                  <span className="rarity-chip bg-black/40" style={{ color: meta.color }}>{meta.label}</span>
                 </div>
-                {active && <Check className="absolute top-2 right-2 w-4 h-4 text-white drop-shadow" />}
+                <span className="absolute top-2 right-2 text-[10px] text-white/80">{reqLabel(b.requirement)}</span>
+                {active && <Check className="absolute top-2 left-8 w-4 h-4 text-white drop-shadow" />}
                 {!unlocked && <Lock className="absolute top-2 left-2 w-3.5 h-3.5 text-white/80" />}
               </button>
             );
           })}
         </div>
       )}
+
+      {/* GACHAPÓN */}
+      {tab === "gacha" && <GachaPanel />}
     </div>
   );
 }
