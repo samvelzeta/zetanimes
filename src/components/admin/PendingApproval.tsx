@@ -331,11 +331,13 @@ function PendingCard({
   anime,
   approved,
   hasVideo,
+  hidden,
   onChanged,
 }: {
   anime: AiringItem;
   approved: boolean;
   hasVideo: boolean;
+  hidden: boolean;
   onChanged: () => void;
 }) {
   const navigate = useNavigate();
