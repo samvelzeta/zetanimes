@@ -32,6 +32,11 @@ import PremiumScreen from "@/components/profiles/PremiumScreen";
 import { setActiveProfileId } from "@/lib/account-profiles";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import ProfileBanner from "@/components/premium/ProfileBanner";
+import UserName from "@/components/premium/UserName";
+import XPBar from "@/components/premium/XPBar";
+import CosmeticsPicker from "@/components/premium/CosmeticsPicker";
+import { useUserCosmetics } from "@/hooks/useUserCosmetics";
 
 type PanelId = null | "manage" | "contact";
 
@@ -52,6 +57,8 @@ export default function Profile() {
   const [panel, setPanel] = useState<PanelId>(null);
 
   const { permissions } = usePlanPermissions();
+  const { cosmetics } = useUserCosmetics();
+  const [showCosmetics, setShowCosmetics] = useState(false);
 
   const handleExportPDF = async () => {
     if (!user || !profile) return;
@@ -249,6 +256,24 @@ export default function Profile() {
 
 
 
+          {/* BANNER premium personalizable */}
+          <div className="mb-6">
+            <ProfileBanner
+              preset={cosmetics.banner_preset}
+              url={cosmetics.banner_url}
+              height={140}
+              className="md:!h-[180px]"
+            >
+              <button
+                onClick={() => setShowCosmetics(true)}
+                className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-black/50 backdrop-blur-md text-white border border-white/20 hover:bg-black/70 transition"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                Personalizar
+              </button>
+            </ProfileBanner>
+          </div>
+
           <header className="flex items-start gap-5 md:gap-10">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
@@ -347,12 +372,15 @@ export default function Profile() {
             </div>
 
             <div className="flex-1 min-w-0 pt-1 md:pt-3">
-              <h1
-                className="text-3xl md:text-5xl tracking-tight text-foreground leading-none truncate"
-                style={{ fontWeight: 200, letterSpacing: "-0.02em" }}
-              >
-                {displayName}
-              </h1>
+              <UserName
+                as="h1"
+                name={displayName}
+                effect={cosmetics.name_effect}
+                className="text-3xl md:text-5xl tracking-tight text-foreground leading-none truncate block"
+              />
+              <div className="mt-3 max-w-xs">
+                <XPBar />
+              </div>
               {isMainProfile && (
                 <p className="mt-2 md:mt-3 text-xs md:text-sm text-muted-foreground/60 font-light truncate">
                   {user.email}
@@ -585,6 +613,18 @@ export default function Profile() {
                 <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/60 group-hover:text-primary transition" />
               </a>
             ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Personalización premium (marcos, banners, nombres, cursor) */}
+      <Sheet open={showCosmetics} onOpenChange={setShowCosmetics}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Personalización</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <CosmeticsPicker />
           </div>
         </SheetContent>
       </Sheet>
