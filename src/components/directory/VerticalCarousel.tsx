@@ -8,6 +8,7 @@ import { useIsDubbed } from "@/hooks/useDubbedAnimes";
 
 function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number; index: number; total: number }) {
   const desc = useTranslatedDesc(a.description, a.id, 240);
+  const dubbed = useIsDubbed(a);
   const active = i === index;
   return (
     <article
@@ -25,6 +26,11 @@ function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number;
       <h2 className="directory-hero-title text-3xl sm:text-5xl md:text-6xl font-bold text-white leading-tight line-clamp-3">
         {getTitle(a)}
       </h2>
+      {dubbed && (
+        <p className="mt-2 text-[10px] sm:text-xs font-semibold tracking-[0.35em] uppercase text-primary/90">
+          Doblado
+        </p>
+      )}
       {a.genres?.length ? (
         <p className="mt-3 text-[11px] uppercase tracking-widest text-white/60">
           {a.genres.slice(0, 3).join(" · ")}
