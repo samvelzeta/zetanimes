@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Lock, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserXP } from "@/hooks/useUserXP";
 import { useUserCosmetics } from "@/hooks/useUserCosmetics";
+import { useAdminBanners } from "@/hooks/useAdminBanners";
 import {
   AVATAR_FRAMES, NAME_EFFECTS, CURSOR_THEMES, BANNER_PRESETS,
-  isCosmeticUnlocked, type CosmeticRequirement,
+  isCosmeticUnlocked, type CosmeticRequirement, type BannerPresetDef,
 } from "@/lib/cosmetics";
 import AvatarFrame from "./AvatarFrame";
 import UserName from "./UserName";
