@@ -3,13 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Trash2, Plus, Upload, Loader2, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { RARITY_META, type Rarity } from "@/lib/cosmetics";
 
 interface Banner {
   id: string;
   name: string;
   image_url: string;
-  requirement_type: "free" | "level" | "premium";
+  requirement_type: "free" | "level" | "premium" | "gacha";
   requirement_value: number;
+  rarity: Rarity;
   position: number;
   active: boolean;
 }
@@ -49,6 +51,7 @@ export default function AdminBannersManager() {
         image_url: pub.publicUrl,
         requirement_type: "free",
         requirement_value: 0,
+        rarity: "basico",
         position: items.length,
         active: true,
       });
@@ -113,15 +116,27 @@ export default function AdminBannersManager() {
               </div>
               <div className="p-3 space-y-2">
                 <Input value={b.name} onChange={(e) => patch(b.id, { name: e.target.value })} className="h-8 text-sm" />
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={b.rarity}
+                    onChange={(e) => patch(b.id, { rarity: e.target.value as Rarity })}
+                    className="h-8 text-xs rounded-md border border-border bg-background px-2"
+                    style={{ color: RARITY_META[b.rarity].color }}
+                  >
+                    {(Object.keys(RARITY_META) as Rarity[]).map((r) =>
+                      <option key={r} value={r} style={{ color: RARITY_META[r].color }}>
+                        {RARITY_META[r].label} ({(RARITY_META[r].chance*100).toFixed(1)}%)
+                      </option>)}
+                  </select>
                   <select
                     value={b.requirement_type}
                     onChange={(e) => patch(b.id, { requirement_type: e.target.value as any })}
-                    className="col-span-2 h-8 text-xs rounded-md border border-border bg-background px-2"
+                    className="h-8 text-xs rounded-md border border-border bg-background px-2"
                   >
                     <option value="free">Gratis</option>
                     <option value="level">Por nivel</option>
                     <option value="premium">Premium</option>
+                    <option value="gacha">Solo gachapón</option>
                   </select>
                   <Input
                     type="number"
@@ -129,8 +144,8 @@ export default function AdminBannersManager() {
                     value={b.requirement_value}
                     onChange={(e) => patch(b.id, { requirement_value: parseInt(e.target.value) || 0 })}
                     disabled={b.requirement_type !== "level"}
-                    className="h-8 text-xs"
-                    placeholder="Nivel"
+                    className="h-8 text-xs col-span-2"
+                    placeholder="Nivel requerido"
                   />
                 </div>
                 <div className="flex justify-between items-center pt-1">

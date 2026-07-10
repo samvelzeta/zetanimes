@@ -28,6 +28,7 @@ import ActivityLogTab from "@/components/admin/ActivityLogTab";
 import PremiumConfigEditor from "@/components/admin/PremiumConfigEditor";
 import PremiumBackgroundUploader from "@/components/admin/PremiumBackgroundUploader";
 import AdminBannersManager from "@/components/admin/AdminBannersManager";
+import AdminFramesManager from "@/components/admin/AdminFramesManager";
 import RankingOverridesAdmin from "@/components/admin/RankingOverridesAdmin";
 import AnimeStatusOverridesAdmin from "@/components/admin/AnimeStatusOverridesAdmin";
 import PendingApproval from "@/components/admin/PendingApproval";
@@ -65,6 +66,7 @@ const NAV: NavGroup[] = [
       { key: "premium", label: "Premium", icon: Crown },
       { key: "roles", label: "Roles", icon: Users },
       { key: "banners", label: "Banners", icon: ImageIcon },
+      { key: "frames", label: "Marcos", icon: ShieldCheck },
       { key: "contacts", label: "Contactos", icon: MessageSquare },
     ],
   },
@@ -160,6 +162,7 @@ export default function AdminPanel() {
               {tab === "notifs" && isOwner && <NotifsTab />}
               {tab === "contacts" && <ContactsTab />}
               {tab === "banners" && <AdminBannersManager />}
+              {tab === "frames" && <AdminFramesManager />}
               {isOwner && tab === "apikeys" && <ApiKeysTab />}
               {isOwner && tab === "roles" && <RoleManager />}
             </div>
