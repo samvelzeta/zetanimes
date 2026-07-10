@@ -136,6 +136,7 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
                     )}
                     <div className="absolute bottom-2 left-2 right-2">
                       <p className="text-xs font-bold text-white line-clamp-2">{getTitle(anime)}</p>
+                      <DubbedTag anime={anime} />
                       {anime.genres && <p className="text-[9px] text-white/50 mt-0.5">{anime.genres.slice(0, 2).join(" · ")}</p>}
                     </div>
                   </div>
