@@ -256,6 +256,24 @@ export default function Profile() {
 
 
 
+          {/* BANNER premium personalizable */}
+          <div className="mb-6">
+            <ProfileBanner
+              preset={cosmetics.banner_preset}
+              url={cosmetics.banner_url}
+              height={140}
+              className="md:!h-[180px]"
+            >
+              <button
+                onClick={() => setShowCosmetics(true)}
+                className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-black/50 backdrop-blur-md text-white border border-white/20 hover:bg-black/70 transition"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                Personalizar
+              </button>
+            </ProfileBanner>
+          </div>
+
           <header className="flex items-start gap-5 md:gap-10">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
