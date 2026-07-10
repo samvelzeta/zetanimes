@@ -16,6 +16,7 @@ import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { getApprovedAnimeIds, filterApprovedReleasing, onApprovedChange } from "@/lib/approved-animes";
 import LazySection from "@/components/LazySection";
 import AdBannerInline from "@/components/ads/AdBannerInline";
+import TopOtakusWidget from "@/components/premium/TopOtakusWidget";
 
 // Semilla determinista por año-semana ISO (rota cada lunes)
 function weekSeed(): number {
@@ -220,6 +221,10 @@ export default function Home() {
 
             {/* ===== Sidebar sticky (derecha en desktop, abajo en móvil) ===== */}
             <aside className="lg:col-span-4 space-y-4 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto hide-scrollbar">
+              <LazySection minHeight={320}>
+                <TopOtakusWidget limit={5} title="🏆 Top Otakus de la semana" />
+              </LazySection>
+
               <div className="border-t border-border/40 lg:border-t-0 pt-2 lg:pt-0">
                 <LazySection minHeight={500}>
                   <ActionTrigger onMount={() => setEnableTopRated(true)} />
