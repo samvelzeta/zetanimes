@@ -7,7 +7,7 @@ import {
   ArrowLeft, BarChart3, Crown, Store, CreditCard, LayoutDashboard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search, Upload,
   Trash2, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered, Bug, Activity, Tv,
-  ChevronRight, TrendingUp, Zap, FolderCog, Settings2, ShieldCheck,
+  ChevronRight, TrendingUp, Zap, FolderCog, Settings2, ShieldCheck, Image as ImageIcon,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,6 +27,7 @@ import RoleManager from "@/components/admin/RoleManager";
 import ActivityLogTab from "@/components/admin/ActivityLogTab";
 import PremiumConfigEditor from "@/components/admin/PremiumConfigEditor";
 import PremiumBackgroundUploader from "@/components/admin/PremiumBackgroundUploader";
+import AdminBannersManager from "@/components/admin/AdminBannersManager";
 import RankingOverridesAdmin from "@/components/admin/RankingOverridesAdmin";
 import AnimeStatusOverridesAdmin from "@/components/admin/AnimeStatusOverridesAdmin";
 import PendingApproval from "@/components/admin/PendingApproval";
@@ -63,6 +64,7 @@ const NAV: NavGroup[] = [
     label: "Usuarios", icon: Users, items: [
       { key: "premium", label: "Premium", icon: Crown },
       { key: "roles", label: "Roles", icon: Users },
+      { key: "banners", label: "Banners", icon: ImageIcon },
       { key: "contacts", label: "Contactos", icon: MessageSquare },
     ],
   },
@@ -157,6 +159,7 @@ export default function AdminPanel() {
               {isOwner && tab === "payment" && <PaymentTab />}
               {tab === "notifs" && isOwner && <NotifsTab />}
               {tab === "contacts" && <ContactsTab />}
+              {tab === "banners" && <AdminBannersManager />}
               {isOwner && tab === "apikeys" && <ApiKeysTab />}
               {isOwner && tab === "roles" && <RoleManager />}
             </div>
