@@ -37,6 +37,7 @@ export default function CosmeticsPicker() {
 
   const ownedBanners = useMemo(() => inventorySlugSet(inventory, "banner"), [inventory]);
   const ownedFrames  = useMemo(() => inventorySlugSet(inventory, "frame"), [inventory]);
+  const ownedNames   = useMemo(() => inventorySlugSet(inventory, "name"), [inventory]);
 
   const allBanners = useMemo<BannerPresetDef[]>(() => [...BANNER_PRESETS, ...adminBanners], [adminBanners]);
   const allFrames  = useMemo<AvatarFrameDef[]>(() => [...AVATAR_FRAMES, ...adminFrames], [adminFrames]);
