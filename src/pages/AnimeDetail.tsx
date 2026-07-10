@@ -56,7 +56,6 @@ export default function AnimeDetail() {
   const [translatedDesc, setTranslatedDesc] = useState<string | null>(null);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [viewCount, setViewCount] = useState<number>(0);
-  const isDubbed = useIsDubbed(anime);
 
   useEffect(() => {
     if (!animeId) return;
