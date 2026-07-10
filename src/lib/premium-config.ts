@@ -82,6 +82,12 @@ export function buildPlanFeatures(plan: PremiumPlanConfig): string[] {
   if (plan.downloads_allowed && plan.show_downloads) features.push("Descargas habilitadas");
   if (plan.vip_support && plan.show_vip_support) features.push("Soporte VIP prioritario");
   if (plan.uninterrupted_fullscreen && plan.show_uninterrupted_fullscreen) features.push("Pantalla completa ininterrumpida al cambiar de episodio");
+  // Beneficios premium extra (compartidos por todos los planes de pago)
+  features.push("XP acelerado y ranking en el leaderboard");
+  features.push("Misiones semanales, logros y sistema Gacha");
+  features.push("Wrapped anual completo + estadísticas comparativas");
+  features.push("Cosméticos: marcos, banners y efectos de nombre");
+  features.push("Ambilight y personalización de subtítulos");
   return features;
 }
 
