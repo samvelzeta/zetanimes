@@ -117,25 +117,27 @@ export default function VerticalCarousel({ items }: Props) {
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background pointer-events-none" />
 
       {/* Firma */}
-      <div className="absolute top-14 left-4 sm:top-20 sm:left-8 z-20 pointer-events-none">
-        <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase leading-relaxed">
+      <div className="absolute top-6 left-4 sm:top-10 sm:left-8 z-20 pointer-events-none">
+        <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase leading-[1.9]">
           En cartel · Estreno
-          <br />
-          <span className="text-primary/90">Esto te ofrece Zani</span>
         </p>
-        <div className="mt-1 h-px w-10 bg-primary/60" />
+        <p className="mt-1 text-[10px] sm:text-xs font-light tracking-[0.45em] uppercase leading-[1.9] text-primary/90">
+          Esto te ofrece Zani
+        </p>
+        <div className="mt-2 h-px w-10 bg-primary/60" />
       </div>
 
 
 
       {/* Grid con carrusel vertical */}
-      <div className="relative z-10 h-full grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-6 px-5 md:px-14 items-center">
+      <div className="relative z-10 h-full grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-6 px-5 md:px-14 pt-28 sm:pt-32 md:pt-0 items-start md:items-center">
         {/* Cara narrativa */}
         <div className="relative min-h-[38vh] md:min-h-[60vh]">
           {slides.map((a, i) => (
             <VerticalSlideText key={`t-${a.id}`} a={a} i={i} index={index} total={slides.length} />
           ))}
         </div>
+
 
         {/* Torre vertical con posters */}
         <div className="relative hidden md:block h-[70vh]">
