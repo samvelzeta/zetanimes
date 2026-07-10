@@ -43,10 +43,13 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
         .eq("slug", slug)
         .eq("report_type", type);
       q = epNum === null ? q.is("episode_number", null) : q.eq("episode_number", epNum);
-      const { data: existing } = await q.maybeSingle();
+      const { data: existing, error: lookupErr } = await q.maybeSingle();
+      if (lookupErr) {
+        console.error("[report] lookup error", lookupErr);
+        throw lookupErr;
+      }
 
       if (existing) {
-        // Only bump count if this user hasn't already reported it.
         const { data: already } = await supabase
           .from("broken_link_reporters")
           .select("id")
@@ -55,21 +58,22 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
           .maybeSingle();
 
         if (!already) {
-          await supabase.from("broken_link_reports")
+          const { error: updErr } = await supabase.from("broken_link_reports")
             .update({
               report_count: existing.report_count + 1,
               last_reported_at: new Date().toISOString(),
               reason: reasonText,
-              status: "pending", // re-abre si estaba "resolved" y vuelve a fallar
+              status: "pending",
               priority_score: Math.max((existing as any).priority_score || 0, reporterPriority),
               highest_plan_slug: reporterPriority >= ((existing as any).priority_score || 0) ? reporterPlan : undefined,
               highest_priority_label: reporterPriority >= ((existing as any).priority_score || 0) ? reporterLabel : undefined,
             } as any)
             .eq("id", existing.id);
+          if (updErr) { console.error("[report] update error", updErr); throw updErr; }
         }
         reportId = existing.id;
       } else {
-        const { data: inserted } = await supabase
+        const { data: inserted, error: insErr } = await supabase
           .from("broken_link_reports")
           .insert({
             slug, episode_number: epNum, report_type: type,
@@ -81,19 +85,26 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
           } as any)
           .select("id")
           .single();
+        if (insErr) { console.error("[report] insert error", insErr); throw insErr; }
         reportId = (inserted as any)?.id || null;
       }
 
-      // Track this reporter (idempotent thanks to UNIQUE(report_id,user_id)).
       if (reportId) {
-        await supabase.from("broken_link_reporters")
+        const { error: repErr } = await supabase.from("broken_link_reporters")
           .insert({ report_id: reportId, user_id: user.id, plan_slug: reporterPlan, priority_label: reporterLabel, priority_score: reporterPriority } as any);
+        if (repErr && repErr.code !== "23505") {
+          // 23505 = unique violation (ya reportó): no es error real
+          console.error("[report] reporter insert error", repErr);
+        }
+      } else {
+        throw new Error("No se obtuvo ID de reporte");
       }
 
       toast.success("Reporte enviado. Te avisaremos cuando lo solucionemos.");
       setOpen(false);
     } catch (e: any) {
-      toast.error("Error al reportar");
+      console.error("[report] fallo total", e);
+      toast.error(`Error al reportar: ${e?.message || "desconocido"}`);
     }
     setSending(false);
   };
