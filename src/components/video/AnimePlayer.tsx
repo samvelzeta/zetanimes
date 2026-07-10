@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Sparkles, Type } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
+import { useSubtitlePrefs, subtitleStyle, subtitlePositionClass } from "@/hooks/useSubtitlePrefs";
+import { useAmbilight } from "@/hooks/useAmbilight";
+import { usePlanPermissions } from "@/hooks/usePlanPermissions";
+import SubtitleSettings from "@/components/premium/SubtitleSettings";
 
 export interface PlayerSubtitle {
   lang: string;
@@ -175,6 +179,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showSubPrefs, setShowSubPrefs] = useState(false);
+  const [ambilight, setAmbilight] = useState(false);
+  const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs();
+  const { permissions } = usePlanPermissions();
+  const isPremium = permissions.slug !== "free";
+  useAmbilight(videoRef, containerRef, ambilight);
   const subtitleOptions = useMemo(
     () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
     [effectiveSubtitles]
@@ -917,17 +927,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
       {subsActive && activeSubtitleText && (
         <div
-          className={`pointer-events-none absolute inset-x-0 flex justify-center px-4 ${isFullscreen ? "bottom-[16%]" : "bottom-[18%]"}`}
+          className={`pointer-events-none absolute inset-x-0 flex justify-center px-4 ${subtitlePositionClass(subPrefs.position, isFullscreen)}`}
           style={{ zIndex: 5 }}
         >
           <div
-            className="max-w-[92%] whitespace-pre-line text-center font-bold leading-snug"
-            style={{
-              color: "#fff",
-              fontSize: "clamp(16px, 2.4vw, 28px)",
-              textShadow: "2px 2px 4px #000, 0 0 10px #000, -1px -1px 2px #000",
-              padding: "4px 12px",
-            }}
+            className="max-w-[92%] whitespace-pre-line text-center"
+            style={subtitleStyle(subPrefs)}
           >
             {activeSubtitleText}
           </div>
@@ -1089,6 +1094,37 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               </span>
             </div>
             <div className="flex items-center gap-3 shrink-0">
+              {/* Ambilight (premium) */}
+              {isPremium && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setAmbilight((v) => !v); showControlsTemp(); }}
+                  className={`transition ${ambilight ? "text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]" : "text-white/80 hover:text-primary"}`}
+                  aria-label="Modo cine Ambilight"
+                  title={ambilight ? "Ambilight: ON" : "Ambilight: OFF"}
+                >
+                  <Sparkles className="w-5 h-5" />
+                </button>
+              )}
+              {/* Personalizar subtítulos */}
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowSubPrefs((v) => !v); showControlsTemp(); }}
+                  className="text-white/80 hover:text-primary transition"
+                  aria-label="Personalizar subtítulos"
+                  title="Personalizar subtítulos"
+                >
+                  <Type className="w-5 h-5" />
+                </button>
+                {showSubPrefs && (
+                  <SubtitleSettings
+                    prefs={subPrefs}
+                    update={updateSubPrefs}
+                    reset={resetSubPrefs}
+                    onClose={() => setShowSubPrefs(false)}
+                    isPremium={isPremium}
+                  />
+                )}
+              </div>
               {/* Speed gear popover */}
               <div className="relative">
                 <button
