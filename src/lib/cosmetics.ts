@@ -183,9 +183,9 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
   // ── Z: 3 banners exclusivos gacha ──
   { slug: "z-abyss",   name: "El abismo (Z)",      rarity: "z",          requirement: { type: "gacha" },             gradient: `url("${bannerZAbyss}") center/cover no-repeat` },
   { slug: "z-king",    name: "Rey del trono Z",    rarity: "z",          requirement: { type: "gacha" },             gradient: `url("${bannerZKing}") center/cover no-repeat` },
-  { slug: "z-void",    name: "Guardián del vacío (Z)", rarity: "z",      requirement: { type: "gacha" },             gradient: `url("${bannerZVoid}") center/cover no-repeat` },
+  { slug: "z-void",    name: "Guardián del vacío",    rarity: "legendario", requirement: { type: "gacha" },             gradient: `url("${bannerZVoid}") center/cover no-repeat` },
   // Nuevos banners naturalistas
-  { slug: "sakura-trees",     name: "Cerezos en flor",     rarity: "raro",       requirement: { type: "level", value: 8 },  gradient: `url("${bannerSakuraTrees}") center/cover no-repeat` },
+  { slug: "sakura-trees",     name: "Cerezos en flor (Z)", rarity: "z",          requirement: { type: "gacha" },            gradient: `url("${bannerSakuraTrees}") center/cover no-repeat` },
   { slug: "swamp-far-red",    name: "Pantano lejano",      rarity: "mitico",     requirement: { type: "level", value: 18 }, gradient: `url("${bannerSwampFarRed}") center/cover no-repeat` },
   { slug: "swamp-close-red",  name: "Loto rojo en el lodo",rarity: "legendario", requirement: { type: "level", value: 24 }, gradient: `url("${bannerSwampCloseRed}") center/cover no-repeat` },
   { slug: "swamp-close-blue", name: "Loto azul lunar",     rarity: "legendario", requirement: { type: "premium" },          gradient: `url("${bannerSwampCloseBlue}") center/cover no-repeat` },
