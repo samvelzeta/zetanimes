@@ -329,6 +329,7 @@ function RegisterForm({
         </button>
       </p>
     </form>
+    </div>
   );
 }
 
