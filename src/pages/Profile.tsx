@@ -41,7 +41,6 @@ import AvatarFrame from "@/components/premium/AvatarFrame";
 import AchievementsPanel from "@/components/premium/AchievementsPanel";
 import MissionsPanel from "@/components/premium/MissionsPanel";
 import ComparativeStats from "@/components/premium/ComparativeStats";
-import { Link } from "react-router-dom";
 import { Sparkles as WrappedIcon } from "lucide-react";
 
 type PanelId = null | "manage" | "contact";
