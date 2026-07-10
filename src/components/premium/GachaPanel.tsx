@@ -16,7 +16,7 @@ export default function GachaPanel({ onOpenInventory }: Props) {
   const [result, setResult] = useState<PullResult | null>(null);
 
   const doPull = async () => {
-    if (tokens.tokens < 1) { toast.error("No tienes fichas Z. Mira más animes para ganar."); return; }
+    if (tokens.tokens < 2) { toast.error("Necesitas 2 fichas Z. Mira más animes para ganar."); return; }
     setPulling(true);
     setResult(null);
     try {
