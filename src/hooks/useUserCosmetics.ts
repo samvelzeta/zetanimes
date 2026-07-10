@@ -63,7 +63,7 @@ export function useUserCosmetics() {
     });
 
     const ch = supabase
-      .channel(`cosmetics-${user.id}`)
+      .channel(`cosmetics-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_cosmetics", filter: `user_id=eq.${user.id}` },
