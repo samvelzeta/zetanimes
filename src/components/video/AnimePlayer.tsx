@@ -1094,18 +1094,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                 <span className="hidden min-[430px]:inline">{formatTime(progress)} <span className="text-white/30 mx-0.5">/</span> {formatTime(duration)}</span>
               </span>
             </div>
-            <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:gap-3 overflow-hidden">
-              {/* Ambilight (premium) — solo UI, sin sistema de colores */}
-              {isPremium && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setAmbilight((v) => !v); showControlsTemp(); }}
-                  className={`flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto shrink-0 items-center justify-center transition ${ambilight ? "text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]" : "text-white/80 hover:text-primary"}`}
-                  aria-label="Modo cine Ambilight"
-                  title={ambilight ? "Ambilight: ON" : "Ambilight: OFF"}
-                >
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-              )}
+            <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:gap-3">
+
               {/* Personalizar subtítulos */}
               <div className="relative shrink-0">
                 <button
