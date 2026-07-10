@@ -1,19 +1,23 @@
 import { useMemo, useState } from "react";
-import { Lock, Check } from "lucide-react";
+import { Lock, Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserXP } from "@/hooks/useUserXP";
 import { useUserCosmetics } from "@/hooks/useUserCosmetics";
 import { useAdminBanners } from "@/hooks/useAdminBanners";
+import { useAdminFrames } from "@/hooks/useAdminFrames";
+import { useGacha, inventorySlugSet } from "@/hooks/useGacha";
 import {
   AVATAR_FRAMES, NAME_EFFECTS, CURSOR_THEMES, BANNER_PRESETS,
-  isCosmeticUnlocked, type CosmeticRequirement, type BannerPresetDef,
+  isCosmeticUnlocked, RARITY_META,
+  type CosmeticRequirement, type BannerPresetDef, type AvatarFrameDef,
 } from "@/lib/cosmetics";
 import AvatarFrame from "./AvatarFrame";
 import UserName from "./UserName";
+import GachaPanel from "./GachaPanel";
 
-type Tab = "frame" | "name" | "cursor" | "banner";
+type Tab = "frame" | "name" | "cursor" | "banner" | "gacha";
 
 function reqLabel(req: CosmeticRequirement): string {
   if (req.type === "free") return "Gratis";
@@ -28,17 +32,25 @@ export default function CosmeticsPicker() {
   const { xp } = useUserXP();
   const { cosmetics, update } = useUserCosmetics();
   const { banners: adminBanners } = useAdminBanners();
+  const { frames: adminFrames } = useAdminFrames();
+  const { inventory } = useGacha();
+
+  const ownedBanners = useMemo(() => inventorySlugSet(inventory, "banner"), [inventory]);
+  const ownedFrames  = useMemo(() => inventorySlugSet(inventory, "frame"), [inventory]);
+
   const allBanners = useMemo<BannerPresetDef[]>(() => [...BANNER_PRESETS, ...adminBanners], [adminBanners]);
-  const ctx = { level: xp.level, isPremium };
+  const allFrames  = useMemo<AvatarFrameDef[]>(() => [...AVATAR_FRAMES, ...adminFrames], [adminFrames]);
+
   const displayName = profile?.display_name || profile?.username || "Tu nombre";
 
   if (!user) return null;
 
-  const tabs: { id: Tab; label: string }[] = [
+  const tabs: { id: Tab; label: string; icon?: any }[] = [
     { id: "frame", label: "Marco" },
     { id: "name", label: "Nombre" },
     { id: "cursor", label: "Cursor" },
     { id: "banner", label: "Banner" },
+    { id: "gacha", label: "Gachapón Z", icon: Sparkles },
   ];
 
   const tryUpdate = async (patch: Partial<typeof cosmetics>, unlocked: boolean, reqTxt: string) => {
