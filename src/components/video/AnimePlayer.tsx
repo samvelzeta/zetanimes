@@ -1026,34 +1026,34 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         )}
 
         {/* Bottom controls — slim HUD */}
-        <div data-player-control="true" className="pointer-events-auto absolute bottom-0 left-0 right-0 px-4 pb-3 pt-6 bg-gradient-to-t from-black/80 to-transparent">
-          <div onClick={seekTo} className="w-full h-[3px] bg-white/15 rounded-full cursor-pointer mb-2.5 group/bar hover:h-[5px] transition-all">
+        <div data-player-control="true" className="pointer-events-auto absolute bottom-0 left-0 right-0 px-2 min-[380px]:px-3 sm:px-4 pb-2 sm:pb-3 pt-6 bg-gradient-to-t from-black/80 to-transparent overflow-hidden">
+          <div onClick={seekTo} className="w-full h-[3px] bg-white/15 rounded-full cursor-pointer mb-2 group/bar hover:h-[5px] transition-all">
             <div className="h-full bg-primary rounded-full relative transition-all" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : "0%", boxShadow: "0 0 8px hsl(var(--primary) / 0.65)" }}>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
             </div>
           </div>
-          <div className="flex items-center justify-between gap-x-2 gap-y-2 flex-wrap sm:flex-nowrap">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap sm:flex-nowrap">
-              <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="text-white hover:text-primary hover:drop-shadow-[0_0_10px_hsl(var(--primary))] transition shrink-0">
-                {playing ? <Play className="w-5 h-5 fill-current" /> : <Zap className="w-5 h-5 fill-current" />}
+          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 overflow-hidden">
+            <div className="flex min-w-0 flex-nowrap items-center gap-1 sm:gap-3 overflow-hidden">
+              <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto shrink-0 items-center justify-center text-white hover:text-primary hover:drop-shadow-[0_0_10px_hsl(var(--primary))] transition">
+                {playing ? <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> : <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />}
               </button>
-              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white/80 hover:text-primary transition shrink-0">
-                {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto shrink-0 items-center justify-center text-white/80 hover:text-primary transition">
+                {muted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
               {effectiveSubtitles.length > 0 && (
-                <div className="relative shrink-0">
+                <div className="relative flex h-6 min-[380px]:h-7 sm:h-auto shrink-0 items-center gap-0.5 overflow-hidden">
                   <button
                     onClick={(e) => { e.stopPropagation(); setSubsActive((v) => !v); if (!subsActive) setShowSubtitleMenu(false); }}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowSubtitleMenu((v) => !v); }}
-                    className={`text-white/80 hover:text-primary transition ${subsActive ? "text-primary" : ""}`}
+                    className={`flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto shrink-0 items-center justify-center text-white/80 hover:text-primary transition ${subsActive ? "text-primary" : ""}`}
                     aria-label={subsActive ? "Desactivar subtítulos" : "Activar subtítulos"}
                     title={subsActive ? "Subtítulos: ON" : "Subtítulos: OFF"}
                   >
-                    {subsActive ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
+                    {subsActive ? <Captions className="w-4 h-4 sm:w-5 sm:h-5" /> : <CaptionsOff className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowSubtitleMenu((v) => !v); }}
-                    className="ml-1 align-top text-[10px] font-mono font-medium text-white/70 hover:text-primary transition"
+                    className="hidden min-[380px]:inline-flex max-w-7 overflow-hidden text-[9px] sm:text-[10px] font-mono font-medium text-white/70 hover:text-primary transition"
                     aria-label="Elegir idioma de subtítulos"
                     title="Elegir idioma"
                   >
@@ -1081,37 +1081,40 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               )}
               <button
                 onClick={(e) => { e.stopPropagation(); skip90(); }}
-                className="px-2 py-0.5 rounded-md border border-white/15 text-[10px] font-mono font-medium text-white/80 hover:border-primary hover:text-primary hover:shadow-[0_0_10px_hsl(var(--primary)/0.4)] transition flex items-center gap-1 shrink-0"
+                className="flex h-6 min-[380px]:h-7 sm:h-auto shrink-0 items-center gap-0.5 sm:gap-1 rounded-md border border-white/15 px-1 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-mono font-medium text-white/80 hover:border-primary hover:text-primary hover:shadow-[0_0_10px_hsl(var(--primary)/0.4)] transition whitespace-nowrap overflow-hidden"
                 aria-label="Saltar 1:30"
                 title="Saltar opening/ending (+1:30)"
               >
-                <SkipForward className="w-3 h-3" /> +1:30
+                <SkipForward className="w-3 h-3 shrink-0" />
+                <span className="min-[380px]:hidden">90</span>
+                <span className="hidden min-[380px]:inline">+1:30</span>
               </button>
-              <span className="text-[11px] font-mono tabular-nums tracking-wider text-white/70 shrink-0">
-                {formatTime(progress)} <span className="text-white/30 mx-0.5">/</span> {formatTime(duration)}
+              <span className="hidden min-[360px]:inline-block max-w-[48px] min-[430px]:max-w-[92px] truncate text-[9px] sm:text-[11px] font-mono tabular-nums tracking-wider text-white/70 shrink-0 whitespace-nowrap">
+                <span className="min-[430px]:hidden">{formatTime(progress)}</span>
+                <span className="hidden min-[430px]:inline">{formatTime(progress)} <span className="text-white/30 mx-0.5">/</span> {formatTime(duration)}</span>
               </span>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-nowrap">
+            <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:gap-3 overflow-hidden">
               {/* Ambilight (premium) — solo UI, sin sistema de colores */}
               {isPremium && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setAmbilight((v) => !v); showControlsTemp(); }}
-                  className={`transition ${ambilight ? "text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]" : "text-white/80 hover:text-primary"}`}
+                  className={`flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto shrink-0 items-center justify-center transition ${ambilight ? "text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]" : "text-white/80 hover:text-primary"}`}
                   aria-label="Modo cine Ambilight"
                   title={ambilight ? "Ambilight: ON" : "Ambilight: OFF"}
                 >
-                  <Sparkles className="w-5 h-5" />
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               )}
               {/* Personalizar subtítulos */}
-              <div className="relative">
+              <div className="relative shrink-0">
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowSubPrefs((v) => !v); showControlsTemp(); }}
-                  className="text-white/80 hover:text-primary transition"
+                  className="flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto items-center justify-center text-white/80 hover:text-primary transition"
                   aria-label="Personalizar subtítulos"
                   title="Personalizar subtítulos"
                 >
-                  <Type className="w-5 h-5" />
+                  <Type className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 {showSubPrefs && (
                   <SubtitleSettings
@@ -1124,15 +1127,15 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                 )}
               </div>
               {/* Speed gear popover */}
-              <div className="relative">
+              <div className="relative shrink-0">
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowSpeedMenu((v) => !v); showControlsTemp(); }}
-                  className="flex items-center gap-1 text-white/80 hover:text-primary transition"
+                  className="flex h-6 min-[380px]:h-7 sm:h-auto max-w-10 sm:max-w-none items-center justify-center gap-0.5 sm:gap-1 overflow-hidden text-white/80 hover:text-primary transition"
                   aria-label="Velocidad de reproducción"
                   title="Velocidad"
                 >
-                  <Gauge className="w-5 h-5" />
-                  <span className="text-[10px] font-mono tabular-nums">{playbackRate}x</span>
+                  <Gauge className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  <span className="hidden min-[430px]:inline text-[10px] font-mono tabular-nums truncate">{playbackRate}x</span>
                 </button>
                 {showSpeedMenu && (
                   <div onClick={(e) => e.stopPropagation()} className="absolute bottom-full right-0 mb-2 w-32 rounded-xl border border-white/10 bg-black/70 backdrop-blur-xl p-1.5 shadow-2xl">
@@ -1155,16 +1158,16 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               {isFullscreen && currentEpisode != null && totalEpisodes && totalEpisodes > 0 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowEpList((v) => !v); showControlsTemp(); }}
-                  className="flex items-center gap-1 text-white/80 hover:text-primary transition"
+                  className="flex h-6 min-[380px]:h-7 sm:h-auto max-w-12 sm:max-w-none shrink-0 items-center justify-center gap-0.5 sm:gap-1 overflow-hidden text-white/80 hover:text-primary transition"
                   aria-label="Lista de episodios"
                   title="Lista de episodios (solo en pantalla completa)"
                 >
-                  <List className="w-5 h-5" />
-                  <span className="text-[10px] font-mono tabular-nums">{currentEpisode}/{totalEpisodes}</span>
+                  <List className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  <span className="hidden min-[430px]:inline text-[10px] font-mono tabular-nums truncate">{currentEpisode}/{totalEpisodes}</span>
                 </button>
               )}
-              <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white/80 hover:text-primary transition">
-                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto shrink-0 items-center justify-center text-white/80 hover:text-primary transition" aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}>
+                {isFullscreen ? <Minimize className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
             </div>
           </div>
