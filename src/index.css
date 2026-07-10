@@ -1168,7 +1168,7 @@ img {
 .zf-rarity-legendario { --zf-glow: rgba(245,158,11,0.85); }
 .zf-rarity-z          { --zf-glow: rgba(255,0,92,0.95); }
 
-/* Marco Z: aura pulsante multicolor */
+/* Marco Z: aura pulsante multicolor + overlay animado */
 .zf-frame-z::after {
   content: ""; position: absolute; inset: -6px;
   border-radius: inherit;
@@ -1177,6 +1177,19 @@ img {
   animation: zf-spin 3s linear infinite;
   z-index: 0;
 }
+/* La imagen overlay del marco Z late y brilla */
+@keyframes zf-z-pulse {
+  0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 6px rgba(255,0,92,0.85)); }
+  50%      { transform: scale(1.04); filter: drop-shadow(0 0 18px rgba(255,0,92,1)) drop-shadow(0 0 8px rgba(255,204,0,0.8)); }
+}
+.zf-frame-z > img { animation: zf-z-pulse 2.2s ease-in-out infinite; transform-origin: center; }
+/* Marco de sangre: goteo animado sutil */
+@keyframes zf-blood-drip {
+  0%, 100% { transform: translateY(0)    scale(1);    filter: drop-shadow(0 0 8px rgba(180,0,0,0.9)); }
+  50%      { transform: translateY(1.5px) scale(1.02); filter: drop-shadow(0 0 16px rgba(220,20,20,1)); }
+}
+.zf-frame-blood > img { animation: zf-blood-drip 3s ease-in-out infinite; transform-origin: center; }
+
 
 /* Marco admin: sin fondo propio, la imagen overlay pinta el borde */
 .zf-frame-admin { padding: 0; }
@@ -1220,4 +1233,7 @@ img {
 
 .zet-reduced-motion .zf-gacha-shake,
 .zet-reduced-motion .zf-gacha-reveal,
-.zet-reduced-motion .zf-frame-z::after { animation: none !important; }
+.zet-reduced-motion .zf-frame-z::after,
+.zet-reduced-motion .zf-frame-z > img,
+.zet-reduced-motion .zf-frame-blood > img { animation: none !important; }
+
