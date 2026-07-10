@@ -5,6 +5,8 @@ import TVSidebar from "@/components/TVSidebar";
 import AdblockGate from "@/components/AdblockGate";
 import ExpiryAlert from "@/components/premium/ExpiryAlert";
 import PremiumGhostAds from "@/components/ads/PremiumGhostAds";
+import CursorApplier from "@/components/premium/CursorApplier";
+import LevelUpToast from "@/components/premium/LevelUpToast";
 import { useIsTV } from "@/hooks/useIsTV";
 import { useTVRemote } from "@/hooks/useTVRemote";
 
