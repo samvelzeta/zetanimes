@@ -106,7 +106,7 @@ export const AVATAR_FRAMES: AvatarFrameDef[] = [
   { slug: "art-wings",   name: "Alas celestiales",  className: "zf-frame-art", shape: "circle", imageUrl: frameWings,  rarity: "legendario", requirement: { type: "premium" } },
   { slug: "art-crown",   name: "Corona real",       className: "zf-frame-art", shape: "circle", imageUrl: frameCrown,  rarity: "legendario", requirement: { type: "gacha" } },
   { slug: "art-dragon",  name: "Dragón dorado",     className: "zf-frame-art", shape: "circle", imageUrl: frameDragon, rarity: "legendario", requirement: { type: "gacha" } },
-  { slug: "art-lotus-red",  name: "Loto rojo",  className: "zf-frame-art", shape: "circle", imageUrl: frameLotusRed,  rarity: "legendario", requirement: { type: "level", value: 28 } },
+  { slug: "art-lotus-red",  name: "Loto rojo",  className: "zf-frame-art", shape: "circle", imageUrl: frameLotusRed,  rarity: "legendario", requirement: { type: "level", value: 120 } },
   { slug: "art-lotus-blue", name: "Loto azul",  className: "zf-frame-art", shape: "circle", imageUrl: frameLotusBlue, rarity: "legendario", requirement: { type: "gacha" } },
 
   // ── Z: 3 marcos únicos animados, solo gacha ──
