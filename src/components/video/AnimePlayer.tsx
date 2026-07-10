@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Sparkles, Type } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
+import { useSubtitlePrefs, subtitleStyle, subtitlePositionClass } from "@/hooks/useSubtitlePrefs";
+import { useAmbilight } from "@/hooks/useAmbilight";
+import { usePlanPermissions } from "@/hooks/usePlanPermissions";
+import SubtitleSettings from "@/components/premium/SubtitleSettings";
 
 export interface PlayerSubtitle {
   lang: string;
@@ -175,6 +179,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [showSubtitleMenu, setShowSubtitleMenu] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showSubPrefs, setShowSubPrefs] = useState(false);
+  const [ambilight, setAmbilight] = useState(false);
+  const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs();
+  const { permissions } = usePlanPermissions();
+  const isPremium = permissions.plan !== "free";
+  useAmbilight(videoRef, containerRef, ambilight);
   const subtitleOptions = useMemo(
     () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
     [effectiveSubtitles]
