@@ -84,7 +84,7 @@ export function useUserXP() {
       });
 
     const ch = supabase
-      .channel(`user-xp-${user.id}`)
+      .channel(`user-xp-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_xp", filter: `user_id=eq.${user.id}` },
