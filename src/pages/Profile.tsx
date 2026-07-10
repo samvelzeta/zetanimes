@@ -41,7 +41,7 @@ import AvatarFrame from "@/components/premium/AvatarFrame";
 import AchievementsPanel from "@/components/premium/AchievementsPanel";
 import MissionsPanel from "@/components/premium/MissionsPanel";
 import ComparativeStats from "@/components/premium/ComparativeStats";
-import TopOtakusWidget from "@/components/premium/TopOtakusWidget";
+
 import { Sparkles as WrappedIcon } from "lucide-react";
 
 type PanelId = null | "manage" | "contact";
@@ -400,46 +400,7 @@ export default function Profile() {
           {/* separador sutil */}
           <div className="border-t border-neutral-900/60" />
 
-          {/* Ranking global + Misiones + Logros */}
-          {user && (
-            <>
-              <TopOtakusWidget limit={5} />
-              <section className="grid md:grid-cols-2 gap-6">
-                <div className="rounded-2xl border border-neutral-800/70 p-4 md:p-5 bg-white/[0.015]">
-                  <MissionsPanel />
-                </div>
-                <div className="rounded-2xl border border-neutral-800/70 p-4 md:p-5 bg-white/[0.015]">
-                  <AchievementsPanel />
-                </div>
-              </section>
-            </>
-          )}
-
-          {/* Estadísticas comparativas + Wrapped */}
-          {user && (
-            <section className="space-y-4">
-              <ComparativeStats />
-              <Link
-                to={`/wrapped/${new Date().getFullYear()}`}
-                className="group flex items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/10 via-fuchsia-500/10 to-amber-500/10 p-4 hover:border-primary transition"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <WrappedIcon className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold">Ver mi año en ZetAnime</p>
-                    <p className="text-[11px] text-muted-foreground">Tu Wrapped {new Date().getFullYear()} en 5 slides</p>
-                  </div>
-                </div>
-                <span className="text-primary group-hover:translate-x-1 transition text-lg">→</span>
-              </Link>
-            </section>
-          )}
-
-          <div className="border-t border-neutral-900/60" />
-
-          {/* ————————————— ZONA DE GESTIÓN ————————————— */}
+          {/* ————————————— ZONA DE GESTIÓN (movida arriba, justo tras stats) ————————————— */}
           <section>
             <h2 className="text-[10px] md:text-xs text-muted-foreground/50 uppercase tracking-[0.25em] font-light mb-5">
               Gestión de Cuenta
@@ -506,6 +467,43 @@ export default function Profile() {
               </button>
             )}
           </section>
+
+          {/* separador sutil */}
+          <div className="border-t border-neutral-900/60" />
+
+          {/* Misiones + Logros (Top Ranking retirado — solo se ve en Home) */}
+          {user && (
+            <section className="grid md:grid-cols-2 gap-6">
+              <div className="rounded-2xl border border-neutral-800/70 p-4 md:p-5 bg-white/[0.015]">
+                <MissionsPanel />
+              </div>
+              <div className="rounded-2xl border border-neutral-800/70 p-4 md:p-5 bg-white/[0.015]">
+                <AchievementsPanel />
+              </div>
+            </section>
+          )}
+
+          {/* Estadísticas comparativas + Wrapped */}
+          {user && (
+            <section className="space-y-4">
+              <ComparativeStats />
+              <Link
+                to={`/wrapped/${new Date().getFullYear()}`}
+                className="group flex items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/10 via-fuchsia-500/10 to-amber-500/10 p-4 hover:border-primary transition"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <WrappedIcon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold">Ver mi año en ZetAnime</p>
+                    <p className="text-[11px] text-muted-foreground">Tu Wrapped {new Date().getFullYear()} en 5 slides</p>
+                  </div>
+                </div>
+                <span className="text-primary group-hover:translate-x-1 transition text-lg">→</span>
+              </Link>
+            </section>
+          )}
 
           {/* separador sutil */}
           <div className="border-t border-neutral-900/60" />
