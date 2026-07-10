@@ -57,6 +57,8 @@ export default function Profile() {
   const [panel, setPanel] = useState<PanelId>(null);
 
   const { permissions } = usePlanPermissions();
+  const { cosmetics } = useUserCosmetics();
+  const [showCosmetics, setShowCosmetics] = useState(false);
 
   const handleExportPDF = async () => {
     if (!user || !profile) return;
