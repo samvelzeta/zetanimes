@@ -5,12 +5,13 @@ import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovi
 import { getApprovedAnimeIds, approveAnime, unapproveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch } from "lucide-react";
+import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch, EyeOff, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
 import { getPrequelChain, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
+import { listHiddenPending, hidePendingAnime, unhidePendingAnime } from "@/lib/hidden-pending-animes";
 
 
 type AiringItem = {
@@ -41,6 +42,13 @@ export default function PendingApproval() {
   const qc = useQueryClient();
   const [query, setQuery] = useState("");
   const [showApproved, setShowApproved] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
+  const { data: hiddenList = [], refetch: refetchHidden } = useQuery({
+    queryKey: ["hidden-pending-animes"],
+    queryFn: listHiddenPending,
+    staleTime: 1000 * 60,
+  });
+  const hiddenSet = useMemo(() => new Set<number>(hiddenList.map((h) => h.anilist_id)), [hiddenList]);
 
   // 3 páginas de RELEASING para tener suficiente pool
   const { data: p1, isLoading: l1 } = useQuery({
@@ -210,18 +218,25 @@ export default function PendingApproval() {
     const q = query.trim().toLowerCase();
     return all.filter((a) => {
       const isApproved = approvedSet.has(a.id);
-      if (showApproved ? !isApproved : isApproved) return false;
+      const isHidden = hiddenSet.has(a.id);
+      if (showHidden) {
+        if (!isHidden) return false;
+      } else {
+        if (isHidden) return false;
+        if (showApproved ? !isApproved : isApproved) return false;
+      }
       if (!q) return true;
       return titleOf(a).toLowerCase().includes(q) || String(a.id).includes(q);
     });
-  }, [all, query, approvedSet, showApproved]);
+  }, [all, query, approvedSet, showApproved, showHidden, hiddenSet]);
 
   useEffect(() => onApprovedChange(() => { refetchApproved(); refetchSeeke(); }), [refetchApproved, refetchSeeke]);
 
   const loading = l1 || l2 || l3 || lm || lm2 || lm3;
 
-  const pendingCount = all.filter((a) => !approvedSet.has(a.id)).length;
-  const approvedCount = all.filter((a) => approvedSet.has(a.id)).length;
+  const pendingCount = all.filter((a) => !approvedSet.has(a.id) && !hiddenSet.has(a.id)).length;
+  const approvedCount = all.filter((a) => approvedSet.has(a.id) && !hiddenSet.has(a.id)).length;
+  const hiddenCount = hiddenSet.size;
 
   return (
     <div className="space-y-4">
