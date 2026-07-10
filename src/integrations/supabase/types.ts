@@ -56,33 +56,6 @@ export type Database = {
         }
         Relationships: []
       }
-      account_settings: {
-        Row: {
-          created_at: string
-          pin_enabled: boolean
-          pin_hash: string | null
-          trusted_until: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          pin_enabled?: boolean
-          pin_hash?: string | null
-          trusted_until?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          pin_enabled?: boolean
-          pin_hash?: string | null
-          trusted_until?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       achievements: {
         Row: {
           condition_type: string
@@ -1021,11 +994,14 @@ export type Database = {
           expiry_notice_sent_at: string | null
           id: string
           last_seen_notification_id: string | null
+          pin_enabled: boolean
+          pin_hash: string | null
           plan_type: string | null
           subscription_email: string | null
           subscription_expires_at: string | null
           subscription_status: string
           subscription_updated_at: string | null
+          trusted_until: string | null
           updated_at: string
           user_id: string
           username: string
@@ -1037,11 +1013,14 @@ export type Database = {
           expiry_notice_sent_at?: string | null
           id?: string
           last_seen_notification_id?: string | null
+          pin_enabled?: boolean
+          pin_hash?: string | null
           plan_type?: string | null
           subscription_email?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string
           subscription_updated_at?: string | null
+          trusted_until?: string | null
           updated_at?: string
           user_id: string
           username: string
@@ -1053,11 +1032,14 @@ export type Database = {
           expiry_notice_sent_at?: string | null
           id?: string
           last_seen_notification_id?: string | null
+          pin_enabled?: boolean
+          pin_hash?: string | null
           plan_type?: string | null
           subscription_email?: string | null
           subscription_expires_at?: string | null
           subscription_status?: string
           subscription_updated_at?: string | null
+          trusted_until?: string | null
           updated_at?: string
           user_id?: string
           username?: string
@@ -1142,62 +1124,38 @@ export type Database = {
         }
         Relationships: []
       }
-      slug_cache: {
+      slugs: {
         Row: {
           anilist_id: number
-          created_at: string
-          id: string
-          slug: string
-          title: string | null
-        }
-        Insert: {
-          anilist_id: number
-          created_at?: string
-          id?: string
-          slug: string
-          title?: string | null
-        }
-        Update: {
-          anilist_id?: number
-          created_at?: string
-          id?: string
-          slug?: string
-          title?: string | null
-        }
-        Relationships: []
-      }
-      slug_overrides: {
-        Row: {
-          anilist_id: number
-          anime_title: string | null
           cover_image: string | null
           created_at: string
           created_by: string | null
-          id: string
-          manual_slug: string
+          manual_slug: string | null
           notes: string | null
+          slug: string | null
+          title: string | null
           updated_at: string
         }
         Insert: {
           anilist_id: number
-          anime_title?: string | null
           cover_image?: string | null
           created_at?: string
           created_by?: string | null
-          id?: string
-          manual_slug: string
+          manual_slug?: string | null
           notes?: string | null
+          slug?: string | null
+          title?: string | null
           updated_at?: string
         }
         Update: {
           anilist_id?: number
-          anime_title?: string | null
           cover_image?: string | null
           created_at?: string
           created_by?: string | null
-          id?: string
-          manual_slug?: string
+          manual_slug?: string | null
           notes?: string | null
+          slug?: string | null
+          title?: string | null
           updated_at?: string
         }
         Relationships: []

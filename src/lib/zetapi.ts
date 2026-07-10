@@ -366,13 +366,15 @@ export async function getCachedSlug(anilistId: number): Promise<string | null> {
   try {
     const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase
-      .from("slug_cache")
-      .select("slug")
+      .from("slugs")
+      .select("slug, manual_slug")
       .eq("anilist_id", anilistId)
       .maybeSingle();
-    if (data?.slug) {
-      slugMemoryCache.set(`id-${anilistId}`, data.slug);
-      return data.slug;
+    // Prioridad: override manual > cache automático
+    const effective = data?.manual_slug || data?.slug || null;
+    if (effective) {
+      slugMemoryCache.set(`id-${anilistId}`, effective);
+      return effective;
     }
     return null;
   } catch {
@@ -383,7 +385,7 @@ export async function getCachedSlug(anilistId: number): Promise<string | null> {
 export async function saveCachedSlug(anilistId: number, slug: string, title: string): Promise<void> {
   try {
     const { supabase } = await import("@/integrations/supabase/client");
-    await supabase.from("slug_cache").upsert(
+    await supabase.from("slugs").upsert(
       { anilist_id: anilistId, slug, title } as any,
       { onConflict: "anilist_id" }
     );
