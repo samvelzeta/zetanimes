@@ -927,17 +927,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
       {subsActive && activeSubtitleText && (
         <div
-          className={`pointer-events-none absolute inset-x-0 flex justify-center px-4 ${isFullscreen ? "bottom-[16%]" : "bottom-[18%]"}`}
+          className={`pointer-events-none absolute inset-x-0 flex justify-center px-4 ${subtitlePositionClass(subPrefs.position, isFullscreen)}`}
           style={{ zIndex: 5 }}
         >
           <div
-            className="max-w-[92%] whitespace-pre-line text-center font-bold leading-snug"
-            style={{
-              color: "#fff",
-              fontSize: "clamp(16px, 2.4vw, 28px)",
-              textShadow: "2px 2px 4px #000, 0 0 10px #000, -1px -1px 2px #000",
-              padding: "4px 12px",
-            }}
+            className="max-w-[92%] whitespace-pre-line text-center"
+            style={subtitleStyle(subPrefs)}
           >
             {activeSubtitleText}
           </div>
