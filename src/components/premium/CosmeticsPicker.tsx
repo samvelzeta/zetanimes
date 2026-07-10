@@ -121,7 +121,7 @@ export default function CosmeticsPicker() {
       {tab === "name" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {NAME_EFFECTS.map((f) => {
-            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium });
+            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium, ownedGacha: ownedNames, slug: f.slug });
             const active = cosmetics.name_effect === f.slug;
             const meta = RARITY_META[f.rarity];
             return (
