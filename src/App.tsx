@@ -29,6 +29,7 @@ const VerifiedPage = lazy(() => import("@/pages/Verified"));
 const MyLists = lazy(() => import("@/pages/MyLists"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Ranking = lazy(() => import("@/pages/Ranking"));
+const Wrapped = lazy(() => import("@/pages/Wrapped"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -97,6 +98,8 @@ const App = () => {
               </Route>
               <Route path="/download" element={<DownloadPage />} />
               <Route path="/verified" element={<VerifiedPage />} />
+              <Route path="/wrapped" element={<Wrapped />} />
+              <Route path="/wrapped/:year" element={<Wrapped />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
