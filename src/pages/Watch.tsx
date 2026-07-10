@@ -973,36 +973,36 @@ export default function Watch() {
         )}
       </div>
 
-      {/* Navegación de episodios — tres botones limpios, Siguiente con acento naranja */}
+      {/* Navegación de episodios — fila móvil estricta sin salto de línea */}
       <div className="px-4 mb-4">
-        <div className="flex flex-row flex-nowrap items-center justify-between gap-2 w-full">
+        <div className="flex min-w-0 w-full flex-row flex-nowrap items-center gap-1.5 sm:gap-2 overflow-hidden">
           <button
             onClick={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
             disabled={selectedEp <= 1}
-            style={{ flex: 1, minWidth: 0 }}
-            className="py-2.5 px-2 sm:px-3 rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 whitespace-nowrap overflow-hidden"
+            className="h-10 min-w-0 flex-[1_1_0%] rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-[10px] min-[380px]:text-[11px] sm:text-xs font-bold flex items-center justify-center gap-0.5 sm:gap-1 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 whitespace-nowrap overflow-hidden px-1.5 sm:px-3"
           >
-            <ChevronLeft className="w-4 h-4 shrink-0" />
-            <span className="truncate">Anterior</span>
+            <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="min-w-0 truncate">Anterior</span>
           </button>
           <button
             onClick={() => setShowEpisodes((v) => !v)}
-            style={{ flex: 1.2, minWidth: 0 }}
-            className="py-2.5 px-2 sm:px-3 rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 whitespace-nowrap overflow-hidden"
+            className="h-10 min-w-0 flex-[1.25_1_0%] rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-[10px] min-[380px]:text-[11px] sm:text-xs font-bold flex items-center justify-center gap-0.5 sm:gap-1.5 transition-all active:scale-95 whitespace-nowrap overflow-hidden px-1 sm:px-3"
             aria-label="Mostrar lista de episodios"
           >
-            <List className="w-4 h-4 text-muted-foreground shrink-0" />
-            <span className="truncate">EPISODIOS ({selectedEp}/{totalEpisodes})</span>
-            <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${showEpisodes ? "rotate-180" : ""}`} />
+            <List className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />
+            <span className="min-w-0 truncate tabular-nums">
+              <span className="sm:hidden">EP {selectedEp}/{totalEpisodes}</span>
+              <span className="hidden sm:inline">EPISODIOS ({selectedEp}/{totalEpisodes})</span>
+            </span>
+            <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 transition-transform ${showEpisodes ? "rotate-180" : ""}`} />
           </button>
           <button
             onClick={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
             disabled={selectedEp >= maxEpisodeForLang}
-            style={{ flex: 1, minWidth: 0 }}
-            className="py-2.5 px-2 sm:px-3 rounded-lg bg-primary text-primary-foreground border border-primary hover:bg-primary/90 text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 shadow-[0_0_12px_hsl(var(--primary)/0.35)] whitespace-nowrap overflow-hidden"
+            className="h-10 min-w-0 flex-[1_1_0%] rounded-lg bg-primary text-primary-foreground border border-primary hover:bg-primary/90 text-[10px] min-[380px]:text-[11px] sm:text-xs font-bold flex items-center justify-center gap-0.5 sm:gap-1 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 shadow-[0_0_12px_hsl(var(--primary)/0.35)] whitespace-nowrap overflow-hidden px-1.5 sm:px-3"
           >
-            <span className="truncate">Siguiente</span>
-            <ChevronRight className="w-4 h-4 shrink-0" />
+            <span className="min-w-0 truncate">Siguiente</span>
+            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           </button>
         </div>
 
