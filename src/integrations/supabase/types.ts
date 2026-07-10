@@ -1104,8 +1104,10 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          current_cycle_start: string | null
           description: string
           icon: string
+          pool: string
           slug: string
           target: number
           title: string
@@ -1115,8 +1117,10 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          current_cycle_start?: string | null
           description: string
           icon?: string
+          pool?: string
           slug: string
           target?: number
           title: string
@@ -1126,8 +1130,10 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          current_cycle_start?: string | null
           description?: string
           icon?: string
+          pool?: string
           slug?: string
           target?: number
           title?: string
@@ -1389,6 +1395,7 @@ export type Database = {
       }
       user_missions: {
         Row: {
+          claimed_at: string | null
           completed_at: string | null
           cycle_started_at: string
           mission_slug: string
@@ -1396,6 +1403,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          claimed_at?: string | null
           completed_at?: string | null
           cycle_started_at?: string
           mission_slug: string
@@ -1403,6 +1411,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          claimed_at?: string | null
           completed_at?: string | null
           cycle_started_at?: string
           mission_slug?: string
@@ -1645,6 +1654,7 @@ export type Database = {
       }
       calc_level_from_xp: { Args: { _xp: number }; Returns: number }
       calc_rank_from_level: { Args: { _level: number }; Returns: string }
+      claim_mission: { Args: { _slug: string }; Returns: Json }
       cleanup_old_data: { Args: never; Returns: Json }
       cleanup_stale_streams: { Args: { _user_id: string }; Returns: undefined }
       delete_download_tracker: {
@@ -1704,6 +1714,7 @@ export type Database = {
         Args: { _device_id: string; _user_id: string }
         Returns: undefined
       }
+      rotate_weekly_missions: { Args: never; Returns: Json }
       start_stream: {
         Args: {
           _anime_id: number
@@ -1712,6 +1723,10 @@ export type Database = {
           _profile_id: string
         }
         Returns: Json
+      }
+      tick_mission: {
+        Args: { _delta?: number; _slug: string; _user_id: string }
+        Returns: undefined
       }
       touch_device_session: {
         Args: {
