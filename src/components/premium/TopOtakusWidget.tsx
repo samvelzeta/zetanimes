@@ -4,6 +4,7 @@ import { useLeaderboard, fetchUserRankPosition } from "@/hooks/useLeaderboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { rankColor, rankName } from "@/hooks/useUserXP";
 import AvatarFrame from "@/components/premium/AvatarFrame";
+import ProfileBanner from "@/components/premium/ProfileBanner";
 import UserName from "@/components/premium/UserName";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
