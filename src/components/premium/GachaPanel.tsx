@@ -52,7 +52,7 @@ export default function GachaPanel({ onOpenInventory }: Props) {
           <Sparkles className="w-10 h-10 text-primary/40" />
         </div>
         <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-          Cada <b>10 episodios completados</b> ganas 1 ficha Z. Gástalas en el gachapón para conseguir marcos y banners aleatorios.
+          Cada <b>20 episodios completados</b> ganas 1 ficha Z. Cada tirada del gachapón cuesta <b>2 fichas</b>.
         </p>
       </div>
 
