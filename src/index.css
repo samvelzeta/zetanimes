@@ -1006,3 +1006,154 @@ img {
 .steampunk-reverse-brief {
   animation: steampunk-reverse-brief 1s ease-out forwards;
 }
+
+/* ============================================================
+   PREMIUM COSMETICS — Marcos de avatar, efectos de nombre
+   ============================================================ */
+.zf-frame {
+  position: relative;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.zf-frame-inner {
+  position: relative;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  border-radius: 9999px;
+  overflow: hidden;
+  z-index: 2;
+  background: hsl(var(--card));
+}
+.zf-frame-inner > * {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 9999px;
+}
+
+.zf-frame-default { padding: 2px; }
+.zf-frame-default::before {
+  content: ""; position: absolute; inset: 0;
+  border-radius: 9999px;
+  border: 2px solid hsl(var(--border));
+}
+
+.zf-frame-neon { padding: 4px; }
+.zf-frame-neon::before {
+  content: ""; position: absolute; inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, hsl(var(--primary)), #ff9d3d, hsl(var(--primary)));
+  animation: zf-spin 4s linear infinite;
+  filter: drop-shadow(0 0 8px hsl(var(--primary) / 0.8));
+}
+
+.zf-frame-fire { padding: 4px; }
+.zf-frame-fire::before {
+  content: ""; position: absolute; inset: -2px;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, #ff1e00, #ffb703, #ff6b00, #ff1e00);
+  animation: zf-spin 3s linear infinite;
+  filter: blur(1px) drop-shadow(0 0 10px #ff6b00cc);
+}
+.zf-frame-fire::after {
+  content: ""; position: absolute; inset: 0;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 50% 100%, #ffcc00cc, transparent 60%);
+  animation: zf-flicker 1.5s ease-in-out infinite alternate;
+  z-index: 1;
+}
+
+.zf-frame-sakura { padding: 4px; }
+.zf-frame-sakura::before {
+  content: ""; position: absolute; inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, #ff9ec3, #ffd6e8, #ff5c9c, #ff9ec3);
+  animation: zf-spin 6s linear infinite;
+  filter: drop-shadow(0 0 6px #ff9ec3aa);
+}
+
+.zf-frame-glitch { padding: 4px; }
+.zf-frame-glitch::before {
+  content: ""; position: absolute; inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, #ff0055, #00e5ff, #ffff00, #ff0055);
+  animation: zf-spin 2s linear infinite;
+  filter: drop-shadow(0 0 8px #ff0055aa);
+}
+.zf-frame-glitch .zf-frame-inner { animation: zf-glitch 3s steps(1) infinite; }
+
+.zf-frame-gold { padding: 4px; }
+.zf-frame-gold::before {
+  content: ""; position: absolute; inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg,
+    #b8860b 0%, #ffd700 20%, #fff8b0 30%, #ffd700 40%,
+    #b8860b 60%, #ffd700 80%, #fff8b0 90%, #b8860b 100%);
+  animation: zf-spin 5s linear infinite;
+  filter: drop-shadow(0 0 10px #ffd70099);
+}
+
+.zf-frame-rainbow { padding: 4px; }
+.zf-frame-rainbow::before {
+  content: ""; position: absolute; inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg,
+    #ff0000, #ff8000, #ffff00, #00ff00, #00ffff, #0080ff, #8000ff, #ff0080, #ff0000);
+  animation: zf-spin 4s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(255,255,255,0.4));
+}
+
+.zet-reduced-motion .zf-frame::before,
+.zet-reduced-motion .zf-frame::after,
+.zet-reduced-motion .zf-frame-inner { animation: none !important; }
+
+@keyframes zf-spin { to { transform: rotate(360deg); } }
+@keyframes zf-flicker { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+@keyframes zf-glitch {
+  0%, 90%, 100% { transform: translate(0,0); }
+  92% { transform: translate(-1px, 1px); }
+  94% { transform: translate(1px, -1px); }
+  96% { transform: translate(-1px, -1px); }
+}
+
+/* Efectos de nombre */
+.zf-name { display: inline-block; }
+.zf-name-shiny {
+  background: linear-gradient(90deg, #fff 0%, #ffdca8 40%, #ffb84d 50%, #ffdca8 60%, #fff 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: zf-shiny 3s linear infinite;
+}
+@keyframes zf-shiny {
+  0% { background-position: 200% 0; } 100% { background-position: -200% 0; }
+}
+.zf-name-gradient {
+  background: linear-gradient(90deg, #ff4500, #ff8a00, #ff005c, #ff4500);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: zf-gradient-move 4s linear infinite;
+}
+@keyframes zf-gradient-move {
+  0% { background-position: 0% 0; } 100% { background-position: 300% 0; }
+}
+.zf-name-fire {
+  background: linear-gradient(180deg, #fff7d1 0%, #ffbf47 40%, #ff5b1e 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 4px rgba(255, 165, 0, 0.4));
+}
+.zf-name-ice {
+  background: linear-gradient(180deg, #e0f7ff 0%, #7fdbff 60%, #0074d9 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 4px rgba(127, 219, 255, 0.5));
+}
+.zf-name-rainbow {
+  background: linear-gradient(90deg, #ff0000, #ff8000, #ffff00, #00ff00, #00ffff, #0080ff, #8000ff, #ff0000);
+  background-size: 400% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: zf-gradient-move 4s linear infinite;
+}
+.zet-reduced-motion .zf-name-shiny,
+.zet-reduced-motion .zf-name-gradient,
+.zet-reduced-motion .zf-name-rainbow { animation: none !important; }
