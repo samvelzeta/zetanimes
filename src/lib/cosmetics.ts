@@ -8,6 +8,20 @@ import bannerIsekai from "@/assets/banner-isekai.jpg";
 import bannerSwords from "@/assets/banner-swords.jpg";
 import bannerMagic from "@/assets/banner-magic.jpg";
 import bannerEyes from "@/assets/banner-eyes.jpg";
+import bannerZAbyss from "@/assets/banner-z-abyss.jpg";
+import bannerZKing from "@/assets/banner-z-king.jpg";
+import bannerZVoid from "@/assets/banner-z-void.jpg";
+// Marcos 3D artísticos (PNG con hueco transparente)
+import frameRoses from "@/assets/frame-roses.png";
+import frameSwords from "@/assets/frame-swords.png";
+import framePetals from "@/assets/frame-petals.png";
+import frameThorns from "@/assets/frame-thorns.png";
+import frameDragon from "@/assets/frame-dragon.png";
+import frameWings from "@/assets/frame-wings.png";
+import frameFlames from "@/assets/frame-flames.png";
+import frameCrown from "@/assets/frame-crown.png";
+import frameDemon from "@/assets/frame-demon.png";
+import frameCosmic from "@/assets/frame-cosmic.png";
 
 export type Rarity = "basico" | "especial" | "raro" | "mitico" | "legendario" | "z";
 
@@ -28,7 +42,7 @@ export type CosmeticRequirement =
   | { type: "premium" }
   | { type: "gacha" };
 
-export type FrameShape = "circle" | "hex" | "diamond" | "square" | "rounded" | "shield" | "star";
+export type FrameShape = "circle" | "hex" | "diamond" | "rounded" | "shield" | "star";
 
 export interface AvatarFrameDef {
   slug: string;
@@ -73,9 +87,22 @@ export const AVATAR_FRAMES: AvatarFrameDef[] = [
   { slug: "shield-fire", name: "Escudo llameante", className: "zf-frame-fire", shape: "shield",  rarity: "raro",       requirement: { type: "level", value: 12 } },
   { slug: "diamond-ice", name: "Diamante de hielo", className: "zf-frame-neon", shape: "diamond", rarity: "mitico",    requirement: { type: "level", value: 20 } },
   { slug: "star-gold",   name: "Estrella dorada", className: "zf-frame-gold",  shape: "star",    rarity: "mitico",     requirement: { type: "premium" } },
-  { slug: "glitch",      name: "Glitch RGB",  className: "zf-frame-glitch",    shape: "square",  rarity: "legendario", requirement: { type: "premium" } },
   { slug: "rainbow",     name: "Arcoíris",    className: "zf-frame-rainbow",   shape: "circle",  rarity: "legendario", requirement: { type: "level", value: 30 } },
-  { slug: "z-supreme",   name: "Marco Z",     className: "zf-frame-rainbow zf-frame-z", shape: "star", rarity: "z",   requirement: { type: "gacha" } },
+
+  // ── Marcos artísticos 3D con overlay PNG ──
+  { slug: "art-petals",  name: "Pétalos de sakura", className: "zf-frame-art", shape: "circle", imageUrl: framePetals, rarity: "especial",   requirement: { type: "level", value: 6 } },
+  { slug: "art-flames",  name: "Aro de fuego azul", className: "zf-frame-art", shape: "circle", imageUrl: frameFlames, rarity: "raro",       requirement: { type: "level", value: 14 } },
+  { slug: "art-thorns",  name: "Espinas malditas",  className: "zf-frame-art", shape: "circle", imageUrl: frameThorns, rarity: "raro",       requirement: { type: "level", value: 18 } },
+  { slug: "art-swords",  name: "Espadas cruzadas",  className: "zf-frame-art", shape: "circle", imageUrl: frameSwords, rarity: "mitico",     requirement: { type: "level", value: 22 } },
+  { slug: "art-roses",   name: "Rosas y espinas",   className: "zf-frame-art", shape: "circle", imageUrl: frameRoses,  rarity: "mitico",     requirement: { type: "premium" } },
+  { slug: "art-wings",   name: "Alas celestiales",  className: "zf-frame-art", shape: "circle", imageUrl: frameWings,  rarity: "legendario", requirement: { type: "premium" } },
+  { slug: "art-crown",   name: "Corona real",       className: "zf-frame-art", shape: "circle", imageUrl: frameCrown,  rarity: "legendario", requirement: { type: "gacha" } },
+  { slug: "art-dragon",  name: "Dragón dorado",     className: "zf-frame-art", shape: "circle", imageUrl: frameDragon, rarity: "legendario", requirement: { type: "gacha" } },
+
+  // ── Z: 3 marcos únicos, solo gacha ──
+  { slug: "z-demon",     name: "Portal demoníaco",  className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameDemon,  rarity: "z", requirement: { type: "gacha" } },
+  { slug: "z-cosmic",    name: "Fénix cósmico",     className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameCosmic, rarity: "z", requirement: { type: "gacha" } },
+  { slug: "z-supreme",   name: "Marco Z Supremo",   className: "zf-frame-rainbow zf-frame-z", shape: "star", rarity: "z", requirement: { type: "gacha" } },
 ];
 
 export const NAME_EFFECTS: NameEffectDef[] = [
@@ -142,6 +169,10 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "magic",     name: "Magia elemental",    rarity: "legendario", requirement: { type: "premium" },           gradient: `url("${bannerMagic}") center/cover no-repeat` },
   { slug: "eyes",      name: "Ojos ancestrales",   rarity: "z",          requirement: { type: "gacha" },             gradient: `url("${bannerEyes}") center/cover no-repeat` },
   { slug: "roses",     name: "Rosas de sangre",    rarity: "mitico",     requirement: { type: "premium" },           gradient: `url("${bannerRoses}") center/cover no-repeat` },
+  // ── Z: 3 banners exclusivos gacha ──
+  { slug: "z-abyss",   name: "El abismo (Z)",      rarity: "z",          requirement: { type: "gacha" },             gradient: `url("${bannerZAbyss}") center/cover no-repeat` },
+  { slug: "z-king",    name: "Rey del trono Z",    rarity: "z",          requirement: { type: "gacha" },             gradient: `url("${bannerZKing}") center/cover no-repeat` },
+  { slug: "z-void",    name: "Guardián del vacío (Z)", rarity: "z",      requirement: { type: "gacha" },             gradient: `url("${bannerZVoid}") center/cover no-repeat` },
 ];
 
 export function isCosmeticUnlocked(
