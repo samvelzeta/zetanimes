@@ -132,6 +132,8 @@ export default function AnimeDetail() {
     setLoadingList(false);
   };
 
+  const isDubbed = useIsDubbed(anime);
+
   if (isLoading) {
     return (
       <div className="min-h-screen">
