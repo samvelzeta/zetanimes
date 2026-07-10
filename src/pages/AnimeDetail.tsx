@@ -17,6 +17,7 @@ import LikeButton from "@/components/anime/LikeButton";
 import TechInfoBlock from "@/components/anime/TechInfoBlock";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useEpisodeThumbnails } from "@/lib/episode-thumbnails";
+import { useIsDubbed } from "@/hooks/useDubbedAnimes";
 
 type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
 
