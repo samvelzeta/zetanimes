@@ -4,7 +4,7 @@ import { findFrame } from "@/lib/cosmetics";
 
 interface Props {
   frame?: string | null;
-  /** Tamaño fijo en px. Pasa `null` para heredar del padre (usar className w-*/h-*). */
+  /** Tamaño fijo en px. Pasa null para heredar del padre (clases w-x h-x). */
   size?: number | null;
   className?: string;
   children: ReactNode;
