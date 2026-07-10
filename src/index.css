@@ -1154,9 +1154,74 @@ img {
   -webkit-background-clip: text; background-clip: text; color: transparent;
   animation: zf-gradient-move 4s linear infinite;
 }
+/* Nuevos efectos de nombre */
+.zf-name-galaxy {
+  background: linear-gradient(90deg, #6a11cb 0%, #2575fc 25%, #ff00c8 50%, #6a11cb 75%, #2575fc 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 6px rgba(138, 43, 226, 0.7));
+  animation: zf-gradient-move 5s linear infinite;
+}
+.zf-name-void {
+  color: #0a0a0a;
+  text-shadow: 0 0 4px #ff005c, 0 0 8px #ff005c, 0 0 12px rgba(255,0,92,0.6);
+  animation: zf-void-flicker 3s ease-in-out infinite;
+}
+@keyframes zf-void-flicker { 0%,100% { text-shadow: 0 0 4px #ff005c, 0 0 8px #ff005c; } 50% { text-shadow: 0 0 10px #ff005c, 0 0 20px #ff005c, 0 0 30px #ff00c8; } }
+.zf-name-blood {
+  background: linear-gradient(180deg, #ffb3b3 0%, #d10000 50%, #5a0000 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 5px rgba(200, 0, 0, 0.7));
+}
+.zf-name-toxic {
+  background: linear-gradient(90deg, #a8ff00, #00ff88, #a8ff00);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 6px rgba(168, 255, 0, 0.7));
+  animation: zf-shiny 2.5s linear infinite;
+}
+.zf-name-gold {
+  background: linear-gradient(180deg, #fff5b0 0%, #f5c542 40%, #a67c00 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 6px rgba(245, 197, 66, 0.7));
+}
+.zf-name-glitch {
+  color: #fff;
+  animation: zf-glitch 2.5s steps(2, end) infinite;
+}
+@keyframes zf-glitch {
+  0%, 100% { text-shadow: 0 0 0 transparent; transform: translate(0); }
+  20% { text-shadow: 2px 0 #ff005c, -2px 0 #00e5ff; transform: translate(-1px, 0); }
+  40% { text-shadow: -2px 0 #ff005c, 2px 0 #00e5ff; transform: translate(1px, 0); }
+  60% { text-shadow: 0 2px #ffcc00, 0 -2px #a855f7; transform: translate(0, -1px); }
+}
+.zf-name-neon {
+  color: #fff;
+  text-shadow: 0 0 4px #fff, 0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary));
+  animation: zf-neon-pulse 2s ease-in-out infinite;
+}
+@keyframes zf-neon-pulse {
+  0%, 100% { text-shadow: 0 0 4px #fff, 0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary)); }
+  50%      { text-shadow: 0 0 6px #fff, 0 0 14px hsl(var(--primary)), 0 0 28px hsl(var(--primary)); }
+}
+.zf-name-z {
+  background: conic-gradient(from 0deg, #ff005c, #ffcc00, #00e5ff, #a855f7, #ff005c);
+  background-size: 200% 200%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 8px rgba(255, 0, 92, 0.85));
+  animation: zf-z-name-spin 4s linear infinite;
+}
+@keyframes zf-z-name-spin { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+
 .zet-reduced-motion .zf-name-shiny,
 .zet-reduced-motion .zf-name-gradient,
-.zet-reduced-motion .zf-name-rainbow { animation: none !important; }
+.zet-reduced-motion .zf-name-rainbow,
+.zet-reduced-motion .zf-name-galaxy,
+.zet-reduced-motion .zf-name-toxic,
+.zet-reduced-motion .zf-name-glitch,
+.zet-reduced-motion .zf-name-neon,
+.zet-reduced-motion .zf-name-void,
+.zet-reduced-motion .zf-name-z { animation: none !important; }
 
 /* ============================================================
    RAREZA — halos y badges
