@@ -18,6 +18,7 @@ type Tab = "frame" | "name" | "cursor" | "banner";
 function reqLabel(req: CosmeticRequirement): string {
   if (req.type === "free") return "Gratis";
   if (req.type === "premium") return "Premium";
+  if (req.type === "gacha") return "Gachapón Z";
   return `Nivel ${req.value}`;
 }
 
