@@ -91,10 +91,10 @@ export default function GachaPanel({ onOpenInventory }: Props) {
 
       <button
         onClick={doPull}
-        disabled={pulling || tokens.tokens < 1}
+        disabled={pulling || tokens.tokens < 2}
         className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 hover:opacity-90 transition"
       >
-        {pulling ? <><Loader2 className="w-4 h-4 animate-spin" /> Tirando…</> : <><Sparkles className="w-4 h-4" /> Tirar (1 ficha)</>}
+        {pulling ? <><Loader2 className="w-4 h-4 animate-spin" /> Tirando…</> : <><Sparkles className="w-4 h-4" /> Tirar (2 fichas)</>}
       </button>
 
       {result && (
