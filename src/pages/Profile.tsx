@@ -38,6 +38,8 @@ import XPBar from "@/components/premium/XPBar";
 import CosmeticsPicker from "@/components/premium/CosmeticsPicker";
 import { useUserCosmetics } from "@/hooks/useUserCosmetics";
 import AvatarFrame from "@/components/premium/AvatarFrame";
+import AchievementsPanel from "@/components/premium/AchievementsPanel";
+import MissionsPanel from "@/components/premium/MissionsPanel";
 
 type PanelId = null | "manage" | "contact";
 
@@ -393,6 +395,20 @@ export default function Profile() {
           </div>
 
           {/* separador sutil */}
+          <div className="border-t border-neutral-900/60" />
+
+          {/* Misiones + Logros */}
+          {user && (
+            <section className="grid md:grid-cols-2 gap-6">
+              <div className="rounded-2xl border border-neutral-800/70 p-4 md:p-5 bg-white/[0.015]">
+                <MissionsPanel />
+              </div>
+              <div className="rounded-2xl border border-neutral-800/70 p-4 md:p-5 bg-white/[0.015]">
+                <AchievementsPanel />
+              </div>
+            </section>
+          )}
+
           <div className="border-t border-neutral-900/60" />
 
           {/* ————————————— ZONA DE GESTIÓN ————————————— */}
