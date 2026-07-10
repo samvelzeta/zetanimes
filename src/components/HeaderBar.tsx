@@ -166,7 +166,9 @@ export default function HeaderBar() {
       </div>
 
 
-      <div className="relative">
+      <div className="flex items-center gap-2">
+        {user && <XPChip />}
+        <div className="relative">
         <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur flex items-center justify-center hover:bg-muted transition relative">
           <Bell className="w-4 h-4 text-foreground" />
           {hasUnread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
