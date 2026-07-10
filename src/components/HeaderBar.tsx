@@ -261,6 +261,7 @@ export default function HeaderBar() {
             )}
           </div>
         )}
+        </div>
       </div>
 
       {showProfileSwitcher && <ProfileSelector onClose={() => setShowProfileSwitcher(false)} />}
