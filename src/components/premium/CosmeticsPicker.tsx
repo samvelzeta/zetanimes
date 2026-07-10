@@ -26,6 +26,8 @@ export default function CosmeticsPicker() {
   const { user, isPremium, profile } = useAuth();
   const { xp } = useUserXP();
   const { cosmetics, update } = useUserCosmetics();
+  const { banners: adminBanners } = useAdminBanners();
+  const allBanners = useMemo<BannerPresetDef[]>(() => [...BANNER_PRESETS, ...adminBanners], [adminBanners]);
   const ctx = { level: xp.level, isPremium };
   const displayName = profile?.display_name || profile?.username || "Tu nombre";
 
@@ -160,7 +162,7 @@ export default function CosmeticsPicker() {
       {/* BANNER */}
       {tab === "banner" && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {BANNER_PRESETS.map((b) => {
+          {allBanners.map((b) => {
             const unlocked = isCosmeticUnlocked(b.requirement, ctx);
             const active = cosmetics.banner_preset === b.slug && !cosmetics.banner_url;
             return (
