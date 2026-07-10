@@ -161,6 +161,7 @@ export default function HeaderBar() {
           <Link to="/" className="text-foreground/80 hover:text-primary transition">Inicio</Link>
           <Link to="/recent" className="text-foreground/80 hover:text-primary transition">Recientes</Link>
           <Link to="/directory" className="text-foreground/80 hover:text-primary transition">Directorio</Link>
+          <Link to="/ranking" className="text-foreground/80 hover:text-primary transition">Ranking</Link>
           <Link to="/search" className="text-foreground/80 hover:text-primary transition">Buscar</Link>
         </nav>
       </div>
@@ -274,9 +275,9 @@ function XPChip() {
   const color = rankColor(xp.rank_slug);
   return (
     <Link
-      to="/profile"
+      to="/ranking"
       className="hidden sm:flex items-center gap-1.5 h-8 px-2.5 rounded-full bg-secondary/80 backdrop-blur border border-border hover:border-primary/40 transition"
-      title={`${rankName(xp.rank_slug)} · Nivel ${xp.level} · ${xp.xp.toLocaleString()} XP`}
+      title={`${rankName(xp.rank_slug)} · Nivel ${xp.level} · ${xp.xp.toLocaleString()} XP · Ver ranking`}
     >
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
       <span className="text-[10px] font-bold tabular-nums" style={{ color }}>Nv {xp.level}</span>
