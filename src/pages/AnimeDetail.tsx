@@ -132,6 +132,8 @@ export default function AnimeDetail() {
     setLoadingList(false);
   };
 
+  const isDubbed = useIsDubbed(anime);
+
   if (isLoading) {
     return (
       <div className="min-h-screen">
@@ -165,7 +167,6 @@ export default function AnimeDetail() {
   }
 
   const title = getTitle(anime);
-  const isDubbed = useIsDubbed(anime);
   const banner = anime.bannerImage || anime.coverImage?.extraLarge;
   const cover = anime.coverImage?.extraLarge || anime.coverImage?.large;
   const description = translatedDesc || rawDescription;
