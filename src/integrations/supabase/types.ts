@@ -167,6 +167,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_banners: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          image_url: string
+          name: string
+          position: number
+          requirement_type: string
+          requirement_value: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url: string
+          name: string
+          position?: number
+          requirement_type?: string
+          requirement_value?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url?: string
+          name?: string
+          position?: number
+          requirement_type?: string
+          requirement_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anime_download_tracker: {
         Row: {
           added_by: string | null
