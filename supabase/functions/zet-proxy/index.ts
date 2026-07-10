@@ -30,7 +30,12 @@ serve(async (req) => {
     const targetUrl = `${ZET_BASE}${path}`;
     const headers: Record<string, string> = { Accept: "application/json" };
     if (apiKey) {
+      // El Worker upstream puede validar cualquiera de estos headers.
+      // Enviamos todas las variantes comunes para máxima compatibilidad.
       headers["x-api-key"] = apiKey;
+      headers["x-access-token"] = apiKey;
+      headers["apikey"] = apiKey;
+      headers["token"] = apiKey;
       headers["Authorization"] = `Bearer ${apiKey}`;
     }
 
