@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { RARITY_META, type Rarity } from "@/lib/cosmetics";
 import AvatarFrame from "@/components/premium/AvatarFrame";
 
-const FRAME_SHAPES = ["circle","hex","diamond","square","rounded","shield","star"] as const;
+const FRAME_SHAPES = ["circle","hex","diamond","rounded","shield","star"] as const;
 type Shape = typeof FRAME_SHAPES[number];
 
 interface FrameRow {

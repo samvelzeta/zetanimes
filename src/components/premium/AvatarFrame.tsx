@@ -16,7 +16,6 @@ const SHAPE_CLIP: Record<FrameShape, string | undefined> = {
   circle:  undefined,
   hex:     "polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%)",
   diamond: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
-  square:  undefined,
   rounded: undefined,
   shield:  "polygon(50% 0%, 100% 20%, 100% 60%, 50% 100%, 0% 60%, 0% 20%)",
   star:    "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
@@ -28,7 +27,6 @@ function shapeStyle(shape: FrameShape | undefined): React.CSSProperties {
   const style: React.CSSProperties = {};
   if (clip) style.clipPath = clip;
   if (s === "circle") style.borderRadius = "9999px";
-  else if (s === "square") style.borderRadius = "8px";
   else if (s === "rounded") style.borderRadius = "22%";
   else style.borderRadius = "0";
   return style;
