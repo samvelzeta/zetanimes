@@ -106,11 +106,14 @@ export const AVATAR_FRAMES: AvatarFrameDef[] = [
   { slug: "art-wings",   name: "Alas celestiales",  className: "zf-frame-art", shape: "circle", imageUrl: frameWings,  rarity: "legendario", requirement: { type: "premium" } },
   { slug: "art-crown",   name: "Corona real",       className: "zf-frame-art", shape: "circle", imageUrl: frameCrown,  rarity: "legendario", requirement: { type: "gacha" } },
   { slug: "art-dragon",  name: "Dragón dorado",     className: "zf-frame-art", shape: "circle", imageUrl: frameDragon, rarity: "legendario", requirement: { type: "gacha" } },
+  { slug: "art-lotus-red",  name: "Loto rojo",  className: "zf-frame-art", shape: "circle", imageUrl: frameLotusRed,  rarity: "legendario", requirement: { type: "level", value: 28 } },
+  { slug: "art-lotus-blue", name: "Loto azul",  className: "zf-frame-art", shape: "circle", imageUrl: frameLotusBlue, rarity: "legendario", requirement: { type: "gacha" } },
 
-  // ── Z: 3 marcos únicos, solo gacha ──
+  // ── Z: 3 marcos únicos animados, solo gacha ──
   { slug: "z-demon",     name: "Portal demoníaco",  className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameDemon,  rarity: "z", requirement: { type: "gacha" } },
   { slug: "z-cosmic",    name: "Fénix cósmico",     className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameCosmic, rarity: "z", requirement: { type: "gacha" } },
-  { slug: "z-supreme",   name: "Marco Z Supremo",   className: "zf-frame-rainbow zf-frame-z", shape: "star", rarity: "z", requirement: { type: "gacha" } },
+  { slug: "z-blood",     name: "Sangre eterna",     className: "zf-frame-art zf-frame-z zf-frame-blood", shape: "circle", imageUrl: frameBlood, rarity: "z", requirement: { type: "gacha" } },
+
 ];
 
 export const NAME_EFFECTS: NameEffectDef[] = [
@@ -181,6 +184,11 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "z-abyss",   name: "El abismo (Z)",      rarity: "z",          requirement: { type: "gacha" },             gradient: `url("${bannerZAbyss}") center/cover no-repeat` },
   { slug: "z-king",    name: "Rey del trono Z",    rarity: "z",          requirement: { type: "gacha" },             gradient: `url("${bannerZKing}") center/cover no-repeat` },
   { slug: "z-void",    name: "Guardián del vacío (Z)", rarity: "z",      requirement: { type: "gacha" },             gradient: `url("${bannerZVoid}") center/cover no-repeat` },
+  // Nuevos banners naturalistas
+  { slug: "sakura-trees",     name: "Cerezos en flor",     rarity: "raro",       requirement: { type: "level", value: 8 },  gradient: `url("${bannerSakuraTrees}") center/cover no-repeat` },
+  { slug: "swamp-far-red",    name: "Pantano lejano",      rarity: "mitico",     requirement: { type: "level", value: 18 }, gradient: `url("${bannerSwampFarRed}") center/cover no-repeat` },
+  { slug: "swamp-close-red",  name: "Loto rojo en el lodo",rarity: "legendario", requirement: { type: "level", value: 24 }, gradient: `url("${bannerSwampCloseRed}") center/cover no-repeat` },
+  { slug: "swamp-close-blue", name: "Loto azul lunar",     rarity: "legendario", requirement: { type: "premium" },          gradient: `url("${bannerSwampCloseBlue}") center/cover no-repeat` },
 ];
 
 export function isCosmeticUnlocked(
