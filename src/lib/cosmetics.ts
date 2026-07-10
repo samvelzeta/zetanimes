@@ -89,24 +89,24 @@ export interface BannerPresetDef {
 // ============ MARCOS ============
 export const AVATAR_FRAMES: AvatarFrameDef[] = [
   { slug: "default",     name: "Sin marco",   className: "zf-frame-default",   shape: "circle",  rarity: "basico",     requirement: { type: "free" } },
-  { slug: "neon-orange", name: "Neón Zet",    className: "zf-frame-neon",      shape: "circle",  rarity: "especial",   requirement: { type: "level", value: 3 } },
-  { slug: "sakura",      name: "Sakura",      className: "zf-frame-sakura",    shape: "circle",  rarity: "especial",   requirement: { type: "level", value: 15 } },
-  { slug: "hex-neon",    name: "Hexágono neón",className: "zf-frame-neon",     shape: "hex",     rarity: "raro",       requirement: { type: "level", value: 8 } },
-  { slug: "shield-fire", name: "Escudo llameante", className: "zf-frame-fire", shape: "shield",  rarity: "raro",       requirement: { type: "level", value: 12 } },
-  { slug: "diamond-ice", name: "Diamante de hielo", className: "zf-frame-neon", shape: "diamond", rarity: "mitico",    requirement: { type: "level", value: 20 } },
+  { slug: "neon-orange", name: "Neón Zet",    className: "zf-frame-neon",      shape: "circle",  rarity: "especial",   requirement: { type: "level", value: 50 } },
+  { slug: "sakura",      name: "Sakura",      className: "zf-frame-sakura",    shape: "circle",  rarity: "especial",   requirement: { type: "level", value: 50 } },
+  { slug: "hex-neon",    name: "Hexágono neón",className: "zf-frame-neon",     shape: "hex",     rarity: "raro",       requirement: { type: "level", value: 70 } },
+  { slug: "shield-fire", name: "Escudo llameante", className: "zf-frame-fire", shape: "shield",  rarity: "raro",       requirement: { type: "level", value: 70 } },
+  { slug: "diamond-ice", name: "Diamante de hielo", className: "zf-frame-neon", shape: "diamond", rarity: "mitico",    requirement: { type: "level", value: 90 } },
   { slug: "star-gold",   name: "Estrella dorada", className: "zf-frame-gold",  shape: "star",    rarity: "mitico",     requirement: { type: "premium" } },
-  { slug: "rainbow",     name: "Arcoíris",    className: "zf-frame-rainbow",   shape: "circle",  rarity: "legendario", requirement: { type: "level", value: 30 } },
+  { slug: "rainbow",     name: "Arcoíris",    className: "zf-frame-rainbow",   shape: "circle",  rarity: "legendario", requirement: { type: "level", value: 120 } },
 
   // ── Marcos artísticos 3D con overlay PNG ──
-  { slug: "art-petals",  name: "Pétalos de sakura", className: "zf-frame-art", shape: "circle", imageUrl: framePetals, rarity: "especial",   requirement: { type: "level", value: 6 } },
-  { slug: "art-flames",  name: "Aro de fuego azul", className: "zf-frame-art", shape: "circle", imageUrl: frameFlames, rarity: "raro",       requirement: { type: "level", value: 14 } },
-  { slug: "art-thorns",  name: "Espinas malditas",  className: "zf-frame-art", shape: "circle", imageUrl: frameThorns, rarity: "raro",       requirement: { type: "level", value: 18 } },
-  { slug: "art-swords",  name: "Espadas cruzadas",  className: "zf-frame-art", shape: "circle", imageUrl: frameSwords, rarity: "mitico",     requirement: { type: "level", value: 22 } },
+  { slug: "art-petals",  name: "Pétalos de sakura", className: "zf-frame-art", shape: "circle", imageUrl: framePetals, rarity: "especial",   requirement: { type: "level", value: 50 } },
+  { slug: "art-flames",  name: "Aro de fuego azul", className: "zf-frame-art", shape: "circle", imageUrl: frameFlames, rarity: "raro",       requirement: { type: "level", value: 70 } },
+  { slug: "art-thorns",  name: "Espinas malditas",  className: "zf-frame-art", shape: "circle", imageUrl: frameThorns, rarity: "raro",       requirement: { type: "level", value: 70 } },
+  { slug: "art-swords",  name: "Espadas cruzadas",  className: "zf-frame-art", shape: "circle", imageUrl: frameSwords, rarity: "mitico",     requirement: { type: "level", value: 90 } },
   { slug: "art-roses",   name: "Rosas y espinas",   className: "zf-frame-art", shape: "circle", imageUrl: frameRoses,  rarity: "mitico",     requirement: { type: "premium" } },
   { slug: "art-wings",   name: "Alas celestiales",  className: "zf-frame-art", shape: "circle", imageUrl: frameWings,  rarity: "legendario", requirement: { type: "premium" } },
   { slug: "art-crown",   name: "Corona real",       className: "zf-frame-art", shape: "circle", imageUrl: frameCrown,  rarity: "legendario", requirement: { type: "gacha" } },
   { slug: "art-dragon",  name: "Dragón dorado",     className: "zf-frame-art", shape: "circle", imageUrl: frameDragon, rarity: "legendario", requirement: { type: "gacha" } },
-  { slug: "art-lotus-red",  name: "Loto rojo",  className: "zf-frame-art", shape: "circle", imageUrl: frameLotusRed,  rarity: "legendario", requirement: { type: "level", value: 28 } },
+  { slug: "art-lotus-red",  name: "Loto rojo",  className: "zf-frame-art", shape: "circle", imageUrl: frameLotusRed,  rarity: "legendario", requirement: { type: "level", value: 120 } },
   { slug: "art-lotus-blue", name: "Loto azul",  className: "zf-frame-art", shape: "circle", imageUrl: frameLotusBlue, rarity: "legendario", requirement: { type: "gacha" } },
 
   // ── Z: 3 marcos únicos animados, solo gacha ──
@@ -118,17 +118,17 @@ export const AVATAR_FRAMES: AvatarFrameDef[] = [
 
 export const NAME_EFFECTS: NameEffectDef[] = [
   { slug: "default",  name: "Normal",   className: "",                rarity: "basico",     requirement: { type: "free" } },
-  { slug: "shiny",    name: "Brillante",className: "zf-name-shiny",   rarity: "especial",   requirement: { type: "level", value: 5 } },
-  { slug: "neon",     name: "Neón",     className: "zf-name-neon",    rarity: "especial",   requirement: { type: "level", value: 8 } },
-  { slug: "gradient", name: "Gradiente",className: "zf-name-gradient",rarity: "raro",       requirement: { type: "level", value: 10 } },
-  { slug: "toxic",    name: "Tóxico",   className: "zf-name-toxic",   rarity: "raro",       requirement: { type: "level", value: 13 } },
-  { slug: "gold",     name: "Dorado",   className: "zf-name-gold",    rarity: "raro",       requirement: { type: "level", value: 16 } },
+  { slug: "shiny",    name: "Brillante",className: "zf-name-shiny",   rarity: "especial",   requirement: { type: "level", value: 50 } },
+  { slug: "neon",     name: "Neón",     className: "zf-name-neon",    rarity: "especial",   requirement: { type: "level", value: 50 } },
+  { slug: "gradient", name: "Gradiente",className: "zf-name-gradient",rarity: "raro",       requirement: { type: "level", value: 70 } },
+  { slug: "toxic",    name: "Tóxico",   className: "zf-name-toxic",   rarity: "raro",       requirement: { type: "level", value: 70 } },
+  { slug: "gold",     name: "Dorado",   className: "zf-name-gold",    rarity: "raro",       requirement: { type: "level", value: 70 } },
   { slug: "fire",     name: "Fuego",    className: "zf-name-fire",    rarity: "mitico",     requirement: { type: "premium" } },
   { slug: "ice",      name: "Hielo",    className: "zf-name-ice",     rarity: "mitico",     requirement: { type: "premium" } },
-  { slug: "blood",    name: "Sangre",   className: "zf-name-blood",   rarity: "mitico",     requirement: { type: "level", value: 20 } },
+  { slug: "blood",    name: "Sangre",   className: "zf-name-blood",   rarity: "mitico",     requirement: { type: "level", value: 90 } },
   { slug: "galaxy",   name: "Galaxia",  className: "zf-name-galaxy",  rarity: "mitico",     requirement: { type: "premium" } },
-  { slug: "glitch",   name: "Glitch",   className: "zf-name-glitch",  rarity: "legendario", requirement: { type: "level", value: 27 } },
-  { slug: "rainbow",  name: "Arcoíris", className: "zf-name-rainbow", rarity: "legendario", requirement: { type: "level", value: 25 } },
+  { slug: "glitch",   name: "Glitch",   className: "zf-name-glitch",  rarity: "legendario", requirement: { type: "level", value: 120 } },
+  { slug: "rainbow",  name: "Arcoíris", className: "zf-name-rainbow", rarity: "legendario", requirement: { type: "level", value: 120 } },
   { slug: "void",     name: "Vacío",    className: "zf-name-void",    rarity: "legendario", requirement: { type: "gacha" } },
   { slug: "z-name",   name: "Aura Z",   className: "zf-name-z",       rarity: "z",          requirement: { type: "gacha" } },
 ];
@@ -136,23 +136,23 @@ export const NAME_EFFECTS: NameEffectDef[] = [
 export const CURSOR_THEMES: CursorThemeDef[] = [
   { slug: "default", name: "Sistema", cursor: "auto", rarity: "basico", requirement: { type: "free" } },
   {
-    slug: "katana", name: "Katana", rarity: "especial", requirement: { type: "level", value: 3 },
+    slug: "katana", name: "Katana", rarity: "especial", requirement: { type: "level", value: 50 },
     cursor: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g><line x1="4" y1="28" x2="26" y2="6" stroke="%23ff4500" stroke-width="3" stroke-linecap="round"/><line x1="4" y1="28" x2="26" y2="6" stroke="%23fff" stroke-width="1" stroke-linecap="round"/><rect x="2" y="26" width="6" height="4" fill="%23222" transform="rotate(-45 5 28)"/></g></svg>') 4 28, auto`,
   },
   {
-    slug: "kunai", name: "Kunai", rarity: "especial", requirement: { type: "level", value: 5 },
+    slug: "kunai", name: "Kunai", rarity: "especial", requirement: { type: "level", value: 50 },
     cursor: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g fill="%23888" stroke="%23000" stroke-width="0.5"><polygon points="16,2 20,14 16,26 12,14"/><rect x="14" y="20" width="4" height="8" fill="%23444"/></g></svg>') 16 2, auto`,
   },
   {
-    slug: "daga", name: "Daga", rarity: "raro", requirement: { type: "level", value: 10 },
+    slug: "daga", name: "Daga", rarity: "raro", requirement: { type: "level", value: 70 },
     cursor: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g><polygon points="16,2 18,20 16,24 14,20" fill="%23cfd8dc" stroke="%23000" stroke-width="0.8"/><rect x="12" y="22" width="8" height="3" fill="%238b5a2b"/><rect x="14" y="24" width="4" height="6" fill="%235a3c1e"/><circle cx="16" cy="30" r="1.5" fill="%23ffd700"/></g></svg>') 16 2, auto`,
   },
   {
-    slug: "flecha", name: "Flecha", rarity: "raro", requirement: { type: "level", value: 15 },
+    slug: "flecha", name: "Flecha", rarity: "raro", requirement: { type: "level", value: 70 },
     cursor: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g><line x1="4" y1="28" x2="24" y2="8" stroke="%238b5a2b" stroke-width="2"/><polygon points="28,4 22,6 24,10 20,12" fill="%23cfd8dc" stroke="%23000" stroke-width="0.6"/><polygon points="2,30 6,26 4,24 8,22 6,20 2,26" fill="%23e53935"/></g></svg>') 28 4, auto`,
   },
   {
-    slug: "hacha", name: "Hacha", rarity: "raro", requirement: { type: "level", value: 20 },
+    slug: "hacha", name: "Hacha", rarity: "raro", requirement: { type: "level", value: 70 },
     cursor: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g><rect x="14" y="6" width="2" height="24" fill="%235d4037"/><path d="M6 4 Q16 2 22 8 L22 14 Q16 10 6 12 Z" fill="%23bdbdbd" stroke="%23000" stroke-width="0.8"/></g></svg>') 15 6, auto`,
   },
   {
@@ -164,7 +164,7 @@ export const CURSOR_THEMES: CursorThemeDef[] = [
     cursor: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g><path d="M4 24 Q10 18 16 20 Q22 22 28 16 L26 20 Q22 26 16 24 Q10 22 4 28 Z" fill="%23c62828" stroke="%23000" stroke-width="0.8"/><circle cx="26" cy="18" r="1.2" fill="%23ffeb3b"/><path d="M28 16 L30 12 L28 14 Z" fill="%23ff6f00"/></g></svg>') 16 20, auto`,
   },
   {
-    slug: "star", name: "Estrella", rarity: "legendario", requirement: { type: "level", value: 25 },
+    slug: "star", name: "Estrella", rarity: "legendario", requirement: { type: "level", value: 120 },
     cursor: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><polygon points="16,2 20,12 30,12 22,18 26,28 16,22 6,28 10,18 2,12 12,12" fill="%23ffcc00" stroke="%23000" stroke-width="1"/></svg>') 16 16, auto`,
   },
 ];
@@ -172,18 +172,18 @@ export const CURSOR_THEMES: CursorThemeDef[] = [
 // ============ BANNERS ============
 export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "aurora",    name: "Aurora",         rarity: "basico",     requirement: { type: "free" },                gradient: "linear-gradient(135deg,#0f1a3d 0%,#2b1055 40%,#7597de 80%,#ff6b9d 100%)" },
-  { slug: "sakura-g",  name: "Sakura",         rarity: "basico",     requirement: { type: "level", value: 5 },     gradient: "linear-gradient(135deg,#0d0221 0%,#4a1942 45%,#e75480 100%)" },
-  { slug: "cyber",     name: "Cyber city",     rarity: "especial",   requirement: { type: "level", value: 10 },    gradient: "linear-gradient(135deg,#000428 0%,#004e92 50%,#ff005c 100%)" },
+  { slug: "sakura-g",  name: "Sakura",         rarity: "basico",     requirement: { type: "level", value: 30 },    gradient: "linear-gradient(135deg,#0d0221 0%,#4a1942 45%,#e75480 100%)" },
+  { slug: "cyber",     name: "Cyber city",     rarity: "especial",   requirement: { type: "level", value: 50 },    gradient: "linear-gradient(135deg,#000428 0%,#004e92 50%,#ff005c 100%)" },
   { slug: "sunset",    name: "Atardecer",      rarity: "especial",   requirement: { type: "premium" },             gradient: "linear-gradient(135deg,#2b0a3d 0%,#ff5f6d 60%,#ffc371 100%)" },
   { slug: "ocean",     name: "Océano",         rarity: "raro",       requirement: { type: "premium" },             gradient: "linear-gradient(135deg,#001f3f 0%,#0074d9 50%,#7fdbff 100%)" },
   { slug: "forest",    name: "Bosque místico", rarity: "raro",       requirement: { type: "premium" },             gradient: "linear-gradient(135deg,#0b3d0b 0%,#245c2f 50%,#a6ff96 100%)" },
   { slug: "noir",      name: "Noir",           rarity: "especial",   requirement: { type: "premium" },             gradient: "linear-gradient(135deg,#0a0a0a 0%,#2b2b2b 50%,#e5e5e5 100%)" },
   { slug: "gold",      name: "Dorado",         rarity: "mitico",     requirement: { type: "premium" },             gradient: "linear-gradient(135deg,#1a1200 0%,#5c3d00 40%,#f5c542 80%,#fff2b3 100%)" },
   // Ilustraciones IA
-  { slug: "lotus",     name: "Loto",             rarity: "raro",       requirement: { type: "level", value: 6 },   gradient: `url("${bannerLotus}") center/cover no-repeat` },
-  { slug: "higanbana", name: "Higanbana (muerte)", rarity: "mitico",   requirement: { type: "level", value: 12 },  gradient: `url("${bannerHiganbana}") center/cover no-repeat` },
-  { slug: "ninjas",    name: "Ninjas nocturnos",   rarity: "mitico",   requirement: { type: "level", value: 15 },  gradient: `url("${bannerNinjas}") center/cover no-repeat` },
-  { slug: "swords",    name: "Espadas caídas",     rarity: "legendario", requirement: { type: "level", value: 22 }, gradient: `url("${bannerSwords}") center/cover no-repeat` },
+  { slug: "lotus",     name: "Loto",             rarity: "raro",       requirement: { type: "level", value: 70 },  gradient: `url("${bannerLotus}") center/cover no-repeat` },
+  { slug: "higanbana", name: "Higanbana (muerte)", rarity: "mitico",   requirement: { type: "level", value: 90 },  gradient: `url("${bannerHiganbana}") center/cover no-repeat` },
+  { slug: "ninjas",    name: "Ninjas nocturnos",   rarity: "mitico",   requirement: { type: "level", value: 90 },  gradient: `url("${bannerNinjas}") center/cover no-repeat` },
+  { slug: "swords",    name: "Espadas caídas",     rarity: "legendario", requirement: { type: "level", value: 120 }, gradient: `url("${bannerSwords}") center/cover no-repeat` },
   { slug: "isekai",    name: "Isekai",             rarity: "legendario", requirement: { type: "premium" },           gradient: `url("${bannerIsekai}") center/cover no-repeat` },
   { slug: "magic",     name: "Magia elemental",    rarity: "legendario", requirement: { type: "premium" },           gradient: `url("${bannerMagic}") center/cover no-repeat` },
   { slug: "eyes",      name: "Ojos ancestrales",   rarity: "z",          requirement: { type: "gacha" },             gradient: `url("${bannerEyes}") center/cover no-repeat` },
@@ -194,8 +194,8 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "z-void",    name: "Guardián del vacío",    rarity: "legendario", requirement: { type: "gacha" },             gradient: `url("${bannerZVoid}") center/cover no-repeat` },
   // Nuevos banners naturalistas
   { slug: "sakura-trees",     name: "Cerezos en flor (Z)", rarity: "z",          requirement: { type: "gacha" },            gradient: `url("${bannerSakuraTrees}") center/cover no-repeat` },
-  { slug: "swamp-far-red",    name: "Pantano lejano",      rarity: "mitico",     requirement: { type: "level", value: 18 }, gradient: `url("${bannerSwampFarRed}") center/cover no-repeat` },
-  { slug: "swamp-close-red",  name: "Loto rojo en el lodo",rarity: "legendario", requirement: { type: "level", value: 24 }, gradient: `url("${bannerSwampCloseRed}") center/cover no-repeat` },
+  { slug: "swamp-far-red",    name: "Pantano lejano",      rarity: "mitico",     requirement: { type: "level", value: 90 }, gradient: `url("${bannerSwampFarRed}") center/cover no-repeat` },
+  { slug: "swamp-close-red",  name: "Loto rojo en el lodo",rarity: "legendario", requirement: { type: "level", value: 120 }, gradient: `url("${bannerSwampCloseRed}") center/cover no-repeat` },
   { slug: "swamp-close-blue", name: "Loto azul lunar",     rarity: "legendario", requirement: { type: "premium" },          gradient: `url("${bannerSwampCloseBlue}") center/cover no-repeat` },
 ];
 

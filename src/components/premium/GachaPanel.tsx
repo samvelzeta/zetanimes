@@ -22,7 +22,6 @@ export default function GachaPanel({ onOpenInventory }: Props) {
     setResult(null);
     setPhase("shake");
     try {
-      // Sacudida
       await new Promise((r) => setTimeout(r, 900));
       const res = await pull(pool);
       if (!res.ok) {
@@ -30,12 +29,13 @@ export default function GachaPanel({ onOpenInventory }: Props) {
         toast.error(res.reason === "no_tokens" ? "Sin fichas" : res.reason === "all_owned" ? "¡Ya tienes todo!" : "No se pudo tirar");
         return;
       }
-      // Estallido de la Z
       setPhase("burst");
       await new Promise((r) => setTimeout(r, 700));
-      // Reveal del premio
       setResult(res);
       setPhase("reveal");
+      if (res.special) {
+        toast.success(`🎉 ¡Felicidades! Recompensa especial: ${res.name}`, { duration: 6000 });
+      }
     } catch (e: any) {
       setPhase("idle");
       toast.error(e?.message ?? "error");
@@ -96,8 +96,10 @@ export default function GachaPanel({ onOpenInventory }: Props) {
             filter: phase === "reveal" ? `drop-shadow(${meta.glow})` : undefined,
             ["--zf-halo" as any]: meta.color,
             // Fondo: banner ganado ocupa la cápsula, o base
-            background: phase === "reveal" && result && pool === "banner" && result.image_url
+            background: phase === "reveal" && result && result.pool === "banner" && result.image_url
               ? `url("${result.image_url}") center/cover no-repeat`
+              : phase === "reveal" && result?.special
+              ? `radial-gradient(circle, ${meta.color}33 0%, transparent 70%)`
               : undefined,
           }}
         >
@@ -117,16 +119,26 @@ export default function GachaPanel({ onOpenInventory }: Props) {
           {/* Reveal del premio */}
           {phase === "reveal" && result && (
             <div className="text-center px-2 zf-gacha-reveal relative z-10 w-full h-full flex flex-col items-center justify-center">
-              {pool === "frame" && result.image_url ? (
-                // Muestra el marco tal cual (overlay circular grande)
+              {result.pool === "name" ? (
+                // Título secreto — recompensa especial
+                <div className="flex flex-col items-center gap-2">
+                  <Sparkles className="w-10 h-10 animate-pulse" style={{ color: meta.color }} />
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: meta.color }}>
+                    ¡Especial!
+                  </p>
+                  <p className="text-2xl font-black" style={{ color: meta.color, textShadow: `0 0 12px ${meta.color}` }}>
+                    {result.name}
+                  </p>
+                  <p className="text-[10px] text-white/80">Nuevo título</p>
+                </div>
+              ) : result.pool === "frame" && result.image_url ? (
                 <img
                   src={result.image_url}
                   alt=""
                   className="w-40 h-40 object-contain drop-shadow-2xl"
                   style={{ filter: `drop-shadow(0 0 12px ${meta.color})` }}
                 />
-              ) : pool === "banner" ? (
-                // Banner ya está de fondo — solo mostramos label
+              ) : result.pool === "banner" ? (
                 <div className="absolute inset-x-0 bottom-2 bg-black/60 backdrop-blur-sm py-1.5 px-2">
                   <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</p>
                   <p className="text-xs text-white truncate">{result.name}</p>
@@ -138,11 +150,13 @@ export default function GachaPanel({ onOpenInventory }: Props) {
           )}
         </div>
 
-        {/* Label bajo la cápsula para marcos */}
-        {phase === "reveal" && result && pool === "frame" && (
+        {/* Label bajo la cápsula para marcos y títulos */}
+        {phase === "reveal" && result && (result.pool === "frame" || result.pool === "name") && (
           <div className="absolute -bottom-2 left-0 right-0 text-center">
-            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</p>
-            <p className="text-sm text-foreground/90 font-medium">{result.name}</p>
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: meta.color }}>
+              {result.special ? "🎉 Recompensa especial" : meta.label}
+            </p>
+            {result.pool === "frame" && <p className="text-sm text-foreground/90 font-medium">{result.name}</p>}
           </div>
         )}
       </div>
