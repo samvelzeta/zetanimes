@@ -1094,6 +1094,37 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
               </span>
             </div>
             <div className="flex items-center gap-3 shrink-0">
+              {/* Ambilight (premium) */}
+              {isPremium && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setAmbilight((v) => !v); showControlsTemp(); }}
+                  className={`transition ${ambilight ? "text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]" : "text-white/80 hover:text-primary"}`}
+                  aria-label="Modo cine Ambilight"
+                  title={ambilight ? "Ambilight: ON" : "Ambilight: OFF"}
+                >
+                  <Sparkles className="w-5 h-5" />
+                </button>
+              )}
+              {/* Personalizar subtítulos */}
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowSubPrefs((v) => !v); showControlsTemp(); }}
+                  className="text-white/80 hover:text-primary transition"
+                  aria-label="Personalizar subtítulos"
+                  title="Personalizar subtítulos"
+                >
+                  <Type className="w-5 h-5" />
+                </button>
+                {showSubPrefs && (
+                  <SubtitleSettings
+                    prefs={subPrefs}
+                    update={updateSubPrefs}
+                    reset={resetSubPrefs}
+                    onClose={() => setShowSubPrefs(false)}
+                    isPremium={isPremium}
+                  />
+                )}
+              </div>
               {/* Speed gear popover */}
               <div className="relative">
                 <button
