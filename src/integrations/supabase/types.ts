@@ -175,6 +175,7 @@ export type Database = {
           image_url: string
           name: string
           position: number
+          rarity: Database["public"]["Enums"]["cosmetic_rarity"]
           requirement_type: string
           requirement_value: number
           updated_at: string
@@ -186,6 +187,7 @@ export type Database = {
           image_url: string
           name: string
           position?: number
+          rarity?: Database["public"]["Enums"]["cosmetic_rarity"]
           requirement_type?: string
           requirement_value?: number
           updated_at?: string
@@ -197,8 +199,51 @@ export type Database = {
           image_url?: string
           name?: string
           position?: number
+          rarity?: Database["public"]["Enums"]["cosmetic_rarity"]
           requirement_type?: string
           requirement_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_frames: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          position: number
+          rarity: Database["public"]["Enums"]["cosmetic_rarity"]
+          requirement_type: string
+          requirement_value: number
+          shape: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          position?: number
+          rarity?: Database["public"]["Enums"]["cosmetic_rarity"]
+          requirement_type?: string
+          requirement_value?: number
+          shape?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          position?: number
+          rarity?: Database["public"]["Enums"]["cosmetic_rarity"]
+          requirement_type?: string
+          requirement_value?: number
+          shape?: string
           updated_at?: string
         }
         Relationships: []
@@ -654,6 +699,33 @@ export type Database = {
           id?: string
           notes?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      gacha_pulls: {
+        Row: {
+          created_at: string
+          id: string
+          pool: string
+          reward_rarity: Database["public"]["Enums"]["cosmetic_rarity"]
+          reward_slug: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pool: string
+          reward_rarity: Database["public"]["Enums"]["cosmetic_rarity"]
+          reward_slug: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pool?: string
+          reward_rarity?: Database["public"]["Enums"]["cosmetic_rarity"]
+          reward_slug?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1264,6 +1336,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_gacha_inventory: {
+        Row: {
+          acquired_at: string
+          pool: string
+          rarity: Database["public"]["Enums"]["cosmetic_rarity"] | null
+          slug: string
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          pool: string
+          rarity?: Database["public"]["Enums"]["cosmetic_rarity"] | null
+          slug: string
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          pool?: string
+          rarity?: Database["public"]["Enums"]["cosmetic_rarity"] | null
+          slug?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_gacha_tokens: {
+        Row: {
+          last_awarded_at: string | null
+          tokens: number
+          total_earned: number
+          total_spent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_awarded_at?: string | null
+          tokens?: number
+          total_earned?: number
+          total_spent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_awarded_at?: string | null
+          tokens?: number
+          total_earned?: number
+          total_spent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_missions: {
         Row: {
           completed_at: string | null
@@ -1533,6 +1656,7 @@ export type Database = {
         Returns: undefined
       }
       end_stream: { Args: { _session_id: string }; Returns: undefined }
+      gacha_pull: { Args: { _pool: string }; Returns: Json }
       get_anime_like_count: { Args: { _anilist_id: number }; Returns: number }
       get_user_max_profiles: { Args: { _user_id: string }; Returns: number }
       get_user_max_streams: { Args: { _user_id: string }; Returns: number }
@@ -1613,6 +1737,13 @@ export type Database = {
         | "plan_to_watch"
         | "undecided"
       app_role: "owner" | "admin" | "premium" | "user"
+      cosmetic_rarity:
+        | "basico"
+        | "especial"
+        | "raro"
+        | "mitico"
+        | "legendario"
+        | "z"
       membership_status: "pending" | "active" | "expired" | "rejected"
       membership_type: "monthly" | "annual" | "lifetime"
     }
@@ -1750,6 +1881,14 @@ export const Constants = {
         "undecided",
       ],
       app_role: ["owner", "admin", "premium", "user"],
+      cosmetic_rarity: [
+        "basico",
+        "especial",
+        "raro",
+        "mitico",
+        "legendario",
+        "z",
+      ],
       membership_status: ["pending", "active", "expired", "rejected"],
       membership_type: ["monthly", "annual", "lifetime"],
     },
