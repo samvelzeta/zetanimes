@@ -1182,6 +1182,17 @@ img {
 .zf-frame-admin { padding: 0; }
 .zf-frame-admin::before { display: none; }
 
+/* Marcos artísticos con overlay PNG: dejamos espacio para que el avatar entre en el hueco central */
+.zf-frame-art { padding: 0; }
+.zf-frame-art::before { display: none; }
+.zf-frame-art > .zf-frame-inner,
+.zf-frame-admin > .zf-frame-inner {
+  position: absolute;
+  inset: 15%;
+  width: 70%;
+  height: 70%;
+}
+
 /* Chip de rareza reutilizable */
 .rarity-chip {
   display: inline-flex; align-items: center; gap: 4px;
