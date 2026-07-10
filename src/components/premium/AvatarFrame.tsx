@@ -4,7 +4,8 @@ import { findFrame } from "@/lib/cosmetics";
 
 interface Props {
   frame?: string | null;
-  size?: number;
+  /** Tamaño fijo en px. Pasa `null` para heredar del padre (usar className w-*/h-*). */
+  size?: number | null;
   className?: string;
   children: ReactNode;
 }
@@ -15,12 +16,11 @@ interface Props {
  */
 export default function AvatarFrame({ frame, size = 80, className, children }: Props) {
   const def = findFrame(frame);
+  const style = size == null ? undefined : { width: size, height: size };
   return (
-    <div
-      className={cn("zf-frame", def.className, className)}
-      style={{ width: size, height: size }}
-    >
+    <div className={cn("zf-frame", def.className, className)} style={style}>
       <div className="zf-frame-inner">{children}</div>
     </div>
   );
 }
+
