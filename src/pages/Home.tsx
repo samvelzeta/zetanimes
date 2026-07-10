@@ -16,6 +16,7 @@ import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { getApprovedAnimeIds, filterApprovedReleasing, onApprovedChange } from "@/lib/approved-animes";
 import LazySection from "@/components/LazySection";
 import AdBannerInline from "@/components/ads/AdBannerInline";
+import TopOtakusWidget from "@/components/premium/TopOtakusWidget";
 
 // Semilla determinista por año-semana ISO (rota cada lunes)
 function weekSeed(): number {
