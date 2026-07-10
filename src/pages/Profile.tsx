@@ -93,6 +93,28 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, profileId]);
 
+  // Mantiene las estadísticas sincronizadas en vivo: si el usuario ve un
+  // episodio en otro dispositivo o pestaña, al volver a Profile o al recibir
+  // el cambio en realtime, las horas / episodios se actualizan solos.
+  useEffect(() => {
+    if (!user) return;
+    const onVisible = () => { if (document.visibilityState === "visible") loadStats(); };
+    document.addEventListener("visibilitychange", onVisible);
+    const channel = supabase
+      .channel(`watch-history-stats-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "watch_history", filter: `user_id=eq.${user.id}` },
+        () => { loadStats(); }
+      )
+      .subscribe();
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const loadStats = async () => {
     if (!user) return;
     // Stats globales de la cuenta: agregamos TODO el watch_history / anime_lists del
