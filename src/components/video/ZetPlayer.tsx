@@ -54,7 +54,7 @@ export default function ZetPlayer({
   const [fullscreen, setFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [buffering, setBuffering] = useState(false);
-  const [showSkipIntro, setShowSkipIntro] = useState(false);
+  
   const [showNextCountdown, setShowNextCountdown] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [speed, setSpeed] = useState(1);
@@ -119,7 +119,8 @@ export default function ZetPlayer({
     setDuration(d);
     setProgress(d ? (t / d) * 100 : 0);
     onProgress?.(t, d);
-    setShowSkipIntro(t > 60 && t < 150);
+    // Nota: el skip-intro automático por heurística de tiempo fue anulado
+    // porque no sabemos en qué segundo exacto empieza/termina el opening.
     if (d > 0 && t / d >= 0.9 && hasNext && !showNextCountdown) {
       setShowNextCountdown(true);
     }
@@ -200,15 +201,7 @@ export default function ZetPlayer({
         </div>
       )}
 
-      {/* Skip intro */}
-      {showSkipIntro && (
-        <button
-          onClick={(e) => { e.stopPropagation(); if (videoRef.current) videoRef.current.currentTime = 150; setShowSkipIntro(false); }}
-          className="absolute bottom-20 right-4 z-20 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/15 rounded-lg text-xs font-medium text-white hover:bg-white/20 transition"
-        >
-          Saltar Intro ⏭
-        </button>
-      )}
+      {/* Skip intro automático anulado — no confiable sin timestamps reales */}
 
       {/* Next ep countdown */}
       {showNextCountdown && (
