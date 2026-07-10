@@ -744,6 +744,36 @@ export type Database = {
         }
         Relationships: []
       }
+      hidden_pending_animes: {
+        Row: {
+          anilist_id: number
+          created_at: string
+          expires_at: string
+          hidden_at: string
+          hidden_by: string | null
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          anilist_id: number
+          created_at?: string
+          expires_at?: string
+          hidden_at?: string
+          hidden_by?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          anilist_id?: number
+          created_at?: string
+          expires_at?: string
+          hidden_at?: string
+          hidden_by?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       latino_episodes: {
         Row: {
           created_at: string
