@@ -372,12 +372,15 @@ export default function Profile() {
             </div>
 
             <div className="flex-1 min-w-0 pt-1 md:pt-3">
-              <h1
-                className="text-3xl md:text-5xl tracking-tight text-foreground leading-none truncate"
-                style={{ fontWeight: 200, letterSpacing: "-0.02em" }}
-              >
-                {displayName}
-              </h1>
+              <UserName
+                as="h1"
+                name={displayName}
+                effect={cosmetics.name_effect}
+                className="text-3xl md:text-5xl tracking-tight text-foreground leading-none truncate block"
+              />
+              <div className="mt-3 max-w-xs">
+                <XPBar />
+              </div>
               {isMainProfile && (
                 <p className="mt-2 md:mt-3 text-xs md:text-sm text-muted-foreground/60 font-light truncate">
                   {user.email}
