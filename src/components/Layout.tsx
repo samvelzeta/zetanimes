@@ -27,6 +27,8 @@ export default function Layout() {
     <div className="min-h-screen bg-background text-foreground">
       <AdblockGate />
       <ExpiryAlert />
+      <CursorApplier />
+      <LevelUpToast />
       {/* Motor fantasma 0×0 — solo se monta en premium, invisible e intocable. */}
       <PremiumGhostAds />
       {isTV ? (
