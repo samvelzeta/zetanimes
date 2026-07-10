@@ -17,6 +17,7 @@ import LikeButton from "@/components/anime/LikeButton";
 import TechInfoBlock from "@/components/anime/TechInfoBlock";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useEpisodeThumbnails } from "@/lib/episode-thumbnails";
+import { useIsDubbed } from "@/hooks/useDubbedAnimes";
 
 type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
 
@@ -164,6 +165,7 @@ export default function AnimeDetail() {
   }
 
   const title = getTitle(anime);
+  const isDubbed = useIsDubbed(anime);
   const banner = anime.bannerImage || anime.coverImage?.extraLarge;
   const cover = anime.coverImage?.extraLarge || anime.coverImage?.large;
   const description = translatedDesc || rawDescription;
@@ -232,6 +234,11 @@ export default function AnimeDetail() {
           {anime.title.romaji && anime.title.romaji !== anime.title.english && (
             <p className="mt-2 text-xs md:text-sm text-white/50 font-light tracking-[0.25em] uppercase max-w-3xl">
               {anime.title.romaji}
+            </p>
+          )}
+          {isDubbed && (
+            <p className="mt-2 text-[10px] md:text-xs font-semibold tracking-[0.35em] uppercase text-primary/90">
+              · Doblado ·
             </p>
           )}
 

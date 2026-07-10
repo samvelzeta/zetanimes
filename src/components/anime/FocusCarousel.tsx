@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Star, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { getTitle, type AniListMedia } from "@/lib/anilist";
 import { useInViewport } from "@/hooks/useInViewport";
+import { useIsDubbed } from "@/hooks/useDubbedAnimes";
 import LazyImage from "@/components/LazyImage";
 
 interface Props {
@@ -11,6 +12,16 @@ interface Props {
   animes: AniListMedia[];
   loading?: boolean;
   linkTo?: string;
+}
+
+function DubbedTag({ anime }: { anime: AniListMedia }) {
+  const dubbed = useIsDubbed(anime);
+  if (!dubbed) return null;
+  return (
+    <p className="text-[9px] font-semibold tracking-[0.25em] uppercase text-primary/90 mt-0.5">
+      Doblado
+    </p>
+  );
 }
 
 export default function FocusCarousel({ title, emoji, animes, loading, linkTo }: Props) {
@@ -135,6 +146,7 @@ export default function FocusCarousel({ title, emoji, animes, loading, linkTo }:
                     )}
                     <div className="absolute bottom-2 left-2 right-2">
                       <p className="text-xs font-bold text-white line-clamp-2">{getTitle(anime)}</p>
+                      <DubbedTag anime={anime} />
                       {anime.genres && <p className="text-[9px] text-white/50 mt-0.5">{anime.genres.slice(0, 2).join(" · ")}</p>}
                     </div>
                   </div>
