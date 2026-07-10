@@ -400,16 +400,19 @@ export default function Profile() {
           {/* separador sutil */}
           <div className="border-t border-neutral-900/60" />
 
-          {/* Misiones + Logros */}
+          {/* Ranking global + Misiones + Logros */}
           {user && (
-            <section className="grid md:grid-cols-2 gap-6">
-              <div className="rounded-2xl border border-neutral-800/70 p-4 md:p-5 bg-white/[0.015]">
-                <MissionsPanel />
-              </div>
-              <div className="rounded-2xl border border-neutral-800/70 p-4 md:p-5 bg-white/[0.015]">
-                <AchievementsPanel />
-              </div>
-            </section>
+            <>
+              <TopOtakusWidget limit={5} />
+              <section className="grid md:grid-cols-2 gap-6">
+                <div className="rounded-2xl border border-neutral-800/70 p-4 md:p-5 bg-white/[0.015]">
+                  <MissionsPanel />
+                </div>
+                <div className="rounded-2xl border border-neutral-800/70 p-4 md:p-5 bg-white/[0.015]">
+                  <AchievementsPanel />
+                </div>
+              </section>
+            </>
           )}
 
           {/* Estadísticas comparativas + Wrapped */}
