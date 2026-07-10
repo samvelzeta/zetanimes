@@ -179,7 +179,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSubPrefs, setShowSubPrefs] = useState(false);
-  const [ambilight, setAmbilight] = useState(false);
+  
   const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs();
   const { permissions } = usePlanPermissions();
   const isPremium = permissions.slug !== "free";
