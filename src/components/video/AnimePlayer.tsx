@@ -183,7 +183,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [ambilight, setAmbilight] = useState(false);
   const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs();
   const { permissions } = usePlanPermissions();
-  const isPremium = permissions.plan !== "free";
+  const isPremium = permissions.slug !== "free";
   useAmbilight(videoRef, containerRef, ambilight);
   const subtitleOptions = useMemo(
     () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
