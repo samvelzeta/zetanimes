@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Sparkles, Type } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Type } from "lucide-react";
 import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode } from "@/lib/zetapi";
 import { useSubtitlePrefs, subtitleStyle, subtitlePositionClass } from "@/hooks/useSubtitlePrefs";
@@ -179,7 +179,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSubPrefs, setShowSubPrefs] = useState(false);
-  const [ambilight, setAmbilight] = useState(false);
+  
   const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs();
   const { permissions } = usePlanPermissions();
   const isPremium = permissions.slug !== "free";
@@ -1026,13 +1026,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         )}
 
         {/* Bottom controls — slim HUD */}
-        <div data-player-control="true" className="pointer-events-auto absolute bottom-0 left-0 right-0 px-2 min-[380px]:px-3 sm:px-4 pb-2 sm:pb-3 pt-6 bg-gradient-to-t from-black/80 to-transparent overflow-hidden">
+        <div data-player-control="true" className="pointer-events-auto absolute bottom-0 left-0 right-0 px-2 min-[380px]:px-3 sm:px-4 pb-2 sm:pb-3 pt-6 bg-gradient-to-t from-black/80 to-transparent">
           <div onClick={seekTo} className="w-full h-[3px] bg-white/15 rounded-full cursor-pointer mb-2 group/bar hover:h-[5px] transition-all">
             <div className="h-full bg-primary rounded-full relative transition-all" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : "0%", boxShadow: "0 0 8px hsl(var(--primary) / 0.65)" }}>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
             </div>
           </div>
-          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 overflow-hidden">
+          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5">
             <div className="flex min-w-0 flex-nowrap items-center gap-1 sm:gap-3 overflow-hidden">
               <button onClick={(e) => { e.stopPropagation(); togglePlay(); }} className="flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto shrink-0 items-center justify-center text-white hover:text-primary hover:drop-shadow-[0_0_10px_hsl(var(--primary))] transition">
                 {playing ? <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> : <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />}
@@ -1094,18 +1094,8 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                 <span className="hidden min-[430px]:inline">{formatTime(progress)} <span className="text-white/30 mx-0.5">/</span> {formatTime(duration)}</span>
               </span>
             </div>
-            <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:gap-3 overflow-hidden">
-              {/* Ambilight (premium) — solo UI, sin sistema de colores */}
-              {isPremium && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setAmbilight((v) => !v); showControlsTemp(); }}
-                  className={`flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto shrink-0 items-center justify-center transition ${ambilight ? "text-primary drop-shadow-[0_0_10px_hsl(var(--primary))]" : "text-white/80 hover:text-primary"}`}
-                  aria-label="Modo cine Ambilight"
-                  title={ambilight ? "Ambilight: ON" : "Ambilight: OFF"}
-                >
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-              )}
+            <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:gap-3">
+
               {/* Personalizar subtítulos */}
               <div className="relative shrink-0">
                 <button
