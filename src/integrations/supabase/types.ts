@@ -83,6 +83,42 @@ export type Database = {
         }
         Relationships: []
       }
+      achievements: {
+        Row: {
+          condition_type: string
+          condition_value: number
+          created_at: string
+          description: string
+          icon: string
+          name: string
+          rarity: string
+          slug: string
+          xp_reward: number
+        }
+        Insert: {
+          condition_type: string
+          condition_value?: number
+          created_at?: string
+          description: string
+          icon: string
+          name: string
+          rarity?: string
+          slug: string
+          xp_reward?: number
+        }
+        Update: {
+          condition_type?: string
+          condition_value?: number
+          created_at?: string
+          description?: string
+          icon?: string
+          name?: string
+          rarity?: string
+          slug?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       admin_activity_log: {
         Row: {
           action: string
@@ -956,6 +992,42 @@ export type Database = {
         }
         Relationships: []
       }
+      roleplay_missions: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string
+          icon: string
+          slug: string
+          target: number
+          title: string
+          type: string
+          xp_reward: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description: string
+          icon?: string
+          slug: string
+          target?: number
+          title: string
+          type: string
+          xp_reward?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          icon?: string
+          slug?: string
+          target?: number
+          title?: string
+          type?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       slug_cache: {
         Row: {
           anilist_id: number
@@ -1100,6 +1172,94 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_slug: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_slug: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_slug?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_slug_fkey"
+            columns: ["achievement_slug"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      user_cosmetics: {
+        Row: {
+          avatar_frame: string
+          banner_preset: string
+          banner_url: string | null
+          cursor_theme: string
+          name_effect: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_frame?: string
+          banner_preset?: string
+          banner_url?: string | null
+          cursor_theme?: string
+          name_effect?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_frame?: string
+          banner_preset?: string
+          banner_url?: string | null
+          cursor_theme?: string
+          name_effect?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_missions: {
+        Row: {
+          completed_at: string | null
+          cycle_started_at: string
+          mission_slug: string
+          progress: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          cycle_started_at?: string
+          mission_slug: string
+          progress?: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          cycle_started_at?: string
+          mission_slug?: string
+          progress?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_missions_mission_slug_fkey"
+            columns: ["mission_slug"]
+            isOneToOne: false
+            referencedRelation: "roleplay_missions"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1118,6 +1278,30 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_xp: {
+        Row: {
+          level: number
+          rank_slug: string
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          level?: number
+          rank_slug?: string
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          level?: number
+          rank_slug?: string
+          updated_at?: string
+          user_id?: string
+          xp?: number
         }
         Relationships: []
       }
@@ -1274,6 +1458,22 @@ export type Database = {
         Returns: undefined
       }
       auto_expire_subscriptions: { Args: never; Returns: number }
+      award_xp: {
+        Args: { _amount: number; _user_id: string }
+        Returns: {
+          level: number
+          rank_slug: string
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_xp"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       bump_profile_stats: {
         Args: {
           _episodes_delta: number
@@ -1284,6 +1484,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      calc_level_from_xp: { Args: { _xp: number }; Returns: number }
+      calc_rank_from_level: { Args: { _level: number }; Returns: string }
       cleanup_old_data: { Args: never; Returns: Json }
       cleanup_stale_streams: { Args: { _user_id: string }; Returns: undefined }
       delete_download_tracker: {
@@ -1361,6 +1563,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      unlock_achievement: {
+        Args: { _slug: string; _user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
