@@ -842,6 +842,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_stats: {
+        Row: {
+          episodes_completed: number
+          lists_count: number
+          profile_id: string | null
+          total_watch_seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          episodes_completed?: number
+          lists_count?: number
+          profile_id?: string | null
+          total_watch_seconds?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          episodes_completed?: number
+          lists_count?: number
+          profile_id?: string | null
+          total_watch_seconds?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1247,6 +1274,16 @@ export type Database = {
         Returns: undefined
       }
       auto_expire_subscriptions: { Args: never; Returns: number }
+      bump_profile_stats: {
+        Args: {
+          _episodes_delta: number
+          _lists_delta: number
+          _profile_id: string
+          _seconds_delta: number
+          _user_id: string
+        }
+        Returns: undefined
+      }
       cleanup_old_data: { Args: never; Returns: Json }
       cleanup_stale_streams: { Args: { _user_id: string }; Returns: undefined }
       delete_download_tracker: {
