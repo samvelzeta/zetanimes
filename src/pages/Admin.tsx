@@ -162,6 +162,7 @@ export default function AdminPanel() {
               {tab === "notifs" && isOwner && <NotifsTab />}
               {tab === "contacts" && <ContactsTab />}
               {tab === "banners" && <AdminBannersManager />}
+              {tab === "frames" && <AdminFramesManager />}
               {isOwner && tab === "apikeys" && <ApiKeysTab />}
               {isOwner && tab === "roles" && <RoleManager />}
             </div>
