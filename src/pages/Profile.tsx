@@ -315,7 +315,7 @@ export default function Profile() {
                 )}
                 {/* Z-1: Photo con marco cosmético (reemplaza la antigua tuerca/engranaje) */}
                 <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 10 }}>
-                  <AvatarFrame frame={cosmetics.avatar_frame} size={undefined as any} className="!w-full !h-full">
+                  <AvatarFrame frame={cosmetics.avatar_frame} size={null} className="!w-full !h-full">
                     <div
                       className="w-full h-full rounded-full overflow-hidden"
                       style={{ filter: "drop-shadow(0 20px 40px hsl(var(--primary) / 0.35)) drop-shadow(0 8px 16px rgb(0 0 0 / 0.4))" }}
