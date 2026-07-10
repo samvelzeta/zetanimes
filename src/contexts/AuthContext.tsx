@@ -144,12 +144,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         async (payload) => {
           if (rolesRef.current.includes("owner") || rolesRef.current.includes("admin")) return;
           const updated = payload.new as { device_id?: string; revoked_at?: string | null } | null;
-          if (updated?.device_id === currentDeviceId && updated.revoked_at) {
+          const previous = payload.old as { device_id?: string; revoked_at?: string | null } | null;
+          // Solo cerrar sesión si el revoked_at es NUEVO en este update.
+          // Si el registro ya estaba revocado desde antes (revoked_at viejo),
+          // los heartbeats posteriores generaban UPDATEs que provocaban logout
+          // en cada refresh. Ahora exigimos transición null → valor.
+          if (
+            updated?.device_id === currentDeviceId &&
+            updated.revoked_at &&
+            !previous?.revoked_at
+          ) {
             revokedByRemoteRef.current = true;
             await supabase.auth.signOut();
             clearLocalAuthState();
           }
         }
+
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
