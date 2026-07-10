@@ -12,26 +12,33 @@ interface Props {
 export default function GachaPanel({ onOpenInventory }: Props) {
   const { tokens, loading, pull } = useGacha();
   const [pool, setPool] = useState<"banner" | "frame">("frame");
-  const [pulling, setPulling] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "shake" | "burst" | "reveal">("idle");
   const [result, setResult] = useState<PullResult | null>(null);
+
+  const pulling = phase === "shake" || phase === "burst";
 
   const doPull = async () => {
     if (tokens.tokens < 2) { toast.error("Necesitas 2 fichas Z. Mira más animes para ganar."); return; }
-    setPulling(true);
     setResult(null);
+    setPhase("shake");
     try {
-      // Pequeña pausa dramática
+      // Sacudida
       await new Promise((r) => setTimeout(r, 900));
       const res = await pull(pool);
       if (!res.ok) {
+        setPhase("idle");
         toast.error(res.reason === "no_tokens" ? "Sin fichas" : res.reason === "all_owned" ? "¡Ya tienes todo!" : "No se pudo tirar");
-      } else {
-        setResult(res);
+        return;
       }
+      // Estallido de la Z
+      setPhase("burst");
+      await new Promise((r) => setTimeout(r, 700));
+      // Reveal del premio
+      setResult(res);
+      setPhase("reveal");
     } catch (e: any) {
+      setPhase("idle");
       toast.error(e?.message ?? "error");
-    } finally {
-      setPulling(false);
     }
   };
 
@@ -58,7 +65,7 @@ export default function GachaPanel({ onOpenInventory }: Props) {
 
       <div className="flex gap-2">
         {(["frame","banner"] as const).map((p) => (
-          <button key={p} onClick={() => { setPool(p); setResult(null); }}
+          <button key={p} onClick={() => { setPool(p); setResult(null); setPhase("idle"); }}
             className={cn("flex-1 h-10 rounded-lg text-sm font-medium border transition",
               pool === p ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground")}>
             {p === "frame" ? "Marcos" : "Banners"}
@@ -67,38 +74,89 @@ export default function GachaPanel({ onOpenInventory }: Props) {
       </div>
 
       {/* Cápsula gachapón */}
-      <div className="relative aspect-square max-w-[220px] mx-auto flex items-center justify-center">
-        <div className={cn(
-          "w-40 h-40 rounded-full border-4 flex items-center justify-center relative overflow-hidden transition-all",
-          pulling ? "zf-gacha-shake" : "",
-          result ? `zf-rarity-${rarity}` : "border-primary/40"
-        )} style={result ? { borderColor: meta.color, filter: `drop-shadow(${meta.glow})` } : {}}>
-          {result ? (
-            <div className="text-center px-2 zf-gacha-reveal">
-              {result.image_url ? (
-                <img src={result.image_url} alt="" className="w-20 h-20 mx-auto rounded-full object-cover" />
-              ) : (
-                <Sparkles className="w-14 h-14 mx-auto text-primary" />
+      <div className="relative aspect-square max-w-[260px] mx-auto flex items-center justify-center">
+        {/* Rayos de fondo cuando hay premio */}
+        {phase === "reveal" && result && (
+          <div className="zf-gacha-rays" style={{ ["--zf-ray" as any]: `${meta.color}55` }} />
+        )}
+
+        {/* Flash central al abrir */}
+        {phase === "burst" && (
+          <div className="zf-gacha-flash" style={{ color: meta.color }} />
+        )}
+
+        <div
+          className={cn(
+            "w-44 h-44 rounded-full border-4 flex items-center justify-center relative overflow-hidden transition-all",
+            phase === "shake" && "zf-gacha-shake",
+            phase === "reveal" && "zf-prize-halo"
+          )}
+          style={{
+            borderColor: phase === "reveal" ? meta.color : "hsl(var(--primary) / 0.4)",
+            filter: phase === "reveal" ? `drop-shadow(${meta.glow})` : undefined,
+            ["--zf-halo" as any]: meta.color,
+            // Fondo: banner ganado ocupa la cápsula, o base
+            background: phase === "reveal" && result && pool === "banner" && result.image_url
+              ? `url("${result.image_url}") center/cover no-repeat`
+              : undefined,
+          }}
+        >
+          {/* Z original (visible antes del reveal) */}
+          {phase !== "reveal" && (
+            <span
+              className={cn(
+                "text-7xl font-black text-primary/50 relative z-10",
+                phase === "burst" && "zf-z-burst"
               )}
-              <p className="mt-2 text-sm font-bold" style={{ color: meta.color }}>{meta.label}</p>
-              <p className="text-xs text-foreground/80 truncate">{result.name}</p>
+              style={phase === "burst" ? { color: meta.color } : undefined}
+            >
+              Z
+            </span>
+          )}
+
+          {/* Reveal del premio */}
+          {phase === "reveal" && result && (
+            <div className="text-center px-2 zf-gacha-reveal relative z-10 w-full h-full flex flex-col items-center justify-center">
+              {pool === "frame" && result.image_url ? (
+                // Muestra el marco tal cual (overlay circular grande)
+                <img
+                  src={result.image_url}
+                  alt=""
+                  className="w-40 h-40 object-contain drop-shadow-2xl"
+                  style={{ filter: `drop-shadow(0 0 12px ${meta.color})` }}
+                />
+              ) : pool === "banner" ? (
+                // Banner ya está de fondo — solo mostramos label
+                <div className="absolute inset-x-0 bottom-2 bg-black/60 backdrop-blur-sm py-1.5 px-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</p>
+                  <p className="text-xs text-white truncate">{result.name}</p>
+                </div>
+              ) : (
+                <Sparkles className="w-16 h-16 mx-auto text-primary" />
+              )}
             </div>
-          ) : (
-            <span className="text-6xl font-black text-primary/40">Z</span>
           )}
         </div>
+
+        {/* Label bajo la cápsula para marcos */}
+        {phase === "reveal" && result && pool === "frame" && (
+          <div className="absolute -bottom-2 left-0 right-0 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</p>
+            <p className="text-sm text-foreground/90 font-medium">{result.name}</p>
+          </div>
+        )}
       </div>
 
       <button
         onClick={doPull}
         disabled={pulling || tokens.tokens < 2}
-        className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 hover:opacity-90 transition"
+        className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 hover:opacity-90 transition mt-6"
       >
-        {pulling ? <><Loader2 className="w-4 h-4 animate-spin" /> Tirando…</> : <><Sparkles className="w-4 h-4" /> Tirar (2 fichas)</>}
+        {pulling ? <><Loader2 className="w-4 h-4 animate-spin" /> Abriendo cápsula…</> : <><Sparkles className="w-4 h-4" /> Tirar (2 fichas)</>}
       </button>
 
-      {result && (
-        <button onClick={() => setResult(null)} className="w-full h-9 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-1">
+      {phase === "reveal" && (
+        <button onClick={() => { setResult(null); setPhase("idle"); }} className="w-full h-9 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-1">
           <X className="w-3.5 h-3.5" /> Cerrar resultado
         </button>
       )}
