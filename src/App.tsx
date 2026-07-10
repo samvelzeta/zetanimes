@@ -88,6 +88,7 @@ const App = () => {
                 <Route path="/recent" element={<RecentlyWatched />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/mis-listas" element={<MyLists />} />
+                <Route path="/ranking" element={<Ranking />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
