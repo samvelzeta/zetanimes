@@ -16,7 +16,7 @@ export default function GachaPanel({ onOpenInventory }: Props) {
   const [result, setResult] = useState<PullResult | null>(null);
 
   const doPull = async () => {
-    if (tokens.tokens < 1) { toast.error("No tienes fichas Z. Mira más animes para ganar."); return; }
+    if (tokens.tokens < 2) { toast.error("Necesitas 2 fichas Z. Mira más animes para ganar."); return; }
     setPulling(true);
     setResult(null);
     try {
@@ -52,7 +52,7 @@ export default function GachaPanel({ onOpenInventory }: Props) {
           <Sparkles className="w-10 h-10 text-primary/40" />
         </div>
         <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-          Cada <b>10 episodios completados</b> ganas 1 ficha Z. Gástalas en el gachapón para conseguir marcos y banners aleatorios.
+          Cada <b>20 episodios completados</b> ganas 1 ficha Z. Cada tirada del gachapón cuesta <b>2 fichas</b>.
         </p>
       </div>
 
@@ -91,10 +91,10 @@ export default function GachaPanel({ onOpenInventory }: Props) {
 
       <button
         onClick={doPull}
-        disabled={pulling || tokens.tokens < 1}
+        disabled={pulling || tokens.tokens < 2}
         className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 hover:opacity-90 transition"
       >
-        {pulling ? <><Loader2 className="w-4 h-4 animate-spin" /> Tirando…</> : <><Sparkles className="w-4 h-4" /> Tirar (1 ficha)</>}
+        {pulling ? <><Loader2 className="w-4 h-4 animate-spin" /> Tirando…</> : <><Sparkles className="w-4 h-4" /> Tirar (2 fichas)</>}
       </button>
 
       {result && (
