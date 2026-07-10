@@ -42,15 +42,15 @@ export default function TopOtakusWidget({ limit = 5, compact = false, title = "ð
       </div>
 
       {loading ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {Array.from({ length: limit }).map((_, i) => (
-            <div key={i} className="h-10 rounded-lg bg-white/[0.03] animate-pulse" />
+            <div key={i} className="h-24 rounded-2xl bg-white/[0.03] animate-pulse" />
           ))}
         </div>
       ) : rows.length === 0 ? (
         <p className="text-xs text-muted-foreground py-6 text-center">AÃºn no hay ranking.</p>
       ) : (
-        <ol className="space-y-1.5">
+        <ol className="space-y-3">
           {rows.slice(0, limit).map((r) => {
             const isMe = user?.id === r.user_id;
             const color = rankColor(r.rank_slug);
@@ -61,36 +61,69 @@ export default function TopOtakusWidget({ limit = 5, compact = false, title = "ð
                 <Link
                   to="/ranking"
                   className={cn(
-                    "flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition",
-                    isMe ? "bg-primary/10 border border-primary/40" : "hover:bg-white/[0.04]",
+                    "relative block rounded-2xl border overflow-hidden transition group",
+                    isMe
+                      ? "border-primary shadow-[0_0_18px_hsl(var(--primary)/0.35)]"
+                      : "border-border/60 hover:border-primary/50",
                   )}
                 >
-                  <span
-                    className={cn("w-5 text-center text-xs font-black tabular-nums", podium ? "text-sm" : "")}
-                    style={{ color: podium ? medal : "hsl(var(--muted-foreground))" }}
-                  >
-                    {r.rank_position}
-                  </span>
-                  <div className="w-7 h-7 flex-shrink-0">
-                    <AvatarFrame frame={r.avatar_frame} size={null} className="!w-full !h-full">
-                      <div className="w-full h-full rounded-full overflow-hidden">
-                        {r.avatar_url ? (
-                          <img src={r.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
-                            {r.display_name[0]?.toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                    </AvatarFrame>
+                  {/* Banner de fondo del usuario (equipado) */}
+                  <div className="absolute inset-0 opacity-60 group-hover:opacity-75 transition">
+                    <ProfileBanner
+                      preset={r.banner_preset}
+                      url={r.banner_url}
+                      height={96}
+                      className="!rounded-none !h-full"
+                    />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <UserName as="p" name={r.display_name} effect={r.name_effect} className="text-xs font-semibold truncate block" />
-                    <p className="text-[9px]" style={{ color }}>{rankName(r.rank_slug)} Â· Nv {r.lvl}</p>
+                  {/* Velo para legibilidad */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/60 to-background/85" />
+
+                  <div className="relative flex items-center gap-3 p-3">
+                    <span
+                      className={cn(
+                        "w-7 text-center font-black tabular-nums flex-shrink-0",
+                        podium ? "text-2xl" : "text-lg text-muted-foreground",
+                      )}
+                      style={podium ? { color: medal, textShadow: `0 0 12px ${medal}80` } : undefined}
+                    >
+                      #{r.rank_position}
+                    </span>
+
+                    {/* Avatar con marco equipado */}
+                    <div className="w-14 h-14 flex-shrink-0">
+                      <AvatarFrame frame={r.avatar_frame} size={null} className="!w-full !h-full">
+                        <div className="w-full h-full rounded-full overflow-hidden">
+                          {r.avatar_url ? (
+                            <img src={r.avatar_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-primary/20 flex items-center justify-center text-base font-bold">
+                              {r.display_name[0]?.toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                      </AvatarFrame>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <UserName
+                        as="p"
+                        name={r.display_name}
+                        effect={r.name_effect}
+                        className="text-sm font-bold truncate block"
+                      />
+                      <p className="text-[10px] font-semibold" style={{ color }}>
+                        {rankName(r.rank_slug)} Â· Nivel {r.lvl}
+                      </p>
+                    </div>
+
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-base font-thin tabular-nums leading-none" style={{ color }}>
+                        {r.xp.toLocaleString()}
+                      </p>
+                      <p className="text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5">XP</p>
+                    </div>
                   </div>
-                  <span className="text-[10px] font-bold tabular-nums" style={{ color }}>
-                    {r.xp >= 1000 ? `${(r.xp / 1000).toFixed(1)}k` : r.xp}
-                  </span>
                 </Link>
               </li>
             );
