@@ -1026,7 +1026,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         )}
 
         {/* Bottom controls — slim HUD */}
-        <div data-player-control="true" className="pointer-events-auto absolute bottom-0 left-0 right-0 px-2 min-[380px]:px-3 sm:px-4 pb-2 sm:pb-3 pt-6 bg-gradient-to-t from-black/80 to-transparent overflow-hidden">
+        <div data-player-control="true" className="pointer-events-auto absolute bottom-0 left-0 right-0 px-2 min-[380px]:px-3 sm:px-4 pb-2 sm:pb-3 pt-6 bg-gradient-to-t from-black/80 to-transparent">
           <div onClick={seekTo} className="w-full h-[3px] bg-white/15 rounded-full cursor-pointer mb-2 group/bar hover:h-[5px] transition-all">
             <div className="h-full bg-primary rounded-full relative transition-all" style={{ width: duration > 0 ? `${(progress / duration) * 100}%` : "0%", boxShadow: "0 0 8px hsl(var(--primary) / 0.65)" }}>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary opacity-0 group-hover/bar:opacity-100 transition-opacity" />
