@@ -18,6 +18,7 @@ import TechInfoBlock from "@/components/anime/TechInfoBlock";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useEpisodeThumbnails } from "@/lib/episode-thumbnails";
 import { useIsDubbed } from "@/hooks/useDubbedAnimes";
+import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
 import type { ListType } from "@/lib/anime-lists";
 
 const LIST_CONFIG: { type: ListType; icon: typeof Heart; label: string }[] = [
