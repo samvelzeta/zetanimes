@@ -97,7 +97,8 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
 
 const SEEKE_CACHE_VERSION = "v6";
 const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
-type SeekeResolved = { embed: string; episode: number; cached?: boolean; subtitles?: ZetSubtitle[]; latest_episode?: number };
+export type SeekeQuality = { label: string; url: string };
+type SeekeResolved = { embed: string; episode: number; cached?: boolean; subtitles?: ZetSubtitle[]; latest_episode?: number; qualities?: SeekeQuality[] };
 const seekeMemoryCache = new Map<string, SeekeResolved & { expiresAt: number }>();
 const SEEKE_CACHE_TTL = 1000 * 60 * 60 * 24 * 3;
 // Cache corto del último latest_episode visto por (baseUrl, ep) — solo
