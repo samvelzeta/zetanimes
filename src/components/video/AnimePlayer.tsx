@@ -947,11 +947,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       )}
 
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-3 bg-black/80">
-          <AlertCircle className="w-8 h-8 text-destructive" />
-          <p className="text-sm text-muted-foreground">No se pudo reproducir</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-3 bg-black/85 px-6 text-center">
+          <AlertCircle className="w-9 h-9 text-destructive" />
+          <p className="text-sm font-bold text-foreground">No se pudo reproducir este episodio</p>
+          <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
+            Por favor <span className="text-primary font-bold">reporta este anime</span> desde el botón de reporte para que <span className="text-primary font-bold">Zani y Zen</span> puedan solucionarlo lo más pronto posible. 🙏
+          </p>
           <button onClick={(e) => { e.stopPropagation(); setCurrentIdx(0); setError(false); setLoading(true); }}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold">
+            className="mt-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold">
             Reintentar
           </button>
         </div>
