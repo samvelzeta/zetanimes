@@ -240,9 +240,15 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   }, [currentIdx, classified.length]);
 
   const restoreTime = useCallback(() => {
-    if (hasRestoredTime.current || !initialTime || initialTime <= 0) return;
     const video = videoRef.current;
     if (!video) return;
+    if (resumeTimeRef.current != null && resumeTimeRef.current > 0) {
+      const t = resumeTimeRef.current;
+      resumeTimeRef.current = null;
+      try { video.currentTime = t; } catch {}
+      return;
+    }
+    if (hasRestoredTime.current || !initialTime || initialTime <= 0) return;
     hasRestoredTime.current = true;
     video.currentTime = initialTime;
   }, [initialTime]);
