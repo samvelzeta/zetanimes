@@ -231,12 +231,23 @@ function LoginForm({
     e.preventDefault();
     if (!email || !password) return toast.error("Completa todos los campos");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) return toast.error(error.message);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setLoading(false);
+      return toast.error(error.message);
+    }
+    // Confirmar que la sesión quedó escrita en localStorage antes de navegar
+    // (el WebView del APK a veces necesita un instante extra para persistir).
+    if (!data?.session) {
+      setLoading(false);
+      return toast.error("No se pudo iniciar sesión, intenta de nuevo");
+    }
     markFreshLogin();
     toast.success("¡Bienvenido de vuelta!");
-    onSuccess();
+    // Hard reload: react-router navigate() se queda pegado en algunos WebView
+    // porque el contexto del router no re-renderiza tras el SIGNED_IN.
+    // window.location.href fuerza a la app a arrancar con la sesión ya cargada.
+    setTimeout(() => { window.location.href = "/"; }, 150);
   };
 
   return (
