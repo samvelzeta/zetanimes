@@ -246,16 +246,7 @@ function RegisterForm({
 
   return (
     <div className="space-y-4">
-      {!IS_APK && (
-        <>
-          <GoogleButton label="Registrarse con Google" />
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-orange-500/20" />
-            <span className="text-[10px] tracking-[0.3em] uppercase text-orange-400/50">o con correo</span>
-            <div className="flex-1 h-px bg-orange-500/20" />
-          </div>
-        </>
-      )}
+
     <form onSubmit={handleRegister} className="space-y-4">
       <div>
         <label className={labelCls}>Nombre de usuario</label>
