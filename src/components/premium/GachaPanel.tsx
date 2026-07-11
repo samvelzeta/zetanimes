@@ -26,7 +26,7 @@ export default function GachaPanel({ onOpenInventory }: Props) {
       const res = await pull(pool);
       if (!res.ok) {
         setPhase("idle");
-        toast.error(res.reason === "no_tokens" ? "Sin fichas" : res.reason === "all_owned" ? "¡Ya tienes todo!" : "No se pudo tirar");
+        toast.error(res.reason === "no_tokens" ? "Sin fichas" : res.reason === "empty_pool" ? "No hay recompensas activas" : "No se pudo tirar");
         return;
       }
       setPhase("burst");
