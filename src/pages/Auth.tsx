@@ -74,6 +74,9 @@ function GoogleButton({ label = "Continuar con Google" }: { label?: string }) {
         )}
         {label}
       </button>
+      <p className="mt-1.5 text-center text-[9px] leading-tight text-white/40 italic">
+        (no disponible en APK, esta opción solo funciona en navegador externo)
+      </p>
     </>
   );
 }
