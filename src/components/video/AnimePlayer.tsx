@@ -1188,6 +1188,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                                 if (isPremiumLocked) return;
                                 const v = videoRef.current;
                                 if (v && !Number.isNaN(v.currentTime)) resumeTimeRef.current = v.currentTime;
+                                selectedQualityEpisodeKeyRef.current = episodeKey;
                                 setSelectedQualityUrl(q.url);
                                 setShowQualityMenu(false);
                               }}
