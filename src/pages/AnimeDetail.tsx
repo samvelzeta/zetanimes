@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getAnimeById, getTitle, getStatusLabel, getStatusColor } from "@/lib/anilist";
-import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, HelpCircle, Eye, ChevronDown } from "lucide-react";
+import { Star, Play, ArrowLeft, Calendar, Tv, Film, Heart, Clock, CheckCircle, HelpCircle, Eye, ChevronDown, Hourglass } from "lucide-react";
 import AnimeCard from "@/components/anime/AnimeCard";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,8 +18,7 @@ import TechInfoBlock from "@/components/anime/TechInfoBlock";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useEpisodeThumbnails } from "@/lib/episode-thumbnails";
 import { useIsDubbed } from "@/hooks/useDubbedAnimes";
-
-type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
+import type { ListType } from "@/lib/anime-lists";
 
 const LIST_CONFIG: { type: ListType; icon: typeof Heart; label: string }[] = [
   { type: "favorite", icon: Heart, label: "Favorito" },
