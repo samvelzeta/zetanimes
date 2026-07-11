@@ -1255,22 +1255,48 @@ img {
 }
 .zf-frame-blood > img { animation: zf-blood-drip 3s ease-in-out infinite; transform-origin: center; }
 
-/* Marco calavera (Guardianes óseos): aura blanco/negro podrida, sin colores */
+/* Marco calavera (Guardianes óseos): SOLO blanco y negro, sin aura multicolor */
 .zf-frame-skull::after {
-  background: conic-gradient(from 0deg, #ffffff, #9ca3af, #000000, #6b7280, #ffffff) !important;
-  filter: blur(14px) opacity(0.55) !important;
-  animation: zf-skull-rot 6s linear infinite !important;
+  content: "" !important;
+  position: absolute; inset: -6px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, #ffffff, #4b5563, #000000, #6b7280, #ffffff) !important;
+  filter: blur(14px) opacity(0.5) !important;
+  animation: zf-skull-rot 7s linear infinite !important;
+  z-index: 0;
 }
 @keyframes zf-skull-rot {
-  0%   { transform: rotate(0deg)   scale(1);    filter: blur(14px) opacity(0.45); }
-  50%  { transform: rotate(180deg) scale(1.05); filter: blur(18px) opacity(0.7);  }
-  100% { transform: rotate(360deg) scale(1);    filter: blur(14px) opacity(0.45); }
+  0%   { transform: rotate(0deg);   filter: blur(14px) opacity(0.4); }
+  50%  { transform: rotate(180deg); filter: blur(18px) opacity(0.65); }
+  100% { transform: rotate(360deg); filter: blur(14px) opacity(0.4); }
 }
-@keyframes zf-skull-pulse {
-  0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 6px rgba(255,255,255,0.85)) drop-shadow(0 0 3px rgba(0,0,0,0.9)); }
-  50%      { transform: scale(1.03); filter: drop-shadow(0 0 18px rgba(255,255,255,1)) drop-shadow(0 0 10px rgba(20,20,20,0.95)); }
+.zf-frame-skull > img {
+  animation: none !important;
+  filter: grayscale(1) contrast(1.2) drop-shadow(0 0 10px rgba(255,255,255,0.5)) drop-shadow(0 0 6px rgba(0,0,0,0.9)) !important;
 }
-.zf-frame-skull > img { animation: zf-skull-pulse 2.6s ease-in-out infinite !important; filter: grayscale(1) contrast(1.15); }
+.zf-frame-skull > .zf-frame-inner { inset: 22% !important; width: 56% !important; height: 56% !important; }
+
+/* Marco vikingo (Casco de Odín): degradado animado negro / café */
+.zf-frame-viking::after {
+  content: "" !important;
+  position: absolute; inset: -6px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #0a0a0a 0%, #3b1f0a 25%, #6b3410 50%, #2a1408 75%, #000000 100%);
+  background-size: 300% 300%;
+  filter: blur(12px) opacity(0.75);
+  animation: zf-viking-flow 6s ease-in-out infinite !important;
+  z-index: 0;
+}
+@keyframes zf-viking-flow {
+  0%   { background-position:   0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+}
+.zf-frame-viking > img {
+  animation: none !important;
+  filter: drop-shadow(0 0 10px rgba(107,52,16,0.55)) drop-shadow(0 0 4px rgba(0,0,0,0.9)) !important;
+}
+.zf-frame-viking > .zf-frame-inner { inset: 22% !important; width: 56% !important; height: 56% !important; }
 
 
 /* Marco admin: sin fondo propio, la imagen overlay pinta el borde */
