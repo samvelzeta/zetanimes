@@ -387,11 +387,16 @@ export default function Watch() {
       });
     };
 
-    // Si Seeke ya no cubre el episodio actual del idioma activo, NO usamos
-    // bloque/DB-seeke (forzamos AV1). Esto evita capítulos fantasma reciclados.
+    const addSeekeBaseOnly = (cached: typeof cachedVideo, baseUrl: string | undefined, sourceLang: Lang) => {
+      if (!cached || !baseUrl) return;
+      addDb({ ...cached, sources: { seeke: [baseUrl], hls: [], mp4: [], embed: [], pc: [], mobile: [] } } as any, sourceLang, false);
+    };
+
+    // Si hay Seeke/bloques, el player usa SOLO petición directa a VPS.
+    // No añadimos HLS/embed resueltos guardados porque eso era el cache que podía repetir capítulos.
     if (seekeCoversCurrent) {
       addBlock(currentBlock, lang);
-      addDb(cachedVideo, lang, !!currentBlock);
+      if (!currentBlock) addSeekeBaseOnly(cachedVideo, currentSeekeBase, lang);
     } else if (!hasAnySeekeConfig && cachedVideo) {
       // Solo añadimos fuentes NO-seeke del DB cache (HLS/MP4/embed manuales).
       addDb({ ...cachedVideo, sources: { ...cachedVideo.sources, seeke: [] } } as any, lang, true);
@@ -405,7 +410,11 @@ export default function Watch() {
 
     if (!hasAnySeekeConfig || seekeCoversOpposite) {
       addBlock(oppositeBlock, oppositeLang);
-      addDb(cachedVideoOpposite, oppositeLang, !!oppositeBlock);
+      if (!hasAnySeekeConfig) {
+        addDb(cachedVideoOpposite, oppositeLang, !!oppositeBlock);
+      } else if (!oppositeBlock) {
+        addSeekeBaseOnly(cachedVideoOpposite, oppositeSeekeBase, oppositeLang);
+      }
     }
     if (!hasAnySeekeConfig && oppositeLang === "latino") {
       (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
@@ -415,7 +424,7 @@ export default function Watch() {
     addApi(oppositeServerData, oppositeLang);
 
     return sources.sort((a, b) => sourcePriority(a) - sourcePriority(b));
-  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent, seekeCoversOpposite, hasAnySeekeConfig]);
+  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent, seekeCoversOpposite, hasAnySeekeConfig, currentSeekeBase, oppositeSeekeBase]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
   // Embeds reales por idioma (después del dedup global de appendUniqueSource).
