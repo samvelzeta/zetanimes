@@ -73,7 +73,9 @@ async function zetProxyFetch<T>(apiPath: string): Promise<T> {
 // Direct fetch for public endpoints (no API key needed)
 async function zetDirectFetch<T>(path: string): Promise<T> {
   const url = `${ZET_BASE}${path}`;
-  const res = await fetch(url, { method: "GET", cache: "no-store", headers: { "Accept": "application/json", "Cache-Control": "no-store" } });
+  // No enviar Cache-Control al Worker público: ese header dispara preflight CORS
+  // y el upstream no lo permite. `cache: "no-store"` basta para el navegador.
+  const res = await fetch(url, { method: "GET", cache: "no-store", headers: { "Accept": "application/json" } });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`ZetAPI ${res.status}: ${body}`);
