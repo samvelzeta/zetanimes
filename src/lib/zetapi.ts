@@ -60,7 +60,8 @@ async function zetProxyFetch<T>(apiPath: string): Promise<T> {
   const url = `${PROXY_BASE}?path=${encodeURIComponent(apiPath)}`;
   const res = await fetch(url, {
     method: "GET",
-    headers: { "Accept": "application/json" },
+    cache: "no-store",
+    headers: { "Accept": "application/json", "Cache-Control": "no-store" },
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -72,7 +73,7 @@ async function zetProxyFetch<T>(apiPath: string): Promise<T> {
 // Direct fetch for public endpoints (no API key needed)
 async function zetDirectFetch<T>(path: string): Promise<T> {
   const url = `${ZET_BASE}${path}`;
-  const res = await fetch(url, { method: "GET", headers: { "Accept": "application/json" } });
+  const res = await fetch(url, { method: "GET", cache: "no-store", headers: { "Accept": "application/json", "Cache-Control": "no-store" } });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`ZetAPI ${res.status}: ${body}`);
@@ -95,22 +96,13 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
   return res.data;
 }
 
-const SEEKE_CACHE_VERSION = "v6";
 const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
 export type SeekeQuality = { label: string; url: string };
 type SeekeResolved = { embed: string; episode: number; cached?: boolean; subtitles?: ZetSubtitle[]; latest_episode?: number; qualities?: SeekeQuality[] };
-const seekeMemoryCache = new Map<string, SeekeResolved & { expiresAt: number }>();
-const SEEKE_CACHE_TTL = 1000 * 60 * 60 * 24 * 3;
-// Cache corto del último latest_episode visto por (baseUrl, ep) — solo
-// para refresco automático sin spamear la VPS. El backend valida cada 6h.
-const LATEST_EP_TTL = 1000 * 60 * 30; // 30 min
-
-function getSeekeCacheKey(baseUrl: string, epNumber: number) {
-  return `zet:seeke:${SEEKE_CACHE_VERSION}:${baseUrl.trim()}:${epNumber}`;
-}
 
 export function clearSeekeEpisodeCache() {
-  seekeMemoryCache.clear();
+  // Limpieza legacy: ya no se lee cache local de Seeke, pero borramos entradas
+  // viejas de navegadores/admins para que no contaminen sesiones abiertas.
   try {
     Object.keys(localStorage)
       .filter((key) => key.startsWith("zet:seeke:"))
@@ -139,32 +131,15 @@ function normalizeSeekeQualities(raw: any): SeekeQuality[] {
 }
 
 export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promise<SeekeResolved> {
-  const key = getSeekeCacheKey(baseUrl, epNumber);
-  const now = Date.now();
-  const memory = seekeMemoryCache.get(key);
-  if (memory && memory.expiresAt > now) {
-    // Refresco ligero de latest_episode si la entrada cacheada es vieja (>30min)
-    // sin volver a resolver el embed.
-    const stale = (memory.expiresAt - now) < (SEEKE_CACHE_TTL - LATEST_EP_TTL);
-    if (stale) refreshLatestEpisode(baseUrl, epNumber).catch(() => {});
-    return { embed: memory.embed, episode: memory.episode, cached: true, subtitles: memory.subtitles, latest_episode: memory.latest_episode, qualities: memory.qualities };
-  }
-
-  try {
-    const stored = JSON.parse(localStorage.getItem(key) || "null") as (SeekeResolved & { expiresAt: number }) | null;
-    if (stored?.embed && stored.expiresAt > now) {
-      seekeMemoryCache.set(key, stored);
-      return { embed: stored.embed, episode: stored.episode, cached: true, subtitles: stored.subtitles, latest_episode: stored.latest_episode, qualities: stored.qualities };
-    }
-  } catch {}
-
-  // 1) Fetch directo al bot (entrega embed + subtítulos softsub para JP + latest_episode)
+  // Sin cache local: cada reproducción pide directo a la VPS con el episodio exacto.
   let resolved: SeekeResolved | null = null;
   try {
+    const cacheBust = Date.now();
     const r = await fetch(SEEKE_BOT_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ url: baseUrl, ep: epNumber }),
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", Accept: "application/json", "Cache-Control": "no-store", Pragma: "no-cache" },
+      body: JSON.stringify({ url: baseUrl, ep: epNumber, no_cache: true, force: true, cache_bust: cacheBust }),
     });
     if (r.ok) {
       const data = await r.json();
@@ -183,8 +158,9 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
 
   // 2) Fallback al proxy/Cloudflare si el bot directo falla (CORS u otro)
   if (!resolved) {
+    const cacheBust = Date.now();
     const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; subtitles?: any[]; latest_episode?: number; calidades?: Record<string, string>; qualities?: Record<string, string>; error?: string }>(
-      `/anime/episode-seeke?url=${encodeURIComponent(baseUrl)}&ep=${epNumber}`
+      `/anime/episode-seeke?url=${encodeURIComponent(baseUrl)}&ep=${epNumber}&no_cache=1&force=1&_=${cacheBust}`
     );
     if (!res.ok || !res.embed) {
       throw new Error(res.error || "No se pudo obtener el episodio");
@@ -199,9 +175,6 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
     };
   }
 
-  const cacheValue = { ...resolved, expiresAt: now + SEEKE_CACHE_TTL };
-  seekeMemoryCache.set(key, cacheValue);
-  try { localStorage.setItem(key, JSON.stringify(cacheValue)); } catch {}
   return resolved;
 }
 
@@ -212,22 +185,17 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
  */
 async function refreshLatestEpisode(baseUrl: string, epNumber: number): Promise<number | undefined> {
   try {
+    const cacheBust = Date.now();
     const r = await fetch(SEEKE_BOT_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ url: baseUrl, ep: epNumber, latest_only: true }),
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", Accept: "application/json", "Cache-Control": "no-store", Pragma: "no-cache" },
+      body: JSON.stringify({ url: baseUrl, ep: epNumber, latest_only: true, no_cache: true, force: true, cache_bust: cacheBust }),
     });
     if (!r.ok) return undefined;
     const data = await r.json();
     const latest = Number(data?.latest_episode);
     if (!Number.isFinite(latest)) return undefined;
-    const key = getSeekeCacheKey(baseUrl, epNumber);
-    const memory = seekeMemoryCache.get(key);
-    if (memory) {
-      memory.latest_episode = latest;
-      seekeMemoryCache.set(key, memory);
-      try { localStorage.setItem(key, JSON.stringify(memory)); } catch {}
-    }
     return latest;
   } catch {
     return undefined;
@@ -239,19 +207,10 @@ async function refreshLatestEpisode(baseUrl: string, epNumber: number): Promise<
  * Devuelve `undefined` si la VPS aún no ha resuelto el dato.
  */
 export async function getLatestEpisodeForBase(baseUrl: string, hintEp = 1): Promise<number | undefined> {
-  // Para disponibilidad NO confiamos ciegamente en cache local: latest_episode
-  // manda desde Seeke/VPS para bloquear capítulos que AniList marque como total
-  // pero aún no existan realmente.
   const freshLatest = await refreshLatestEpisode(baseUrl, hintEp);
   if (freshLatest) return freshLatest;
 
-  // Si el refresco ligero falla, usa el último dato cacheado como respaldo.
-  for (const [key, value] of seekeMemoryCache.entries()) {
-    if (key.includes(baseUrl.trim()) && value.latest_episode) {
-      return value.latest_episode;
-    }
-  }
-  // Sin cache: llamamos al endpoint normal con el hint para que la VPS resuelva.
+  // Sin cache: si el endpoint ligero falla, pedimos el episodio real a la VPS.
   try {
     const result = await getSeekeEpisode(baseUrl, hintEp);
     return result.latest_episode;
