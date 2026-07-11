@@ -126,11 +126,63 @@ export default function VideoManager() {
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await searchAnime(val, 1, 20, [], { skipCuration: true });
-        const media = res?.media || [];
+        // Normaliza y tokeniza la query en palabras >=2 letras
+        const normalize = (s: string) =>
+          (s || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9\s]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+        const queryNorm = normalize(val);
+        const tokens = queryNorm.split(" ").filter((t) => t.length >= 2);
+
+        // Lanza búsqueda principal + una búsqueda extra por cada token
+        // para ampliar recall (coincidencias parciales relacionadas).
+        const queries = Array.from(new Set([val, ...tokens.filter((t) => t.length >= 3)])).slice(0, 4);
+        const batches = await Promise.allSettled(
+          queries.map((q) => searchAnime(q, 1, 25, [], { skipCuration: true }))
+        );
+        const seen = new Map<number, AniListMedia>();
+        for (const b of batches) {
+          if (b.status !== "fulfilled") continue;
+          for (const m of b.value?.media || []) {
+            if (!seen.has(m.id)) seen.set(m.id, m);
+          }
+        }
+        const pool = Array.from(seen.values());
+
+        // Scoring: cuenta cuántos tokens aparecen en los títulos disponibles.
+        // Bonus por coincidencia exacta de frase y por prefijo.
+        const scored = pool
+          .map((m) => {
+            const titles = [
+              (m as any).title?.romaji,
+              (m as any).title?.english,
+              (m as any).title?.native,
+              ...(((m as any).synonyms as string[]) || []),
+            ]
+              .filter(Boolean)
+              .map((t: string) => normalize(t));
+            const hay = titles.join(" | ");
+            let score = 0;
+            if (tokens.length) {
+              for (const t of tokens) if (hay.includes(t)) score += 1;
+              score = score / tokens.length; // 0..1
+            }
+            if (queryNorm && hay.includes(queryNorm)) score += 0.6;
+            if (titles.some((t) => t.startsWith(queryNorm))) score += 0.4;
+            return { m, score };
+          })
+          // Umbral: al menos una coincidencia parcial
+          .filter((x) => x.score > 0)
+          .sort((a, b) => b.score - a.score);
+
+        const media = scored.map((x) => x.m).slice(0, 30);
         setSearchResults(media);
         if (media.length === 0) {
-          console.warn("[VideoManager] búsqueda sin resultados", { term: val, raw: res });
+          console.warn("[VideoManager] búsqueda sin resultados", { term: val, pool: pool.length });
           toast.info(`Sin resultados para "${val}"`);
         }
       } catch (e: any) {
@@ -141,6 +193,7 @@ export default function VideoManager() {
       setSearching(false);
     }, 400);
   };
+
 
   const selectAnime = async (anime: AniListMedia) => {
     // Prioridad: slug override manual (si existe) > slug calculado del título
