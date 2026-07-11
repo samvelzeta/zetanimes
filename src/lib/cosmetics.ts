@@ -25,6 +25,7 @@ import frameCosmic from "@/assets/frame-cosmic.png";
 import frameBlood from "@/assets/frame-blood.png";
 import frameLotusRed from "@/assets/frame-lotus-red.png";
 import frameLotusBlue from "@/assets/frame-lotus-blue.png";
+import frameSkullHands from "@/assets/frame-skull-hands.png";
 import bannerSakuraTrees from "@/assets/banner-sakura-trees.jpg";
 import bannerSwampFarRed from "@/assets/banner-swamp-far-red.jpg";
 import bannerSwampCloseRed from "@/assets/banner-swamp-close-red.jpg";
