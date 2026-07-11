@@ -1,15 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { markFreshLogin } from "@/lib/devices";
-import { isApkWebView } from "@/lib/apk-intent";
 import logoUrl from "@/assets/zetanime-apk-logo.png";
 
-const IS_APK = isApkWebView();
 
 /* ---------------- Google Button ---------------- */
 function GoogleButton({ label = "Continuar con Google" }: { label?: string }) {
