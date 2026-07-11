@@ -187,7 +187,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   
   const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs();
   const { permissions } = usePlanPermissions();
+  const { isOwner } = useAuth();
   const isPremium = permissions.slug !== "free";
+
   const subtitleOptions = useMemo(
     () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
     [effectiveSubtitles]
