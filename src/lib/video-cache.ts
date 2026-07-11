@@ -1,6 +1,5 @@
 // Catálogo oficial de enlaces de reproducción en Lovable Cloud.
-// La memoria local de este módulo solo evita lecturas repetidas en la sesión;
-// la fuente de verdad son las tablas públicas de la base de datos.
+// No se cachea en cliente: cada lectura consulta la base de datos oficial.
 import { supabase } from "@/integrations/supabase/client";
 
 export interface VideoSources {
@@ -25,7 +24,6 @@ export interface CachedVideo {
 
 export type PlaybackPlatform = "pc" | "mobile";
 
-const VIDEO_CACHE_VERSION = "v2";
 const memCache = new Map<string, CachedVideo | null>();
 
 function normalizeSlug(slug: string) {
@@ -33,18 +31,15 @@ function normalizeSlug(slug: string) {
 }
 
 function cacheKey(slug: string, ep: number, lang: string) {
-  return `${VIDEO_CACHE_VERSION}::${normalizeSlug(slug)}::${ep}::${lang}`;
+  return `official::${normalizeSlug(slug)}::${ep}::${lang}`;
 }
 
 function animeCacheKey(anilistId: number, ep: number, lang: string) {
-  return `${VIDEO_CACHE_VERSION}::anilist:${anilistId}::${ep}::${lang}`;
+  return `official::anilist:${anilistId}::${ep}::${lang}`;
 }
 
 function writeCache(video: CachedVideo | null, slug: string, ep: number, lang: string, anilistId?: number | null) {
-  memCache.set(cacheKey(slug, ep, lang), video);
-  if (anilistId) {
-    memCache.set(animeCacheKey(anilistId, ep, lang), video);
-  }
+  // Compatibilidad con llamadas existentes: intencionalmente no guarda nada.
 }
 
 function clearCache(slug: string, ep: number, lang: string, anilistId?: number | null) {
@@ -143,17 +138,6 @@ export async function getCachedVideo(
   anilistId?: number
 ): Promise<CachedVideo | null> {
   const normalizedSlug = normalizeSlug(slug);
-  const slugKey = cacheKey(normalizedSlug, episode, lang);
-  const byAnimeKey = anilistId ? animeCacheKey(anilistId, episode, lang) : null;
-
-  if (episode === 0 && byAnimeKey && memCache.has(byAnimeKey)) {
-    const cached = memCache.get(byAnimeKey)!;
-    return cached;
-  }
-  if (episode === 0 && memCache.has(slugKey)) {
-    const cached = memCache.get(slugKey)!;
-    return cached;
-  }
 
   let rows: CachedVideo[] = [];
 
@@ -187,10 +171,6 @@ export async function getCachedVideo(
     const baseRows = await readRows(0);
     const seekeBase = pickBestVideo(baseRows.filter(hasSeekeSources), normalizedSlug);
     if (seekeBase) {
-      writeCache(seekeBase, normalizedSlug, episode, lang, anilistId ?? seekeBase.anilist_id);
-      if (normalizeSlug(seekeBase.slug) !== normalizedSlug) {
-        writeCache(seekeBase, seekeBase.slug, episode, lang, anilistId ?? seekeBase.anilist_id);
-      }
       return seekeBase;
     }
   }
@@ -200,14 +180,9 @@ export async function getCachedVideo(
 
   const result = pickBestVideo(rows, normalizedSlug);
   if (!result) {
-    writeCache(null, normalizedSlug, episode, lang, anilistId);
     return null;
   }
 
-  writeCache(result, normalizedSlug, episode, lang, anilistId ?? result.anilist_id);
-  if (normalizeSlug(result.slug) !== normalizedSlug) {
-    writeCache(result, result.slug, episode, lang, anilistId ?? result.anilist_id);
-  }
   return result;
 }
 

@@ -3,7 +3,7 @@ import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand
 import { Input } from "@/components/ui/input";
 import MarqueeText from "@/components/MarqueeText";
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
-import { clearSeekeEpisodeCache, getSeekeEpisode, titleToSlug } from "@/lib/zetapi";
+import { clearSeekeEpisodeCache, titleToSlug } from "@/lib/zetapi";
 import {
   saveCachedVideo,
   getCachedVideo,
@@ -360,10 +360,10 @@ export default function VideoManager() {
 
     stopAutoFetchRef.current = false;
     setAutoFetching(true);
-    setAutoLog([`Iniciando ${selected.title} · ${lang} desde cap 1`]);
+    setAutoLog([`Guardando URL madre oficial · ${selected.title} · ${lang}`]);
 
-    const baseUrl = normalizeSeekeBaseUrl(primaryUrl);
-    // 1) Guardar URL madre Seeke (episode=0) — enlace oficial universal
+    // Guardar SOLO URL madre Seeke (episode=0) — enlace oficial universal.
+    // No se generan episodios resueltos porque eso era cache y podía repetir videos.
     const saveBase = await saveCachedVideo({
       slug: selected.slug,
       episode: 0,
@@ -380,6 +380,16 @@ export default function VideoManager() {
       return;
     }
 
+    const { error: wipeError } = await supabase
+      .from("video_cache")
+      .delete()
+      .eq("anilist_id", selected.id)
+      .eq("lang", lang)
+      .neq("episode", 0);
+    if (wipeError) {
+      setAutoLog((prev) => [`Aviso: no se pudieron limpiar episodios resueltos: ${wipeError.message}`, ...prev].slice(0, 12));
+    }
+
     // Auto-registrar en tracker como "completed" apenas queda el enlace madre.
     await ensureTrackerCompleted({
       anilistId: selected.id,
@@ -388,65 +398,11 @@ export default function VideoManager() {
       totalEpisodes: selected.totalEpisodes,
     });
 
-
-
-    // 2) Bucle: pedir cap N → guardar SOLO en su episode=N (no como fallback del 1)
-    for (let ep = 1; ep <= totalEps; ep++) {
-      if (stopAutoFetchRef.current) {
-        setAutoLog((prev) => [`Detenido por admin en cap ${ep}`, ...prev]);
-        break;
-      }
-
-      setAutoLog((prev) => [`Pidiendo cap ${ep}...`, ...prev].slice(0, 12));
-      try {
-        const result = await getSeekeEpisode(baseUrl, ep);
-        if (!result.embed) throw new Error("respuesta vacía");
-
-        const isHls = result.embed.includes(".m3u8");
-        // Cada cap se guarda EXCLUSIVAMENTE en su slot. NO incluimos seeke aquí
-        // (la base ya está en episode=0); así evitamos que el cap 1 termine
-        // recibiendo todos los embeds de los demás caps como "servidores alternativos".
-        const epSources = {
-          hls: isHls ? [result.embed] : [],
-          mp4: [],
-          embed: isHls ? [] : [result.embed],
-          pc: [],
-          mobile: [],
-          seeke: [],
-        };
-
-        const saved = await saveCachedVideo({
-          slug: selected.slug,
-          episode: ep,
-          lang,
-          sources: epSources,
-          anilist_id: selected.id,
-          anime_title: selected.title,
-          uploaded_by: user?.id,
-        });
-
-        if (!saved.success) throw new Error(saved.error || "no se pudo guardar");
-
-        // Verificación: re-leer del cache para confirmar que SÍ quedó persistido
-        // en su episodio correcto (no como fallback del 0).
-        clearRuntimeVideoCache();
-        const verify = await getCachedVideo(selected.slug, ep, lang, selected.id);
-        if (!verify || verify.episode !== ep) {
-          throw new Error(`guardado pero no verificado (episode=${verify?.episode ?? "null"})`);
-        }
-
-        setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: true } }));
-        setAutoLog((prev) => [`✔ Cap ${ep} guardado oficialmente${result.cached ? " (resuelto)" : ""}`, ...prev].slice(0, 12));
-
-        // Pequeña pausa para no saturar el scraper
-        await new Promise((r) => setTimeout(r, 250));
-      } catch (e: unknown) {
-        setEpStatuses((prev) => ({ ...prev, [`${ep}-${lang}`]: { checked: true, exists: false } }));
-        setAutoLog((prev) => [`✘ Cap ${ep}: ${e instanceof Error ? e.message : "error"} — detenido`, ...prev].slice(0, 12));
-        break;
-      }
-    }
-
+    clearRuntimeVideoCache();
+    clearSeekeEpisodeCache();
+    clearProgress();
+    setEpStatuses({});
+    setAutoLog((prev) => ["✔ URL madre guardada; reproducción hará peticiones directas a la VPS", ...prev].slice(0, 12));
     const refreshed = await listCachedVideosBySlug(selected.slug, selected.id);
     setSavedVideos(refreshed);
     setAutoFetching(false);
