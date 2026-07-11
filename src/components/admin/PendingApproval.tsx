@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovies } from "@/lib/anilist";
+import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovies, getTrending, getPopular, getTopRated, getThisSeason } from "@/lib/anilist";
 import { getApprovedAnimeIds, approveAnime, unapproveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +88,22 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 60,
   });
 
+  // Pool del Home: trending / popular / top / temporada. Los FINALIZADOS sin
+  // enlace madre Seeke se ocultan del Home y deben aparecer aquí para poder
+  // aprobarse y refrescarse.
+  const { data: homeTrending } = useQuery({
+    queryKey: ["pending-home-trending"], queryFn: () => getTrending(1, 30), staleTime: 1000 * 60 * 30,
+  });
+  const { data: homePopular } = useQuery({
+    queryKey: ["pending-home-popular"], queryFn: () => getPopular(1, 30), staleTime: 1000 * 60 * 30,
+  });
+  const { data: homeTop } = useQuery({
+    queryKey: ["pending-home-top"], queryFn: () => getTopRated(1, 30), staleTime: 1000 * 60 * 30,
+  });
+  const { data: homeSeason } = useQuery({
+    queryKey: ["pending-home-season"], queryFn: () => getThisSeason(1, 30), staleTime: 1000 * 60 * 30,
+  });
+
 
   const { data: approvedArr, refetch: refetchApproved } = useQuery({
     queryKey: ["approved-anime-ids"],
@@ -121,13 +137,24 @@ export default function PendingApproval() {
 
   const airingItems = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
+    // Fuentes "core" — siempre se incluyen (RELEASING + películas próximas/recientes)
     for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming]) {
       for (const m of (p?.media || []) as AiringItem[]) {
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
+    // Fuentes del Home — sólo entran si ya cambiaron de estado y aún no tienen
+    // enlace madre Seeke. Descartamos NOT_YET_RELEASED / CANCELLED (ocultos hasta salir).
+    for (const p of [homeTrending, homePopular, homeTop, homeSeason]) {
+      for (const m of (p?.media || []) as AiringItem[]) {
+        if (map.has(m.id)) continue;
+        if (m.status === "NOT_YET_RELEASED" || m.status === "CANCELLED") continue;
+        if (seekeMasterSet?.has(m.id)) continue; // ya tiene enlace madre → nada que aprobar aquí
+        map.set(m.id, m);
+      }
+    }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies, dirMovies, dirUpcoming]);
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet]);
 
   // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
   const { data: prequelMap } = useQuery({
