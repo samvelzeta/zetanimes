@@ -4,7 +4,7 @@ import { getTrending, getPopular, getTopRated, getThisSeason, getByGenre } from 
 import VerticalCarousel from "@/components/directory/VerticalCarousel";
 import HorizontalList from "@/components/anime/HorizontalList";
 import LatestEpisodes from "@/components/anime/LatestEpisodes";
-import AutoLatestEpisodes from "@/components/anime/AutoLatestEpisodes";
+
 import BentoEpisodes from "@/components/anime/BentoEpisodes";
 import GenreList from "@/components/anime/GenreList";
 import SplashScreen from "@/components/anime/SplashScreen";
@@ -144,7 +144,6 @@ export default function Home() {
       <div className="min-h-screen space-y-6">
         <VerticalCarousel items={filterFn(trending?.media)} />
         <LatestEpisodes />
-        <AutoLatestEpisodes />
         <BentoEpisodes />
         <GenreList />
         <TopRanking
@@ -168,7 +167,6 @@ export default function Home() {
         <div className="mt-6 space-y-2">
           {/* Above-the-fold: montar inmediato */}
           <LatestEpisodes />
-          <AutoLatestEpisodes />
 
 
           {/* 728x90 leaderboard — sin minHeight para no dejar hueco si falla */}
