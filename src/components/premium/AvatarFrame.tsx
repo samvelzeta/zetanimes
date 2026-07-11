@@ -45,11 +45,15 @@ export default function AvatarFrame({ frame, size = 80, className, showRarityGlo
   const shape = def.shape ?? "circle";
   const inner = shapeStyle(shape);
   const rarity = RARITY_META[def.rarity];
+  const isSkullFrame = def.className.includes("zf-frame-skull");
+  const glowFilter = isSkullFrame
+    ? "drop-shadow(0 0 12px rgba(255,255,255,0.95)) drop-shadow(0 0 24px rgba(255,255,255,0.55))"
+    : `drop-shadow(${rarity.glow})`;
 
   return (
     <div
       className={cn("zf-frame relative", def.className, `zf-rarity-${def.rarity}`, className)}
-      style={{ ...outerStyle, ...(showRarityGlow ? { filter: `drop-shadow(${rarity.glow})` } : {}) }}
+      style={{ ...outerStyle, ...(showRarityGlow ? { filter: glowFilter } : {}) }}
       data-shape={shape}
     >
       <div className="zf-frame-inner" style={inner}>
