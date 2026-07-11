@@ -1756,6 +1756,7 @@ export type Database = {
         | "completed"
         | "plan_to_watch"
         | "undecided"
+        | "waiting"
       app_role: "owner" | "admin" | "premium" | "user"
       cosmetic_rarity:
         | "basico"
@@ -1899,6 +1900,7 @@ export const Constants = {
         "completed",
         "plan_to_watch",
         "undecided",
+        "waiting",
       ],
       app_role: ["owner", "admin", "premium", "user"],
       cosmetic_rarity: [

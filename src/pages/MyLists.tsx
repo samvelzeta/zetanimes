@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, Eye, CheckCircle, Clock, HelpCircle, Cog, ArrowLeft, Trash2 } from "lucide-react";
+import { Heart, Eye, CheckCircle, Clock, HelpCircle, Hourglass, Cog, ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ListType } from "@/lib/anime-lists";
 
@@ -13,6 +13,7 @@ const TABS: { value: ListType; label: string; Icon: typeof Heart; color: string 
   { value: "watching", label: "Viendo", Icon: Eye, color: "text-emerald-400" },
   { value: "plan_to_watch", label: "Ver Después", Icon: Clock, color: "text-sky-400" },
   { value: "completed", label: "Terminados", Icon: CheckCircle, color: "text-primary" },
+  { value: "waiting", label: "En Espera", Icon: Hourglass, color: "text-violet-400" },
   { value: "undecided", label: "Indecisos", Icon: HelpCircle, color: "text-amber-400" },
 ];
 
@@ -24,7 +25,7 @@ export default function MyLists() {
   const [activeTab, setActiveTab] = useState<ListType>("favorite");
   const [items, setItems] = useState<any[]>([]);
   const [counts, setCounts] = useState<Record<ListType, number>>({
-    favorite: 0, watching: 0, completed: 0, plan_to_watch: 0, undecided: 0,
+    favorite: 0, watching: 0, completed: 0, plan_to_watch: 0, undecided: 0, waiting: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +37,7 @@ export default function MyLists() {
       q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
       const { data } = await q;
       const all = data || [];
-      const c: Record<ListType, number> = { favorite: 0, watching: 0, completed: 0, plan_to_watch: 0, undecided: 0 };
+      const c: Record<ListType, number> = { favorite: 0, watching: 0, completed: 0, plan_to_watch: 0, undecided: 0, waiting: 0 };
       all.forEach((r: any) => { c[r.list_type as ListType] = (c[r.list_type as ListType] || 0) + 1; });
       setCounts(c);
       setItems(all.filter((r: any) => r.list_type === activeTab));
@@ -83,7 +84,7 @@ export default function MyLists() {
 
         {/* Tabs */}
         <div className="mb-5">
-          <div className="grid grid-cols-5 gap-2 md:gap-3">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
             {TABS.map(({ value, label, Icon, color }) => {
               const isActive = activeTab === value;
               const count = counts[value] || 0;
