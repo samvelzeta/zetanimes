@@ -677,53 +677,6 @@ function PendingCard({
               <X className="w-3.5 h-3.5" />
             </button>
           )}
-          {hidden ? (
-            <button
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await unhidePendingAnime(anime.id);
-                  toast.success("Vuelve a la bandeja");
-                  onChanged();
-                } catch (e: any) {
-                  toast.error(e?.message || "Error");
-                } finally { setBusy(false); }
-              }}
-              disabled={busy}
-              title="Volver a mostrar en la bandeja"
-              className="h-8 px-2 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-muted disabled:opacity-50"
-            >
-              <Eye className="w-3.5 h-3.5" /> Mostrar
-            </button>
-          ) : (
-            <button
-              onClick={async () => {
-                if (!confirm(`¿Ocultar "${title}" de la bandeja durante 7 días?`)) return;
-                setBusy(true);
-                try {
-                  await hidePendingAnime(anime.id, `oculto desde bandeja`);
-                  await logAdminActivity({
-                    area: "videos",
-                    action: "hide_pending_anime",
-                    summary: `Ocultado 7 días: ${title}`,
-                    target_type: "anime",
-                    target_id: String(anime.id),
-                    anilist_id: anime.id,
-                    anime_title: title,
-                  });
-                  toast.success("Oculto por 7 días");
-                  onChanged();
-                } catch (e: any) {
-                  toast.error(e?.message || "Error al ocultar");
-                } finally { setBusy(false); }
-              }}
-              disabled={busy}
-              title="Ocultar temporalmente (7 días)"
-              className="h-8 px-2 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center gap-1 hover:bg-yellow-600/15 hover:text-yellow-500 disabled:opacity-50"
-            >
-              <EyeOff className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
       </div>
     </div>
