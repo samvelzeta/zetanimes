@@ -4,6 +4,7 @@ import { getTrending, getPopular, getTopRated, getThisSeason, getByGenre } from 
 import VerticalCarousel from "@/components/directory/VerticalCarousel";
 import HorizontalList from "@/components/anime/HorizontalList";
 import LatestEpisodes from "@/components/anime/LatestEpisodes";
+import AutoLatestEpisodes from "@/components/anime/AutoLatestEpisodes";
 import BentoEpisodes from "@/components/anime/BentoEpisodes";
 import GenreList from "@/components/anime/GenreList";
 import SplashScreen from "@/components/anime/SplashScreen";
