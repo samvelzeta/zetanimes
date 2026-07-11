@@ -28,7 +28,7 @@ function reqLabel(req: CosmeticRequirement): string {
 
 export default function CosmeticsPicker() {
   const [tab, setTab] = useState<Tab>("frame");
-  const { user, isPremium, profile } = useAuth();
+  const { user, isPremium, profile, isOwner } = useAuth();
   const { xp } = useUserXP();
   const { cosmetics, update } = useUserCosmetics();
   const { banners: adminBanners } = useAdminBanners();
