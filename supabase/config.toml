@@ -5,3 +5,7 @@ verify_jwt = false
 
 [functions.kofi-webhook]
 verify_jwt = false
+
+[functions.sync-auto-episodes]
+verify_jwt = false
+
