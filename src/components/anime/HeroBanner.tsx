@@ -4,6 +4,17 @@ import { Play, Info, Star } from "lucide-react";
 import { getTitle, getStatusLabel, getStatusColor, type AniListMedia } from "@/lib/anilist";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsTV } from "@/hooks/useIsTV";
+import { useIsDubbed } from "@/hooks/useDubbedAnimes";
+
+function DubbedTag({ anime, className = "" }: { anime: AniListMedia; className?: string }) {
+  const dubbed = useIsDubbed(anime);
+  if (!dubbed) return null;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/20 border border-primary/40 text-primary text-[10px] font-bold uppercase tracking-wider ${className}`}>
+      🌎 Doblado
+    </span>
+  );
+}
 import { translateText } from "@/lib/translate";
 import { playHeartbeat } from "@/lib/heartbeat-sound";
 import LazyImage from "@/components/LazyImage";
@@ -100,6 +111,7 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
         <h1 className={`text-3xl font-black text-white leading-tight tracking-tight mb-2 drop-shadow-xl line-clamp-2 ${isTV ? "" : "animate-[hero-slide-up_0.6s_ease-out_0.15s_forwards]"}`} style={isTV ? {} : { opacity: 0 }}>
           {(() => { const t = getTitle(activeAnime); return t.length > 100 ? t.slice(0, 100) + "…" : t; })()}
         </h1>
+        <DubbedTag anime={activeAnime} className="mb-3" />
         {desc && (
           <p className={`text-sm text-white/60 line-clamp-2 mb-4 max-w-md leading-relaxed ${isTV ? "" : "animate-[hero-slide-up_0.6s_ease-out_0.3s_forwards]"}`} style={isTV ? {} : { opacity: 0 }}>
             {desc.slice(0, 150)}{desc.length > 150 ? "..." : ""}
@@ -212,6 +224,7 @@ function MobileHero({ animes }: { animes: AniListMedia[] }) {
           )}
         </div>
         <h1 className="text-2xl font-black text-white leading-tight mb-1">{getTitle(anime)}</h1>
+        <DubbedTag anime={anime} className="mb-2" />
         {desc && (
           <p className="text-[11px] text-white/50 line-clamp-2 mb-2 max-w-xs">
             {desc.slice(0, 120)}{desc.length > 120 ? "..." : ""}
