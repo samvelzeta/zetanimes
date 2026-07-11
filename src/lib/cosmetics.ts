@@ -33,6 +33,8 @@ import bannerSakuraTrees from "@/assets/banner-sakura-trees.jpg";
 import bannerSwampFarRed from "@/assets/banner-swamp-far-red.jpg";
 import bannerSwampCloseRed from "@/assets/banner-swamp-close-red.jpg";
 import bannerSwampCloseBlue from "@/assets/banner-swamp-close-blue.jpg";
+import bannerMoorland from "@/assets/banner-moorland.jpg";
+import bannerGears from "@/assets/banner-gears.jpg";
 
 
 export type Rarity = "basico" | "especial" | "raro" | "mitico" | "legendario" | "z";
