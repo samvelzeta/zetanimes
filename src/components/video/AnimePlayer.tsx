@@ -5,6 +5,7 @@ import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode, type SeekeQuality } from "@/lib/zetapi";
 import { useSubtitlePrefs, subtitleStyle, subtitlePositionClass } from "@/hooks/useSubtitlePrefs";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
+import { useAuth } from "@/contexts/AuthContext";
 import SubtitleSettings from "@/components/premium/SubtitleSettings";
 
 export interface PlayerSubtitle {
