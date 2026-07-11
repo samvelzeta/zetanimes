@@ -1255,6 +1255,23 @@ img {
 }
 .zf-frame-blood > img { animation: zf-blood-drip 3s ease-in-out infinite; transform-origin: center; }
 
+/* Marco calavera (Guardianes óseos): aura blanco/negro podrida, sin colores */
+.zf-frame-skull::after {
+  background: conic-gradient(from 0deg, #ffffff, #9ca3af, #000000, #6b7280, #ffffff) !important;
+  filter: blur(14px) opacity(0.55) !important;
+  animation: zf-skull-rot 6s linear infinite !important;
+}
+@keyframes zf-skull-rot {
+  0%   { transform: rotate(0deg)   scale(1);    filter: blur(14px) opacity(0.45); }
+  50%  { transform: rotate(180deg) scale(1.05); filter: blur(18px) opacity(0.7);  }
+  100% { transform: rotate(360deg) scale(1);    filter: blur(14px) opacity(0.45); }
+}
+@keyframes zf-skull-pulse {
+  0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 6px rgba(255,255,255,0.85)) drop-shadow(0 0 3px rgba(0,0,0,0.9)); }
+  50%      { transform: scale(1.03); filter: drop-shadow(0 0 18px rgba(255,255,255,1)) drop-shadow(0 0 10px rgba(20,20,20,0.95)); }
+}
+.zf-frame-skull > img { animation: zf-skull-pulse 2.6s ease-in-out infinite !important; filter: grayscale(1) contrast(1.15); }
+
 
 /* Marco admin: sin fondo propio, la imagen overlay pinta el borde */
 .zf-frame-admin { padding: 0; }
