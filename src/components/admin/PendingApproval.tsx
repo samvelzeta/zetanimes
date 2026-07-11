@@ -137,13 +137,24 @@ export default function PendingApproval() {
 
   const airingItems = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
+    // Fuentes "core" — siempre se incluyen (RELEASING + películas próximas/recientes)
     for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming]) {
       for (const m of (p?.media || []) as AiringItem[]) {
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
+    // Fuentes del Home — sólo entran si ya cambiaron de estado y aún no tienen
+    // enlace madre Seeke. Descartamos NOT_YET_RELEASED / CANCELLED (ocultos hasta salir).
+    for (const p of [homeTrending, homePopular, homeTop, homeSeason]) {
+      for (const m of (p?.media || []) as AiringItem[]) {
+        if (map.has(m.id)) continue;
+        if (m.status === "NOT_YET_RELEASED" || m.status === "CANCELLED") continue;
+        if (seekeMasterSet?.has(m.id)) continue; // ya tiene enlace madre → nada que aprobar aquí
+        map.set(m.id, m);
+      }
+    }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies, dirMovies, dirUpcoming]);
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet]);
 
   // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
   const { data: prequelMap } = useQuery({
