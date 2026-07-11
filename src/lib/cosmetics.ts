@@ -210,6 +210,8 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "swamp-far-red",    name: "Pantano lejano",      rarity: "mitico",     requirement: { type: "level", value: 90 }, gradient: `url("${bannerSwampFarRed}") center/cover no-repeat` },
   { slug: "swamp-close-red",  name: "Loto rojo en el lodo",rarity: "legendario", requirement: { type: "level", value: 120 }, gradient: `url("${bannerSwampCloseRed}") center/cover no-repeat` },
   { slug: "swamp-close-blue", name: "Loto azul lunar",     rarity: "legendario", requirement: { type: "premium" },          gradient: `url("${bannerSwampCloseBlue}") center/cover no-repeat` },
+  { slug: "moorland",         name: "Páramo desolado",     rarity: "legendario", requirement: { type: "gacha" },             gradient: `url("${bannerMoorland}") center/cover no-repeat` },
+  { slug: "gears",            name: "Engranajes del rey",  rarity: "mitico",     requirement: { type: "level", value: 50 },  gradient: `url("${bannerGears}") center/cover no-repeat` },
 ];
 
 export function isCosmeticUnlocked(
