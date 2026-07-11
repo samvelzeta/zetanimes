@@ -129,6 +129,15 @@ function normalizeSeekeSubs(raw: any): ZetSubtitle[] {
     .filter((s) => !!s.url);
 }
 
+function normalizeSeekeQualities(raw: any): SeekeQuality[] {
+  if (!raw || typeof raw !== "object") return [];
+  const out: SeekeQuality[] = [];
+  for (const [label, url] of Object.entries(raw)) {
+    if (typeof url === "string" && url) out.push({ label: String(label), url });
+  }
+  return out;
+}
+
 export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promise<SeekeResolved> {
   const key = getSeekeCacheKey(baseUrl, epNumber);
   const now = Date.now();
