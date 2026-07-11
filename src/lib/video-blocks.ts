@@ -34,12 +34,6 @@ export interface ResolvedBlock {
   inverseMode: boolean;
 }
 
-const blocksMemoryCache = new Map<string, { value: VideoBlock[]; expiresAt: number }>();
-
-function key(anilistId: number, lang: string) {
-  return `${anilistId}::${lang}`;
-}
-
 export async function listBlocks(anilistId: number, lang: string): Promise<VideoBlock[]> {
   const { data, error } = await supabase
     .from("video_cache_blocks" as any)
@@ -57,8 +51,7 @@ export async function listBlocks(anilistId: number, lang: string): Promise<Video
 }
 
 export function invalidateBlocksCache(anilistId?: number, lang?: string) {
-  if (anilistId && lang) blocksMemoryCache.delete(key(anilistId, lang));
-  else blocksMemoryCache.clear();
+  // No-op legacy: los bloques se leen siempre directo de la base oficial.
 }
 
 /**
