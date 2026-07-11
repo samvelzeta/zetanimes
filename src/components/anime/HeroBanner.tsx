@@ -4,6 +4,17 @@ import { Play, Info, Star } from "lucide-react";
 import { getTitle, getStatusLabel, getStatusColor, type AniListMedia } from "@/lib/anilist";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsTV } from "@/hooks/useIsTV";
+import { useIsDubbed } from "@/hooks/useDubbedAnimes";
+
+function DubbedTag({ anime, className = "" }: { anime: AniListMedia; className?: string }) {
+  const dubbed = useIsDubbed(anime);
+  if (!dubbed) return null;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/20 border border-primary/40 text-primary text-[10px] font-bold uppercase tracking-wider ${className}`}>
+      🌎 Doblado
+    </span>
+  );
+}
 import { translateText } from "@/lib/translate";
 import { playHeartbeat } from "@/lib/heartbeat-sound";
 import LazyImage from "@/components/LazyImage";
