@@ -284,8 +284,9 @@ export default function Profile() {
             {/* Avatar */}
             <div className="relative flex-shrink-0">
               <div className="relative w-24 h-24 md:w-36 md:h-36" style={{ isolation: "isolate" }}>
-                {/* Z-0: Magitech pulse glow */}
-                {(profile?.subscription_status === "active" || isOwner) && (
+                {/* Z-0: Magitech pulse glow — se OCULTA si el usuario tiene un marco cosmético activo
+                    para que el arte del marco (calavera, oni, vikingo, etc.) no compita con anillos girando detrás. */}
+                {(profile?.subscription_status === "active" || isOwner) && (!cosmetics.avatar_frame || cosmetics.avatar_frame === "default") && (
                   <>
                     <span
                       aria-hidden
@@ -298,7 +299,6 @@ export default function Profile() {
                         filter: "blur(14px)",
                       }}
                     />
-                    {/* Z-2: rotating dashed rune ring */}
                     <span
                       aria-hidden
                       className="magitech-spin absolute inset-[-6px] rounded-full pointer-events-none"
