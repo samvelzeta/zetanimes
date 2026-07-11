@@ -15,14 +15,14 @@ const PREMIUM_COLORS = ["#ff6a00", "#ff2d55", "#3fe1ff", "#7cff5c", "#c084fc", "
 
 // Fuentes: 2 gratis, resto Usuario Z.
 const FREE_FONTS: { id: SubFont; label: string; sample: string; style: React.CSSProperties }[] = [
-  { id: "sans",  label: "Sans",  sample: "Aa", style: { fontFamily: "'Inter', system-ui, sans-serif" } },
-  { id: "serif", label: "Serif", sample: "Aa", style: { fontFamily: "'EB Garamond', serif" } },
+  { id: "serif",   label: "Serif",   sample: "Aa", style: { fontFamily: "'EB Garamond', serif" } },
+  { id: "cursive", label: "Cursiva", sample: "Aa", style: { fontFamily: "'Dancing Script', cursive", fontWeight: 700 } },
 ];
 const PREMIUM_FONTS: { id: SubFont; label: string; sample: string; style: React.CSSProperties }[] = [
-  { id: "cursive", label: "Cursiva", sample: "Aa", style: { fontFamily: "'Dancing Script', cursive", fontWeight: 700 } },
-  { id: "hand",    label: "Mano",    sample: "Aa", style: { fontFamily: "'Caveat', cursive", fontWeight: 700 } },
-  { id: "gothic",  label: "Gótica",  sample: "Aa", style: { fontFamily: "'MedievalSharp', serif" } },
-  { id: "bold",    label: "Gruesa",  sample: "Aa", style: { fontFamily: "'Anton', Impact, sans-serif" } },
+  { id: "sans",   label: "Sans",   sample: "Aa", style: { fontFamily: "'Inter', system-ui, sans-serif" } },
+  { id: "hand",   label: "Mano",   sample: "Aa", style: { fontFamily: "'Caveat', cursive", fontWeight: 700 } },
+  { id: "gothic", label: "Gótica", sample: "Aa", style: { fontFamily: "'MedievalSharp', serif" } },
+  { id: "bold",   label: "Gruesa", sample: "Aa", style: { fontFamily: "'Anton', Impact, sans-serif" } },
 ];
 
 const ORANGE = "hsl(24 95% 58%)";
