@@ -154,7 +154,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
     const stored = JSON.parse(localStorage.getItem(key) || "null") as (SeekeResolved & { expiresAt: number }) | null;
     if (stored?.embed && stored.expiresAt > now) {
       seekeMemoryCache.set(key, stored);
-      return { embed: stored.embed, episode: stored.episode, cached: true, subtitles: stored.subtitles, latest_episode: stored.latest_episode };
+      return { embed: stored.embed, episode: stored.episode, cached: true, subtitles: stored.subtitles, latest_episode: stored.latest_episode, qualities: stored.qualities };
     }
   } catch {}
 
