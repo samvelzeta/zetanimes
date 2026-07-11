@@ -5,7 +5,7 @@
 // - Los registros se aíslan por `profile_id` (perfil activo). Si no hay perfil activo, se trabaja con `profile_id IS NULL`.
 import { supabase } from "@/integrations/supabase/client";
 
-export type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided";
+export type ListType = "favorite" | "watching" | "completed" | "plan_to_watch" | "undecided" | "waiting";
 
 const EXCLUSIVE_GROUP: ListType[] = ["watching", "completed", "plan_to_watch"];
 
