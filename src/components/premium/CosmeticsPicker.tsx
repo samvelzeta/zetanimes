@@ -28,7 +28,7 @@ function reqLabel(req: CosmeticRequirement): string {
 
 export default function CosmeticsPicker() {
   const [tab, setTab] = useState<Tab>("frame");
-  const { user, isPremium, profile } = useAuth();
+  const { user, isPremium, profile, isOwner } = useAuth();
   const { xp } = useUserXP();
   const { cosmetics, update } = useUserCosmetics();
   const { banners: adminBanners } = useAdminBanners();
@@ -90,7 +90,7 @@ export default function CosmeticsPicker() {
       {tab === "frame" && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {allFrames.map((f) => {
-            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium, ownedGacha: ownedFrames, slug: f.slug });
+            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium, ownedGacha: ownedFrames, slug: f.slug, isOwner });
             const active = cosmetics.avatar_frame === f.slug;
             const meta = RARITY_META[f.rarity];
             return (
@@ -121,7 +121,7 @@ export default function CosmeticsPicker() {
       {tab === "name" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {NAME_EFFECTS.map((f) => {
-            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium, ownedGacha: ownedNames, slug: f.slug });
+            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium, ownedGacha: ownedNames, slug: f.slug, isOwner });
             const active = cosmetics.name_effect === f.slug;
             const meta = RARITY_META[f.rarity];
             return (
@@ -153,7 +153,7 @@ export default function CosmeticsPicker() {
       {tab === "cursor" && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {CURSOR_THEMES.map((f) => {
-            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium });
+            const unlocked = isCosmeticUnlocked(f.requirement, { level: xp.level, isPremium, isOwner });
             const active = cosmetics.cursor_theme === f.slug;
             const meta = RARITY_META[f.rarity];
             return (
@@ -185,7 +185,7 @@ export default function CosmeticsPicker() {
       {tab === "banner" && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {allBanners.map((b) => {
-            const unlocked = isCosmeticUnlocked(b.requirement, { level: xp.level, isPremium, ownedGacha: ownedBanners, slug: b.slug });
+            const unlocked = isCosmeticUnlocked(b.requirement, { level: xp.level, isPremium, ownedGacha: ownedBanners, slug: b.slug, isOwner });
             const active = cosmetics.banner_preset === b.slug && !cosmetics.banner_url;
             const meta = RARITY_META[b.rarity];
             return (

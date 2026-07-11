@@ -201,8 +201,9 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
 
 export function isCosmeticUnlocked(
   req: CosmeticRequirement,
-  ctx: { level: number; isPremium: boolean; ownedGacha?: Set<string>; slug?: string }
+  ctx: { level: number; isPremium: boolean; ownedGacha?: Set<string>; slug?: string; isOwner?: boolean }
 ): boolean {
+  if (ctx.isOwner) return true;
   if (req.type === "free") return true;
   if (req.type === "premium") return ctx.isPremium;
   if (req.type === "level") return ctx.level >= req.value;
