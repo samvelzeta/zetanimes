@@ -27,6 +27,8 @@ import frameLotusRed from "@/assets/frame-lotus-red.png";
 import frameLotusBlue from "@/assets/frame-lotus-blue.png";
 import frameSkullHands from "@/assets/frame-skull-hands.png";
 import frameVikingHelm from "@/assets/frame-viking-helm.png";
+import frameOni from "@/assets/frame-oni.png";
+import frameTwinBlades from "@/assets/frame-twin-blades.png";
 import bannerSakuraTrees from "@/assets/banner-sakura-trees.jpg";
 import bannerSwampFarRed from "@/assets/banner-swamp-far-red.jpg";
 import bannerSwampCloseRed from "@/assets/banner-swamp-close-red.jpg";
@@ -116,7 +118,10 @@ export const AVATAR_FRAMES: AvatarFrameDef[] = [
   { slug: "z-cosmic",    name: "Fénix cósmico",     className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameCosmic, rarity: "z", requirement: { type: "gacha" } },
   { slug: "z-blood",     name: "Sangre eterna",     className: "zf-frame-art zf-frame-z zf-frame-blood", shape: "circle", imageUrl: frameBlood, rarity: "z", requirement: { type: "gacha" } },
   { slug: "z-skull-hands", name: "Guardianes óseos", className: "zf-frame-art zf-frame-skull", shape: "circle", imageUrl: frameSkullHands, rarity: "z", requirement: { type: "gacha" } },
-  { slug: "z-viking",      name: "Casco de Odín",   className: "zf-frame-art zf-frame-viking", shape: "circle", imageUrl: frameVikingHelm, rarity: "z", requirement: { type: "gacha" } },
+  { slug: "viking",        name: "Casco de Odín",     className: "zf-frame-art zf-frame-viking", shape: "circle", imageUrl: frameVikingHelm, rarity: "legendario", requirement: { type: "gacha" } },
+  { slug: "twin-blades",   name: "Espadas gemelas",   className: "zf-frame-art zf-frame-twin",   shape: "circle", imageUrl: frameTwinBlades, rarity: "legendario", requirement: { type: "gacha" } },
+  { slug: "oni",           name: "Máscara Oni",       className: "zf-frame-art zf-frame-oni",    shape: "circle", imageUrl: frameOni,        rarity: "legendario", requirement: { type: "level", value: 100 } },
+
 
 ];
 
