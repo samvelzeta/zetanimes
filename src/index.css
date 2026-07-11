@@ -1269,6 +1269,223 @@ img {
 .zet-reduced-motion .zf-name-neon-vein,
 .zet-reduced-motion .zf-name-z { animation: none !important; }
 
+/* Textos animados de banners JoJo */
+.zf-banner-text {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 0 8px rgba(0,0,0,0.9), 0 0 18px rgba(0,0,0,0.75);
+}
+.zf-banner-impact {
+  animation: zf-banner-punch 1.1s ease-in-out infinite;
+  text-shadow: 0 0 8px rgba(255,255,255,0.95), 0 0 18px rgba(59,130,246,0.75);
+}
+.zf-banner-hamon {
+  color: #dff6ff;
+  text-shadow: 0 0 8px rgba(191,219,254,0.95), 0 0 18px rgba(56,189,248,0.75), 0 0 28px rgba(56,189,248,0.45);
+  animation: zf-banner-halo 2.2s linear infinite;
+}
+.zf-banner-slash {
+  color: #fff5f5;
+  text-shadow: 2px 0 0 rgba(127,29,29,0.95), -2px 0 0 rgba(248,113,113,0.95), 0 0 18px rgba(185,28,28,0.7);
+  animation: zf-banner-cut 1.35s steps(2,end) infinite;
+}
+.zf-banner-impact-red {
+  color: #fff;
+  text-shadow: 0 0 10px rgba(248,113,113,0.95), 0 0 24px rgba(220,38,38,0.8);
+  animation: zf-banner-punch 0.95s ease-in-out infinite;
+}
+.zf-banner-comic {
+  color: #fde68a;
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.95), 0 0 18px rgba(245,158,11,0.8);
+  animation: zf-banner-bob 1.6s ease-in-out infinite;
+}
+.zf-banner-trick {
+  color: #fef3c7;
+  text-shadow: 0 0 8px rgba(245,158,11,0.8), 0 0 18px rgba(120,53,15,0.85);
+  animation: zf-banner-drift 2.2s ease-in-out infinite;
+}
+.zf-banner-comic-shock {
+  color: #fff7ed;
+  text-shadow: 0 0 10px rgba(251,146,60,0.9), 0 0 22px rgba(220,38,38,0.75);
+  animation: zf-banner-punch 0.85s ease-in-out infinite;
+}
+.zf-banner-bubbles {
+  color: #cffafe;
+  text-shadow: 0 0 10px rgba(165,243,252,0.95), 0 0 24px rgba(34,211,238,0.7);
+  animation: zf-banner-float 2.8s ease-in-out infinite;
+}
+.zf-banner-glitch {
+  color: #e0f2fe;
+  text-shadow: 2px 0 0 rgba(255,255,255,0.95), -2px 0 0 rgba(34,211,238,0.9), 0 0 20px rgba(125,211,252,0.7);
+  animation: zf-banner-glitch 1.25s steps(2,end) infinite;
+}
+.zf-banner-stretch {
+  color: #dbeafe;
+  transform-origin: center;
+  text-shadow: 0 0 8px rgba(191,219,254,0.95), 0 0 20px rgba(59,130,246,0.75);
+  animation: zf-banner-stretch 1.4s ease-in-out infinite;
+}
+.zf-banner-rewind {
+  color: #fde68a;
+  text-shadow: 0 0 10px rgba(250,204,21,0.95), 0 0 24px rgba(245,158,11,0.75);
+  animation: zf-banner-rewind 1.8s ease-in-out infinite;
+}
+.zf-banner-life {
+  color: #fef9c3;
+  text-shadow: 0 0 12px rgba(250,204,21,0.95), 0 0 26px rgba(132,204,22,0.7);
+  animation: zf-banner-bloom 2.4s ease-in-out infinite;
+}
+.zf-banner-crimson {
+  color: #ffe4e6;
+  text-shadow: 0 0 10px rgba(251,113,133,0.95), 0 0 24px rgba(190,24,93,0.8);
+  filter: blur(0.15px);
+  animation: zf-banner-crimson 1.4s linear infinite;
+}
+.zf-banner-vine {
+  color: #f5f3ff;
+  text-shadow: 0 0 10px rgba(196,181,253,0.95), 0 0 24px rgba(126,34,206,0.8);
+  animation: zf-banner-grow 2.6s ease-in-out infinite;
+}
+.zf-banner-stab {
+  color: #f8fafc;
+  text-shadow: 0 0 10px rgba(255,255,255,0.95), 0 0 20px rgba(148,163,184,0.75);
+  animation: zf-banner-stab 1s ease-in-out infinite;
+}
+.zf-banner-scrape {
+  color: #f3f4f6;
+  text-shadow: 0 0 10px rgba(255,255,255,0.95), 0 0 22px rgba(156,163,175,0.75);
+  animation: zf-banner-scrape 1.4s ease-in-out infinite;
+}
+.zf-banner-explosion {
+  color: #fff1f2;
+  text-shadow: 0 0 12px rgba(251,113,133,0.95), 0 0 26px rgba(244,114,182,0.8);
+  animation: zf-banner-explosion 0.95s ease-in-out infinite;
+}
+.zf-banner-pages {
+  color: #dcfce7;
+  text-shadow: 0 0 12px rgba(187,247,208,0.95), 0 0 24px rgba(74,222,128,0.75);
+  animation: zf-banner-pages 2.1s ease-in-out infinite;
+}
+.zf-banner-heaven {
+  color: #fef3c7;
+  text-shadow: 0 0 12px rgba(253,224,71,0.95), 0 0 28px rgba(147,197,253,0.8);
+  animation: zf-banner-heaven 1.8s linear infinite;
+}
+.zf-banner-ultimate {
+  color: #fff7ed;
+  text-shadow: 0 0 12px rgba(253,224,71,0.98), 0 0 26px rgba(245,158,11,0.9), 0 0 36px rgba(255,255,255,0.45);
+  animation: zf-banner-ultimate 2.2s ease-in-out infinite;
+}
+
+@keyframes zf-banner-punch {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+@keyframes zf-banner-halo {
+  0% { letter-spacing: 0.08em; filter: brightness(1); }
+  50% { letter-spacing: 0.14em; filter: brightness(1.2); }
+  100% { letter-spacing: 0.08em; filter: brightness(1); }
+}
+@keyframes zf-banner-cut {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1px) skewX(-8deg); }
+  75% { transform: translateX(1px) skewX(8deg); }
+}
+@keyframes zf-banner-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-1px) rotate(-2deg); }
+}
+@keyframes zf-banner-drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+@keyframes zf-banner-float {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(-3px); opacity: 0.85; }
+}
+@keyframes zf-banner-glitch {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-1px); }
+  40% { transform: translateX(1px); }
+  60% { transform: translateY(-1px); }
+}
+@keyframes zf-banner-stretch {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(1.08) scaleY(0.96); }
+}
+@keyframes zf-banner-rewind {
+  0%, 100% { transform: translateX(0); opacity: 1; }
+  50% { transform: translateX(-3px); opacity: 0.76; }
+}
+@keyframes zf-banner-bloom {
+  0%, 100% { filter: brightness(1); transform: scale(1); }
+  50% { filter: brightness(1.15); transform: scale(1.04); }
+}
+@keyframes zf-banner-crimson {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+@keyframes zf-banner-grow {
+  0%, 100% { letter-spacing: 0.08em; }
+  50% { letter-spacing: 0.14em; }
+}
+@keyframes zf-banner-stab {
+  0%, 100% { transform: translateX(0) scale(1); }
+  50% { transform: translateX(2px) scale(1.05); }
+}
+@keyframes zf-banner-scrape {
+  0%, 100% { transform: translateX(0); filter: blur(0); }
+  50% { transform: translateX(-2px); filter: blur(0.4px); }
+}
+@keyframes zf-banner-explosion {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+@keyframes zf-banner-pages {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-2deg) translateY(-1px); }
+}
+@keyframes zf-banner-heaven {
+  0% { transform: translateX(0); filter: brightness(1); }
+  50% { transform: translateX(2px); filter: brightness(1.15); }
+  100% { transform: translateX(0); filter: brightness(1); }
+}
+@keyframes zf-banner-ultimate {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.08); filter: brightness(1.2); }
+}
+
+.zet-reduced-motion .zf-banner-text,
+.zet-reduced-motion .zf-banner-impact,
+.zet-reduced-motion .zf-banner-hamon,
+.zet-reduced-motion .zf-banner-slash,
+.zet-reduced-motion .zf-banner-impact-red,
+.zet-reduced-motion .zf-banner-comic,
+.zet-reduced-motion .zf-banner-trick,
+.zet-reduced-motion .zf-banner-comic-shock,
+.zet-reduced-motion .zf-banner-bubbles,
+.zet-reduced-motion .zf-banner-glitch,
+.zet-reduced-motion .zf-banner-stretch,
+.zet-reduced-motion .zf-banner-rewind,
+.zet-reduced-motion .zf-banner-life,
+.zet-reduced-motion .zf-banner-crimson,
+.zet-reduced-motion .zf-banner-vine,
+.zet-reduced-motion .zf-banner-stab,
+.zet-reduced-motion .zf-banner-scrape,
+.zet-reduced-motion .zf-banner-explosion,
+.zet-reduced-motion .zf-banner-pages,
+.zet-reduced-motion .zf-banner-heaven,
+.zet-reduced-motion .zf-banner-ultimate { animation: none !important; }
+
+
 /* ============================================================
    RAREZA — halos y badges
    ============================================================ */

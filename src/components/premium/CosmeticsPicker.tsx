@@ -200,6 +200,11 @@ export default function CosmeticsPicker() {
                 )}
                 style={{ background: b.gradient, boxShadow: active ? `0 0 12px ${meta.color}80` : undefined }}
               >
+                {b.previewText && (
+                  <div className="absolute inset-x-0 top-3 px-3 pointer-events-none flex justify-center">
+                    <span className={cn("zf-banner-text", b.previewClassName)}>{b.previewText}</span>
+                  </div>
+                )}
                 <div className="absolute inset-0 flex items-end justify-between p-2 bg-gradient-to-t from-black/70 to-transparent">
                   <span className="text-xs font-semibold text-white truncate">{b.name}</span>
                   <span className="rarity-chip bg-black/40" style={{ color: meta.color }}>{meta.label}</span>
@@ -207,6 +212,7 @@ export default function CosmeticsPicker() {
                 <span className="absolute top-2 right-2 text-[10px] text-white/80">{reqLabel(b.requirement)}</span>
                 {active && <Check className="absolute top-2 left-8 w-4 h-4 text-white drop-shadow" />}
                 {!unlocked && <Lock className="absolute top-2 left-2 w-3.5 h-3.5 text-white/80" />}
+
               </button>
             );
           })}
