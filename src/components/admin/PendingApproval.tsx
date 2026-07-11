@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
-import { getPrequelChain, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
+import { getPrequelChain, getSideStories, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
 import { listHiddenPending, hidePendingAnime, unhidePendingAnime } from "@/lib/hidden-pending-animes";
 
 
