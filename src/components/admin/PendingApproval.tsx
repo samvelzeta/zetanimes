@@ -135,7 +135,6 @@ export default function PendingApproval() {
     enabled: airingItems.length > 0,
     queryFn: async () => {
       const out = new Map<number, PrequelNode[]>();
-      // Concurrencia limitada para no saturar AniList (5 en paralelo).
       const ids = airingItems.map((a) => a.id);
       const CONC = 5;
       for (let i = 0; i < ids.length; i += CONC) {
@@ -148,7 +147,30 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 30,
   });
 
+  // Side stories directas por cada item en emisión — solo se inyectan las que
+  // están RELEASING y aún no tienen enlace madre Seeke.
+  const releasingIds = useMemo(
+    () => airingItems.filter((a) => a.status === "RELEASING").map((a) => a.id),
+    [airingItems],
+  );
+  const { data: sideMap } = useQuery({
+    queryKey: ["approval-side-stories", releasingIds.join(",")],
+    enabled: releasingIds.length > 0,
+    queryFn: async () => {
+      const out = new Map<number, PrequelNode[]>();
+      const CONC = 5;
+      for (let i = 0; i < releasingIds.length; i += CONC) {
+        const slice = releasingIds.slice(i, i + CONC);
+        const results = await Promise.all(slice.map((id) => getSideStories(id).catch(() => [])));
+        slice.forEach((id, idx) => out.set(id, results[idx] || []));
+      }
+      return out;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+
   // Inyecta las precuelas SIN enlace madre Seeke como items adicionales de pendientes.
+  // Y también las side stories (solo si el padre está en emisión y siguen RELEASING).
   const all = useMemo<AiringItem[]>(() => {
     if (!prequelMap || !seekeMasterSet) return airingItems;
     const merged = new Map<number, AiringItem>();
@@ -167,8 +189,25 @@ export default function PendingApproval() {
         });
       }
     }
+    if (sideMap) {
+      for (const [, sides] of sideMap) {
+        for (const s of sides) {
+          if (seekeMasterSet.has(s.id)) continue;
+          if (merged.has(s.id)) continue;
+          if (s.status !== "RELEASING") continue; // solo emisión
+          merged.set(s.id, {
+            id: s.id,
+            title: { english: s.title, romaji: s.title },
+            coverImage: { large: s.cover, extraLarge: s.cover },
+            status: s.status,
+            episodes: s.episodes ?? null,
+            averageScore: null,
+          });
+        }
+      }
+    }
     return Array.from(merged.values());
-  }, [airingItems, prequelMap, seekeMasterSet]);
+  }, [airingItems, prequelMap, sideMap, seekeMasterSet]);
 
   // Auto-aprobar: si el item TIENE enlace madre Seeke y TODAS sus precuelas
   // también → lo mandamos directo a "aprobados" sin que el admin toque nada.
