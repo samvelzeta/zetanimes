@@ -37,7 +37,7 @@ export default function MyLists() {
       q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
       const { data } = await q;
       const all = data || [];
-      const c: Record<ListType, number> = { favorite: 0, watching: 0, completed: 0, plan_to_watch: 0, undecided: 0 };
+      const c: Record<ListType, number> = { favorite: 0, watching: 0, completed: 0, plan_to_watch: 0, undecided: 0, waiting: 0 };
       all.forEach((r: any) => { c[r.list_type as ListType] = (c[r.list_type as ListType] || 0) + 1; });
       setCounts(c);
       setItems(all.filter((r: any) => r.list_type === activeTab));
