@@ -173,6 +173,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [seekeSubs, setSeekeSubs] = useState<PlayerSubtitle[]>([]);
   const [qualities, setQualities] = useState<SeekeQuality[]>([]);
   const [selectedQualityUrl, setSelectedQualityUrl] = useState<string | null>(null);
+  const selectedQualityEpisodeKeyRef = useRef<string | undefined>(episodeKey);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const resumeTimeRef = useRef<number | null>(null);
   const effectiveSubtitles = useMemo(() => subtitles.length > 0 ? subtitles : seekeSubs, [subtitles, seekeSubs]);
@@ -318,8 +319,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
     if (currentSource.type === "seeke") {
       const requestedEp = currentSource.episode || 1;
       const requestedUrl = currentSource.url;
+      const qualityUrlForCurrentEpisode = selectedQualityEpisodeKeyRef.current === episodeKey ? selectedQualityUrl : null;
       setLoading(true);
-      if (selectedQualityUrl == null) {
+      if (qualityUrlForCurrentEpisode == null) {
         setSeekeSubs([]);
         setQualities([]);
       }
@@ -342,10 +344,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
             : isPremium
               ? (findQ("720P") || findQ("540P") || findQ("360P"))
               : (findQ("540P") || findQ("360P"));
-          const embedToUse = (selectedQualityUrl && qs.some((q) => q.url === selectedQualityUrl))
-            ? selectedQualityUrl
+          const embedToUse = (qualityUrlForCurrentEpisode && qs.some((q) => q.url === qualityUrlForCurrentEpisode))
+            ? qualityUrlForCurrentEpisode
             : (autoUrl || data.embed);
-          if (!selectedQualityUrl && autoUrl) setSelectedQualityUrl(autoUrl);
+          if (!qualityUrlForCurrentEpisode && autoUrl) {
+            selectedQualityEpisodeKeyRef.current = episodeKey;
+            setSelectedQualityUrl(autoUrl);
+          }
           attachHls(embedToUse);
         })
         .catch((err) => {
@@ -375,6 +380,7 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
   // Reset quality selection when episode changes
   useEffect(() => {
+    selectedQualityEpisodeKeyRef.current = episodeKey;
     setSelectedQualityUrl(null);
     setShowQualityMenu(false);
   }, [episodeKey]);
