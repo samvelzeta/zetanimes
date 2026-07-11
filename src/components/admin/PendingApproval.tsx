@@ -88,6 +88,22 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 60,
   });
 
+  // Pool del Home: trending / popular / top / temporada. Los FINALIZADOS sin
+  // enlace madre Seeke se ocultan del Home y deben aparecer aquí para poder
+  // aprobarse y refrescarse.
+  const { data: homeTrending } = useQuery({
+    queryKey: ["pending-home-trending"], queryFn: () => getTrending(1, 30), staleTime: 1000 * 60 * 30,
+  });
+  const { data: homePopular } = useQuery({
+    queryKey: ["pending-home-popular"], queryFn: () => getPopular(1, 30), staleTime: 1000 * 60 * 30,
+  });
+  const { data: homeTop } = useQuery({
+    queryKey: ["pending-home-top"], queryFn: () => getTopRated(1, 30), staleTime: 1000 * 60 * 30,
+  });
+  const { data: homeSeason } = useQuery({
+    queryKey: ["pending-home-season"], queryFn: () => getThisSeason(1, 30), staleTime: 1000 * 60 * 30,
+  });
+
 
   const { data: approvedArr, refetch: refetchApproved } = useQuery({
     queryKey: ["approved-anime-ids"],
