@@ -139,6 +139,8 @@ export const NAME_EFFECTS: NameEffectDef[] = [
   { slug: "glitch",   name: "Glitch",   className: "zf-name-glitch",  rarity: "legendario", requirement: { type: "level", value: 120 } },
   { slug: "rainbow",  name: "Arcoíris", className: "zf-name-rainbow", rarity: "legendario", requirement: { type: "level", value: 120 } },
   { slug: "void",     name: "Vacío",    className: "zf-name-void",    rarity: "legendario", requirement: { type: "gacha" } },
+  { slug: "ink-drip", name: "Tinta escurriendo", className: "zf-name-ink-drip", rarity: "legendario", requirement: { type: "level", value: 120 } },
+  { slug: "neon-vein",name: "Neón sangre",       className: "zf-name-neon-vein", rarity: "legendario", requirement: { type: "level", value: 120 } },
   { slug: "z-name",   name: "Aura Z",   className: "zf-name-z",       rarity: "z",          requirement: { type: "gacha" } },
 ];
 
