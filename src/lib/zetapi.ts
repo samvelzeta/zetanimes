@@ -183,7 +183,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
 
   // 2) Fallback al proxy/Cloudflare si el bot directo falla (CORS u otro)
   if (!resolved) {
-    const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; subtitles?: any[]; latest_episode?: number; error?: string }>(
+    const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; subtitles?: any[]; latest_episode?: number; calidades?: Record<string, string>; qualities?: Record<string, string>; error?: string }>(
       `/anime/episode-seeke?url=${encodeURIComponent(baseUrl)}&ep=${epNumber}`
     );
     if (!res.ok || !res.embed) {
@@ -195,6 +195,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
       cached: res.cached,
       subtitles: normalizeSeekeSubs(res.subtitles),
       latest_episode: Number.isFinite(Number(res.latest_episode)) ? Number(res.latest_episode) : undefined,
+      qualities: normalizeSeekeQualities(res.calidades ?? res.qualities),
     };
   }
 
