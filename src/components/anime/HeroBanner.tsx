@@ -224,6 +224,7 @@ function MobileHero({ animes }: { animes: AniListMedia[] }) {
           )}
         </div>
         <h1 className="text-2xl font-black text-white leading-tight mb-1">{getTitle(anime)}</h1>
+        <DubbedTag anime={anime} className="mb-2" />
         {desc && (
           <p className="text-[11px] text-white/50 line-clamp-2 mb-2 max-w-xs">
             {desc.slice(0, 120)}{desc.length > 120 ? "..." : ""}
