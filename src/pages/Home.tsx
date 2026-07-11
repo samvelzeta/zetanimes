@@ -144,6 +144,7 @@ export default function Home() {
       <div className="min-h-screen space-y-6">
         <VerticalCarousel items={filterFn(trending?.media)} />
         <LatestEpisodes />
+        <AutoLatestEpisodes />
         <BentoEpisodes />
         <GenreList />
         <TopRanking
