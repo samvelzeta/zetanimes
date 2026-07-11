@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { markFreshLogin } from "@/lib/devices";
+import { isApkWebView } from "@/lib/apk-intent";
 import logoUrl from "@/assets/zetanime-apk-logo.png";
+
+const IS_APK = isApkWebView();
 
 /* ---------------- Google Button ---------------- */
 function GoogleButton({ label = "Continuar con Google" }: { label?: string }) {
@@ -244,12 +247,16 @@ function LoginForm({
 
   return (
     <div className="space-y-5">
-      <GoogleButton label="Iniciar sesión con Google" />
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-orange-500/20" />
-        <span className="text-[10px] tracking-[0.3em] uppercase text-orange-400/50">o con correo</span>
-        <div className="flex-1 h-px bg-orange-500/20" />
-      </div>
+      {!IS_APK && (
+        <>
+          <GoogleButton label="Iniciar sesión con Google" />
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-orange-500/20" />
+            <span className="text-[10px] tracking-[0.3em] uppercase text-orange-400/50">o con correo</span>
+            <div className="flex-1 h-px bg-orange-500/20" />
+          </div>
+        </>
+      )}
     <form onSubmit={handleLogin} className="space-y-5">
       <div>
         <label className={labelCls}>Correo electrónico</label>
@@ -321,12 +328,16 @@ function RegisterForm({
 
   return (
     <div className="space-y-4">
-      <GoogleButton label="Registrarse con Google" />
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-orange-500/20" />
-        <span className="text-[10px] tracking-[0.3em] uppercase text-orange-400/50">o con correo</span>
-        <div className="flex-1 h-px bg-orange-500/20" />
-      </div>
+      {!IS_APK && (
+        <>
+          <GoogleButton label="Registrarse con Google" />
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-orange-500/20" />
+            <span className="text-[10px] tracking-[0.3em] uppercase text-orange-400/50">o con correo</span>
+            <div className="flex-1 h-px bg-orange-500/20" />
+          </div>
+        </>
+      )}
     <form onSubmit={handleRegister} className="space-y-4">
       <div>
         <label className={labelCls}>Nombre de usuario</label>
