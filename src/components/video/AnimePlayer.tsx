@@ -5,6 +5,7 @@ import { isWebView } from "@/lib/webview";
 import { getSeekeEpisode, type SeekeQuality } from "@/lib/zetapi";
 import { useSubtitlePrefs, subtitleStyle, subtitlePositionClass } from "@/hooks/useSubtitlePrefs";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
+import { useAuth } from "@/contexts/AuthContext";
 import SubtitleSettings from "@/components/premium/SubtitleSettings";
 
 export interface PlayerSubtitle {
@@ -186,7 +187,9 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   
   const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs();
   const { permissions } = usePlanPermissions();
+  const { isOwner } = useAuth();
   const isPremium = permissions.slug !== "free";
+
   const subtitleOptions = useMemo(
     () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
     [effectiveSubtitles]
@@ -332,9 +335,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           const qs = data.qualities || [];
           setQualities(qs);
           const findQ = (label: string) => qs.find((q) => (q.label || "").toUpperCase() === label)?.url;
-          const autoUrl = isPremium
-            ? (findQ("720P") || findQ("540P") || findQ("360P"))
-            : (findQ("540P") || findQ("360P"));
+          const QRANK: Record<string, number> = { "360P": 0, "540P": 1, "720P": 2, "1080P": 3, "2160P": 4, "4K": 4 };
+          const highest = [...qs].sort((a, b) => (QRANK[(b.label || "").toUpperCase()] ?? -1) - (QRANK[(a.label || "").toUpperCase()] ?? -1))[0]?.url;
+          const autoUrl = isOwner
+            ? (highest || findQ("720P") || findQ("540P") || findQ("360P"))
+            : isPremium
+              ? (findQ("720P") || findQ("540P") || findQ("360P"))
+              : (findQ("540P") || findQ("360P"));
           const embedToUse = (selectedQualityUrl && qs.some((q) => q.url === selectedQualityUrl))
             ? selectedQualityUrl
             : (autoUrl || data.embed);
