@@ -79,3 +79,25 @@ export function filterApprovedReleasing<T extends { id: number; status?: string 
     return approved.has(a.id);
   });
 }
+
+/**
+ * Filtro estricto para el Home:
+ * - Oculta cualquier anime en NOT_YET_RELEASED / CANCELLED (aún no salen).
+ * - Para RELEASING y FINISHED: sólo se muestran si están aprobados o
+ *   ya tienen enlace madre Seeke guardado. Los demás se ocultan (viajan a
+ *   Pendientes de aprobación por su propio flujo).
+ */
+export function filterHomeVisible<T extends { id: number; status?: string }>(
+  list: T[] | undefined,
+  approved: Set<number>,
+  seekeMaster: Set<number>
+): T[] {
+  if (!list) return [];
+  return list.filter((a) => {
+    if (a.status === "NOT_YET_RELEASED" || a.status === "CANCELLED") return false;
+    if (approved.has(a.id)) return true;
+    if (seekeMaster.has(a.id)) return true;
+    // Sin aprobación ni enlace madre → ocultar del Home
+    return false;
+  });
+}
