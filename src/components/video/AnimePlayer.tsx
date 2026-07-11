@@ -170,6 +170,10 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [playPulse, setPlayPulse] = useState(false);
   const [subsActive, setSubsActive] = useState(true);
   const [seekeSubs, setSeekeSubs] = useState<PlayerSubtitle[]>([]);
+  const [qualities, setQualities] = useState<SeekeQuality[]>([]);
+  const [selectedQualityUrl, setSelectedQualityUrl] = useState<string | null>(null);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const resumeTimeRef = useRef<number | null>(null);
   const effectiveSubtitles = useMemo(() => subtitles.length > 0 ? subtitles : seekeSubs, [subtitles, seekeSubs]);
   const subsKey = useMemo(() => effectiveSubtitles.map((s) => `${s.lang}|${s.url}`).join("¶"), [effectiveSubtitles]);
   const [selectedSubtitleUrl, setSelectedSubtitleUrl] = useState<string | null>(null);
