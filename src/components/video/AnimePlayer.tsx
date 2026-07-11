@@ -331,9 +331,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           if (Array.isArray(data.subtitles)) setSeekeSubs(data.subtitles);
           const qs = data.qualities || [];
           setQualities(qs);
+          const findQ = (label: string) => qs.find((q) => (q.label || "").toUpperCase() === label)?.url;
+          const autoUrl = isPremium
+            ? (findQ("720P") || findQ("540P") || findQ("360P"))
+            : (findQ("540P") || findQ("360P"));
           const embedToUse = (selectedQualityUrl && qs.some((q) => q.url === selectedQualityUrl))
             ? selectedQualityUrl
-            : data.embed;
+            : (autoUrl || data.embed);
+          if (!selectedQualityUrl && autoUrl) setSelectedQualityUrl(autoUrl);
           attachHls(embedToUse);
         })
         .catch((err) => {
