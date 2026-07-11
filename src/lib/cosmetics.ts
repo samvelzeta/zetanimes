@@ -25,6 +25,7 @@ import frameCosmic from "@/assets/frame-cosmic.png";
 import frameBlood from "@/assets/frame-blood.png";
 import frameLotusRed from "@/assets/frame-lotus-red.png";
 import frameLotusBlue from "@/assets/frame-lotus-blue.png";
+import frameSkullHands from "@/assets/frame-skull-hands.png";
 import bannerSakuraTrees from "@/assets/banner-sakura-trees.jpg";
 import bannerSwampFarRed from "@/assets/banner-swamp-far-red.jpg";
 import bannerSwampCloseRed from "@/assets/banner-swamp-close-red.jpg";
@@ -113,6 +114,7 @@ export const AVATAR_FRAMES: AvatarFrameDef[] = [
   { slug: "z-demon",     name: "Portal demoníaco",  className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameDemon,  rarity: "z", requirement: { type: "gacha" } },
   { slug: "z-cosmic",    name: "Fénix cósmico",     className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameCosmic, rarity: "z", requirement: { type: "gacha" } },
   { slug: "z-blood",     name: "Sangre eterna",     className: "zf-frame-art zf-frame-z zf-frame-blood", shape: "circle", imageUrl: frameBlood, rarity: "z", requirement: { type: "gacha" } },
+  { slug: "z-skull-hands", name: "Guardianes óseos", className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameSkullHands, rarity: "z", requirement: { type: "gacha" } },
 
 ];
 
