@@ -172,6 +172,12 @@ export default function AnimeDetail() {
   const description = translatedDesc || rawDescription;
   const isLongDesc = description.length > SYNOPSIS_LIMIT;
   const recommendations = anime.recommendations?.nodes?.map((n: any) => n.mediaRecommendation).filter(Boolean) || [];
+  // Set de IDs con enlace madre Seeke — filtra side stories (que solo aparecen si ya se aprobaron con Seeke).
+  const { data: seekeMasterSet } = useQuery({
+    queryKey: ["detail-seeke-master-ids"],
+    queryFn: () => getAnimeIdsWithSeekeMaster(),
+    staleTime: 1000 * 60 * 5,
+  });
   const streamingEpisodes = (anime as any).streamingEpisodes as { title?: string; thumbnail?: string }[] | undefined;
   const totalEps = anime.nextAiringEpisode?.episode ? anime.nextAiringEpisode.episode - 1 : (anime.episodes || 0);
   const studio = (anime as any).studios?.nodes?.find((s: any) => s.isAnimationStudio)?.name || (anime as any).studios?.nodes?.[0]?.name;
