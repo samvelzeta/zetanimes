@@ -35,18 +35,12 @@ export interface ResolvedBlock {
 }
 
 const blocksMemoryCache = new Map<string, { value: VideoBlock[]; expiresAt: number }>();
-const BLOCKS_TTL = 1000 * 60 * 5;
 
 function key(anilistId: number, lang: string) {
   return `${anilistId}::${lang}`;
 }
 
 export async function listBlocks(anilistId: number, lang: string): Promise<VideoBlock[]> {
-  const k = key(anilistId, lang);
-  const now = Date.now();
-  const cached = blocksMemoryCache.get(k);
-  if (cached && cached.expiresAt > now) return cached.value;
-
   const { data, error } = await supabase
     .from("video_cache_blocks" as any)
     .select("*")
@@ -59,7 +53,6 @@ export async function listBlocks(anilistId: number, lang: string): Promise<Video
     return [];
   }
   const value = (data || []) as unknown as VideoBlock[];
-  blocksMemoryCache.set(k, { value, expiresAt: now + BLOCKS_TTL });
   return value;
 }
 
@@ -84,13 +77,14 @@ export async function resolveSeekeBaseForEpisode(
   if (!match) return null;
   const offset = Number(match.source_episode_offset || 0);
   const relative = episode - match.episode_from + 1; // 1-indexed within block
+  const episodeWithinBlock = relative + offset;
   return {
     baseUrl: match.seeke_base_url,
     blockIndex: match.block_index,
     blockLabel: match.block_label,
     episodeFrom: match.episode_from,
     episodeTo: match.episode_to,
-    episodeWithinBlock: relative + offset,
+    episodeWithinBlock,
     sourceEpisodeOffset: offset,
     inverseMode: !!match.inverse_mode || offset > 0,
   };
