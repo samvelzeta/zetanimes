@@ -255,35 +255,51 @@ export default function AnimeDetail() {
             </div>
           </div>
 
-          {/* Barra de estados — 5 iconos, glass sutil, ≤80% ancho */}
-          <div
-            className="mt-4 mx-auto flex items-center justify-around gap-1 p-1.5 rounded-2xl border border-white/10"
-            style={{
-              backgroundColor: "hsl(var(--secondary) / 0.6)",
-              width: "min(80%, 380px)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
-            }}
-          >
-            {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
-              const isActive = activeLists.includes(type);
-              return (
-                <button
-                  key={type}
-                  onClick={() => handleToggleList(type)}
-                  disabled={loadingList}
-                  aria-label={label}
-                  title={label}
-                  className={`flex-1 inline-flex items-center justify-center h-9 rounded-xl transition-all disabled:opacity-50 ${
-                    isActive
-                      ? "bg-primary/25 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? "fill-current" : ""}`} />
-                </button>
-              );
-            })}
-          </div>
+          {/* Barra de estados — reemplazada por "Lista de espera" si el anime aún no se emite */}
+          {anime.status === "NOT_YET_RELEASED" ? (
+            <button
+              onClick={() => handleToggleList("waiting")}
+              disabled={loadingList}
+              className={`mt-4 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-[0.25em] border transition-all disabled:opacity-50 ${
+                activeLists.includes("waiting")
+                  ? "bg-primary/20 text-primary border-primary/60 shadow-[0_0_16px_hsl(var(--primary)/0.4)]"
+                  : "bg-secondary/60 text-white/85 border-white/15 hover:border-primary/40"
+              }`}
+              title="Recibirás una notificación cuando esté disponible"
+            >
+              <Hourglass className="w-4 h-4" />
+              {activeLists.includes("waiting") ? "En tu lista de espera" : "Agregar a lista de espera"}
+            </button>
+          ) : (
+            <div
+              className="mt-4 mx-auto flex items-center justify-around gap-1 p-1.5 rounded-2xl border border-white/10"
+              style={{
+                backgroundColor: "hsl(var(--secondary) / 0.6)",
+                width: "min(80%, 380px)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+              }}
+            >
+              {LIST_CONFIG.map(({ type, icon: Icon, label }) => {
+                const isActive = activeLists.includes(type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => handleToggleList(type)}
+                    disabled={loadingList}
+                    aria-label={label}
+                    title={label}
+                    className={`flex-1 inline-flex items-center justify-center h-9 rounded-xl transition-all disabled:opacity-50 ${
+                      isActive
+                        ? "bg-primary/25 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
+                        : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? "fill-current" : ""}`} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
