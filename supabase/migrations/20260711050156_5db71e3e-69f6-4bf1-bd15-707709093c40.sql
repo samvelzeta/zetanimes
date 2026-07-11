@@ -1,0 +1,1 @@
+ALTER TYPE public.anime_list_type ADD VALUE IF NOT EXISTS 'waiting';
