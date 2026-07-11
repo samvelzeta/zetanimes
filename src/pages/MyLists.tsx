@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, Eye, CheckCircle, Clock, HelpCircle, Cog, ArrowLeft, Trash2 } from "lucide-react";
+import { Heart, Eye, CheckCircle, Clock, HelpCircle, Hourglass, Cog, ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { ListType } from "@/lib/anime-lists";
 
@@ -13,6 +13,7 @@ const TABS: { value: ListType; label: string; Icon: typeof Heart; color: string 
   { value: "watching", label: "Viendo", Icon: Eye, color: "text-emerald-400" },
   { value: "plan_to_watch", label: "Ver Después", Icon: Clock, color: "text-sky-400" },
   { value: "completed", label: "Terminados", Icon: CheckCircle, color: "text-primary" },
+  { value: "waiting", label: "En Espera", Icon: Hourglass, color: "text-violet-400" },
   { value: "undecided", label: "Indecisos", Icon: HelpCircle, color: "text-amber-400" },
 ];
 
