@@ -25,7 +25,7 @@ export default function MyLists() {
   const [activeTab, setActiveTab] = useState<ListType>("favorite");
   const [items, setItems] = useState<any[]>([]);
   const [counts, setCounts] = useState<Record<ListType, number>>({
-    favorite: 0, watching: 0, completed: 0, plan_to_watch: 0, undecided: 0,
+    favorite: 0, watching: 0, completed: 0, plan_to_watch: 0, undecided: 0, waiting: 0,
   });
   const [loading, setLoading] = useState(true);
 
