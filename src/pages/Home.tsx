@@ -14,7 +14,8 @@ import FocusCarousel from "@/components/anime/FocusCarousel";
 import AnimeRoulette from "@/components/anime/AnimeRoulette";
 import { useIsTV } from "@/hooks/useIsTV";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
-import { getApprovedAnimeIds, filterApprovedReleasing, onApprovedChange } from "@/lib/approved-animes";
+import { getApprovedAnimeIds, filterHomeVisible, onApprovedChange } from "@/lib/approved-animes";
+import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
 import LazySection from "@/components/LazySection";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import TopOtakusWidget from "@/components/premium/TopOtakusWidget";
@@ -64,17 +65,27 @@ export default function Home() {
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
 
   // Whitelist de animes en emisión aprobados (los RELEASING no aprobados se ocultan del Home)
+  // Whitelist de animes aprobados (mostrar en Home aunque no tengan Seeke)
   const { data: approvedIds, refetch: refetchApproved } = useQuery({
     queryKey: ["approved-anime-ids"],
     queryFn: async () => Array.from(await getApprovedAnimeIds(true)),
     staleTime: 1000 * 60 * 5,
   });
   const approvedSet = useMemo(() => new Set<number>(approvedIds || []), [approvedIds]);
+
+  // Set de anilist_ids con enlace madre Seeke — necesario para el filtro estricto
+  const { data: seekeIds } = useQuery({
+    queryKey: ["home-seeke-master-ids"],
+    queryFn: async () => Array.from(await getAnimeIdsWithSeekeMaster()),
+    staleTime: 1000 * 60 * 5,
+  });
+  const seekeSet = useMemo(() => new Set<number>(seekeIds || []), [seekeIds]);
+
   useEffect(() => onApprovedChange(() => { refetchApproved(); }), [refetchApproved]);
 
   const filterFn = (list: any[] | undefined) => {
     const noHidden = (list || []).filter((a) => !hiddenSet.has(a.id));
-    return filterApprovedReleasing(noHidden, approvedSet);
+    return filterHomeVisible(noHidden, approvedSet, seekeSet);
   };
 
   // Above-the-fold: cargar inmediato (HeroBanner + Trending)
