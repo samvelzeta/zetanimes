@@ -175,6 +175,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
           cached: !!data.cached,
           subtitles: normalizeSeekeSubs(data.subtitles),
           latest_episode: Number.isFinite(Number(data.latest_episode)) ? Number(data.latest_episode) : undefined,
+          qualities: normalizeSeekeQualities(data.calidades ?? data.qualities),
         };
       }
     }
