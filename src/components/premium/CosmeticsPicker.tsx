@@ -11,7 +11,8 @@ import { useGacha, inventorySlugSet } from "@/hooks/useGacha";
 import {
   AVATAR_FRAMES, NAME_EFFECTS, CURSOR_THEMES, BANNER_PRESETS,
   isCosmeticUnlocked, RARITY_META,
-  type CosmeticRequirement, type BannerPresetDef, type AvatarFrameDef,
+  type CosmeticRequirement, type BannerPresetDef, type AvatarFrameDef, type NameEffectDef,
+
 } from "@/lib/cosmetics";
 import AvatarFrame from "./AvatarFrame";
 import UserName from "./UserName";
