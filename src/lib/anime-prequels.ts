@@ -77,6 +77,30 @@ export async function getPrequelChain(anilistId: number, maxDepth = 6): Promise<
 }
 
 /**
+ * Devuelve las side stories directas del anime (nodos ANIME no película).
+ * No recorre en cadena — solo el primer nivel de relaciones SIDE_STORY.
+ */
+export async function getSideStories(anilistId: number): Promise<PrequelNode[]> {
+  const media = await fetchWithRelations(anilistId);
+  if (!media) return [];
+  const out: PrequelNode[] = [];
+  for (const e of media.relations?.edges || []) {
+    if (e.relationType !== "SIDE_STORY") continue;
+    const n = e.node;
+    if (!n || n.type !== "ANIME" || n.format === "MOVIE") continue;
+    out.push({
+      id: n.id,
+      title: n.title?.english || n.title?.romaji || `Anime #${n.id}`,
+      cover: n.coverImage?.large || "",
+      episodes: n.episodes ?? null,
+      status: n.status ?? null,
+      format: n.format ?? null,
+    });
+  }
+  return out;
+}
+
+/**
  * Devuelve el conjunto de anilist_ids que YA tienen enlace madre Seeke
  * (episode=0 y sources.seeke con al menos una URL). Lee todo en un solo query.
  */

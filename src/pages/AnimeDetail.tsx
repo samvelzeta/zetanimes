@@ -18,6 +18,7 @@ import TechInfoBlock from "@/components/anime/TechInfoBlock";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useEpisodeThumbnails } from "@/lib/episode-thumbnails";
 import { useIsDubbed } from "@/hooks/useDubbedAnimes";
+import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
 import type { ListType } from "@/lib/anime-lists";
 
 const LIST_CONFIG: { type: ListType; icon: typeof Heart; label: string }[] = [
@@ -71,6 +72,13 @@ export default function AnimeDetail() {
     enabled: animeId > 0,
     staleTime: 1000 * 60 * 10,
     retry: 2,
+  });
+
+  // Set de IDs con enlace madre Seeke — filtra side stories (solo se muestran si tienen Seeke).
+  const { data: seekeMasterSet } = useQuery({
+    queryKey: ["detail-seeke-master-ids"],
+    queryFn: () => getAnimeIdsWithSeekeMaster(),
+    staleTime: 1000 * 60 * 5,
   });
 
   const { activeProfile } = useProfiles();
@@ -449,18 +457,32 @@ export default function AnimeDetail() {
         {/* Temporadas relacionadas */}
         {(() => {
           const all = (anime.relations?.edges || []).filter(
-            (e: any) => e.node.type === "ANIME" && (e.relationType === "SEQUEL" || e.relationType === "PREQUEL")
+            (e: any) =>
+              e.node.type === "ANIME" &&
+              (e.relationType === "SEQUEL" ||
+                e.relationType === "PREQUEL" ||
+                e.relationType === "SIDE_STORY")
           );
           if (all.length === 0) return null;
           const prequels = all.filter((e: any) => e.relationType === "PREQUEL");
           const sequels = all.filter((e: any) => e.relationType === "SEQUEL");
-          const rel = [...prequels, ...sequels];
+          // Side stories: solo se listan si YA tienen enlace madre Seeke aprobado.
+          const sides = all.filter(
+            (e: any) => e.relationType === "SIDE_STORY" && seekeMasterSet?.has(e.node.id)
+          );
+          const rel = [...prequels, ...sequels, ...sides];
+          if (rel.length === 0) return null;
           return (
             <section>
               <SectionHeader eyebrow="Saga" title="Temporadas relacionadas" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {rel.map((edge: any) => {
-                  const label = edge.relationType === "SEQUEL" ? "Secuela" : "Precuela";
+                  const label =
+                    edge.relationType === "SEQUEL"
+                      ? "Secuela"
+                      : edge.relationType === "PREQUEL"
+                        ? "Precuela"
+                        : "Historia paralela";
                   const img = edge.node.bannerImage || edge.node.coverImage?.extraLarge || edge.node.coverImage?.large;
                   const relTitle = edge.node.title.english || edge.node.title.romaji;
                   return (
