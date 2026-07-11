@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
+export type SubFont = "sans" | "serif" | "cursive" | "hand" | "gothic" | "bold";
+
 export interface SubtitlePrefs {
   size: number;          // 60-200 (%)
   color: string;         // hex
   bg: "none" | "black" | "semi";
-  font: "sans" | "serif" | "mono" | "anime";
+  font: SubFont;
   position: "low" | "mid" | "high";
   weight: "normal" | "bold";
 }
