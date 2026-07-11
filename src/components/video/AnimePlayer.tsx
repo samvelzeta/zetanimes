@@ -1139,7 +1139,10 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                 const QLABEL: Record<string, string> = { "360P": "Baja", "540P": "Media", "720P": "Full HD" };
                 const QORDER: Record<string, number> = { "360P": 0, "540P": 1, "720P": 2 };
                 const items = qualities
-                  .map((q) => ({ ...q, name: QLABEL[q.label.toUpperCase()] || q.label, order: QORDER[q.label.toUpperCase()] ?? 99 }))
+                  .map((q) => {
+                    const key = q.label.toUpperCase();
+                    return { ...q, name: QLABEL[key] || q.label, order: QORDER[key] ?? 99, isFhd: key === "720P" };
+                  })
                   .sort((a, b) => a.order - b.order);
                 const activeUrl = selectedQualityUrl;
                 return (
@@ -1153,26 +1156,41 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                       <Film className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                     {showQualityMenu && (
-                      <div onClick={(e) => e.stopPropagation()} className="absolute bottom-full right-0 mb-2 w-36 rounded-xl border border-white/10 bg-black/70 backdrop-blur-xl p-1.5 shadow-2xl">
+                      <div onClick={(e) => e.stopPropagation()} className="absolute bottom-full right-0 mb-2 w-48 rounded-xl border border-white/10 bg-black/70 backdrop-blur-xl p-1.5 shadow-2xl">
                         <p className="text-[9px] font-mono uppercase tracking-widest text-white/40 px-2 pt-1 pb-1.5">Calidad</p>
                         {items.map((q) => {
                           const isActive = activeUrl ? activeUrl === q.url : false;
+                          const isPremiumLocked = q.isFhd && !isPremium;
                           return (
                             <button
                               key={q.label}
+                              disabled={isPremiumLocked}
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (isPremiumLocked) return;
                                 const v = videoRef.current;
                                 if (v && !Number.isNaN(v.currentTime)) resumeTimeRef.current = v.currentTime;
                                 setSelectedQualityUrl(q.url);
                                 setShowQualityMenu(false);
                               }}
-                              className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-[11px] transition ${
-                                isActive ? "bg-primary/20 text-primary" : "text-white/70 hover:bg-white/5 hover:text-white"
+                              className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-md text-[11px] transition ${
+                                isPremiumLocked
+                                  ? "text-[hsl(24_95%_58%)] cursor-not-allowed hover:bg-[hsl(24_95%_58%/0.08)]"
+                                  : isActive
+                                    ? "bg-primary/20 text-primary"
+                                    : "text-white/70 hover:bg-white/5 hover:text-white"
                               }`}
+                              title={isPremiumLocked ? "Disponible solo para Usuario Z (premium)" : undefined}
                             >
-                              <span>{q.name}</span>
-                              {isActive && <Check className="w-3 h-3" />}
+                              <span className={q.isFhd ? "font-semibold" : ""}>{q.name}</span>
+                              <span className="flex items-center gap-1.5 shrink-0">
+                                {q.isFhd && (
+                                  <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[hsl(24_95%_58%/0.15)] text-[hsl(24_95%_58%)] border border-[hsl(24_95%_58%/0.4)]">
+                                    Usuario Z
+                                  </span>
+                                )}
+                                {isActive && <Check className="w-3 h-3" />}
+                              </span>
                             </button>
                           );
                         })}
