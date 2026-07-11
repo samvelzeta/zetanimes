@@ -74,6 +74,13 @@ export default function AnimeDetail() {
     retry: 2,
   });
 
+  // Set de IDs con enlace madre Seeke — filtra side stories (solo se muestran si tienen Seeke).
+  const { data: seekeMasterSet } = useQuery({
+    queryKey: ["detail-seeke-master-ids"],
+    queryFn: () => getAnimeIdsWithSeekeMaster(),
+    staleTime: 1000 * 60 * 5,
+  });
+
   const { activeProfile } = useProfiles();
   const profileId = activeProfile?.id ?? null;
 
