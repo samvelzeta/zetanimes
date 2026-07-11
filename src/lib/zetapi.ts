@@ -147,7 +147,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
     // sin volver a resolver el embed.
     const stale = (memory.expiresAt - now) < (SEEKE_CACHE_TTL - LATEST_EP_TTL);
     if (stale) refreshLatestEpisode(baseUrl, epNumber).catch(() => {});
-    return { embed: memory.embed, episode: memory.episode, cached: true, subtitles: memory.subtitles, latest_episode: memory.latest_episode };
+    return { embed: memory.embed, episode: memory.episode, cached: true, subtitles: memory.subtitles, latest_episode: memory.latest_episode, qualities: memory.qualities };
   }
 
   try {
