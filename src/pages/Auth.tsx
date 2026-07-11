@@ -1,88 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { markFreshLogin } from "@/lib/devices";
-import { isApkWebView } from "@/lib/apk-intent";
 import logoUrl from "@/assets/zetanime-apk-logo.png";
 
-const IS_APK = isApkWebView();
 
-/* ---------------- Google Button ---------------- */
-function GoogleButton({ label = "Continuar con Google" }: { label?: string }) {
-  const [loading, setLoading] = useState(false);
-  const handleGoogle = async () => {
-    setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.redirected) return;
-    if (result.error) {
-      setLoading(false);
-      toast.error(result.error.message || "No se pudo iniciar con Google");
-      return;
-    }
-    markFreshLogin();
-    toast.success("¡Bienvenido!");
-    window.location.href = "/";
-  };
-  return (
-    <>
-      {loading && (
-        <div className="fixed inset-0 z-[9999] bg-[#0a0a0f]/95 backdrop-blur-md flex flex-col items-center justify-center gap-6 animate-in fade-in duration-200">
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-orange-500/20 blur-[140px]" />
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-orange-500/15 blur-[140px]" />
-          </div>
-          <div className="relative w-28 h-28">
-            <div className="absolute inset-0 rounded-full bg-orange-500/30 blur-2xl animate-pulse" />
-            <img
-              src={logoUrl}
-              alt="ZetAnime"
-              className="relative w-28 h-28 object-contain drop-shadow-[0_0_20px_rgba(255,140,40,0.7)]"
-            />
-          </div>
-          <div className="relative text-center space-y-2">
-            <p
-              className="text-2xl font-black text-white tracking-tight"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-            >
-              Ir a <span className="text-orange-400">ZetAnime</span>
-            </p>
-            <p className="text-[11px] tracking-[0.35em] uppercase text-orange-400/70">
-              Redirigiendo de forma segura…
-            </p>
-          </div>
-          <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
-        </div>
-      )}
-      <button
-        type="button"
-        onClick={handleGoogle}
-        disabled={loading}
-        className="w-full py-3 px-4 flex items-center justify-center gap-3 bg-black/40 border border-orange-500/30 text-white text-sm font-semibold uppercase tracking-[0.2em] hover:bg-black/60 hover:border-orange-400 hover:shadow-[0_0_20px_rgba(255,140,40,0.2)] transition-all disabled:opacity-50"
-      >
-        {loading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.9 3.5 14.7 2.5 12 2.5 6.7 2.5 2.5 6.7 2.5 12s4.2 9.5 9.5 9.5c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1.1-.2-1.6H12z"/>
-            <path fill="#FBBC05" d="M2.5 12c0-1.5.4-2.9 1.1-4.1L6.9 10c-.3.6-.4 1.3-.4 2s.1 1.4.4 2L3.6 16.1C2.9 14.9 2.5 13.5 2.5 12z"/>
-            <path fill="#34A853" d="M12 21.5c2.7 0 4.9-.9 6.5-2.4l-3.2-2.6c-.9.6-2 .9-3.3.9-2.6 0-4.7-1.7-5.5-4l-3.3 2.5c1.6 3.2 4.8 5.6 8.8 5.6z"/>
-            <path fill="#4285F4" d="M21.4 12.2c0-.6-.1-1.1-.2-1.6H12v3.9h5.5c-.3 1.2-1 2.2-2.2 2.9l3.2 2.6c1.9-1.7 2.9-4.3 2.9-7.8z"/>
-          </svg>
-        )}
-        {label}
-      </button>
-      <p className="mt-1.5 text-center text-[9px] leading-tight text-white/40 italic">
-        (no disponible en APK, esta opción solo funciona en navegador externo)
-      </p>
-    </>
-  );
-}
+
+
 
 
 
@@ -247,16 +174,7 @@ function LoginForm({
 
   return (
     <div className="space-y-5">
-      {!IS_APK && (
-        <>
-          <GoogleButton label="Iniciar sesión con Google" />
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-orange-500/20" />
-            <span className="text-[10px] tracking-[0.3em] uppercase text-orange-400/50">o con correo</span>
-            <div className="flex-1 h-px bg-orange-500/20" />
-          </div>
-        </>
-      )}
+
     <form onSubmit={handleLogin} className="space-y-5">
       <div>
         <label className={labelCls}>Correo electrónico</label>
@@ -328,16 +246,7 @@ function RegisterForm({
 
   return (
     <div className="space-y-4">
-      {!IS_APK && (
-        <>
-          <GoogleButton label="Registrarse con Google" />
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-orange-500/20" />
-            <span className="text-[10px] tracking-[0.3em] uppercase text-orange-400/50">o con correo</span>
-            <div className="flex-1 h-px bg-orange-500/20" />
-          </div>
-        </>
-      )}
+
     <form onSubmit={handleRegister} className="space-y-4">
       <div>
         <label className={labelCls}>Nombre de usuario</label>
