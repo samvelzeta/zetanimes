@@ -242,18 +242,21 @@ export default function AnimeDetail() {
             </p>
           )}
 
-          {/* Fila de acciones principales — Ver ahora + Like */}
+          {/* Fila de acciones principales — Ver ahora + Like (oculto si aún no emite) */}
           <div className="mt-6 flex items-center justify-center gap-3">
-            <Link
-              to={`/watch/${animeId}?ep=1`}
-              className="rounded-full px-6 py-3 text-sm font-bold bg-primary text-primary-foreground inline-flex items-center gap-2 hover:scale-105 transition-transform shadow-[0_10px_30px_hsl(var(--primary)/0.5)] uppercase tracking-wider"
-            >
-              <Play className="w-4 h-4 fill-current" /> Ver ahora
-            </Link>
+            {anime.status !== "NOT_YET_RELEASED" && (
+              <Link
+                to={`/watch/${animeId}?ep=1`}
+                className="rounded-full px-6 py-3 text-sm font-bold bg-primary text-primary-foreground inline-flex items-center gap-2 hover:scale-105 transition-transform shadow-[0_10px_30px_hsl(var(--primary)/0.5)] uppercase tracking-wider"
+              >
+                <Play className="w-4 h-4 fill-current" /> Ver ahora
+              </Link>
+            )}
             <div className="directory-glass rounded-full px-2 py-1.5">
               <LikeButton anilistId={animeId} />
             </div>
           </div>
+
 
           {/* Barra de estados — reemplazada por "Lista de espera" si el anime aún no se emite */}
           {anime.status === "NOT_YET_RELEASED" ? (
