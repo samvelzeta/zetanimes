@@ -168,6 +168,8 @@ export default function Home() {
         <div className="mt-6 space-y-2">
           {/* Above-the-fold: montar inmediato */}
           <LatestEpisodes />
+          <AutoLatestEpisodes />
+
 
           {/* 728x90 leaderboard — sin minHeight para no dejar hueco si falla */}
           <LazySection minHeight={0}>
