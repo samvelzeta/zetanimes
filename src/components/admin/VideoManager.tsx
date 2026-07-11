@@ -138,9 +138,13 @@ export default function VideoManager() {
         const queryNorm = normalize(val);
         const tokens = queryNorm.split(" ").filter((t) => t.length >= 2);
 
-        // Lanza búsqueda principal + una búsqueda extra por cada token
-        // para ampliar recall (coincidencias parciales relacionadas).
-        const queries = Array.from(new Set([val, ...tokens.filter((t) => t.length >= 3)])).slice(0, 4);
+        // Búsqueda principal + tokens + prefijos cortos para máxima cobertura.
+        const prefixes: string[] = [];
+        if (queryNorm.length >= 3) prefixes.push(queryNorm.slice(0, 3));
+        if (queryNorm.length >= 4) prefixes.push(queryNorm.slice(0, 4));
+        const queries = Array.from(
+          new Set([val, queryNorm, ...tokens, ...prefixes].filter((q) => q && q.length >= 2))
+        ).slice(0, 6);
         const batches = await Promise.allSettled(
           queries.map((q) => searchAnime(q, 1, 25, [], { skipCuration: true }))
         );
@@ -153,8 +157,23 @@ export default function VideoManager() {
         }
         const pool = Array.from(seen.values());
 
-        // Scoring: cuenta cuántos tokens aparecen en los títulos disponibles.
-        // Bonus por coincidencia exacta de frase y por prefijo.
+        // Similitud por bigramas (Dice) — tolera errores tipográficos.
+        const bigrams = (s: string) => {
+          const set = new Set<string>();
+          for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i + 2));
+          return set;
+        };
+        const dice = (a: string, b: string) => {
+          if (!a || !b) return 0;
+          if (a === b) return 1;
+          const A = bigrams(a), B = bigrams(b);
+          if (!A.size || !B.size) return 0;
+          let inter = 0;
+          A.forEach((x) => { if (B.has(x)) inter++; });
+          return (2 * inter) / (A.size + B.size);
+        };
+
+        // Scoring flexible: substring, prefijo, similitud y coincidencia parcial de tokens.
         const scored = pool
           .map((m) => {
             const titles = [
@@ -168,18 +187,24 @@ export default function VideoManager() {
             const hay = titles.join(" | ");
             let score = 0;
             if (tokens.length) {
-              for (const t of tokens) if (hay.includes(t)) score += 1;
-              score = score / tokens.length; // 0..1
+              let hits = 0;
+              for (const t of tokens) {
+                if (hay.includes(t)) hits += 1;
+                else if (t.length >= 4 && titles.some((tt) => dice(tt, t) >= 0.5)) hits += 0.5;
+              }
+              score += hits / tokens.length;
             }
-            if (queryNorm && hay.includes(queryNorm)) score += 0.6;
-            if (titles.some((t) => t.startsWith(queryNorm))) score += 0.4;
+            if (queryNorm && hay.includes(queryNorm)) score += 0.8;
+            if (titles.some((t) => t.startsWith(queryNorm))) score += 0.5;
+            const bestSim = titles.reduce((mx, t) => Math.max(mx, dice(t, queryNorm)), 0);
+            score += bestSim * 0.9;
             return { m, score };
           })
-          // Umbral: al menos una coincidencia parcial
-          .filter((x) => x.score > 0)
+          // Umbral bajo → muchas sugerencias relacionadas
+          .filter((x) => x.score >= 0.15)
           .sort((a, b) => b.score - a.score);
 
-        const media = scored.map((x) => x.m).slice(0, 30);
+        const media = scored.map((x) => x.m).slice(0, 40);
         setSearchResults(media);
         if (media.length === 0) {
           console.warn("[VideoManager] búsqueda sin resultados", { term: val, pool: pool.length });
