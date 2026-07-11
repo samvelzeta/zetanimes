@@ -1,1 +1,0 @@
-DELETE FROM public.video_cache WHERE anilist_id IN (101280, 116741, 156822, 182205);
