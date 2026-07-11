@@ -33,6 +33,8 @@ import bannerSakuraTrees from "@/assets/banner-sakura-trees.jpg";
 import bannerSwampFarRed from "@/assets/banner-swamp-far-red.jpg";
 import bannerSwampCloseRed from "@/assets/banner-swamp-close-red.jpg";
 import bannerSwampCloseBlue from "@/assets/banner-swamp-close-blue.jpg";
+import bannerMoorland from "@/assets/banner-moorland.jpg";
+import bannerGears from "@/assets/banner-gears.jpg";
 
 
 export type Rarity = "basico" | "especial" | "raro" | "mitico" | "legendario" | "z";
@@ -139,6 +141,8 @@ export const NAME_EFFECTS: NameEffectDef[] = [
   { slug: "glitch",   name: "Glitch",   className: "zf-name-glitch",  rarity: "legendario", requirement: { type: "level", value: 120 } },
   { slug: "rainbow",  name: "Arcoíris", className: "zf-name-rainbow", rarity: "legendario", requirement: { type: "level", value: 120 } },
   { slug: "void",     name: "Vacío",    className: "zf-name-void",    rarity: "legendario", requirement: { type: "gacha" } },
+  { slug: "ink-drip", name: "Tinta escurriendo", className: "zf-name-ink-drip", rarity: "legendario", requirement: { type: "level", value: 120 } },
+  { slug: "neon-vein",name: "Neón sangre",       className: "zf-name-neon-vein", rarity: "legendario", requirement: { type: "level", value: 120 } },
   { slug: "z-name",   name: "Aura Z",   className: "zf-name-z",       rarity: "z",          requirement: { type: "gacha" } },
 ];
 
@@ -206,6 +210,8 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "swamp-far-red",    name: "Pantano lejano",      rarity: "mitico",     requirement: { type: "level", value: 90 }, gradient: `url("${bannerSwampFarRed}") center/cover no-repeat` },
   { slug: "swamp-close-red",  name: "Loto rojo en el lodo",rarity: "legendario", requirement: { type: "level", value: 120 }, gradient: `url("${bannerSwampCloseRed}") center/cover no-repeat` },
   { slug: "swamp-close-blue", name: "Loto azul lunar",     rarity: "legendario", requirement: { type: "premium" },          gradient: `url("${bannerSwampCloseBlue}") center/cover no-repeat` },
+  { slug: "moorland",         name: "Páramo desolado",     rarity: "legendario", requirement: { type: "gacha" },             gradient: `url("${bannerMoorland}") center/cover no-repeat` },
+  { slug: "gears",            name: "Engranajes del rey",  rarity: "mitico",     requirement: { type: "level", value: 50 },  gradient: `url("${bannerGears}") center/cover no-repeat` },
 ];
 
 export function isCosmeticUnlocked(
