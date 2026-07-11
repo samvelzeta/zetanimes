@@ -161,15 +161,44 @@ function LoginForm({
     e.preventDefault();
     if (!email || !password) return toast.error("Completa todos los campos");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+
+    // Hard 6s timeout: en WebView APK a veces la promesa nunca resuelve
+    // (localStorage restringido o red intermitente). Forzamos salida.
+    let done = false;
+    const timeoutId = window.setTimeout(() => {
+      if (done) return;
+      done = true;
       setLoading(false);
-      return toast.error(error.message);
+      toast.error("El inicio de sesión tardó demasiado. Revisa tu conexión e inténtalo de nuevo.");
+    }, 6000);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (done) return; // ya expiró el timeout
+      done = true;
+      window.clearTimeout(timeoutId);
+
+      if (error) {
+        setLoading(false);
+        return toast.error(error.message);
+      }
+      if (!data?.session) {
+        setLoading(false);
+        return toast.error("No se pudo crear la sesión. Intenta de nuevo.");
+      }
+      markFreshLogin();
+      toast.success("¡Bienvenido de vuelta!");
+      // Hard redirect: garantiza rehidratación de sesión en WebView APK.
+      window.setTimeout(() => { window.location.href = "/"; }, 120);
+    } catch (err: any) {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timeoutId);
+      setLoading(false);
+      toast.error(err?.message || "Error inesperado al iniciar sesión");
     }
-    markFreshLogin();
-    toast.success("¡Bienvenido de vuelta!");
-    onSuccess();
   };
+
 
 
   return (
