@@ -472,6 +472,48 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_latest_episodes: {
+        Row: {
+          anilist_id: number
+          anilist_status: string | null
+          banner: string | null
+          cover: string | null
+          created_at: string
+          episode_updated_at: string
+          last_checked_at: string
+          latest_episode: number
+          previous_episode: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          anilist_status?: string | null
+          banner?: string | null
+          cover?: string | null
+          created_at?: string
+          episode_updated_at?: string
+          last_checked_at?: string
+          latest_episode?: number
+          previous_episode?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          anilist_status?: string | null
+          banner?: string | null
+          cover?: string | null
+          created_at?: string
+          episode_updated_at?: string
+          last_checked_at?: string
+          latest_episode?: number
+          previous_episode?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       broken_link_reporters: {
         Row: {
           created_at: string
