@@ -1213,6 +1213,41 @@ img {
 }
 @keyframes zf-z-name-spin { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
 
+/* Tinta escurriendo: blanco con gotas negras que gotean */
+.zf-name-ink-drip {
+  position: relative; display: inline-block;
+  color: #ffffff;
+  text-shadow: 0 1px 0 #000, 0 0 6px rgba(255,255,255,0.55), 0 0 14px rgba(255,255,255,0.35);
+  background: linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #0a0a0a 55%, #0a0a0a 60%, #ffffff 60%);
+  background-size: 100% 300%;
+  background-position: 0% 0%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: zf-ink-drip 3.4s ease-in-out infinite;
+  filter: drop-shadow(0 3px 2px rgba(0,0,0,0.85));
+}
+@keyframes zf-ink-drip {
+  0%   { background-position: 0% -30%; }
+  50%  { background-position: 0% 70%; }
+  100% { background-position: 0% 130%; }
+}
+
+/* Neón sangre: rojo neón con venas oscuras animadas dentro */
+.zf-name-neon-vein {
+  background: linear-gradient(90deg, #ff0033 0%, #7a0010 25%, #ff2a4a 50%, #4a0008 75%, #ff0033 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 6px rgba(255,0,50,0.9), 0 0 14px rgba(255,0,50,0.75), 0 0 28px rgba(255,0,50,0.5);
+  filter: drop-shadow(0 0 6px rgba(255,0,50,0.7));
+  animation: zf-neon-vein-flow 3s ease-in-out infinite;
+}
+@keyframes zf-neon-vein-flow {
+  0%, 100% { background-position:   0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+
 .zet-reduced-motion .zf-name-shiny,
 .zet-reduced-motion .zf-name-gradient,
 .zet-reduced-motion .zf-name-rainbow,
