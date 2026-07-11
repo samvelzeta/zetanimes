@@ -1134,6 +1134,53 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                   />
                 )}
               </div>
+              {/* Quality selector — Baja / Media / Full HD */}
+              {qualities.length > 0 && (() => {
+                const QLABEL: Record<string, string> = { "360P": "Baja", "540P": "Media", "720P": "Full HD" };
+                const QORDER: Record<string, number> = { "360P": 0, "540P": 1, "720P": 2 };
+                const items = qualities
+                  .map((q) => ({ ...q, name: QLABEL[q.label.toUpperCase()] || q.label, order: QORDER[q.label.toUpperCase()] ?? 99 }))
+                  .sort((a, b) => a.order - b.order);
+                const activeUrl = selectedQualityUrl;
+                return (
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowQualityMenu((v) => !v); showControlsTemp(); }}
+                      className="flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto items-center justify-center text-white/80 hover:text-primary transition"
+                      aria-label="Calidad de video"
+                      title="Calidad"
+                    >
+                      <Film className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                    {showQualityMenu && (
+                      <div onClick={(e) => e.stopPropagation()} className="absolute bottom-full right-0 mb-2 w-36 rounded-xl border border-white/10 bg-black/70 backdrop-blur-xl p-1.5 shadow-2xl">
+                        <p className="text-[9px] font-mono uppercase tracking-widest text-white/40 px-2 pt-1 pb-1.5">Calidad</p>
+                        {items.map((q) => {
+                          const isActive = activeUrl ? activeUrl === q.url : false;
+                          return (
+                            <button
+                              key={q.label}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const v = videoRef.current;
+                                if (v && !Number.isNaN(v.currentTime)) resumeTimeRef.current = v.currentTime;
+                                setSelectedQualityUrl(q.url);
+                                setShowQualityMenu(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-[11px] transition ${
+                                isActive ? "bg-primary/20 text-primary" : "text-white/70 hover:bg-white/5 hover:text-white"
+                              }`}
+                            >
+                              <span>{q.name}</span>
+                              {isActive && <Check className="w-3 h-3" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {/* Speed gear popover */}
               <div className="relative shrink-0">
                 <button
