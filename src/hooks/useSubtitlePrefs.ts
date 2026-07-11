@@ -46,9 +46,11 @@ export function useSubtitlePrefs() {
 
 export function subtitleStyle(prefs: SubtitlePrefs): React.CSSProperties {
   const fontFamily =
-    prefs.font === "serif" ? "'Georgia', 'Times New Roman', serif" :
-    prefs.font === "mono"  ? "'JetBrains Mono', ui-monospace, monospace" :
-    prefs.font === "anime" ? "'Zen Maru Gothic', 'M PLUS Rounded 1c', sans-serif" :
+    prefs.font === "serif"   ? "'EB Garamond', 'Georgia', serif" :
+    prefs.font === "cursive" ? "'Dancing Script', cursive" :
+    prefs.font === "hand"    ? "'Caveat', cursive" :
+    prefs.font === "gothic"  ? "'MedievalSharp', 'Cinzel', serif" :
+    prefs.font === "bold"    ? "'Anton', 'Impact', sans-serif" :
     "'Inter', system-ui, sans-serif";
 
   const baseSize = 22 * (prefs.size / 100);
@@ -56,8 +58,12 @@ export function subtitleStyle(prefs: SubtitlePrefs): React.CSSProperties {
     prefs.bg === "black" ? "rgba(0,0,0,0.85)" :
     prefs.bg === "semi"  ? "rgba(0,0,0,0.45)" :
     "transparent";
-  const shadow =
-    prefs.bg === "none"
+
+  // Cuando el texto es negro, añadimos borde blanco para que sea legible.
+  const isBlackText = prefs.color.toLowerCase() === "#000000";
+  const shadow = isBlackText
+    ? "1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 0 0 4px #fff"
+    : prefs.bg === "none"
       ? "2px 2px 4px #000, 0 0 10px #000, -1px -1px 2px #000"
       : "none";
 
