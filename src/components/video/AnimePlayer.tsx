@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Type } from "lucide-react";
+import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Type, Film } from "lucide-react";
 import { isWebView } from "@/lib/webview";
-import { getSeekeEpisode } from "@/lib/zetapi";
+import { getSeekeEpisode, type SeekeQuality } from "@/lib/zetapi";
 import { useSubtitlePrefs, subtitleStyle, subtitlePositionClass } from "@/hooks/useSubtitlePrefs";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import SubtitleSettings from "@/components/premium/SubtitleSettings";
@@ -170,6 +170,10 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   const [playPulse, setPlayPulse] = useState(false);
   const [subsActive, setSubsActive] = useState(true);
   const [seekeSubs, setSeekeSubs] = useState<PlayerSubtitle[]>([]);
+  const [qualities, setQualities] = useState<SeekeQuality[]>([]);
+  const [selectedQualityUrl, setSelectedQualityUrl] = useState<string | null>(null);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const resumeTimeRef = useRef<number | null>(null);
   const effectiveSubtitles = useMemo(() => subtitles.length > 0 ? subtitles : seekeSubs, [subtitles, seekeSubs]);
   const subsKey = useMemo(() => effectiveSubtitles.map((s) => `${s.lang}|${s.url}`).join("¶"), [effectiveSubtitles]);
   const [selectedSubtitleUrl, setSelectedSubtitleUrl] = useState<string | null>(null);
@@ -236,9 +240,15 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
   }, [currentIdx, classified.length]);
 
   const restoreTime = useCallback(() => {
-    if (hasRestoredTime.current || !initialTime || initialTime <= 0) return;
     const video = videoRef.current;
     if (!video) return;
+    if (resumeTimeRef.current != null && resumeTimeRef.current > 0) {
+      const t = resumeTimeRef.current;
+      resumeTimeRef.current = null;
+      try { video.currentTime = t; } catch {}
+      return;
+    }
+    if (hasRestoredTime.current || !initialTime || initialTime <= 0) return;
     hasRestoredTime.current = true;
     video.currentTime = initialTime;
   }, [initialTime]);
@@ -306,20 +316,25 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       const requestedEp = currentSource.episode || 1;
       const requestedUrl = currentSource.url;
       setLoading(true);
-      setSeekeSubs([]);
+      if (selectedQualityUrl == null) {
+        setSeekeSubs([]);
+        setQualities([]);
+      }
       console.log("[seeke] resolve start", { url: requestedUrl, ep: requestedEp, episodeKey });
       getSeekeEpisode(requestedUrl, requestedEp)
         .then((data) => {
           if (cancelled || abort.signal.aborted) return;
-          // Sanity check: si el resolutor devolvió un embed que no corresponde al
-          // episodio pedido (bug reportado: JP loop del cap 3), descartamos y
-          // reintentamos sin caché para asegurar el episodio correcto.
           const returnedEp = Number(data.episode);
           if (Number.isFinite(returnedEp) && returnedEp !== requestedEp) {
             console.warn("[seeke] mismatch ep", { pedido: requestedEp, recibido: returnedEp, url: requestedUrl });
           }
           if (Array.isArray(data.subtitles)) setSeekeSubs(data.subtitles);
-          attachHls(data.embed);
+          const qs = data.qualities || [];
+          setQualities(qs);
+          const embedToUse = (selectedQualityUrl && qs.some((q) => q.url === selectedQualityUrl))
+            ? selectedQualityUrl
+            : data.embed;
+          attachHls(embedToUse);
         })
         .catch((err) => {
           console.error("[seeke] resolve error", err);
@@ -343,11 +358,14 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
       abort.abort();
       hardCleanup();
     };
-    // Deps explícitas: cualquier cambio de URL/episodio/tipo de fuente FUERZA
-    // re-resolución. Antes dependía solo de la referencia `currentSource`, lo
-    // que en algunos renders (memoización de sources) podía no disparar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSource?.type, currentSource?.url, currentSource?.episode, episodeKey, autoplay, tryNext, restoreTime]);
+  }, [currentSource?.type, currentSource?.url, currentSource?.episode, episodeKey, autoplay, tryNext, restoreTime, selectedQualityUrl]);
+
+  // Reset quality selection when episode changes
+  useEffect(() => {
+    setSelectedQualityUrl(null);
+    setShowQualityMenu(false);
+  }, [episodeKey]);
 
   const cancelAutoNext = useCallback(() => {
     autoNextCancelled.current = true;
@@ -1116,6 +1134,53 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
                   />
                 )}
               </div>
+              {/* Quality selector — Baja / Media / Full HD */}
+              {qualities.length > 0 && (() => {
+                const QLABEL: Record<string, string> = { "360P": "Baja", "540P": "Media", "720P": "Full HD" };
+                const QORDER: Record<string, number> = { "360P": 0, "540P": 1, "720P": 2 };
+                const items = qualities
+                  .map((q) => ({ ...q, name: QLABEL[q.label.toUpperCase()] || q.label, order: QORDER[q.label.toUpperCase()] ?? 99 }))
+                  .sort((a, b) => a.order - b.order);
+                const activeUrl = selectedQualityUrl;
+                return (
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowQualityMenu((v) => !v); showControlsTemp(); }}
+                      className="flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto items-center justify-center text-white/80 hover:text-primary transition"
+                      aria-label="Calidad de video"
+                      title="Calidad"
+                    >
+                      <Film className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                    {showQualityMenu && (
+                      <div onClick={(e) => e.stopPropagation()} className="absolute bottom-full right-0 mb-2 w-36 rounded-xl border border-white/10 bg-black/70 backdrop-blur-xl p-1.5 shadow-2xl">
+                        <p className="text-[9px] font-mono uppercase tracking-widest text-white/40 px-2 pt-1 pb-1.5">Calidad</p>
+                        {items.map((q) => {
+                          const isActive = activeUrl ? activeUrl === q.url : false;
+                          return (
+                            <button
+                              key={q.label}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const v = videoRef.current;
+                                if (v && !Number.isNaN(v.currentTime)) resumeTimeRef.current = v.currentTime;
+                                setSelectedQualityUrl(q.url);
+                                setShowQualityMenu(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-[11px] transition ${
+                                isActive ? "bg-primary/20 text-primary" : "text-white/70 hover:bg-white/5 hover:text-white"
+                              }`}
+                            >
+                              <span>{q.name}</span>
+                              {isActive && <Check className="w-3 h-3" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {/* Speed gear popover */}
               <div className="relative shrink-0">
                 <button

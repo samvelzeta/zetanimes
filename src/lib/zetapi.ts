@@ -97,7 +97,8 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
 
 const SEEKE_CACHE_VERSION = "v6";
 const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
-type SeekeResolved = { embed: string; episode: number; cached?: boolean; subtitles?: ZetSubtitle[]; latest_episode?: number };
+export type SeekeQuality = { label: string; url: string };
+type SeekeResolved = { embed: string; episode: number; cached?: boolean; subtitles?: ZetSubtitle[]; latest_episode?: number; qualities?: SeekeQuality[] };
 const seekeMemoryCache = new Map<string, SeekeResolved & { expiresAt: number }>();
 const SEEKE_CACHE_TTL = 1000 * 60 * 60 * 24 * 3;
 // Cache corto del último latest_episode visto por (baseUrl, ep) — solo
@@ -128,6 +129,15 @@ function normalizeSeekeSubs(raw: any): ZetSubtitle[] {
     .filter((s) => !!s.url);
 }
 
+function normalizeSeekeQualities(raw: any): SeekeQuality[] {
+  if (!raw || typeof raw !== "object") return [];
+  const out: SeekeQuality[] = [];
+  for (const [label, url] of Object.entries(raw)) {
+    if (typeof url === "string" && url) out.push({ label: String(label), url });
+  }
+  return out;
+}
+
 export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promise<SeekeResolved> {
   const key = getSeekeCacheKey(baseUrl, epNumber);
   const now = Date.now();
@@ -137,14 +147,14 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
     // sin volver a resolver el embed.
     const stale = (memory.expiresAt - now) < (SEEKE_CACHE_TTL - LATEST_EP_TTL);
     if (stale) refreshLatestEpisode(baseUrl, epNumber).catch(() => {});
-    return { embed: memory.embed, episode: memory.episode, cached: true, subtitles: memory.subtitles, latest_episode: memory.latest_episode };
+    return { embed: memory.embed, episode: memory.episode, cached: true, subtitles: memory.subtitles, latest_episode: memory.latest_episode, qualities: memory.qualities };
   }
 
   try {
     const stored = JSON.parse(localStorage.getItem(key) || "null") as (SeekeResolved & { expiresAt: number }) | null;
     if (stored?.embed && stored.expiresAt > now) {
       seekeMemoryCache.set(key, stored);
-      return { embed: stored.embed, episode: stored.episode, cached: true, subtitles: stored.subtitles, latest_episode: stored.latest_episode };
+      return { embed: stored.embed, episode: stored.episode, cached: true, subtitles: stored.subtitles, latest_episode: stored.latest_episode, qualities: stored.qualities };
     }
   } catch {}
 
@@ -165,6 +175,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
           cached: !!data.cached,
           subtitles: normalizeSeekeSubs(data.subtitles),
           latest_episode: Number.isFinite(Number(data.latest_episode)) ? Number(data.latest_episode) : undefined,
+          qualities: normalizeSeekeQualities(data.calidades ?? data.qualities),
         };
       }
     }
@@ -172,7 +183,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
 
   // 2) Fallback al proxy/Cloudflare si el bot directo falla (CORS u otro)
   if (!resolved) {
-    const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; subtitles?: any[]; latest_episode?: number; error?: string }>(
+    const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; subtitles?: any[]; latest_episode?: number; calidades?: Record<string, string>; qualities?: Record<string, string>; error?: string }>(
       `/anime/episode-seeke?url=${encodeURIComponent(baseUrl)}&ep=${epNumber}`
     );
     if (!res.ok || !res.embed) {
@@ -184,6 +195,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
       cached: res.cached,
       subtitles: normalizeSeekeSubs(res.subtitles),
       latest_episode: Number.isFinite(Number(res.latest_episode)) ? Number(res.latest_episode) : undefined,
+      qualities: normalizeSeekeQualities(res.calidades ?? res.qualities),
     };
   }
 
