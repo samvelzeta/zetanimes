@@ -130,16 +130,30 @@ function normalizeSeekeQualities(raw: any): SeekeQuality[] {
   return out;
 }
 
+function normalizeSeekeRequestUrl(baseUrl: string) {
+  const clean = baseUrl.trim();
+  try {
+    const url = new URL(clean);
+    url.search = "";
+    url.hash = "";
+    url.pathname = url.pathname.replace(/\/\d+\/?$/, "");
+    return url.toString();
+  } catch {
+    return clean.replace(/\/\d+\/?$/, "");
+  }
+}
+
 export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promise<SeekeResolved> {
   // Sin cache local: cada reproducción pide directo a la VPS con el episodio exacto.
   let resolved: SeekeResolved | null = null;
+  const requestUrl = normalizeSeekeRequestUrl(baseUrl);
   try {
     const cacheBust = Date.now();
     const r = await fetch(SEEKE_BOT_URL, {
       method: "POST",
       cache: "no-store",
       headers: { "Content-Type": "application/json", Accept: "application/json", "Cache-Control": "no-store", Pragma: "no-cache" },
-      body: JSON.stringify({ url: baseUrl, ep: epNumber, no_cache: true, force: true, cache_bust: cacheBust }),
+      body: JSON.stringify({ url: requestUrl, ep: epNumber, no_cache: true, force: true, cache_bust: cacheBust }),
     });
     if (r.ok) {
       const data = await r.json();
@@ -160,7 +174,7 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
   if (!resolved) {
     const cacheBust = Date.now();
     const res = await zetProxyFetch<{ ok: boolean; episode?: number; embed?: string; cached?: boolean; subtitles?: any[]; latest_episode?: number; calidades?: Record<string, string>; qualities?: Record<string, string>; error?: string }>(
-      `/anime/episode-seeke?url=${encodeURIComponent(baseUrl)}&ep=${epNumber}&no_cache=1&force=1&_=${cacheBust}`
+      `/anime/episode-seeke?url=${encodeURIComponent(requestUrl)}&ep=${epNumber}&no_cache=1&force=1&_=${cacheBust}`
     );
     if (!res.ok || !res.embed) {
       throw new Error(res.error || "No se pudo obtener el episodio");
@@ -185,12 +199,13 @@ export async function getSeekeEpisode(baseUrl: string, epNumber: number): Promis
  */
 async function refreshLatestEpisode(baseUrl: string, epNumber: number): Promise<number | undefined> {
   try {
+    const requestUrl = normalizeSeekeRequestUrl(baseUrl);
     const cacheBust = Date.now();
     const r = await fetch(SEEKE_BOT_URL, {
       method: "POST",
       cache: "no-store",
       headers: { "Content-Type": "application/json", Accept: "application/json", "Cache-Control": "no-store", Pragma: "no-cache" },
-      body: JSON.stringify({ url: baseUrl, ep: epNumber, latest_only: true, no_cache: true, force: true, cache_bust: cacheBust }),
+      body: JSON.stringify({ url: requestUrl, ep: epNumber, latest_only: true, no_cache: true, force: true, cache_bust: cacheBust }),
     });
     if (!r.ok) return undefined;
     const data = await r.json();
