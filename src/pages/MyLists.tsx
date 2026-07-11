@@ -84,7 +84,7 @@ export default function MyLists() {
 
         {/* Tabs */}
         <div className="mb-5">
-          <div className="grid grid-cols-5 gap-2 md:gap-3">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
             {TABS.map(({ value, label, Icon, color }) => {
               const isActive = activeTab === value;
               const count = counts[value] || 0;
