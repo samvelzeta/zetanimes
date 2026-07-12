@@ -211,8 +211,8 @@ serve(async (req) => {
     }
 
     if (!anilistId) {
-      return new Response(JSON.stringify({ error: "anilist_id requerido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ message: "noop", reason: "no_anilist_id" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const result = await trackOne(supabase, anilistId, clientStatus);
