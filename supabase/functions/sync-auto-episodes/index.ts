@@ -61,17 +61,43 @@ async function trackOne(supabase: SupaClient, anilistId: number, clientStatus: s
     return { message: "skipped_not_releasing", status: clientStatus };
   }
 
+  // 1) Buscar en video_cache_blocks (sub prioridad → latino → cualquiera)
   const { data: blocks } = await supabase
     .from("video_cache_blocks")
     .select("lang, seeke_base_url, episode_to")
     .eq("anilist_id", anilistId)
     .not("seeke_base_url", "is", null);
-  if (!blocks || blocks.length === 0) return { message: "no_seeke_block", anilist_id: anilistId };
 
-  const sub = blocks.find((b: any) => String(b.lang || "").toLowerCase() === "sub");
-  const chosen = sub || blocks[0];
-  const seekeUrl = String((chosen as any).seeke_base_url || "").trim();
-  const hintEp = Number((chosen as any).episode_to) || 1;
+  let seekeUrl = "";
+  let hintEp = 1;
+
+  if (blocks && blocks.length > 0) {
+    const sub = blocks.find((b: any) => String(b.lang || "").toLowerCase() === "sub");
+    const lat = blocks.find((b: any) => String(b.lang || "").toLowerCase() === "latino");
+    const chosen = sub || lat || blocks[0];
+    seekeUrl = String((chosen as any).seeke_base_url || "").trim();
+    hintEp = Number((chosen as any).episode_to) || 1;
+  } else {
+    // 2) Fallback: video_cache episode=0 con sources.seeke (enlace madre clásico)
+    const { data: masters } = await supabase
+      .from("video_cache")
+      .select("sources, lang")
+      .eq("anilist_id", anilistId)
+      .eq("episode", 0)
+      .not("sources->seeke", "is", null);
+    if (!masters || masters.length === 0) {
+      return { message: "no_seeke_master", anilist_id: anilistId };
+    }
+    const pickUrl = (m: any) => {
+      const arr = (m?.sources?.seeke || []) as string[];
+      return Array.isArray(arr) && arr.length ? String(arr[0] || "").trim() : "";
+    };
+    const sub = masters.find((m: any) => String(m.lang || "").toLowerCase() === "sub" && pickUrl(m));
+    const lat = masters.find((m: any) => String(m.lang || "").toLowerCase() === "latino" && pickUrl(m));
+    const chosen = sub || lat || masters.find((m: any) => pickUrl(m));
+    if (chosen) seekeUrl = pickUrl(chosen);
+  }
+
   if (!seekeUrl) return { message: "no_seeke_url", anilist_id: anilistId };
 
   const { data: prev } = await supabase
@@ -163,12 +189,15 @@ serve(async (req) => {
 
     // -------- Modo SCAN --------
     if (scan) {
-      // Todos los anilist_id con seeke_base_url
-      const { data: blocks } = await supabase
-        .from("video_cache_blocks")
-        .select("anilist_id")
-        .not("seeke_base_url", "is", null);
-      const allIds = Array.from(new Set((blocks || []).map((b: any) => Number(b.anilist_id)).filter(Boolean)));
+      // Todos los anilist_id con enlace Seeke — bloques Y video_cache madre (episode=0)
+      const [{ data: blocks }, { data: masters }] = await Promise.all([
+        supabase.from("video_cache_blocks").select("anilist_id").not("seeke_base_url", "is", null),
+        supabase.from("video_cache").select("anilist_id").eq("episode", 0).not("sources->seeke", "is", null),
+      ]);
+      const allIds = Array.from(new Set([
+        ...((blocks || []).map((b: any) => Number(b.anilist_id))),
+        ...((masters || []).map((m: any) => Number(m.anilist_id))),
+      ].filter(Boolean)));
 
       // Estados actuales trackeados
       const { data: tracked } = await supabase
