@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
 import { getPrequelChain, getSideStories, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
-import { listHiddenPending, hidePendingAnime, unhidePendingAnime } from "@/lib/hidden-pending-animes";
+import { hidePendingAnime, listHiddenPending } from "@/lib/hidden-pending-animes";
 import { unhideAnime } from "@/lib/hidden-animes";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 import { getStatusLabel } from "@/lib/anilist";
