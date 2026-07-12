@@ -115,14 +115,6 @@ export async function saveBlocks(
     }
   }
 
-  // Borrar e insertar atómicamente (RLS garantiza el actor)
-  const { error: delError } = await supabase
-    .from("video_cache_blocks" as any)
-    .delete()
-    .eq("anilist_id", anilistId)
-    .eq("lang", lang);
-  if (delError) return { success: false, error: delError.message };
-
   const rows = sorted.map((b, idx) => ({
     anilist_id: anilistId,
     slug,
@@ -137,7 +129,9 @@ export async function saveBlocks(
     created_by: createdBy || null,
   }));
 
-  const { error: insError } = await supabase.from("video_cache_blocks" as any).insert(rows as any);
+  const { error: insError } = await supabase
+    .from("video_cache_blocks" as any)
+    .upsert(rows as any, { onConflict: "anilist_id,lang,block_index" });
   invalidateBlocksCache(anilistId, lang);
   if (insError) return { success: false, error: insError.message };
   return { success: true };
