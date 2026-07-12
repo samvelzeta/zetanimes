@@ -630,6 +630,8 @@ function PendingCard({
         } catch (err) {
           console.warn("[approve] tracker upsert failed", err);
         }
+        // Si el anime estaba oculto del Home, se desoculta automáticamente al aprobar
+        try { await unhideAnime(anime.id); } catch {}
       }
       await logAdminActivity({
         area: "videos",
