@@ -835,16 +835,6 @@ function PendingCard({
             <Settings2 className="w-3.5 h-3.5" />
             Avanzado
           </button>
-          {approved && (
-            <button
-              onClick={handleUnapprove}
-              disabled={busy}
-              title="Quitar de la whitelist"
-              className="h-8 px-2 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center hover:bg-destructive/15 hover:text-destructive disabled:opacity-50"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
       </div>
     </div>
