@@ -648,54 +648,47 @@ function PendingCard({
 
   return (
     <div className="relative rounded-2xl border border-border bg-card overflow-hidden flex">
-      {/* Botón ocultar/mostrar en la esquina superior derecha */}
-      {hidden ? (
-        <button
-          onClick={async () => {
-            setBusy(true);
+      {/* Único botón: ocultar 7 días y eliminar del tracker */}
+      <button
+        onClick={async () => {
+          if (!confirm(`¿Ocultar "${title}" de la bandeja durante 7 días? También se eliminará del tracker de descargas.`)) return;
+          setBusy(true);
+          try {
+            await hidePendingAnime(anime.id, `oculto desde bandeja`);
+            // Eliminar del tracker de descargas (y episodios asociados)
             try {
-              await unhidePendingAnime(anime.id);
-              toast.success("Vuelve a la bandeja");
-              onChanged();
-            } catch (e: any) {
-              toast.error(e?.message || "Error");
-            } finally { setBusy(false); }
-          }}
-          disabled={busy}
-          title="Volver a mostrar en la bandeja"
-          className="absolute top-1.5 right-1.5 z-10 h-7 w-7 rounded-full bg-background/80 backdrop-blur border border-border text-foreground flex items-center justify-center hover:bg-primary hover:text-primary-foreground disabled:opacity-50 shadow-md"
-        >
-          <Eye className="w-3.5 h-3.5" />
-        </button>
-      ) : (
-        <button
-          onClick={async () => {
-            if (!confirm(`¿Ocultar "${title}" de la bandeja durante 7 días?`)) return;
-            setBusy(true);
-            try {
-              await hidePendingAnime(anime.id, `oculto desde bandeja`);
-              await logAdminActivity({
-                area: "videos",
-                action: "hide_pending_anime",
-                summary: `Ocultado 7 días: ${title}`,
-                target_type: "anime",
-                target_id: String(anime.id),
-                anilist_id: anime.id,
-                anime_title: title,
-              });
-              toast.success("Oculto por 7 días");
-              onChanged();
-            } catch (e: any) {
-              toast.error(e?.message || "Error al ocultar");
-            } finally { setBusy(false); }
-          }}
-          disabled={busy}
-          title="Ocultar temporalmente (7 días)"
-          className="absolute top-1.5 right-1.5 z-10 h-7 w-7 rounded-full bg-background/80 backdrop-blur border border-border text-foreground flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50 shadow-md"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      )}
+              const { data: trackerRow } = await supabase
+                .from("anime_download_tracker")
+                .select("id")
+                .eq("anilist_id", anime.id)
+                .maybeSingle();
+              if (trackerRow?.id) {
+                await supabase.rpc("delete_download_tracker", { _tracker_id: trackerRow.id });
+              }
+            } catch (err) {
+              console.warn("[hide] tracker delete failed", err);
+            }
+            await logAdminActivity({
+              area: "videos",
+              action: "hide_pending_anime",
+              summary: `Ocultado 7 días + removido del tracker: ${title}`,
+              target_type: "anime",
+              target_id: String(anime.id),
+              anilist_id: anime.id,
+              anime_title: title,
+            });
+            toast.success("Oculto 7 días y removido del tracker");
+            onChanged();
+          } catch (e: any) {
+            toast.error(e?.message || "Error al ocultar");
+          } finally { setBusy(false); }
+        }}
+        disabled={busy}
+        title="Ocultar 7 días y eliminar del tracker"
+        className="absolute top-1.5 right-1.5 z-10 h-7 w-7 rounded-full bg-background/80 backdrop-blur border border-border text-foreground flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50 shadow-md"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
       <div className="w-24 h-36 shrink-0 bg-secondary">
         {cover && <LazyImage src={cover} alt={title} className="w-full h-full object-cover" />}
       </div>
