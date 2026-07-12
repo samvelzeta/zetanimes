@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Trash2, Plus, Upload, Loader2, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { RARITY_META, type Rarity } from "@/lib/cosmetics";
+import { compressBanner } from "@/lib/image-compress";
 
 interface Banner {
   id: string;
@@ -35,15 +36,15 @@ export default function AdminBannersManager() {
   useEffect(() => { load(); }, []);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const raw = e.target.files?.[0];
+    if (!raw) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `banners/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const file = await compressBanner(raw);
+      const path = `banners/${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
       const { error: upErr } = await supabase.storage
         .from("premium-assets")
-        .upload(path, file, { upsert: false, contentType: file.type });
+        .upload(path, file, { upsert: false, contentType: "image/webp", cacheControl: "31536000" });
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from("premium-assets").getPublicUrl(path);
       const { error: insErr } = await supabase.from("admin_banners" as any).insert({

@@ -88,6 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
+        // Precarga overlays y banners del admin en el caché HTTP del navegador
+        import("@/lib/cosmetics-preload").then((m) => m.preloadAdminCosmetics()).catch(() => {});
       }
       setLoading(false);
     });
