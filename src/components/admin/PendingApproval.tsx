@@ -24,7 +24,26 @@ type AiringItem = {
   status: string;
   episodes?: number | null;
   averageScore?: number | null;
+  format?: string | null;
 };
+
+type PendingGroup = {
+  main: AiringItem;
+  related: AiringItem[];
+};
+
+function formatLabel(f?: string | null): string {
+  if (!f) return "";
+  const m: Record<string, string> = {
+    TV: "SERIE", TV_SHORT: "SERIE CORTA", MOVIE: "PELÍCULA",
+    OVA: "OVA", ONA: "ONA", SPECIAL: "ESPECIAL", MUSIC: "MÚSICA",
+  };
+  return m[f] || f;
+}
+
+function isMovieFormat(f?: string | null) {
+  return f === "MOVIE";
+}
 
 function titleOf(a: AiringItem) {
   return a.title?.english || a.title?.romaji || `Anime #${a.id}`;
