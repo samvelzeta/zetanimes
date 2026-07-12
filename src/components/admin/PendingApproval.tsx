@@ -440,8 +440,10 @@ export default function PendingApproval() {
                 approved={approvedSet.has(g.main.id)}
                 hasVideo={withVideo?.has(g.main.id) ?? false}
                 hidden={hiddenSet.has(g.main.id)}
+                cascadeIds={g.related.map((r) => r.id)}
                 onChanged={onChanged}
               />
+
               {g.related.length > 0 && (
                 <RelatedGroup
                   parentTitle={titleOf(g.main)}
