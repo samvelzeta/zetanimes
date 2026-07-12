@@ -19,6 +19,7 @@ import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
 import LazySection from "@/components/LazySection";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import TopOtakusWidget from "@/components/premium/TopOtakusWidget";
+import { supabase } from "@/integrations/supabase/client";
 
 // Semilla determinista por año-semana ISO (rota cada lunes)
 function weekSeed(): number {
@@ -55,6 +56,13 @@ export default function Home() {
     sessionStorage.setItem("zet_splash_done", "1");
     setSplashDone(true);
   };
+
+  // Dispara el scan de últimos episodios 1 vez por sesión (respeta throttle 3d en servidor)
+  useEffect(() => {
+    if (sessionStorage.getItem("zet_latest_scan_done")) return;
+    sessionStorage.setItem("zet_latest_scan_done", "1");
+    supabase.functions.invoke("sync-auto-episodes", { body: { scan: true, limit: 20 } }).catch(() => {});
+  }, []);
 
   // Cargar IDs ocultos para filtrar listas
   const { data: hiddenIds } = useQuery({
