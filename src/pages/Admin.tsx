@@ -253,7 +253,7 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
           supabase.from("watch_history").select("*", { count: "exact", head: true }).eq("completed", true),
           supabase.from("notifications").select("*", { count: "exact", head: true }).eq("active", true),
           supabase.from("latino_episodes" as any).select("*", { count: "exact", head: true }).eq("status", "uploaded"),
-          supabase.from("video_overrides" as any).select("*", { count: "exact", head: true }),
+          supabase.from("anime_download_tracker" as any).select("*", { count: "exact", head: true }).eq("status", "completed"),
           supabase.from("broken_link_reports" as any).select("*", { count: "exact", head: true }).eq("resolved", false),
           supabase.from("watch_history").select("anilist_id, anime_title, episode_number, watched_at").order("watched_at", { ascending: false }).limit(6),
         ]);
