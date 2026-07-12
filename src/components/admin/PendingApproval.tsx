@@ -422,30 +422,88 @@ export default function PendingApproval() {
         </div>
       )}
 
-      {!loading && filtered.length === 0 && (
+      {!loading && filteredGroups.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
           {showApproved ? "Aún no has aprobado ningún anime." : "🎉 No hay animes pendientes."}
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {filtered.map((a) => (
-          <PendingCard
-            key={a.id}
-            anime={a}
-            approved={approvedSet.has(a.id)}
-            hasVideo={withVideo?.has(a.id) ?? false}
-            hidden={hiddenSet.has(a.id)}
-            onChanged={() => {
-              refetchApproved();
-              refetchHidden();
-              qc.invalidateQueries({ queryKey: ["approved-anime-ids"] });
-              qc.invalidateQueries({ queryKey: ["approval-videocache-ids"] });
-              qc.invalidateQueries({ queryKey: ["hidden-pending-animes"] });
-            }}
-          />
-        ))}
+        {filteredGroups.map((g) => {
+          const onChanged = () => {
+            refetchApproved();
+            refetchHidden();
+            qc.invalidateQueries({ queryKey: ["approved-anime-ids"] });
+            qc.invalidateQueries({ queryKey: ["approval-videocache-ids"] });
+            qc.invalidateQueries({ queryKey: ["hidden-pending-animes"] });
+          };
+          return (
+            <div key={g.main.id} className="flex flex-col gap-2">
+              <PendingCard
+                anime={g.main}
+                approved={approvedSet.has(g.main.id)}
+                hasVideo={withVideo?.has(g.main.id) ?? false}
+                hidden={hiddenSet.has(g.main.id)}
+                onChanged={onChanged}
+              />
+              {g.related.length > 0 && (
+                <RelatedGroup
+                  parentTitle={titleOf(g.main)}
+                  related={g.related}
+                  approvedSet={approvedSet}
+                  hiddenSet={hiddenSet}
+                  withVideo={withVideo}
+                  onChanged={onChanged}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
+    </div>
+  );
+}
+
+function RelatedGroup({
+  parentTitle,
+  related,
+  approvedSet,
+  hiddenSet,
+  withVideo,
+  onChanged,
+}: {
+  parentTitle: string;
+  related: AiringItem[];
+  approvedSet: Set<number>;
+  hiddenSet: Set<number>;
+  withVideo?: Set<number>;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="ml-4 border-l-2 border-primary/40 pl-3">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 w-full text-left text-[11px] font-bold text-primary hover:text-primary/80 py-1"
+      >
+        <GitBranch className="w-3 h-3" />
+        <ChevronDown className={`w-3 h-3 transition ${open ? "rotate-0" : "-rotate-90"}`} />
+        {related.length} temporada{related.length > 1 ? "s" : ""} relacionada{related.length > 1 ? "s" : ""} de {parentTitle}
+      </button>
+      {open && (
+        <div className="flex flex-col gap-2 mt-2">
+          {related.map((r) => (
+            <PendingCard
+              key={r.id}
+              anime={r}
+              approved={approvedSet.has(r.id)}
+              hasVideo={withVideo?.has(r.id) ?? false}
+              hidden={hiddenSet.has(r.id)}
+              onChanged={onChanged}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
