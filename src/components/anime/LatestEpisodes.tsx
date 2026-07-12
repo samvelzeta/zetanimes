@@ -54,6 +54,7 @@ export default function LatestEpisodes() {
       const { data: rows, error } = await supabase
         .from("auto_latest_episodes")
         .select("anilist_id, title, cover, banner, latest_episode, previous_episode, episode_updated_at")
+        .eq("anilist_status", "RELEASING")
         .order("episode_updated_at", { ascending: false })
         .limit(30);
       if (error) throw error;
