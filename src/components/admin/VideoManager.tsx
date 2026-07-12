@@ -394,8 +394,9 @@ export default function VideoManager() {
           .delete()
           .eq("anilist_id", selected.id)
           .eq("lang", lang)
-          .neq("episode", 0);
-        if (wipeError) throw wipeError;
+          .neq("episode", 0)
+          .is("sources->seeke", null);
+        if (wipeError && !String(wipeError.message || "").includes("Protected Seeke")) throw wipeError;
         clearRuntimeVideoCache();
         clearSeekeEpisodeCache();
         clearProgress();
@@ -463,7 +464,8 @@ export default function VideoManager() {
       .delete()
       .eq("anilist_id", selected.id)
       .eq("lang", lang)
-      .neq("episode", 0);
+      .neq("episode", 0)
+      .is("sources->seeke", null);
     if (wipeError) {
       setAutoLog((prev) => [`Aviso: no se pudieron limpiar episodios resueltos: ${wipeError.message}`, ...prev].slice(0, 12));
     }
@@ -499,6 +501,10 @@ export default function VideoManager() {
   };
 
   const deleteSaved = async (sv: CachedVideo) => {
+    if (sv.episode === 0 || hasSeekeSource(sv.sources)) {
+      toast.error("El enlace madre Seeke está protegido. Puedes reemplazarlo guardando uno nuevo, no borrarlo.");
+      return;
+    }
     if (!confirm(`¿Eliminar EP ${sv.episode} (${sv.lang}) de la DB?`)) return;
     const res = await deleteCachedVideo(sv.slug, sv.episode, sv.lang, sv.id);
     if (!res.success) {
@@ -593,9 +599,11 @@ export default function VideoManager() {
                   <button onClick={() => editSaved(sv)} className="text-primary hover:bg-primary/10 p-1.5 rounded">
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => deleteSaved(sv)} className="text-destructive hover:bg-destructive/10 p-1.5 rounded">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {sv.episode !== 0 && !hasSeekeSource(sv.sources) && (
+                    <button onClick={() => deleteSaved(sv)} className="text-destructive hover:bg-destructive/10 p-1.5 rounded">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               );
             })

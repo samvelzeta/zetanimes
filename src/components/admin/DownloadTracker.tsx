@@ -82,7 +82,7 @@ export default function DownloadTracker() {
     searchTimer.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await searchAnime(val, 1, 12);
+        const res = await searchAnime(val, 1, 30, [], { skipCuration: true });
         const media = res.media || [];
         setSearchResults(media);
         await fetchResultStatuses(media.map((m) => m.id));

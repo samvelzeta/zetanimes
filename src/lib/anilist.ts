@@ -1,6 +1,7 @@
 import { idbGet, idbSet } from "@/lib/idb-cache";
 import { applyAnimeCurationPage } from "@/lib/anime-curation";
 import { applyStatusOverrides } from "@/lib/anime-status-overrides";
+import { buildLooseSearchVariants, fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 
 const ANILIST_URL = "https://graphql.anilist.co";
 const CATALOG_CACHE_VERSION = "curation-v1";
@@ -23,7 +24,8 @@ const MEDIA_FRAGMENT = `
   fragment MediaFields on Media {
     id
     idMal
-    title { romaji english }
+    title { romaji english native }
+    synonyms
     coverImage { extraLarge large color }
     bannerImage
     description(asHtml: false)
@@ -62,7 +64,8 @@ async function queryAniList(query: string, variables: Record<string, unknown> = 
 export interface AniListMedia {
   id: number;
   idMal?: number | null;
-  title: { romaji: string; english: string | null };
+  title: { romaji: string; english: string | null; native?: string | null };
+  synonyms?: string[] | null;
   coverImage: { extraLarge: string; large: string; color: string | null };
   bannerImage: string | null;
   description: string | null;
@@ -180,53 +183,91 @@ export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult>
  * shape consistente con el resto de la app.
  */
 export async function searchAnime(searchTerm: string, page = 1, perPage = 20, genres: string[] = [], options?: { skipCuration?: boolean }): Promise<PageResult> {
-  const variables: Record<string, unknown> = { page, perPage };
-  if (searchTerm) variables.search = searchTerm;
-  if (genres.length > 0) variables.genres = genres;
-  const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$search:String,$genres:[String]){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(search:$search,type:ANIME,genre_in:$genres,isAdult:false,sort:SEARCH_MATCH){...MediaFields}}}`, variables);
+  const cleanTerm = searchTerm.trim();
+  const baseVariables: Record<string, unknown> = { page, perPage };
+  if (genres.length > 0) baseVariables.genres = genres;
 
-  // Fallback Jikan si AniList devolvió cero resultados con un término de búsqueda
-  if (searchTerm && (!data?.Page?.media?.length)) {
+  const runAniListSearch = async (term: string, limit = perPage) => {
+    const variables: Record<string, unknown> = { ...baseVariables, perPage: limit };
+    if (term) variables.search = term;
+    return queryAniList(
+      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$search:String,$genres:[String]){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(search:$search,type:ANIME,genre_in:$genres,isAdult:false,sort:SEARCH_MATCH){...MediaFields}}}`,
+      variables
+    );
+  };
+
+  if (!cleanTerm || page > 1) {
+    const data = await runAniListSearch(cleanTerm);
+    return processPage(data.Page, options);
+  }
+
+  const variants = buildLooseSearchVariants(cleanTerm, 7);
+  const batches = await Promise.allSettled(variants.map((variant) => runAniListSearch(variant, Math.min(Math.max(perPage, 18), 30))));
+  const seen = new Map<number, AniListMedia>();
+  let firstPageInfo: PageResult["pageInfo"] | null = null;
+
+  for (const batch of batches) {
+    if (batch.status !== "fulfilled") continue;
+    const pageData = batch.value?.Page;
+    if (!firstPageInfo && pageData?.pageInfo) firstPageInfo = pageData.pageInfo;
+    for (const media of pageData?.media || []) {
+      if (!seen.has(media.id)) seen.set(media.id, media);
+    }
+  }
+
+  if (seen.size < Math.min(perPage, 12)) {
     try {
+      const jikanQuery = variants[0] || normalizeSearchText(cleanTerm);
       const jikanRes = await fetch(
-        `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(searchTerm)}&limit=${Math.min(perPage, 25)}&page=${page}&sfw=true`
+        `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(jikanQuery)}&limit=${Math.min(Math.max(perPage, 12), 25)}&page=${page}&sfw=true`
       );
       if (jikanRes.ok) {
         const jikanJson = await jikanRes.json();
         const malIds: number[] = (jikanJson?.data || [])
           .map((a: any) => Number(a?.mal_id))
           .filter((n: number) => Number.isFinite(n) && n > 0)
-          .slice(0, perPage);
+          .slice(0, Math.min(Math.max(perPage, 12), 25));
 
         if (malIds.length > 0) {
-          const idsCsv = malIds.join(",");
           const aniData = await queryAniList(
-            `${MEDIA_FRAGMENT} query($perPage:Int){Page(page:1,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(idMal_in:[${idsCsv}],type:ANIME,isAdult:false){...MediaFields}}}`,
-            { perPage: malIds.length }
+            `${MEDIA_FRAGMENT} query($ids:[Int],$perPage:Int){Page(page:1,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(idMal_in:$ids,type:ANIME,isAdult:false){...MediaFields}}}`,
+            { ids: malIds, perPage: malIds.length }
           );
-          const fetched: AniListMedia[] = aniData?.Page?.media || [];
-          // Reordenar respetando el orden de relevancia que devolvió Jikan
           const order = new Map(malIds.map((id, i) => [id, i]));
+          const fetched: AniListMedia[] = aniData?.Page?.media || [];
           fetched.sort((a: any, b: any) => (order.get(a.idMal) ?? 999) - (order.get(b.idMal) ?? 999));
-          const pag = jikanJson?.pagination || {};
-          const fallbackPage = {
-            pageInfo: {
-              total: pag?.items?.total || fetched.length,
-              currentPage: page,
-              lastPage: pag?.last_visible_page || page,
-              hasNextPage: !!pag?.has_next_page,
-            },
-            media: fetched,
-          };
-          return processPage(fallbackPage, options);
+          fetched.forEach((media) => {
+            if (!seen.has(media.id)) seen.set(media.id, media);
+          });
         }
       }
     } catch {
-      // si Jikan también falla, devolvemos lo que dio AniList (vacío)
+      // Si el fallback falla, se conserva lo encontrado con AniList.
     }
   }
 
-  return processPage(data.Page, options);
+  const scored = Array.from(seen.values())
+    .map((media, index) => ({
+      media,
+      index,
+      score: fuzzyTextScore(cleanTerm, [
+        media.title?.romaji,
+        media.title?.english,
+        media.title?.native,
+        ...((media.synonyms || []) as string[]),
+      ]),
+    }))
+    .filter((item) => item.score >= 1.15 || seen.size <= perPage)
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map((item) => item.media)
+    .slice(0, perPage);
+
+  const pageResult = {
+    pageInfo: firstPageInfo || { total: scored.length, currentPage: page, lastPage: page, hasNextPage: false },
+    media: scored,
+  };
+
+  return processPage(pageResult, options);
 }
 
 export async function getAnimeById(id: number): Promise<AniListMedia> {

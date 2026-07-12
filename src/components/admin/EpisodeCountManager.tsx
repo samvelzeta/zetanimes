@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Search, Save } from "lucide-react";
 import { logAdminActivity } from "@/lib/admin-log";
+import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 
 interface Override {
   id: string;
@@ -118,11 +119,11 @@ export default function EpisodeCountManager() {
     load();
   };
 
-  const filtered = list.filter((o) =>
-    !search ||
-    o.anime_title?.toLowerCase().includes(search.toLowerCase()) ||
-    String(o.anilist_id).includes(search)
-  );
+  const filtered = list.filter((o) => {
+    const q = normalizeSearchText(search);
+    if (!q) return true;
+    return fuzzyTextScore(q, [o.anime_title, String(o.anilist_id), o.notes]) >= 1.1;
+  });
 
   return (
     <div className="space-y-6">

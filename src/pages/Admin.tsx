@@ -33,6 +33,7 @@ import RankingOverridesAdmin from "@/components/admin/RankingOverridesAdmin";
 import AnimeStatusOverridesAdmin from "@/components/admin/AnimeStatusOverridesAdmin";
 import PendingApproval from "@/components/admin/PendingApproval";
 import { logAdminActivity } from "@/lib/admin-log";
+import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 
 // Tabs reservados solo para owner
 const OWNER_ONLY = new Set(["premium", "payment", "apikeys", "roles", "activity", "apk", "notifs"]);
@@ -488,14 +489,9 @@ function PremiumTab() {
   };
 
   const filtered = users.filter((u) => {
-    if (!searchQ.trim()) return true;
-    const q = searchQ.toLowerCase();
-    return (
-      u.username?.toLowerCase().includes(q) ||
-      u.display_name?.toLowerCase().includes(q) ||
-      u.subscription_email?.toLowerCase().includes(q) ||
-      u.user_id?.toLowerCase().includes(q)
-    );
+    const q = normalizeSearchText(searchQ);
+    if (!q) return true;
+    return fuzzyTextScore(q, [u.username, u.display_name, u.subscription_email, u.user_id]) >= 1.1;
   }).slice(0, 200);
 
   return (

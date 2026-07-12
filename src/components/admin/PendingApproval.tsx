@@ -12,6 +12,7 @@ import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
 import { getPrequelChain, getSideStories, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
 import { listHiddenPending, hidePendingAnime, unhidePendingAnime } from "@/lib/hidden-pending-animes";
+import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 
 
 type AiringItem = {
@@ -281,7 +282,7 @@ export default function PendingApproval() {
   }, [airingItems, seekeMasterSet, prequelMap, approvedSet]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeSearchText(query);
     return all.filter((a) => {
       const isApproved = approvedSet.has(a.id);
       const isHidden = hiddenSet.has(a.id);
@@ -292,7 +293,7 @@ export default function PendingApproval() {
         if (showApproved ? !isApproved : isApproved) return false;
       }
       if (!q) return true;
-      return titleOf(a).toLowerCase().includes(q) || String(a.id).includes(q);
+      return fuzzyTextScore(q, [titleOf(a), a.title?.romaji, a.title?.english, String(a.id)]) >= 1.1;
     });
   }, [all, query, approvedSet, showApproved, showHidden, hiddenSet]);
 

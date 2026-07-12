@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Search, Loader2, Shield, Crown, User as UserIcon, X, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { logAdminActivity } from "@/lib/admin-log";
+import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 
 type AppRole = "owner" | "admin" | "premium" | "user";
 
@@ -89,13 +90,9 @@ export default function RoleManager() {
   };
 
   const filtered = users.filter((u) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      u.username?.toLowerCase().includes(q) ||
-      u.display_name?.toLowerCase().includes(q) ||
-      u.user_id.toLowerCase().includes(q)
-    );
+    const q = normalizeSearchText(search);
+    if (!q) return true;
+    return fuzzyTextScore(q, [u.username, u.display_name, u.user_id]) >= 1.1;
   });
 
   return (

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { getTrending, getPopular, getRecentlyUpdated, searchAnime, getTitle } from "@/lib/anilist";
 import { listHiddenAnimes, hideAnime, unhideAnime, rehideAnime } from "@/lib/hidden-animes";
 import { useAuth } from "@/contexts/AuthContext";
+import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 
 export default function HiddenAnimesManager() {
   const { user } = useAuth();
@@ -51,13 +52,13 @@ export default function HiddenAnimesManager() {
   const publicHiddenIds = useMemo(() => new Set(hiddenList.filter((h) => h.is_hidden !== false).map((h) => h.anilist_id)), [hiddenList]);
 
   const curatedList = useMemo(() => {
-    const q = hiddenSearch.trim().toLowerCase();
+    const q = normalizeSearchText(hiddenSearch);
     return hiddenList.filter((h) => {
       if (hiddenFilter === "hidden" && h.is_hidden === false) return false;
       if (hiddenFilter === "visible" && h.is_hidden !== false) return false;
       if (hiddenFilter === "auto" && !h.auto_hidden) return false;
       if (!q) return true;
-      return String(h.anime_title || h.anilist_id).toLowerCase().includes(q) || String(h.reason || "").toLowerCase().includes(q);
+      return fuzzyTextScore(q, [String(h.anime_title || h.anilist_id), String(h.reason || "")]) >= 1.1;
     });
   }, [hiddenList, hiddenFilter, hiddenSearch]);
 

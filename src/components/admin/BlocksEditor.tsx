@@ -92,7 +92,13 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
   const updateNormalRow = (idx: number, patch: Partial<NormalRow>) => {
     setNormalRows(normalRows.map((r, i) => i === idx ? { ...r, ...patch } : r));
   };
-  const removeNormalRow = (idx: number) => setNormalRows(normalRows.filter((_, i) => i !== idx));
+  const removeNormalRow = (idx: number) => {
+    if (normalRows[idx]?.seeke_base_url?.trim()) {
+      toast.error("Ese bloque madre está protegido. Reemplaza su URL o rango, no lo borres.");
+      return;
+    }
+    setNormalRows(normalRows.filter((_, i) => i !== idx));
+  };
 
   // Construye el payload combinado y guarda
   const persist = async (next: { normals: NormalRow[]; inv: InverseConfig | null }) => {
@@ -128,7 +134,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
       setSaving(false);
       return false;
     }
-    await supabase.from("video_cache").delete().eq("anilist_id", anilistId).eq("lang", lang).neq("episode", 0);
+    await supabase.from("video_cache").delete().eq("anilist_id", anilistId).eq("lang", lang).neq("episode", 0).is("sources->seeke", null);
     clearRuntimeVideoCache();
     clearSeekeEpisodeCache();
     invalidateBlocksCache(anilistId, lang);
@@ -150,17 +156,11 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
   };
 
   const disableNormal = async () => {
-    if (!confirm("¿Eliminar los bloques NORMALES de este idioma?")) return;
-    setNormalRows([]);
-    setNormalEnabled(false);
-    await persist({ normals: [], inv: inverse.enabled ? inverse : null });
+    toast.error("Los enlaces madre por bloques están protegidos. Reemplázalos editando la URL, no borrándolos.");
   };
 
   const disableInverse = async () => {
-    if (!confirm("¿Eliminar el bloque INVERSO de este idioma?")) return;
-    const cleared = { ...inverse, enabled: false };
-    setInverse(cleared);
-    await persist({ normals: normalEnabled ? normalRows : [], inv: null });
+    toast.error("El enlace madre inverso está protegido. Reemplázalo editando la URL, no borrándolo.");
   };
 
   if (loading) return <div className="flex items-center gap-2 text-xs text-muted-foreground p-3"><Loader2 className="w-3 h-3 animate-spin" /> Cargando bloques...</div>;
