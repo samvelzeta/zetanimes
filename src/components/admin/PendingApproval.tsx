@@ -5,7 +5,7 @@ import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovi
 import { getApprovedAnimeIds, approveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch, EyeOff, Eye, ChevronDown, Film, Tv } from "lucide-react";
+import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch, ChevronDown, Film, Tv } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
