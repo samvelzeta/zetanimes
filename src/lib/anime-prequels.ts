@@ -105,19 +105,28 @@ export async function getSideStories(anilistId: number): Promise<PrequelNode[]> 
  * (episode=0 y sources.seeke con al menos una URL). Lee todo en un solo query.
  */
 export async function getAnimeIdsWithSeekeMaster(): Promise<Set<number>> {
-  const { data, error } = await supabase
-    .from("video_cache")
-    .select("anilist_id, sources")
-    .eq("episode", 0)
-    .not("anilist_id", "is", null)
-    .limit(5000);
-  if (error || !data) return new Set();
+  const [cacheRes, blocksRes] = await Promise.all([
+    supabase
+      .from("video_cache")
+      .select("anilist_id, sources")
+      .eq("episode", 0)
+      .not("anilist_id", "is", null)
+      .limit(5000),
+    supabase
+      .from("video_cache_blocks" as any)
+      .select("anilist_id")
+      .not("anilist_id", "is", null)
+      .limit(5000),
+  ]);
   const out = new Set<number>();
-  for (const row of data as any[]) {
+  for (const row of (cacheRes.data || []) as any[]) {
     const seeke = row?.sources?.seeke;
     if (Array.isArray(seeke) && seeke.length > 0 && row.anilist_id) {
       out.add(row.anilist_id as number);
     }
+  }
+  for (const row of (blocksRes.data || []) as any[]) {
+    if (row?.anilist_id) out.add(row.anilist_id as number);
   }
   return out;
 }

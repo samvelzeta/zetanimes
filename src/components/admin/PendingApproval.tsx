@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovies, getTrending, getPopular, getTopRated, getThisSeason } from "@/lib/anilist";
-import { getApprovedAnimeIds, approveAnime, unapproveAnime, onApprovedChange } from "@/lib/approved-animes";
+import { getApprovedAnimeIds, approveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch, EyeOff, Eye, ChevronDown, Film, Tv } from "lucide-react";
@@ -162,6 +162,8 @@ export default function PendingApproval() {
     // Fuentes "core" — siempre se incluyen (RELEASING + películas próximas/recientes)
     for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming]) {
       for (const m of (p?.media || []) as AiringItem[]) {
+        // Si ya tiene enlace madre Seeke o bloques → aprobado permanente, no volver a pedirlo
+        if (seekeMasterSet?.has(m.id)) continue;
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
@@ -652,28 +654,6 @@ function PendingCard({
     }
   };
 
-  const handleUnapprove = async () => {
-    setBusy(true);
-    try {
-      const res = await unapproveAnime(anime.id);
-      if (!res.success) throw new Error(res.error);
-      await logAdminActivity({
-        area: "videos",
-        action: "unapprove_anime",
-        summary: `Aprobación retirada: ${title}`,
-        target_type: "anime",
-        target_id: String(anime.id),
-        anilist_id: anime.id,
-        anime_title: title,
-      });
-      toast.success("Quitado de la whitelist");
-      onChanged();
-    } catch (e: any) {
-      toast.error(e?.message || "Error");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <div className="relative rounded-2xl border border-border bg-card overflow-hidden flex">
@@ -833,16 +813,6 @@ function PendingCard({
             <Settings2 className="w-3.5 h-3.5" />
             Avanzado
           </button>
-          {approved && (
-            <button
-              onClick={handleUnapprove}
-              disabled={busy}
-              title="Quitar de la whitelist"
-              className="h-8 px-2 rounded-lg bg-secondary text-foreground text-xs font-bold flex items-center justify-center hover:bg-destructive/15 hover:text-destructive disabled:opacity-50"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
       </div>
     </div>
