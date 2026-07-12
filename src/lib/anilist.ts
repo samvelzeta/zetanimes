@@ -246,18 +246,23 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
     }
   }
 
-  const scored = Array.from(seen.values())
-    .map((media, index) => ({
-      media,
-      index,
-      score: fuzzyTextScore(cleanTerm, [
-        media.title?.romaji,
-        media.title?.english,
-        media.title?.native,
-        ...((media.synonyms || []) as string[]),
-      ]),
-    }))
-    .filter((item) => item.score >= 1.15 || seen.size <= perPage)
+  const allScored = Array.from(seen.values()).map((media, index) => ({
+    media,
+    index,
+    score: fuzzyTextScore(cleanTerm, [
+      media.title?.romaji,
+      media.title?.english,
+      media.title?.native,
+      ...((media.synonyms || []) as string[]),
+    ]),
+  }));
+
+  // Permissive: keep anything with any signal (>0). If nothing scores, keep all
+  // (AniList already matched them by search term, so they are relevant).
+  const filtered = allScored.filter((item) => item.score > 0);
+  const pool = filtered.length > 0 ? filtered : allScored;
+
+  const scored = pool
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map((item) => item.media)
     .slice(0, perPage);
