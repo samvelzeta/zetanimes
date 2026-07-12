@@ -171,33 +171,26 @@ export const AVATAR_FRAMES: AvatarFrameDef[] = [
   { slug: "oni", name: "Máscara Oni", className: "zf-frame-art zf-frame-oni", shape: "circle", imageUrl: frameOni, rarity: "legendario", requirement: { type: "level", value: 100 } },
 
   // ── JOJO'S GACHAPÓN ──
+  // NOTA: se retiraron los marcos con diseños que invadían el centro del avatar
+  // (Portal Jojolion, Espinas del Amor, Reliquia de Piedra, Araña de Ocupantes,
+  // Tumba de Esmeralda, Loto de Giorno, Cresta de Araña, Corona del Rey No Muerto,
+  // Filamento de Stand y Remolino Carmesí) porque obstruían la foto de perfil.
   { slug: "jj-hiedra-destino", name: "Hiedra del Destino", className: "zf-frame-art", shape: "circle", imageUrl: frameJjHamon, rarity: "basico", requirement: { type: "gacha" } },
   { slug: "jj-grilletes-hierro", name: "Grilletes de Hierro", className: "zf-frame-art", shape: "circle", imageUrl: frameJjIron, rarity: "basico", requirement: { type: "gacha" } },
   { slug: "jj-estrella-mar", name: "Estrella de Mar", className: "zf-frame-art", shape: "circle", imageUrl: frameJjNavy, rarity: "basico", requirement: { type: "gacha" } },
-  { slug: "jj-espinas-amor", name: "Espinas del Amor", className: "zf-frame-art", shape: "circle", imageUrl: frameJjDarkPink, rarity: "basico", requirement: { type: "gacha" } },
   { slug: "jj-cadenas-almas", name: "Cadenas de Almas", className: "zf-frame-art", shape: "circle", imageUrl: frameJjPurple, rarity: "basico", requirement: { type: "gacha" } },
-  { slug: "jj-cresta-arana", name: "Cresta de Araña", className: "zf-frame-art", shape: "circle", imageUrl: frameJjCrimson, rarity: "basico", requirement: { type: "gacha" } },
   { slug: "jj-sombra-vampiro", name: "Sombra del Vampiro", className: "zf-frame-art", shape: "circle", imageUrl: frameJjObsidian, rarity: "basico", requirement: { type: "gacha" } },
-  { slug: "jj-reliquia-piedra", name: "Reliquia de Piedra", className: "zf-frame-art", shape: "circle", imageUrl: frameJjStone, rarity: "basico", requirement: { type: "gacha" } },
 
   { slug: "jj-muda-muda", name: "Muda Muda Muda!", className: "zf-frame-art", shape: "circle", imageUrl: frameJjGold, rarity: "especial", requirement: { type: "gacha" } },
   { slug: "jj-daga-warudo", name: "Daga de Za Warudo", className: "zf-frame-art", shape: "circle", imageUrl: frameJjCyan, rarity: "especial", requirement: { type: "gacha" } },
   { slug: "jj-ankh-desierto", name: "Ankh del Desierto", className: "zf-frame-art", shape: "circle", imageUrl: frameJjAmber, rarity: "especial", requirement: { type: "gacha" } },
-  { slug: "jj-loto-giorno", name: "Loto de Giorno", className: "zf-frame-art", shape: "circle", imageUrl: frameJjMagenta, rarity: "especial", requirement: { type: "gacha" } },
-  { slug: "jj-tumba-esmeralda", name: "Tumba de Esmeralda", className: "zf-frame-art", shape: "circle", imageUrl: frameJjGreen, rarity: "especial", requirement: { type: "gacha" } },
 
-  { slug: "jj-arana-ocupantes", name: "Araña de Ocupantes", className: "zf-frame-art", shape: "circle", imageUrl: frameJjDeepRed, rarity: "mitico", requirement: { type: "gacha" } },
   { slug: "jj-estrella-jojoniana", name: "Estrella Jojoniana", className: "zf-frame-art", shape: "circle", imageUrl: frameJjIndigo, rarity: "mitico", requirement: { type: "gacha" } },
-  { slug: "jj-corona-no-muerto", name: "Corona del Rey No Muerto", className: "zf-frame-art", shape: "circle", imageUrl: frameJjViolet, rarity: "mitico", requirement: { type: "gacha" } },
 
   { slug: "jj-espejo-almas", name: "Espejo de Almas", className: "zf-frame-art", shape: "circle", imageUrl: frameJjMirror, rarity: "raro", requirement: { type: "gacha" } },
-  { slug: "jj-remolino-carmesi", name: "Remolino Carmesí", className: "zf-frame-art", shape: "circle", imageUrl: frameJjCrimsonSwirl, rarity: "raro", requirement: { type: "gacha" } },
-  { slug: "jj-filamento-stand", name: "Filamento Dorado de Stand", className: "zf-frame-art", shape: "circle", imageUrl: frameJjStandThreads, rarity: "raro", requirement: { type: "gacha" } },
 
   { slug: "jj-serafin-sombrio", name: "Alas de Serafín Sombrío", className: "zf-frame-art", shape: "circle", imageUrl: frameJjSeraphim, rarity: "legendario", requirement: { type: "gacha" } },
   { slug: "jj-dragon-abismo", name: "Dragón del Abismo", className: "zf-frame-art", shape: "circle", imageUrl: frameJjSapphireDragon, rarity: "legendario", requirement: { type: "gacha" } },
-
-  { slug: "jj-portal-jojolion", name: "Portal Jojolion", className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameJjPortal, rarity: "z", requirement: { type: "gacha" } },
 ];
 
 export const NAME_EFFECTS: NameEffectDef[] = [
