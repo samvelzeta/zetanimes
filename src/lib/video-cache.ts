@@ -270,7 +270,8 @@ export async function saveCachedVideo(params: {
         .delete()
         .eq("anilist_id", anilist_id)
         .eq("episode", episode)
-        .eq("lang", lang);
+        .eq("lang", lang)
+        .is("sources->seeke", null);
       if (keepId) wipe.neq("id", keepId);
       const { error: wipeErr } = await wipe;
       if (wipeErr) console.warn("[video-cache] wipe duplicates failed:", wipeErr);
@@ -380,6 +381,7 @@ export async function deleteAnimeVideoCache(params: {
   let query = supabase.from("video_cache").delete({ count: "exact" }).select("slug, episode, lang, anilist_id");
   query = params.anilistId ? query.or(`anilist_id.eq.${params.anilistId},slug.eq.${normalizedSlug}`) : query.eq("slug", normalizedSlug);
   query = query.neq("episode", 0);
+  query = query.is("sources->seeke", null);
 
   const { data, error, count } = await query;
   if (error) return { success: false, error: error.message };
@@ -394,6 +396,7 @@ export async function deleteAllVideoCache(): Promise<{ success: boolean; error?:
     .from("video_cache")
     .delete({ count: "exact" })
     .neq("episode", 0)
+    .is("sources->seeke", null)
     .neq("id", "00000000-0000-0000-0000-000000000000")
     .select("slug, episode, lang, anilist_id");
   if (error) return { success: false, error: error.message };

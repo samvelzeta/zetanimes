@@ -394,7 +394,8 @@ export default function VideoManager() {
           .delete()
           .eq("anilist_id", selected.id)
           .eq("lang", lang)
-          .neq("episode", 0);
+          .neq("episode", 0)
+          .is("sources->seeke", null);
         if (wipeError && !String(wipeError.message || "").includes("Protected Seeke")) throw wipeError;
         clearRuntimeVideoCache();
         clearSeekeEpisodeCache();
@@ -463,7 +464,8 @@ export default function VideoManager() {
       .delete()
       .eq("anilist_id", selected.id)
       .eq("lang", lang)
-      .neq("episode", 0);
+      .neq("episode", 0)
+      .is("sources->seeke", null);
     if (wipeError) {
       setAutoLog((prev) => [`Aviso: no se pudieron limpiar episodios resueltos: ${wipeError.message}`, ...prev].slice(0, 12));
     }

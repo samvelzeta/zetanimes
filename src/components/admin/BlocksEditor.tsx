@@ -134,7 +134,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
       setSaving(false);
       return false;
     }
-    await supabase.from("video_cache").delete().eq("anilist_id", anilistId).eq("lang", lang).neq("episode", 0);
+    await supabase.from("video_cache").delete().eq("anilist_id", anilistId).eq("lang", lang).neq("episode", 0).is("sources->seeke", null);
     clearRuntimeVideoCache();
     clearSeekeEpisodeCache();
     invalidateBlocksCache(anilistId, lang);
