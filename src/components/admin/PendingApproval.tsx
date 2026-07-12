@@ -162,6 +162,8 @@ export default function PendingApproval() {
     // Fuentes "core" — siempre se incluyen (RELEASING + películas próximas/recientes)
     for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming]) {
       for (const m of (p?.media || []) as AiringItem[]) {
+        // Si ya tiene enlace madre Seeke o bloques → aprobado permanente, no volver a pedirlo
+        if (seekeMasterSet?.has(m.id)) continue;
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
