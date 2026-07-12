@@ -300,6 +300,8 @@ export default function PendingApproval() {
               airing_status: item.status || null,
               updated_at: new Date().toISOString(),
             } as any, { onConflict: "anilist_id" });
+            // Si estaba oculto del Home, lo desocultamos automáticamente al aprobar
+            try { await unhideAnime(item.id); } catch {}
             await logAdminActivity({
               area: "videos",
               action: "auto_approve_anime",
@@ -317,9 +319,9 @@ export default function PendingApproval() {
     })();
   }, [airingItems, seekeMasterSet, prequelMap, approvedSet]);
 
-  const filtered = useMemo(() => {
+  const filteredGroups = useMemo(() => {
     const q = normalizeSearchText(query);
-    return all.filter((a) => {
+    const matches = (a: AiringItem) => {
       const isApproved = approvedSet.has(a.id);
       const isHidden = hiddenSet.has(a.id);
       if (showHidden) {
@@ -330,15 +332,33 @@ export default function PendingApproval() {
       }
       if (!q) return true;
       return fuzzyTextScore(q, [titleOf(a), a.title?.romaji, a.title?.english, String(a.id)]) >= 1.1;
-    });
-  }, [all, query, approvedSet, showApproved, showHidden, hiddenSet]);
+    };
+
+    const out: PendingGroup[] = [];
+    for (const g of groups) {
+      const mainOk = matches(g.main);
+      const relatedOk = g.related.filter(matches);
+      if (mainOk || relatedOk.length > 0) {
+        out.push({ main: g.main, related: mainOk ? g.related.filter(matches) : relatedOk });
+      }
+    }
+    return out;
+  }, [groups, query, approvedSet, showApproved, showHidden, hiddenSet]);
 
   useEffect(() => onApprovedChange(() => { refetchApproved(); refetchSeeke(); }), [refetchApproved, refetchSeeke]);
 
   const loading = l1 || l2 || l3 || lm || lm2 || lm3;
 
-  const pendingCount = all.filter((a) => !approvedSet.has(a.id) && !hiddenSet.has(a.id)).length;
-  const approvedCount = all.filter((a) => approvedSet.has(a.id) && !hiddenSet.has(a.id)).length;
+  const allItems = useMemo(() => {
+    const ids = new Set<number>();
+    for (const g of groups) {
+      ids.add(g.main.id);
+      g.related.forEach((r) => ids.add(r.id));
+    }
+    return Array.from(ids);
+  }, [groups]);
+  const pendingCount = allItems.filter((id) => !approvedSet.has(id) && !hiddenSet.has(id)).length;
+  const approvedCount = allItems.filter((id) => approvedSet.has(id) && !hiddenSet.has(id)).length;
   const hiddenCount = hiddenSet.size;
 
   return (
