@@ -163,21 +163,21 @@ async function trackOne(supabase: SupaClient, anilistId: number, clientStatus: s
   const now = new Date().toISOString();
   if (!prev) {
     await supabase.from("auto_latest_episodes").insert({
-      anilist_id: anilistId, title, cover, banner: null,
+      anilist_id: anilistId, title, cover, banner,
       latest_episode: latest, previous_episode: 0,
       anilist_status: "RELEASING",
       episode_updated_at: now, last_checked_at: now,
     });
   } else if (latest > ((prev as any).latest_episode || 0)) {
     await supabase.from("auto_latest_episodes").update({
-      title, cover, latest_episode: latest,
+      title, cover, banner, latest_episode: latest,
       previous_episode: (prev as any).latest_episode || 0,
       anilist_status: "RELEASING",
       episode_updated_at: now, last_checked_at: now,
     }).eq("anilist_id", anilistId);
   } else {
     await supabase.from("auto_latest_episodes").update({
-      title, cover, anilist_status: "RELEASING", last_checked_at: now,
+      title, cover, banner, anilist_status: "RELEASING", last_checked_at: now,
     }).eq("anilist_id", anilistId);
   }
   return { message: "ok", anilist_id: anilistId, latest_episode: latest };
