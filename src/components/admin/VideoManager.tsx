@@ -395,7 +395,7 @@ export default function VideoManager() {
           .eq("anilist_id", selected.id)
           .eq("lang", lang)
           .neq("episode", 0);
-        if (wipeError) throw wipeError;
+        if (wipeError && !String(wipeError.message || "").includes("Protected Seeke")) throw wipeError;
         clearRuntimeVideoCache();
         clearSeekeEpisodeCache();
         clearProgress();
