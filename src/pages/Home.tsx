@@ -57,6 +57,13 @@ export default function Home() {
     setSplashDone(true);
   };
 
+  // Dispara el scan de últimos episodios 1 vez por sesión (respeta throttle 3d en servidor)
+  useEffect(() => {
+    if (sessionStorage.getItem("zet_latest_scan_done")) return;
+    sessionStorage.setItem("zet_latest_scan_done", "1");
+    supabase.functions.invoke("sync-auto-episodes", { body: { scan: true, limit: 20 } }).catch(() => {});
+  }, []);
+
   // Cargar IDs ocultos para filtrar listas
   const { data: hiddenIds } = useQuery({
     queryKey: ["hidden-anime-ids"],
