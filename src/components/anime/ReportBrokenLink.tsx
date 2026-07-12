@@ -34,71 +34,23 @@ export default function ReportBrokenLink({ slug, episodeNumber, animeTitle, anim
       const reporterPlan = permissions.slug === "free" ? null : permissions.slug;
       const reporterPriority = planPriority(reporterPlan);
       const reporterLabel = reporterPlan ? planLabel(reporterPlan) : null;
-      let reportId: string | null = null;
 
-      // Look up existing aggregated report.
-      let q = supabase
-        .from("broken_link_reports")
-        .select("id, report_count, priority_score")
-        .eq("slug", slug)
-        .eq("report_type", type);
-      q = epNum === null ? q.is("episode_number", null) : q.eq("episode_number", epNum);
-      const { data: existing, error: lookupErr } = await q.maybeSingle();
-      if (lookupErr) {
-        console.error("[report] lookup error", lookupErr);
-        throw lookupErr;
-      }
-
-      if (existing) {
-        const { data: already } = await supabase
-          .from("broken_link_reporters")
-          .select("id")
-          .eq("report_id", existing.id)
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (!already) {
-          const { error: updErr } = await supabase.from("broken_link_reports")
-            .update({
-              report_count: existing.report_count + 1,
-              last_reported_at: new Date().toISOString(),
-              reason: reasonText,
-              status: "pending",
-              priority_score: Math.max((existing as any).priority_score || 0, reporterPriority),
-              highest_plan_slug: reporterPriority >= ((existing as any).priority_score || 0) ? reporterPlan : undefined,
-              highest_priority_label: reporterPriority >= ((existing as any).priority_score || 0) ? reporterLabel : undefined,
-            } as any)
-            .eq("id", existing.id);
-          if (updErr) { console.error("[report] update error", updErr); throw updErr; }
-        }
-        reportId = existing.id;
-      } else {
-        const { data: inserted, error: insErr } = await supabase
-          .from("broken_link_reports")
-          .insert({
-            slug, episode_number: epNum, report_type: type,
-            anime_title: animeTitle, anime_cover: animeCover, anilist_id: anilistId,
-            reason: reasonText,
-            highest_plan_slug: reporterPlan,
-            highest_priority_label: reporterLabel,
-            priority_score: reporterPriority,
-          } as any)
-          .select("id")
-          .single();
-        if (insErr) { console.error("[report] insert error", insErr); throw insErr; }
-        reportId = (inserted as any)?.id || null;
-      }
-
-      if (reportId) {
-        const { error: repErr } = await supabase.from("broken_link_reporters")
-          .insert({ report_id: reportId, user_id: user.id, plan_slug: reporterPlan, priority_label: reporterLabel, priority_score: reporterPriority } as any);
-        if (repErr && repErr.code !== "23505") {
-          // 23505 = unique violation (ya reportó): no es error real
-          console.error("[report] reporter insert error", repErr);
-        }
-      } else {
-        throw new Error("No se obtuvo ID de reporte");
-      }
+      // Uso de RPC SECURITY DEFINER: crea/actualiza el reporte y registra al reporter
+      // sin exponer lecturas de reportes ajenos a los usuarios comunes.
+      const { data: reportId, error: rpcErr } = await (supabase as any).rpc("submit_broken_link_report", {
+        _slug: slug,
+        _episode_number: epNum,
+        _report_type: type,
+        _anime_title: animeTitle,
+        _anime_cover: animeCover,
+        _anilist_id: anilistId,
+        _reason: reasonText,
+        _plan_slug: reporterPlan,
+        _priority_label: reporterLabel,
+        _priority_score: reporterPriority,
+      });
+      if (rpcErr) { console.error("[report] rpc error", rpcErr); throw rpcErr; }
+      if (!reportId) throw new Error("No se obtuvo ID de reporte");
 
       toast.success("Reporte enviado. Te avisaremos cuando lo solucionemos.");
       setOpen(false);

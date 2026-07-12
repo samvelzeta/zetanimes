@@ -1772,6 +1772,21 @@ export type Database = {
         }
         Returns: Json
       }
+      submit_broken_link_report: {
+        Args: {
+          _anilist_id: number
+          _anime_cover: string
+          _anime_title: string
+          _episode_number: number
+          _plan_slug: string
+          _priority_label: string
+          _priority_score: number
+          _reason: string
+          _report_type: string
+          _slug: string
+        }
+        Returns: string
+      }
       tick_mission: {
         Args: { _delta?: number; _slug: string; _user_id: string }
         Returns: undefined
