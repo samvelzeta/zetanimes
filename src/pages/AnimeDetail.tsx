@@ -74,6 +74,19 @@ export default function AnimeDetail() {
     retry: 2,
   });
 
+  // Dispara el tracker de "Últimos Episodios" (throttle de 3 días en servidor).
+  // - RELEASING → si tiene enlace madre Seeke, la Edge Function consulta la VPS
+  //   como mucho una vez cada 3 días por anime.
+  // - FINISHED / CANCELLED → borra la fila del tracker (sin tocar enlaces madre).
+  useEffect(() => {
+    if (!animeId || !anime?.status) return;
+    const status = anime.status;
+    if (status !== "RELEASING" && status !== "FINISHED" && status !== "CANCELLED") return;
+    supabase.functions
+      .invoke("sync-auto-episodes", { body: { anilist_id: animeId, status } })
+      .catch(() => {});
+  }, [animeId, anime?.status]);
+
   // Set de IDs con enlace madre Seeke — filtra side stories (solo se muestran si tienen Seeke).
   const { data: seekeMasterSet } = useQuery({
     queryKey: ["detail-seeke-master-ids"],
