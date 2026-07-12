@@ -34,3 +34,31 @@ export const compressAvatar = (f: File) =>
 
 export const compressProof = (f: File) =>
   compressToWebp(f, { maxWidthOrHeight: 800, quality: 0.7, maxSizeMB: 0.4 });
+
+/**
+ * Banners de perfil: se muestran a ~1200x400. Los reducimos a 1200px WebP.
+ */
+export const compressBanner = (f: File) =>
+  compressToWebp(f, { maxWidthOrHeight: 1200, quality: 0.72, maxSizeMB: 0.25 });
+
+/**
+ * Marcos (PNG con transparencia). Mantiene PNG para conservar alpha,
+ * limita a 512x512 y comprime hasta ~0.15 MB.
+ */
+export async function compressFramePng(file: File): Promise<File> {
+  try {
+    const imageCompression = (await import("browser-image-compression")).default;
+    const compressed = await imageCompression(file, {
+      maxWidthOrHeight: 512,
+      maxSizeMB: 0.15,
+      initialQuality: 0.85,
+      fileType: "image/png",
+      useWebWorker: true,
+    });
+    const newName = file.name.replace(/\.[^.]+$/, "") + ".png";
+    return new File([compressed], newName, { type: "image/png" });
+  } catch (err) {
+    console.error("[compress-frame] fallo, devuelvo original", err);
+    return file;
+  }
+}
