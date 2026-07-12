@@ -243,8 +243,41 @@ serve(async (req) => {
         return (now - t.last) >= THROTTLE_MS;
       }).slice(0, scanLimit);
 
+      // Verificar estado real en AniList (lotes de 50)
+      const statusMap = new Map<number, string>();
+      for (let i = 0; i < pending.length; i += 50) {
+        const batch = pending.slice(i, i + 50);
+        try {
+          const q = `query($ids:[Int]){Page(perPage:50){media(id_in:$ids,type:ANIME){id status}}}`;
+          const r = await fetch("https://graphql.anilist.co", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ query: q, variables: { ids: batch } }),
+          });
+          if (r.ok) {
+            const j = await r.json();
+            (j?.data?.Page?.media || []).forEach((m: any) => {
+              statusMap.set(Number(m.id), String(m.status || ""));
+            });
+          }
+        } catch { /* ignore */ }
+      }
+
       const results: any[] = [];
+      let cleaned = 0;
       for (const id of pending) {
+        const realStatus = statusMap.get(id) || "";
+        if (realStatus === "FINISHED" || realStatus === "CANCELLED") {
+          const { data: del } = await supabase
+            .from("auto_latest_episodes").delete().eq("anilist_id", id).select("anilist_id");
+          if (del && del.length) cleaned++;
+          results.push({ anilist_id: id, message: "skipped_" + realStatus.toLowerCase() });
+          continue;
+        }
+        if (realStatus && realStatus !== "RELEASING") {
+          results.push({ anilist_id: id, message: "skipped_" + realStatus.toLowerCase() });
+          continue;
+        }
         try {
           const r = await trackOne(supabase, id, "RELEASING");
           results.push(r);
@@ -253,11 +286,39 @@ serve(async (req) => {
         }
       }
 
+      // Cleanup: elimina cualquier fila cuyo estado real ya no sea RELEASING
+      const { data: allTracked } = await supabase
+        .from("auto_latest_episodes").select("anilist_id");
+      const trackedIds = (allTracked || []).map((t: any) => Number(t.anilist_id));
+      const notReleasing: number[] = [];
+      for (let i = 0; i < trackedIds.length; i += 50) {
+        const batch = trackedIds.slice(i, i + 50);
+        try {
+          const q = `query($ids:[Int]){Page(perPage:50){media(id_in:$ids,type:ANIME){id status}}}`;
+          const r = await fetch("https://graphql.anilist.co", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: q, variables: { ids: batch } }),
+          });
+          if (r.ok) {
+            const j = await r.json();
+            (j?.data?.Page?.media || []).forEach((m: any) => {
+              if (String(m.status) !== "RELEASING") notReleasing.push(Number(m.id));
+            });
+          }
+        } catch { /* ignore */ }
+      }
+      if (notReleasing.length) {
+        const { data: del } = await supabase
+          .from("auto_latest_episodes").delete().in("anilist_id", notReleasing).select("anilist_id");
+        cleaned += del?.length || 0;
+      }
+
       return new Response(JSON.stringify({
         message: "scan_done",
         total_candidates: allIds.length,
         pending: pending.length,
         processed: results.length,
+        cleaned,
         results,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
