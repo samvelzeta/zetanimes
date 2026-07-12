@@ -338,6 +338,8 @@ export default function PendingApproval() {
 
     const out: PendingGroup[] = [];
     for (const g of groups) {
+      // Si el padre está oculto, todo el grupo desaparece (aunque tenga hijas)
+      if (!showHidden && hiddenSet.has(g.main.id)) continue;
       const mainOk = matches(g.main);
       const relatedOk = g.related.filter(matches);
       if (mainOk || relatedOk.length > 0) {
@@ -346,6 +348,7 @@ export default function PendingApproval() {
     }
     return out;
   }, [groups, query, approvedSet, showApproved, showHidden, hiddenSet]);
+
 
   useEffect(() => onApprovedChange(() => { refetchApproved(); refetchSeeke(); }), [refetchApproved, refetchSeeke]);
 
@@ -437,8 +440,10 @@ export default function PendingApproval() {
                 approved={approvedSet.has(g.main.id)}
                 hasVideo={withVideo?.has(g.main.id) ?? false}
                 hidden={hiddenSet.has(g.main.id)}
+                cascadeIds={g.related.map((r) => r.id)}
                 onChanged={onChanged}
               />
+
               {g.related.length > 0 && (
                 <RelatedGroup
                   parentTitle={titleOf(g.main)}
@@ -506,14 +511,17 @@ function PendingCard({
   approved,
   hasVideo,
   hidden,
+  cascadeIds = [],
   onChanged,
 }: {
   anime: AiringItem;
   approved: boolean;
   hasVideo: boolean;
   hidden: boolean;
+  cascadeIds?: number[];
   onChanged: () => void;
 }) {
+
   const navigate = useNavigate();
   const [lang, setLang] = useState<"sub" | "latino">("sub");
   const [seekeUrl, setSeekeUrl] = useState("");
@@ -651,44 +659,58 @@ function PendingCard({
       {/* Único botón: ocultar 7 días y eliminar del tracker */}
       <button
         onClick={async () => {
-          if (!confirm(`¿Ocultar "${title}" de la bandeja durante 7 días? También se eliminará del tracker de descargas.`)) return;
+          const cascade = cascadeIds.length;
+          const msg = cascade > 0
+            ? `¿Ocultar "${title}" y sus ${cascade} temporada${cascade > 1 ? "s" : ""} relacionada${cascade > 1 ? "s" : ""} durante 7 días? También se eliminarán del tracker de descargas.`
+            : `¿Ocultar "${title}" de la bandeja durante 7 días? También se eliminará del tracker de descargas.`;
+          if (!confirm(msg)) return;
           setBusy(true);
           try {
-            await hidePendingAnime(anime.id, `oculto desde bandeja`);
-            // Eliminar del tracker de descargas (y episodios asociados)
-            try {
-              const { data: trackerRow } = await supabase
-                .from("anime_download_tracker")
-                .select("id")
-                .eq("anilist_id", anime.id)
-                .maybeSingle();
-              if (trackerRow?.id) {
-                await supabase.rpc("delete_download_tracker", { _tracker_id: trackerRow.id });
+            const allIds = [anime.id, ...cascadeIds];
+            for (const id of allIds) {
+              try {
+                await hidePendingAnime(id, `oculto desde bandeja${id !== anime.id ? " (cascada)" : ""}`);
+              } catch (err) {
+                console.warn("[hide] failed", id, err);
               }
-            } catch (err) {
-              console.warn("[hide] tracker delete failed", err);
+              try {
+                const { data: trackerRow } = await supabase
+                  .from("anime_download_tracker")
+                  .select("id")
+                  .eq("anilist_id", id)
+                  .maybeSingle();
+                if (trackerRow?.id) {
+                  await supabase.rpc("delete_download_tracker", { _tracker_id: trackerRow.id });
+                }
+              } catch (err) {
+                console.warn("[hide] tracker delete failed", id, err);
+              }
             }
             await logAdminActivity({
               area: "videos",
               action: "hide_pending_anime",
-              summary: `Ocultado 7 días + removido del tracker: ${title}`,
+              summary: cascade > 0
+                ? `Ocultado 7 días + ${cascade} relacionadas + removidos del tracker: ${title}`
+                : `Ocultado 7 días + removido del tracker: ${title}`,
               target_type: "anime",
               target_id: String(anime.id),
               anilist_id: anime.id,
               anime_title: title,
+              metadata: { cascade_ids: cascadeIds },
             });
-            toast.success("Oculto 7 días y removido del tracker");
+            toast.success(cascade > 0 ? `Oculto ${allIds.length} animes y tracker limpio` : "Oculto 7 días y removido del tracker");
             onChanged();
           } catch (e: any) {
             toast.error(e?.message || "Error al ocultar");
           } finally { setBusy(false); }
         }}
         disabled={busy}
-        title="Ocultar 7 días y eliminar del tracker"
+        title={cascadeIds.length > 0 ? `Ocultar 7 días (padre + ${cascadeIds.length} hijas) y eliminar del tracker` : "Ocultar 7 días y eliminar del tracker"}
         className="absolute top-1.5 right-1.5 z-10 h-7 w-7 rounded-full bg-background/80 backdrop-blur border border-border text-foreground flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50 shadow-md"
       >
         <X className="w-3.5 h-3.5" />
       </button>
+
       <div className="w-24 h-36 shrink-0 bg-secondary">
         {cover && <LazyImage src={cover} alt={title} className="w-full h-full object-cover" />}
       </div>
