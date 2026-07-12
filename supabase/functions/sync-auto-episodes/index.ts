@@ -189,12 +189,15 @@ serve(async (req) => {
 
     // -------- Modo SCAN --------
     if (scan) {
-      // Todos los anilist_id con seeke_base_url
-      const { data: blocks } = await supabase
-        .from("video_cache_blocks")
-        .select("anilist_id")
-        .not("seeke_base_url", "is", null);
-      const allIds = Array.from(new Set((blocks || []).map((b: any) => Number(b.anilist_id)).filter(Boolean)));
+      // Todos los anilist_id con enlace Seeke — bloques Y video_cache madre (episode=0)
+      const [{ data: blocks }, { data: masters }] = await Promise.all([
+        supabase.from("video_cache_blocks").select("anilist_id").not("seeke_base_url", "is", null),
+        supabase.from("video_cache").select("anilist_id").eq("episode", 0).not("sources->seeke", "is", null),
+      ]);
+      const allIds = Array.from(new Set([
+        ...((blocks || []).map((b: any) => Number(b.anilist_id))),
+        ...((masters || []).map((m: any) => Number(m.anilist_id))),
+      ].filter(Boolean)));
 
       // Estados actuales trackeados
       const { data: tracked } = await supabase
