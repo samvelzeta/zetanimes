@@ -5,13 +5,13 @@ import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovi
 import { getApprovedAnimeIds, approveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch, EyeOff, Eye, ChevronDown, Film, Tv } from "lucide-react";
+import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch, ChevronDown, Film, Tv } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
 import { getPrequelChain, getSideStories, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
-import { listHiddenPending, hidePendingAnime, unhidePendingAnime } from "@/lib/hidden-pending-animes";
+import { hidePendingAnime, listHiddenPending } from "@/lib/hidden-pending-animes";
 import { unhideAnime } from "@/lib/hidden-animes";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 import { getStatusLabel } from "@/lib/anilist";
@@ -381,29 +381,20 @@ export default function PendingApproval() {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => { setShowApproved(false); setShowHidden(false); }}
+            onClick={() => { setShowApproved(false); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              !showApproved && !showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              !showApproved ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             Pendientes ({pendingCount})
           </button>
           <button
-            onClick={() => { setShowApproved(true); setShowHidden(false); }}
+            onClick={() => { setShowApproved(true); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              showApproved && !showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              showApproved ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             Aprobados ({approvedCount})
-          </button>
-          <button
-            onClick={() => { setShowHidden(true); setShowApproved(false); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
-              showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-            title="Animes ocultados temporalmente por 7 días"
-          >
-            <EyeOff className="w-3 h-3" /> Ocultos ({hiddenCount})
           </button>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -657,54 +648,47 @@ function PendingCard({
 
   return (
     <div className="relative rounded-2xl border border-border bg-card overflow-hidden flex">
-      {/* Botón ocultar/mostrar en la esquina superior derecha */}
-      {hidden ? (
-        <button
-          onClick={async () => {
-            setBusy(true);
+      {/* Único botón: ocultar 7 días y eliminar del tracker */}
+      <button
+        onClick={async () => {
+          if (!confirm(`¿Ocultar "${title}" de la bandeja durante 7 días? También se eliminará del tracker de descargas.`)) return;
+          setBusy(true);
+          try {
+            await hidePendingAnime(anime.id, `oculto desde bandeja`);
+            // Eliminar del tracker de descargas (y episodios asociados)
             try {
-              await unhidePendingAnime(anime.id);
-              toast.success("Vuelve a la bandeja");
-              onChanged();
-            } catch (e: any) {
-              toast.error(e?.message || "Error");
-            } finally { setBusy(false); }
-          }}
-          disabled={busy}
-          title="Volver a mostrar en la bandeja"
-          className="absolute top-1.5 right-1.5 z-10 h-7 w-7 rounded-full bg-background/80 backdrop-blur border border-border text-foreground flex items-center justify-center hover:bg-primary hover:text-primary-foreground disabled:opacity-50 shadow-md"
-        >
-          <Eye className="w-3.5 h-3.5" />
-        </button>
-      ) : (
-        <button
-          onClick={async () => {
-            if (!confirm(`¿Ocultar "${title}" de la bandeja durante 7 días?`)) return;
-            setBusy(true);
-            try {
-              await hidePendingAnime(anime.id, `oculto desde bandeja`);
-              await logAdminActivity({
-                area: "videos",
-                action: "hide_pending_anime",
-                summary: `Ocultado 7 días: ${title}`,
-                target_type: "anime",
-                target_id: String(anime.id),
-                anilist_id: anime.id,
-                anime_title: title,
-              });
-              toast.success("Oculto por 7 días");
-              onChanged();
-            } catch (e: any) {
-              toast.error(e?.message || "Error al ocultar");
-            } finally { setBusy(false); }
-          }}
-          disabled={busy}
-          title="Ocultar temporalmente (7 días)"
-          className="absolute top-1.5 right-1.5 z-10 h-7 w-7 rounded-full bg-background/80 backdrop-blur border border-border text-foreground flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50 shadow-md"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      )}
+              const { data: trackerRow } = await supabase
+                .from("anime_download_tracker")
+                .select("id")
+                .eq("anilist_id", anime.id)
+                .maybeSingle();
+              if (trackerRow?.id) {
+                await supabase.rpc("delete_download_tracker", { _tracker_id: trackerRow.id });
+              }
+            } catch (err) {
+              console.warn("[hide] tracker delete failed", err);
+            }
+            await logAdminActivity({
+              area: "videos",
+              action: "hide_pending_anime",
+              summary: `Ocultado 7 días + removido del tracker: ${title}`,
+              target_type: "anime",
+              target_id: String(anime.id),
+              anilist_id: anime.id,
+              anime_title: title,
+            });
+            toast.success("Oculto 7 días y removido del tracker");
+            onChanged();
+          } catch (e: any) {
+            toast.error(e?.message || "Error al ocultar");
+          } finally { setBusy(false); }
+        }}
+        disabled={busy}
+        title="Ocultar 7 días y eliminar del tracker"
+        className="absolute top-1.5 right-1.5 z-10 h-7 w-7 rounded-full bg-background/80 backdrop-blur border border-border text-foreground flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50 shadow-md"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
       <div className="w-24 h-36 shrink-0 bg-secondary">
         {cover && <LazyImage src={cover} alt={title} className="w-full h-full object-cover" />}
       </div>
