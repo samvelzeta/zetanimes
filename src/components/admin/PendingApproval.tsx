@@ -381,29 +381,20 @@ export default function PendingApproval() {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => { setShowApproved(false); setShowHidden(false); }}
+            onClick={() => { setShowApproved(false); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              !showApproved && !showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              !showApproved ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             Pendientes ({pendingCount})
           </button>
           <button
-            onClick={() => { setShowApproved(true); setShowHidden(false); }}
+            onClick={() => { setShowApproved(true); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              showApproved && !showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              showApproved ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             Aprobados ({approvedCount})
-          </button>
-          <button
-            onClick={() => { setShowHidden(true); setShowApproved(false); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
-              showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-            title="Animes ocultados temporalmente por 7 días"
-          >
-            <EyeOff className="w-3 h-3" /> Ocultos ({hiddenCount})
           </button>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
