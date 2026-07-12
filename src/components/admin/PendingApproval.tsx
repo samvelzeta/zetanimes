@@ -338,6 +338,8 @@ export default function PendingApproval() {
 
     const out: PendingGroup[] = [];
     for (const g of groups) {
+      // Si el padre está oculto, todo el grupo desaparece (aunque tenga hijas)
+      if (!showHidden && hiddenSet.has(g.main.id)) continue;
       const mainOk = matches(g.main);
       const relatedOk = g.related.filter(matches);
       if (mainOk || relatedOk.length > 0) {
@@ -346,6 +348,7 @@ export default function PendingApproval() {
     }
     return out;
   }, [groups, query, approvedSet, showApproved, showHidden, hiddenSet]);
+
 
   useEffect(() => onApprovedChange(() => { refetchApproved(); refetchSeeke(); }), [refetchApproved, refetchSeeke]);
 
