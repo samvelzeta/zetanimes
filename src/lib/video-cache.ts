@@ -393,6 +393,7 @@ export async function deleteAllVideoCache(): Promise<{ success: boolean; error?:
   const { data, error, count } = await supabase
     .from("video_cache")
     .delete({ count: "exact" })
+    .neq("episode", 0)
     .neq("id", "00000000-0000-0000-0000-000000000000")
     .select("slug, episode, lang, anilist_id");
   if (error) return { success: false, error: error.message };
