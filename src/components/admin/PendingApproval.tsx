@@ -511,14 +511,17 @@ function PendingCard({
   approved,
   hasVideo,
   hidden,
+  cascadeIds = [],
   onChanged,
 }: {
   anime: AiringItem;
   approved: boolean;
   hasVideo: boolean;
   hidden: boolean;
+  cascadeIds?: number[];
   onChanged: () => void;
 }) {
+
   const navigate = useNavigate();
   const [lang, setLang] = useState<"sub" | "latino">("sub");
   const [seekeUrl, setSeekeUrl] = useState("");
