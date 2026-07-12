@@ -93,9 +93,13 @@ export function useUserCosmetics() {
       const next = { ...cosmetics, ...patch };
       setCosmetics(next);
       CACHE.set(user.id, next);
-      const { error } = await supabase
-        .from("user_cosmetics" as any)
-        .upsert({ user_id: user.id, ...next }, { onConflict: "user_id" });
+      const { error } = await supabase.rpc("equip_cosmetics" as any, {
+        _avatar_frame: next.avatar_frame,
+        _name_effect: next.name_effect,
+        _cursor_theme: next.cursor_theme,
+        _banner_preset: next.banner_preset,
+        _banner_url: next.banner_url,
+      });
       if (error) throw error;
     },
     [user, cosmetics]
