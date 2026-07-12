@@ -218,44 +218,59 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 30,
   });
 
-  // Inyecta las precuelas SIN enlace madre Seeke como items adicionales de pendientes.
-  // Y también las side stories (solo si el padre está en emisión y siguen RELEASING).
-  const all = useMemo<AiringItem[]>(() => {
-    if (!prequelMap || !seekeMasterSet) return airingItems;
-    const merged = new Map<number, AiringItem>();
-    airingItems.forEach((a) => merged.set(a.id, a));
-    for (const [, chain] of prequelMap) {
+  // Agrupa precuelas y side stories SIN enlace madre Seeke bajo su anime padre.
+  // Así el admin ve cada grupo separado en un desplegable en vez de mezclarse.
+  const groups = useMemo<PendingGroup[]>(() => {
+    if (!prequelMap || !seekeMasterSet) return airingItems.map((m) => ({ main: m, related: [] }));
+
+    // Todo item que aparece como "related" no debe volverse main independiente
+    const claimedAsRelated = new Set<number>();
+    const mainIds = new Set<number>(airingItems.map((a) => a.id));
+
+    const buildRelated = (parentId: number): AiringItem[] => {
+      const list: AiringItem[] = [];
+      const seen = new Set<number>();
+      const chain = prequelMap.get(parentId) || [];
       for (const p of chain) {
-        if (seekeMasterSet.has(p.id)) continue;
-        if (merged.has(p.id)) continue;
-        merged.set(p.id, {
+        if (seekeMasterSet.has(p.id) || seen.has(p.id) || mainIds.has(p.id) && p.id !== parentId) continue;
+        if (p.id === parentId) continue;
+        seen.add(p.id);
+        claimedAsRelated.add(p.id);
+        list.push({
           id: p.id,
           title: { english: p.title, romaji: p.title },
           coverImage: { large: p.cover, extraLarge: p.cover },
           status: p.status || "FINISHED",
           episodes: p.episodes ?? null,
           averageScore: null,
+          format: p.format ?? null,
         });
       }
-    }
-    if (sideMap) {
-      for (const [, sides] of sideMap) {
-        for (const s of sides) {
-          if (seekeMasterSet.has(s.id)) continue;
-          if (merged.has(s.id)) continue;
-          if (s.status !== "RELEASING") continue; // solo emisión
-          merged.set(s.id, {
-            id: s.id,
-            title: { english: s.title, romaji: s.title },
-            coverImage: { large: s.cover, extraLarge: s.cover },
-            status: s.status,
-            episodes: s.episodes ?? null,
-            averageScore: null,
-          });
-        }
+      const sides = sideMap?.get(parentId) || [];
+      for (const s of sides) {
+        if (seekeMasterSet.has(s.id) || seen.has(s.id) || mainIds.has(s.id)) continue;
+        if (s.status !== "RELEASING") continue;
+        seen.add(s.id);
+        claimedAsRelated.add(s.id);
+        list.push({
+          id: s.id,
+          title: { english: s.title, romaji: s.title },
+          coverImage: { large: s.cover, extraLarge: s.cover },
+          status: s.status,
+          episodes: s.episodes ?? null,
+          averageScore: null,
+          format: s.format ?? null,
+        });
       }
+      return list;
+    };
+
+    const result: PendingGroup[] = [];
+    for (const main of airingItems) {
+      result.push({ main, related: buildRelated(main.id) });
     }
-    return Array.from(merged.values());
+    // Filtra grupos cuyo main haya sido reclamado como related de otro (no debería pasar, pero por seguridad)
+    return result.filter((g) => !claimedAsRelated.has(g.main.id));
   }, [airingItems, prequelMap, sideMap, seekeMasterSet]);
 
   // Auto-aprobar: si el item TIENE enlace madre Seeke y TODAS sus precuelas
