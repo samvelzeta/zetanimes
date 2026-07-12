@@ -1696,6 +1696,30 @@ export type Database = {
         Returns: undefined
       }
       end_stream: { Args: { _session_id: string }; Returns: undefined }
+      equip_cosmetics: {
+        Args: {
+          _avatar_frame: string
+          _banner_preset: string
+          _banner_url: string
+          _cursor_theme: string
+          _name_effect: string
+        }
+        Returns: {
+          avatar_frame: string
+          banner_preset: string
+          banner_url: string | null
+          cursor_theme: string
+          name_effect: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_cosmetics"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       gacha_pull: { Args: { _pool: string }; Returns: Json }
       get_anime_like_count: { Args: { _anilist_id: number }; Returns: number }
       get_leaderboard: {
@@ -1788,6 +1812,10 @@ export type Database = {
       }
       unlock_achievement: {
         Args: { _slug: string; _user_id: string }
+        Returns: boolean
+      }
+      user_owns_cosmetic: {
+        Args: { _pool: string; _slug: string; _user_id: string }
         Returns: boolean
       }
     }
