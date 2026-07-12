@@ -162,23 +162,25 @@ export default function PendingApproval() {
     // Fuentes "core" — siempre se incluyen (RELEASING + películas próximas/recientes)
     for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming]) {
       for (const m of (p?.media || []) as AiringItem[]) {
-        // Si ya tiene enlace madre Seeke o bloques → aprobado permanente, no volver a pedirlo
+        // Si ya tiene enlace madre Seeke o bloques, o ya está aprobado → no volver a pedirlo
         if (seekeMasterSet?.has(m.id)) continue;
+        if (approvedSet.has(m.id)) continue;
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
     // Fuentes del Home — sólo entran si ya cambiaron de estado y aún no tienen
-    // enlace madre Seeke. Descartamos NOT_YET_RELEASED / CANCELLED (ocultos hasta salir).
+    // enlace madre Seeke ni aprobación previa. Descartamos NOT_YET_RELEASED / CANCELLED.
     for (const p of [homeTrending, homePopular, homeTop, homeSeason]) {
       for (const m of (p?.media || []) as AiringItem[]) {
         if (map.has(m.id)) continue;
         if (m.status === "NOT_YET_RELEASED" || m.status === "CANCELLED") continue;
-        if (seekeMasterSet?.has(m.id)) continue; // ya tiene enlace madre → nada que aprobar aquí
+        if (seekeMasterSet?.has(m.id)) continue;
+        if (approvedSet.has(m.id)) continue; // ya aprobado → no reaparece en pendientes
         map.set(m.id, m);
       }
     }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet]);
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet, approvedSet]);
 
   // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
   const { data: prequelMap } = useQuery({
