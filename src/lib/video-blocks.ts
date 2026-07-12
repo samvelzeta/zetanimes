@@ -96,14 +96,7 @@ export async function saveBlocks(
 ): Promise<{ success: boolean; error?: string }> {
   // Validar
   if (!blocks.length) {
-    // Borrar todos
-    const { error } = await supabase
-      .from("video_cache_blocks" as any)
-      .delete()
-      .eq("anilist_id", anilistId)
-      .eq("lang", lang);
-    invalidateBlocksCache(anilistId, lang);
-    return error ? { success: false, error: error.message } : { success: true };
+    return { success: false, error: "Los enlaces madre por bloques están protegidos y no se pueden borrar en vacío." };
   }
 
   // Ordenar y validar solapamientos

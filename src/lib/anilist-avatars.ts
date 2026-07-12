@@ -1,6 +1,7 @@
 // Galería de avatares: trae personajes populares de AniList.
 // Solo guardamos la URL (string), no la imagen.
 import { idbGet, idbSet } from "@/lib/idb-cache";
+import { buildLooseSearchVariants, fuzzyTextScore } from "@/lib/search-utils";
 
 const ANILIST_URL = "https://graphql.anilist.co";
 const TTL = 24 * 60 * 60 * 1000; // 24h
@@ -57,7 +58,8 @@ export async function fetchAvatarOptions(page = 1, perPage = 30): Promise<Avatar
 export async function searchAvatars(term: string): Promise<AvatarOption[]> {
   if (!term.trim()) return [];
   try {
-    const res = await fetch(ANILIST_URL, {
+    const variants = buildLooseSearchVariants(term, 5);
+    const batches = await Promise.allSettled(variants.map((search) => fetch(ANILIST_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -75,19 +77,31 @@ export async function searchAvatars(term: string): Promise<AvatarOption[]> {
             }
           }
         `,
-        variables: { search: term.trim() },
+        variables: { search },
       }),
-    });
-    const json = await res.json();
-    const chars = json?.data?.Page?.characters || [];
-    return chars
-      .filter((c: any) => c?.image?.large)
-      .map((c: any) => ({
-        id: c.id,
-        name: c.name?.full || "Personaje",
-        image: c.image.large,
-        source: c.media?.nodes?.[0]?.title?.english || c.media?.nodes?.[0]?.title?.romaji || "",
-      }));
+    }).then((res) => res.json())));
+    const seen = new Map<number, AvatarOption>();
+    for (const batch of batches) {
+      if (batch.status !== "fulfilled") continue;
+      const chars = batch.value?.data?.Page?.characters || [];
+      chars
+        .filter((c: any) => c?.image?.large)
+        .forEach((c: any) => {
+          if (seen.has(c.id)) return;
+          seen.set(c.id, {
+            id: c.id,
+            name: c.name?.full || "Personaje",
+            image: c.image.large,
+            source: c.media?.nodes?.[0]?.title?.english || c.media?.nodes?.[0]?.title?.romaji || "",
+          });
+        });
+    }
+    return Array.from(seen.values())
+      .map((avatar, index) => ({ avatar, index, score: fuzzyTextScore(term, [avatar.name, avatar.source]) }))
+      .filter((item) => item.score >= 1 || seen.size <= 24)
+      .sort((a, b) => b.score - a.score || a.index - b.index)
+      .map((item) => item.avatar)
+      .slice(0, 36);
   } catch {
     return [];
   }

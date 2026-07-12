@@ -329,6 +329,10 @@ export async function deleteCachedVideo(
   id?: string,
   anilistId?: number
 ): Promise<{ success: boolean; error?: string }> {
+  if (episode === 0) {
+    return { success: false, error: "El enlace madre Seeke está protegido y no se puede eliminar." };
+  }
+
   const normalizedSlug = normalizeSlug(slug);
   let query = supabase.from("video_cache").delete().select("slug, anilist_id");
 
@@ -360,6 +364,10 @@ export async function deleteEpisodeVideoCache(params: {
   episode: number;
   anilistId?: number;
 }): Promise<{ success: boolean; error?: string; count?: number }> {
+  if (params.episode === 0) {
+    return { success: false, error: "El enlace madre Seeke está protegido y no se puede eliminar.", count: 0 };
+  }
+
   const normalizedSlug = normalizeSlug(params.slug);
   let query = supabase.from("video_cache").delete({ count: "exact" }).select("slug, episode, lang, anilist_id");
   query = params.anilistId
@@ -381,6 +389,7 @@ export async function deleteAnimeVideoCache(params: {
   const normalizedSlug = normalizeSlug(params.slug);
   let query = supabase.from("video_cache").delete({ count: "exact" }).select("slug, episode, lang, anilist_id");
   query = params.anilistId ? query.or(`anilist_id.eq.${params.anilistId},slug.eq.${normalizedSlug}`) : query.eq("slug", normalizedSlug);
+  query = query.neq("episode", 0);
 
   const { data, error, count } = await query;
   if (error) return { success: false, error: error.message };
