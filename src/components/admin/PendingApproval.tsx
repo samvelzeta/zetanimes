@@ -340,6 +340,9 @@ export default function PendingApproval() {
     for (const g of groups) {
       // Si el padre está oculto, todo el grupo desaparece (aunque tenga hijas)
       if (!showHidden && hiddenSet.has(g.main.id)) continue;
+      // En vista "Pendientes": si el main ya está aprobado, no mostrar el grupo
+      // (aunque tenga hijas pendientes) — evita que reaparezca en pendientes.
+      if (!showHidden && !showApproved && approvedSet.has(g.main.id)) continue;
       const mainOk = matches(g.main);
       const relatedOk = g.related.filter(matches);
       if (mainOk || relatedOk.length > 0) {
