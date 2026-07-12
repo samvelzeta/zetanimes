@@ -736,6 +736,28 @@ function PendingCard({
             {anime.averageScore ? `${anime.averageScore}%` : "sin score"}
           </p>
           <div className="flex flex-wrap gap-1 mt-1">
+            {/* Etiqueta de tipo (película / serie / OVA / etc.) */}
+            {anime.format && (
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1 ${
+                isMovieFormat(anime.format)
+                  ? "bg-purple-500/15 text-purple-400"
+                  : "bg-blue-500/15 text-blue-400"
+              }`}>
+                {isMovieFormat(anime.format) ? <Film className="w-2.5 h-2.5" /> : <Tv className="w-2.5 h-2.5" />}
+                {formatLabel(anime.format)}
+              </span>
+            )}
+            {/* Etiqueta de estado (en emisión / finalizado / próximamente) */}
+            {anime.status && (
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                anime.status === "RELEASING" ? "bg-primary/15 text-primary" :
+                anime.status === "FINISHED" ? "bg-accent/20 text-accent-foreground" :
+                anime.status === "NOT_YET_RELEASED" ? "bg-yellow-500/15 text-yellow-500" :
+                "bg-secondary text-muted-foreground"
+              }`}>
+                {getStatusLabel(anime.status)}
+              </span>
+            )}
             {approved && (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-500">
                 APROBADO
