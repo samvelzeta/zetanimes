@@ -318,6 +318,7 @@ serve(async (req) => {
         total_candidates: allIds.length,
         pending: pending.length,
         processed: results.length,
+        cleaned,
         results,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
