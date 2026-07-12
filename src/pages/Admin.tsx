@@ -279,7 +279,7 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
     { label: "Usuarios", value: stats.users, icon: Users, tone: "text-primary", bg: "from-primary/20 to-primary/5" },
     { label: "Premium activos", value: stats.premium, icon: Crown, tone: "text-yellow-400", bg: "from-yellow-500/20 to-yellow-500/5" },
     { label: "Episodios vistos", value: stats.episodes, icon: BarChart3, tone: "text-blue-400", bg: "from-blue-500/20 to-blue-500/5" },
-    { label: "Videos gestionados", value: stats.videos, icon: Film, tone: "text-purple-400", bg: "from-purple-500/20 to-purple-500/5" },
+    { label: "Animes completados", value: stats.videos, icon: Film, tone: "text-purple-400", bg: "from-purple-500/20 to-purple-500/5" },
     { label: "Eps Latino HLS", value: stats.latino, icon: Tv, tone: "text-green-400", bg: "from-green-500/20 to-green-500/5" },
     { label: "Notifs activas", value: stats.notifs, icon: Bell, tone: "text-orange-400", bg: "from-orange-500/20 to-orange-500/5" },
   ]), [stats]);
