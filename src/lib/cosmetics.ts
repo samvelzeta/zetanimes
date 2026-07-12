@@ -187,7 +187,7 @@ export const AVATAR_FRAMES: AvatarFrameDef[] = [
   { slug: "jj-espejo-almas", name: "Espejo de Almas", className: "zf-frame-art", shape: "circle", imageUrl: frameJjMirror, rarity: "raro", requirement: { type: "gacha" } },
 
   { slug: "jj-golden-evolution", name: "Golden Evolution", className: "zf-frame-art", shape: "circle", imageUrl: frameJjGoldenArrow, rarity: "legendario", requirement: { type: "gacha" } },
-  { slug: "jj-serafin", name: "Alas de Serafín", className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameJjSeraphim, rarity: "z", requirement: { type: "gacha" } },
+  { slug: "jj-serafin", name: "Alas de Serafín", className: "zf-frame-art zf-frame-serafin", shape: "circle", imageUrl: frameJjSeraphim, rarity: "z", requirement: { type: "gacha" } },
   { slug: "jj-dragon-abismo", name: "Dragón del Abismo", className: "zf-frame-art", shape: "circle", imageUrl: frameJjSapphireDragon, rarity: "legendario", requirement: { type: "gacha" } },
 ];
 

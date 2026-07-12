@@ -1518,6 +1518,20 @@ img {
 }
 .zf-frame-blood > img { animation: zf-blood-drip 3s ease-in-out infinite; transform-origin: center; }
 
+/* Alas de Serafín: aura dorada dominante con acento blanco. Sin animación ni multicolor. */
+.zf-frame-serafin::after {
+  content: ""; position: absolute; inset: -4px;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(255,215,0,0.55) 0%, rgba(255,255,255,0.25) 55%, transparent 75%);
+  filter: blur(8px);
+  z-index: 0;
+  pointer-events: none;
+}
+.zf-frame-serafin > img {
+  filter: drop-shadow(0 0 10px rgba(255,215,0,0.95)) drop-shadow(0 0 18px rgba(255,200,60,0.7)) drop-shadow(0 0 6px rgba(255,255,255,0.6));
+}
+
+
 /* Marco calavera (Guardianes óseos): SOLO blanco y negro, sin aura multicolor */
 .zf-frame-skull {
   filter: drop-shadow(0 0 12px rgba(255,255,255,0.95)) drop-shadow(0 0 24px rgba(255,255,255,0.55)) !important;
