@@ -59,15 +59,14 @@ import frameVikingHelm from "@/assets/frame-viking-helm.png";
 import frameOni from "@/assets/frame-oni.png";
 import frameTwinBlades from "@/assets/frame-twin-blades.png";
 import frameJjHamon from "@/assets/frame-jj-hamon.png";
-import frameJjIron from "@/assets/frame-jj-iron.png";
 import frameJjNavy from "@/assets/frame-jj-navy.png";
 import frameJjDarkPink from "@/assets/frame-jj-darkpink.png";
 import frameJjPurple from "@/assets/frame-jj-purple.png";
 import frameJjCrimson from "@/assets/frame-jj-crimson.png";
 import frameJjObsidian from "@/assets/frame-jj-obsidian.png";
 import frameJjStone from "@/assets/frame-jj-stone.png";
-import frameJjGold from "@/assets/frame-jj-gold.png";
 import frameJjCyan from "@/assets/frame-jj-cyan.png";
+import frameJjGoldenArrow from "@/assets/frame-jj-golden-arrow.png";
 import frameJjAmber from "@/assets/frame-jj-amber.png";
 import frameJjMagenta from "@/assets/frame-jj-magenta.png";
 import frameJjGreen from "@/assets/frame-jj-green.png";
@@ -91,7 +90,7 @@ export const RARITY_META: Record<Rarity, { label: string; color: string; ring: s
   raro: { label: "Raro", color: "#3b82f6", ring: "ring-blue-400/60", glow: "0 0 14px rgba(59,130,246,0.6)", chance: 0.15 },
   mitico: { label: "Mítico", color: "#a855f7", ring: "ring-purple-400/70", glow: "0 0 18px rgba(168,85,247,0.7)", chance: 0.07 },
   legendario: { label: "Legendario", color: "#f59e0b", ring: "ring-amber-400/80", glow: "0 0 22px rgba(245,158,11,0.85)", chance: 0.025 },
-  z: { label: "Z", color: "#ff005c", ring: "ring-rose-500", glow: "0 0 26px rgba(255,0,92,0.95)", chance: 0.005 },
+  z: { label: "Z", color: "#ff005c", ring: "ring-rose-500", glow: "0 0 26px rgba(255,0,92,0.95)", chance: 0.002 },
 };
 
 export type CosmeticRequirement =
@@ -176,12 +175,10 @@ export const AVATAR_FRAMES: AvatarFrameDef[] = [
   // Tumba de Esmeralda, Loto de Giorno, Cresta de Araña, Corona del Rey No Muerto,
   // Filamento de Stand y Remolino Carmesí) porque obstruían la foto de perfil.
   { slug: "jj-hiedra-destino", name: "Hiedra del Destino", className: "zf-frame-art", shape: "circle", imageUrl: frameJjHamon, rarity: "basico", requirement: { type: "gacha" } },
-  { slug: "jj-grilletes-hierro", name: "Grilletes de Hierro", className: "zf-frame-art", shape: "circle", imageUrl: frameJjIron, rarity: "basico", requirement: { type: "gacha" } },
   { slug: "jj-estrella-mar", name: "Estrella de Mar", className: "zf-frame-art", shape: "circle", imageUrl: frameJjNavy, rarity: "basico", requirement: { type: "gacha" } },
-  { slug: "jj-cadenas-almas", name: "Cadenas de Almas", className: "zf-frame-art", shape: "circle", imageUrl: frameJjPurple, rarity: "basico", requirement: { type: "gacha" } },
+  { slug: "jj-cadenas-almas", name: "Cadenas de Almas", className: "zf-frame-art", shape: "circle", imageUrl: frameJjPurple, rarity: "legendario", requirement: { type: "gacha" } },
   { slug: "jj-sombra-vampiro", name: "Sombra del Vampiro", className: "zf-frame-art", shape: "circle", imageUrl: frameJjObsidian, rarity: "basico", requirement: { type: "gacha" } },
 
-  { slug: "jj-muda-muda", name: "Muda Muda Muda!", className: "zf-frame-art", shape: "circle", imageUrl: frameJjGold, rarity: "especial", requirement: { type: "gacha" } },
   { slug: "jj-daga-warudo", name: "Daga de Za Warudo", className: "zf-frame-art", shape: "circle", imageUrl: frameJjCyan, rarity: "especial", requirement: { type: "gacha" } },
   { slug: "jj-ankh-desierto", name: "Ankh del Desierto", className: "zf-frame-art", shape: "circle", imageUrl: frameJjAmber, rarity: "especial", requirement: { type: "gacha" } },
 
@@ -189,7 +186,8 @@ export const AVATAR_FRAMES: AvatarFrameDef[] = [
 
   { slug: "jj-espejo-almas", name: "Espejo de Almas", className: "zf-frame-art", shape: "circle", imageUrl: frameJjMirror, rarity: "raro", requirement: { type: "gacha" } },
 
-  { slug: "jj-serafin-sombrio", name: "Alas de Serafín Sombrío", className: "zf-frame-art", shape: "circle", imageUrl: frameJjSeraphim, rarity: "legendario", requirement: { type: "gacha" } },
+  { slug: "jj-golden-evolution", name: "Golden Evolution", className: "zf-frame-art", shape: "circle", imageUrl: frameJjGoldenArrow, rarity: "legendario", requirement: { type: "gacha" } },
+  { slug: "jj-serafin", name: "Alas de Serafín", className: "zf-frame-art zf-frame-z", shape: "circle", imageUrl: frameJjSeraphim, rarity: "z", requirement: { type: "gacha" } },
   { slug: "jj-dragon-abismo", name: "Dragón del Abismo", className: "zf-frame-art", shape: "circle", imageUrl: frameJjSapphireDragon, rarity: "legendario", requirement: { type: "gacha" } },
 ];
 
@@ -266,7 +264,7 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "swords", name: "Espadas caídas", rarity: "legendario", requirement: { type: "level", value: 120 }, gradient: `url("${bannerSwords}") center/cover no-repeat` },
   { slug: "isekai", name: "Isekai", rarity: "legendario", requirement: { type: "premium" }, gradient: `url("${bannerIsekai}") center/cover no-repeat` },
   { slug: "magic", name: "Magia elemental", rarity: "legendario", requirement: { type: "premium" }, gradient: `url("${bannerMagic}") center/cover no-repeat` },
-  { slug: "eyes", name: "Ojos ancestrales", rarity: "z", requirement: { type: "gacha" }, gradient: `url("${bannerEyes}") center/cover no-repeat` },
+  { slug: "eyes", name: "Ira de Zen", rarity: "z", requirement: { type: "gacha" }, gradient: `url("${bannerEyes}") center/cover no-repeat` },
   { slug: "roses", name: "Rosas de sangre", rarity: "mitico", requirement: { type: "premium" }, gradient: `url("${bannerRoses}") center/cover no-repeat` },
   { slug: "z-abyss", name: "El abismo (Z)", rarity: "z", requirement: { type: "gacha" }, gradient: `url("${bannerZAbyss}") center/cover no-repeat` },
   { slug: "z-king", name: "Rey del trono Z", rarity: "z", requirement: { type: "gacha" }, gradient: `url("${bannerZKing}") center/cover no-repeat` },
@@ -284,7 +282,7 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "jj-dio-laugh", name: "Dio's Laugh", rarity: "basico", requirement: { type: "gacha" }, gradient: `url("${bannerJjMuda}") center/cover no-repeat`, previewText: "MUDA!", previewClassName: "zf-banner-slash" },
   { slug: "jj-dio-scream", name: "Dio's Scream", rarity: "basico", requirement: { type: "gacha" }, gradient: `url("${bannerJjWry}") center/cover no-repeat`, previewText: "WRY!", previewClassName: "zf-banner-impact-red" },
   { slug: "jj-speedwagon-hat", name: "Speedwagon's Hat", rarity: "basico", requirement: { type: "gacha" }, gradient: `url("${bannerJjHeyBaby}") center/cover no-repeat`, previewText: "HEY BABY!", previewClassName: "zf-banner-comic" },
-  { slug: "jj-joseph-trick", name: "Joseph's Trick", rarity: "basico", requirement: { type: "gacha" }, gradient: `url("${bannerJjSugiNi}") center/cover no-repeat`, previewText: "SUGI NI!", previewClassName: "zf-banner-trick" },
+  { slug: "jj-joseph-trick", name: "Joseph's Trick", rarity: "mitico", requirement: { type: "gacha" }, gradient: `url("${bannerJjSugiNi}") center/cover no-repeat`, previewText: "SUGI NI!", previewClassName: "zf-banner-trick" },
   { slug: "jj-kars-pose", name: "Kars' Pose", rarity: "basico", requirement: { type: "gacha" }, gradient: `url("${bannerJjWha}") center/cover no-repeat`, previewText: "WHA-!", previewClassName: "zf-banner-comic-shock" },
   { slug: "jj-caeser-bubbles", name: "Caeser's Bubbles", rarity: "basico", requirement: { type: "gacha" }, gradient: `url("${bannerJjShiza}") center/cover no-repeat`, previewText: "SHIZA!", previewClassName: "zf-banner-bubbles" },
 
@@ -309,8 +307,6 @@ export const BANNER_PRESETS: BannerPresetDef[] = [
   { slug: "jj-bites-the-dust-legend", name: "Bites the Dust Supremo", rarity: "legendario", requirement: { type: "gacha" }, gradient: `url("${bannerJjYattaTriple}") center/cover no-repeat`, previewText: "YATTA! YATTA! YATTA!", previewClassName: "zf-banner-rewind" },
   { slug: "jj-made-in-heaven", name: "Made in Heaven", rarity: "legendario", requirement: { type: "gacha" }, gradient: `url("${bannerJjMadeInHeaven}") center/cover no-repeat`, previewText: "MADE IN HEAVEN!", previewClassName: "zf-banner-heaven" },
 
-  // ── JOJO'S GACHAPÓN: Z ──
-  { slug: "jj-ultimate-life-form", name: "Ultimate Life Form", rarity: "z", requirement: { type: "gacha" }, gradient: `url("${bannerJjUltimate}") center/cover no-repeat`, previewText: "ULTIMATE LIFE FORM.", previewClassName: "zf-banner-ultimate" },
 ];
 
 export function isCosmeticUnlocked(
