@@ -264,7 +264,7 @@ export async function saveCachedVideo(params: {
     // Wipe TOTAL: elimina cualquier otra fila para (anilist_id, episode, lang)
     // — slugs viejos, duplicados, embeds previos. Garantiza que el nuevo enlace
     // sea el único que pueda servir ese episodio.
-    if (!error) {
+    if (!error && episode !== 0) {
       const wipe = supabase
         .from("video_cache")
         .delete()
@@ -276,18 +276,8 @@ export async function saveCachedVideo(params: {
       if (wipeErr) console.warn("[video-cache] wipe duplicates failed:", wipeErr);
     }
 
-    // Además: si tocaron el SEEKE BASE (episode 0), invalida cualquier otra base
-    // del mismo anime que pueda estar "ganando" sobre los episodios nuevos.
-    if (!error && episode === 0) {
-      const wipeBase = supabase
-        .from("video_cache")
-        .delete()
-        .eq("anilist_id", anilist_id)
-        .eq("episode", 0)
-        .eq("lang", lang);
-      if (keepId) wipeBase.neq("id", keepId);
-      await wipeBase;
-    }
+    // Los SEEKE BASE (episode 0) son enlaces madre protegidos: se actualizan
+    // por id/upsert, pero jamás se limpian con delete automático.
   } else {
     const response = await supabase
       .from("video_cache")
