@@ -253,7 +253,7 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
           supabase.from("watch_history").select("*", { count: "exact", head: true }).eq("completed", true),
           supabase.from("notifications").select("*", { count: "exact", head: true }).eq("active", true),
           supabase.from("latino_episodes" as any).select("*", { count: "exact", head: true }).eq("status", "uploaded"),
-          supabase.from("video_overrides" as any).select("*", { count: "exact", head: true }),
+          supabase.from("anime_download_tracker" as any).select("*", { count: "exact", head: true }).eq("status", "completed"),
           supabase.from("broken_link_reports" as any).select("*", { count: "exact", head: true }).eq("resolved", false),
           supabase.from("watch_history").select("anilist_id, anime_title, episode_number, watched_at").order("watched_at", { ascending: false }).limit(6),
         ]);
@@ -279,7 +279,7 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
     { label: "Usuarios", value: stats.users, icon: Users, tone: "text-primary", bg: "from-primary/20 to-primary/5" },
     { label: "Premium activos", value: stats.premium, icon: Crown, tone: "text-yellow-400", bg: "from-yellow-500/20 to-yellow-500/5" },
     { label: "Episodios vistos", value: stats.episodes, icon: BarChart3, tone: "text-blue-400", bg: "from-blue-500/20 to-blue-500/5" },
-    { label: "Videos gestionados", value: stats.videos, icon: Film, tone: "text-purple-400", bg: "from-purple-500/20 to-purple-500/5" },
+    { label: "Animes completados", value: stats.videos, icon: Film, tone: "text-purple-400", bg: "from-purple-500/20 to-purple-500/5" },
     { label: "Eps Latino HLS", value: stats.latino, icon: Tv, tone: "text-green-400", bg: "from-green-500/20 to-green-500/5" },
     { label: "Notifs activas", value: stats.notifs, icon: Bell, tone: "text-orange-400", bg: "from-orange-500/20 to-orange-500/5" },
   ]), [stats]);
