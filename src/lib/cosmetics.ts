@@ -38,7 +38,7 @@ import bannerJjLife from "@/assets/banner-jj-life.jpg";
 import bannerJjHeavensDoor from "@/assets/banner-jj-heavensdoor.jpg";
 import bannerJjYattaTriple from "@/assets/banner-jj-yatta-triple.jpg";
 import bannerJjMadeInHeaven from "@/assets/banner-jj-madeinheaven.jpg";
-import bannerJjUltimate from "@/assets/banner-jj-ultimate.jpg";
+
 
 // Marcos 3D artísticos (PNG con hueco transparente)
 import frameRoses from "@/assets/frame-roses.png";
