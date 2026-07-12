@@ -115,6 +115,7 @@ async function trackOne(supabase: SupaClient, anilistId: number, clientStatus: s
 
   let title = (prev as any)?.title || "Anime";
   let cover: string | null = (prev as any)?.cover || null;
+  let banner: string | null = (prev as any)?.banner || null;
   const { data: meta } = await supabase
     .from("anime_lists")
     .select("anime_title, anime_cover")
@@ -125,6 +126,28 @@ async function trackOne(supabase: SupaClient, anilistId: number, clientStatus: s
     title = (meta as any).anime_title || title;
     cover = (meta as any).anime_cover || cover;
   }
+
+  // Fallback a AniList si aún falta cover
+  if (!cover) {
+    try {
+      const q = `query($id:Int){Media(id:$id,type:ANIME){title{romaji english native} coverImage{extraLarge large} bannerImage}}`;
+      const r = await fetch("https://graphql.anilist.co", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query: q, variables: { id: anilistId } }),
+      });
+      if (r.ok) {
+        const j = await r.json();
+        const m = j?.data?.Media;
+        if (m) {
+          cover = m.coverImage?.extraLarge || m.coverImage?.large || cover;
+          banner = m.bannerImage || banner;
+          title = m.title?.english || m.title?.romaji || m.title?.native || title;
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
 
   const startEp = Math.max((prev as any)?.latest_episode || 0, hintEp, 1);
   const latest = await fetchSeekeLatest(seekeUrl, startEp);
