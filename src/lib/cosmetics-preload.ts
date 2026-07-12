@@ -24,8 +24,7 @@ export function preloadAdminCosmetics(): Promise<void> {
       urls.forEach((url) => {
         const img = new Image();
         img.decoding = "async";
-        // @ts-expect-error fetchpriority is valid
-        img.fetchPriority = "low";
+        (img as any).fetchPriority = "low";
         img.src = url;
       });
     } catch (err) {

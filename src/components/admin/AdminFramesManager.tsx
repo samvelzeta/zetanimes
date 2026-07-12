@@ -5,6 +5,7 @@ import { Trash2, Plus, Upload, Loader2, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { RARITY_META, type Rarity } from "@/lib/cosmetics";
 import AvatarFrame from "@/components/premium/AvatarFrame";
+import { compressFramePng } from "@/lib/image-compress";
 
 const FRAME_SHAPES = ["circle","hex","diamond","rounded","shield","star"] as const;
 type Shape = typeof FRAME_SHAPES[number];
@@ -44,12 +45,12 @@ export default function AdminFramesManager() {
     load();
   };
 
-  const handleUpload = async (id: string, file: File) => {
+  const handleUpload = async (id: string, rawFile: File) => {
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "png";
-      const path = `frames/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("premium-assets").upload(path, file, { upsert: false, contentType: file.type });
+      const file = await compressFramePng(rawFile);
+      const path = `frames/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+      const { error: upErr } = await supabase.storage.from("premium-assets").upload(path, file, { upsert: false, contentType: "image/png", cacheControl: "31536000" });
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from("premium-assets").getPublicUrl(path);
       await patch(id, { image_url: pub.publicUrl });
