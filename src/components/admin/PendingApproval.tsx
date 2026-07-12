@@ -654,28 +654,6 @@ function PendingCard({
     }
   };
 
-  const handleUnapprove = async () => {
-    setBusy(true);
-    try {
-      const res = await unapproveAnime(anime.id);
-      if (!res.success) throw new Error(res.error);
-      await logAdminActivity({
-        area: "videos",
-        action: "unapprove_anime",
-        summary: `Aprobación retirada: ${title}`,
-        target_type: "anime",
-        target_id: String(anime.id),
-        anilist_id: anime.id,
-        anime_title: title,
-      });
-      toast.success("Quitado de la whitelist");
-      onChanged();
-    } catch (e: any) {
-      toast.error(e?.message || "Error");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <div className="relative rounded-2xl border border-border bg-card overflow-hidden flex">
