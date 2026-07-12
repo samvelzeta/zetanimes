@@ -1066,8 +1066,6 @@ export type Database = {
           expiry_notice_sent_at: string | null
           id: string
           last_seen_notification_id: string | null
-          pin_enabled: boolean
-          pin_hash: string | null
           plan_type: string | null
           subscription_email: string | null
           subscription_expires_at: string | null
@@ -1085,8 +1083,6 @@ export type Database = {
           expiry_notice_sent_at?: string | null
           id?: string
           last_seen_notification_id?: string | null
-          pin_enabled?: boolean
-          pin_hash?: string | null
           plan_type?: string | null
           subscription_email?: string | null
           subscription_expires_at?: string | null
@@ -1104,8 +1100,6 @@ export type Database = {
           expiry_notice_sent_at?: string | null
           id?: string
           last_seen_notification_id?: string | null
-          pin_enabled?: boolean
-          pin_hash?: string | null
           plan_type?: string | null
           subscription_email?: string | null
           subscription_expires_at?: string | null
