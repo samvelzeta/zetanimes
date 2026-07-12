@@ -19,6 +19,7 @@ import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
 import LazySection from "@/components/LazySection";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import TopOtakusWidget from "@/components/premium/TopOtakusWidget";
+import { supabase } from "@/integrations/supabase/client";
 
 // Semilla determinista por año-semana ISO (rota cada lunes)
 function weekSeed(): number {
