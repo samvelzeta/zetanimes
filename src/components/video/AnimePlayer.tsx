@@ -325,13 +325,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         setSeekeSubs([]);
         setQualities([]);
       }
-      console.log("[seeke] resolve start", { url: requestedUrl, ep: requestedEp, episodeKey });
+      if (import.meta.env.DEV) console.log(`[zetAnimes] Calibrando transmisión · ep ${requestedEp}`);
       getSeekeEpisode(requestedUrl, requestedEp)
         .then((data) => {
           if (cancelled || abort.signal.aborted) return;
           const returnedEp = Number(data.episode);
           if (Number.isFinite(returnedEp) && returnedEp !== requestedEp) {
-            console.warn("[seeke] mismatch ep", { pedido: requestedEp, recibido: returnedEp, url: requestedUrl });
+            if (import.meta.env.DEV) console.warn(`[zetAnimes] desfase de episodio · pedido ${requestedEp} · recibido ${returnedEp}`);
           }
           if (Array.isArray(data.subtitles)) setSeekeSubs(data.subtitles);
           const qs = data.qualities || [];
