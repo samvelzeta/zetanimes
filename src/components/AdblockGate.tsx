@@ -1,12 +1,12 @@
-// Modo insistencia (Opción A): NO bloqueamos la app entera para evitar falsos
-// positivos con Brave/Firefox estricto, DNS filtrados, redes corporativas, etc.
-// En su lugar mostramos un modal cerrable que:
-//  - Reaparece cada REMIND_MS (5 min) mientras siga detectado el adblock.
-//  - Sobrevive a scripts de consola que intenten borrar el nodo (MutationObserver
-//    + id aleatorio + z-index no literal 2147483647).
-//  - Permite "Continuar de todas formas" para no perder al usuario.
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+// Modo insistencia (Opción A) v2: recordatorio cada 1 min.
+// - Fuera del reproductor: modal cerrable superpuesto.
+// - Dentro del reproductor (/watch): NO se muestra aquí. El componente
+//   AdblockPlayerOverlay lo muestra como "anuncio" dentro del player,
+//   intercalado con los anuncios normales.
+// Anti-bypass: id/atributos aleatorios en cada montaje (sin prefijo "zet-guard-"),
+// z-index no literal 2147483647, MutationObserver + revive.
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ShieldAlert, RefreshCw, Crown, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { detectAdblock } from "@/lib/adblock-detect";
@@ -14,13 +14,20 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { isTV } from "@/hooks/useIsTV";
 
-const GATE_ID = "zet-guard-" + Math.random().toString(36).slice(2, 9);
-const REMIND_MS = 5 * 60 * 1000; // 5 min
+const REMIND_MS = 60 * 1000; // 1 min
 const SNOOZE_KEY = "zet:adblock-snooze-until";
+
+function rndTag(len = 8) {
+  const s = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let out = "";
+  for (let i = 0; i < len; i++) out += s[Math.floor(Math.random() * s.length)];
+  return out;
+}
 
 export default function AdblockGate() {
   const { isPremium, loading, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [adblockActive, setAdblockActive] = useState(false);
   const [dismissedUntil, setDismissedUntil] = useState<number>(() => {
     try { return Number(localStorage.getItem(SNOOZE_KEY) || 0); } catch { return 0; }
@@ -29,9 +36,18 @@ export default function AdblockGate() {
   const [tick, setTick] = useState(0);
   const nodeRef = useRef<HTMLDivElement | null>(null);
   const tvMode = typeof window !== "undefined" && isTV();
+  const onWatch = location.pathname.startsWith("/watch");
+
+  // Identificadores aleatorios por montaje (evita selectores como
+  // `[id^="zet-guard-"]` o `[data-zet-guard]`).
+  const ids = useMemo(() => ({
+    id: rndTag(10),
+    attrName: `data-${rndTag(6)}`,
+    attrVal: rndTag(6),
+  }), []);
 
   const now = Date.now();
-  const visible = adblockActive && !isPremium && !tvMode && now >= dismissedUntil;
+  const visible = adblockActive && !isPremium && !tvMode && !onWatch && now >= dismissedUntil;
 
   const runCheck = async () => {
     setChecking(true);
@@ -57,7 +73,6 @@ export default function AdblockGate() {
     setDismissedUntil(until);
   };
 
-  // Detección periódica (cada 8s) + al recuperar foco/visibilidad.
   useEffect(() => {
     if (loading || isPremium || tvMode) {
       setAdblockActive(false);
@@ -82,7 +97,6 @@ export default function AdblockGate() {
     };
   }, [loading, isPremium, tvMode]);
 
-  // Re-evaluar cuando expira el snooze
   useEffect(() => {
     if (!dismissedUntil) return;
     const remaining = dismissedUntil - Date.now();
@@ -91,7 +105,6 @@ export default function AdblockGate() {
     return () => clearTimeout(t);
   }, [dismissedUntil]);
 
-  // Anti-hack: si borran el nodo por consola, lo revivimos.
   useEffect(() => {
     if (!visible) return;
     const obs = new MutationObserver(() => {
@@ -119,15 +132,14 @@ export default function AdblockGate() {
 
   if (!visible) return null;
 
-  // z-index alto pero NO el literal 2147483647 (firma del script de bypass).
   const z = 2147480000 + (tick % 1000);
 
   return (
     <div
       key={tick}
       ref={nodeRef}
-      id={GATE_ID}
-      data-zet-guard="1"
+      id={ids.id}
+      {...{ [ids.attrName]: ids.attrVal }}
       className="fixed left-0 top-0 w-screen h-screen bg-background/80 backdrop-blur-md flex items-center justify-center p-4"
       style={{ zIndex: z, pointerEvents: "auto" }}
     >
@@ -172,7 +184,7 @@ export default function AdblockGate() {
             onClick={snooze}
             className="text-xs text-muted-foreground/70 hover:text-muted-foreground underline underline-offset-2 mt-1"
           >
-            Continuar de todas formas (te recordaré en 5 min)
+            Continuar de todas formas (te recordaré en 1 min)
           </button>
         </div>
 
