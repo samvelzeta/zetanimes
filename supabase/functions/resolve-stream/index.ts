@@ -294,9 +294,9 @@ Deno.serve(async (req) => {
       qualities: normalizeQualities(data.calidades ?? data.qualities),
     };
     cacheSet(episodeCache, cacheKey, payload);
-    if (payload.latest_episode !== null) {
-      cacheSet(latestCache, `${anilistId}|${lang}`, payload.latest_episode);
-    }
+    // NO cacheamos latest_episode desde la rama "episode" porque cuando el
+    // anime usa bloques ese número es RELATIVO al bloque, no absoluto. La
+    // rama "latest" tiene la lógica correcta de traducción.
     return new Response(JSON.stringify(payload), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
