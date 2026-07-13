@@ -271,8 +271,10 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
   if (seen.size < Math.min(perPage, 12)) {
     try {
       const jikanQuery = variants[0] || normalizeSearchText(cleanTerm);
-      const jikanRes = await fetch(
-        `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(jikanQuery)}&limit=${Math.min(Math.max(perPage, 12), 25)}&page=${page}&sfw=true`
+      const jikanRes = await fetchWithTimeout(
+        `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(jikanQuery)}&limit=${Math.min(Math.max(perPage, 12), 25)}&page=${page}&sfw=true`,
+        {},
+        6000
       );
       if (jikanRes.ok) {
         const jikanJson = await jikanRes.json();
