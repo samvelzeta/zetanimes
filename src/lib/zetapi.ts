@@ -246,16 +246,43 @@ export async function getLatestEpisodeForBase(baseUrl: string, hintEp = 1): Prom
 // El navegador NUNCA ve la URL madre. Solo manda { anilistId, lang, ep }.
 // El servidor la busca vía service_role y llama a la VPS.
 // ============================================================================
+// Invoca la edge function con timeout duro. Si el usuario aborta o pasa el
+// tiempo, devuelve un rechazo para que el caller pueda reintentar/caer al
+// siguiente source sin congelar el player.
+async function invokeWithTimeout(body: unknown, timeoutMs: number) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    // supabase-js v2 acepta AbortSignal en el 2º arg
+    return await supabase.functions.invoke("resolve-stream", {
+      body: body as any,
+      // @ts-ignore - signal soportado en runtime aunque no en tipos viejos
+      signal: ctrl.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function resolveStreamEpisode(
   anilistId: number,
   lang: string,
   ep: number
 ): Promise<SeekeResolved> {
-  const { data, error } = await supabase.functions.invoke("resolve-stream", {
-    body: { action: "episode", anilistId, lang, ep },
-  });
-  if (error) throw new Error(error.message || "resolve_failed");
-  if (!data?.ok || !data?.embed) throw new Error(data?.error || "resolve_failed");
+  const body = { action: "episode", anilistId, lang, ep };
+  // 1er intento: 4s. Si falla, reintento silencioso con 8s para tolerar cold start.
+  let data: any = null;
+  let lastErr: any = null;
+  for (const timeout of [4000, 8000]) {
+    try {
+      const res = await invokeWithTimeout(body, timeout);
+      if (!res.error && res.data?.ok && res.data?.embed) { data = res.data; break; }
+      lastErr = res.error || res.data?.error || "resolve_failed";
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  if (!data) throw new Error(typeof lastErr === "string" ? lastErr : (lastErr?.message || "resolve_failed"));
   return {
     embed: String(data.embed),
     episode: Number(data.episode || ep),
@@ -270,16 +297,15 @@ export async function resolveStreamLatest(
   anilistId: number,
   lang: string
 ): Promise<number | undefined> {
-  try {
-    const { data, error } = await supabase.functions.invoke("resolve-stream", {
-      body: { action: "latest", anilistId, lang, ep: 1 },
-    });
-    if (error || !data?.ok) return undefined;
-    const latest = Number(data?.latest_episode);
-    return Number.isFinite(latest) ? latest : undefined;
-  } catch {
-    return undefined;
+  for (const timeout of [3500, 6000]) {
+    try {
+      const res = await invokeWithTimeout({ action: "latest", anilistId, lang, ep: 1 }, timeout);
+      if (res.error || !res.data?.ok) continue;
+      const latest = Number(res.data?.latest_episode);
+      if (Number.isFinite(latest)) return latest;
+    } catch { /* retry */ }
   }
+  return undefined;
 }
 
 

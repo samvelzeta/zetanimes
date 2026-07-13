@@ -11,6 +11,28 @@ const corsHeaders = {
 
 const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
 
+// 🧠 Caché en memoria del edge (viva mientras la instancia esté caliente).
+// TTL corto para no servir enlaces caducados pero absorbiendo picos de tráfico.
+const EPISODE_TTL_MS = 150_000; // 2.5 min
+const LATEST_TTL_MS = 60_000;   // 1 min
+type CacheEntry<T> = { at: number; value: T };
+const episodeCache = new Map<string, CacheEntry<any>>();
+const latestCache = new Map<string, CacheEntry<number | null>>();
+function cacheGet<T>(m: Map<string, CacheEntry<T>>, key: string, ttl: number): T | null {
+  const hit = m.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > ttl) { m.delete(key); return null; }
+  return hit.value;
+}
+function cacheSet<T>(m: Map<string, CacheEntry<T>>, key: string, value: T) {
+  m.set(key, { at: Date.now(), value });
+  if (m.size > 500) {
+    // LRU-ish: borra las 100 más antiguas
+    const entries = [...m.entries()].sort((a, b) => a[1].at - b[1].at).slice(0, 100);
+    for (const [k] of entries) m.delete(k);
+  }
+}
+
 type SeekeSub = { lang?: string; language?: string; srclang?: string; url?: string; src?: string; label?: string };
 type SeekeResp = {
   ok?: boolean;
@@ -155,28 +177,51 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const master = await resolveMasterUrl(supabase, anilistId, lang, ep);
-    if (!master) {
-      return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const cacheKey = `${anilistId}|${lang}|${ep}`;
 
     if (action === "latest") {
-      // Solo pedimos latest_episode: primero intento ligero, fallback resolución completa.
+      const latestKey = `${anilistId}|${lang}`;
+      const cachedLatest = cacheGet(latestCache, latestKey, LATEST_TTL_MS);
+      if (cachedLatest !== null) {
+        return new Response(
+          JSON.stringify({ ok: true, latest_episode: cachedLatest, cached: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const master = await resolveMasterUrl(supabase, anilistId, lang, ep);
+      if (!master) {
+        return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       let data = await callScraper(master.url, Math.max(1, master.sourceEp), true);
       if (!data || !Number.isFinite(Number(data?.latest_episode))) {
         data = await callScraper(master.url, Math.max(1, master.sourceEp), false);
       }
       const latest = Number(data?.latest_episode);
+      const finalLatest = Number.isFinite(latest) ? latest : null;
+      if (finalLatest !== null) cacheSet(latestCache, latestKey, finalLatest);
       return new Response(
-        JSON.stringify({ ok: true, latest_episode: Number.isFinite(latest) ? latest : null }),
+        JSON.stringify({ ok: true, latest_episode: finalLatest }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // action === "episode"
+    // action === "episode" — servir de caché caliente si disponible
+    const cachedEp = cacheGet(episodeCache, cacheKey, EPISODE_TTL_MS);
+    if (cachedEp) {
+      return new Response(
+        JSON.stringify({ ...cachedEp, cached: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const master = await resolveMasterUrl(supabase, anilistId, lang, ep);
+    if (!master) {
+      return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const data = await callScraper(master.url, master.sourceEp, false);
     if (!data?.ok || !data?.embed) {
       return new Response(
@@ -185,19 +230,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Devolvemos SOLO lo purificado. Nunca la URL madre.
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        embed: String(data.embed),
-        episode: Number.isFinite(Number(data.episode)) ? Number(data.episode) : ep,
-        cached: !!data.cached,
-        subtitles: normalizeSubs(data.subtitles),
-        latest_episode: Number.isFinite(Number(data.latest_episode)) ? Number(data.latest_episode) : null,
-        qualities: normalizeQualities(data.calidades ?? data.qualities),
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    const payload = {
+      ok: true,
+      embed: String(data.embed),
+      episode: Number.isFinite(Number(data.episode)) ? Number(data.episode) : ep,
+      cached: false,
+      subtitles: normalizeSubs(data.subtitles),
+      latest_episode: Number.isFinite(Number(data.latest_episode)) ? Number(data.latest_episode) : null,
+      qualities: normalizeQualities(data.calidades ?? data.qualities),
+    };
+    cacheSet(episodeCache, cacheKey, payload);
+    if (payload.latest_episode !== null) {
+      cacheSet(latestCache, `${anilistId}|${lang}`, payload.latest_episode);
+    }
+    return new Response(JSON.stringify(payload), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
     return new Response(
       JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }),
