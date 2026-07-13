@@ -333,7 +333,7 @@ export default function Watch() {
   const { data: oppositeServerData } = useQuery({
     queryKey: ["zet-servers-opposite", zetSlug, selectedEp, oppositeLang],
     queryFn: () => getEpisodeServers(zetSlug!, selectedEp, oppositeLang),
-    enabled: !!zetSlug && cachedVideoOppositeFetched && seekeConfigReady && !hasAnySeekeConfig,
+    enabled: !!zetSlug && cachedVideoOppositeFetched && seekeConfigReady && !hasOppositeSeekeConfig,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",
@@ -402,25 +402,28 @@ export default function Watch() {
       // Solo añadimos fuentes NO-seeke del DB cache (HLS/MP4/embed manuales).
       addDb({ ...cachedVideo, sources: { ...cachedVideo.sources, seeke: [] } } as any, lang, true);
     }
-    if (!hasAnySeekeConfig && lang === "latino") {
-      (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
+    // HLS Latino subido manualmente: SIEMPRE se agrega si existe, aunque haya
+    // Seeke configurado en JP. Esto garantiza que el switch de idioma aparezca
+    // en cualquier anime que tenga latino disponible por cualquier vía.
+    if (latinoEp?.sources?.hls?.length) {
+      latinoEp.sources.hls.forEach((url, i) => appendUniqueSource(sources, {
         name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
       }));
     }
     addApi(serverData, lang);
 
-    if (!hasAnySeekeConfig || seekeCoversOpposite) {
+    // Opposite Seeke: si cubre el episodio actual, agregarlo.
+    if (seekeCoversOpposite) {
       addBlock(oppositeBlock, oppositeLang);
-      if (!hasAnySeekeConfig) {
-        addDb(cachedVideoOpposite, oppositeLang, !!oppositeBlock);
-      } else if (!oppositeBlock) {
-        addSeekeBaseOnly(cachedVideoOpposite, oppositeSeekeBase, oppositeLang);
-      }
+      if (!oppositeBlock) addSeekeBaseOnly(cachedVideoOpposite, oppositeSeekeBase, oppositeLang);
     }
-    if (!hasAnySeekeConfig && oppositeLang === "latino") {
-      (latinoEp?.sources?.hls || []).forEach((url, i) => appendUniqueSource(sources, {
-        name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
-      }));
+    // DB del idioma opuesto (HLS/MP4/embed manuales del admin): SIEMPRE se
+    // agregan las fuentes NO-seeke, exista o no Seeke en el idioma actual.
+    // Solo omitimos los `seeke` de la DB opuesta si el bloque ya se agregó
+    // (evita duplicar) o si Seeke opuesto no cubre este episodio.
+    if (cachedVideoOpposite) {
+      const oppositeNoSeeke = { ...cachedVideoOpposite, sources: { ...cachedVideoOpposite.sources, seeke: [] } } as any;
+      addDb(oppositeNoSeeke, oppositeLang, true);
     }
     addApi(oppositeServerData, oppositeLang);
 
