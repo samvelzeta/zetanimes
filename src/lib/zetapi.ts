@@ -225,6 +225,8 @@ async function refreshLatestEpisode(baseUrl: string, epNumber: number): Promise<
 /**
  * API pública: obtiene el último episodio disponible para una URL madre Seeke.
  * Devuelve `undefined` si la VPS aún no ha resuelto el dato.
+ * ⚠️ Legacy: solo debe usarse desde el panel admin. El flujo público usa
+ * `resolveStreamLatest(anilistId, lang)`.
  */
 export async function getLatestEpisodeForBase(baseUrl: string, hintEp = 1): Promise<number | undefined> {
   const freshLatest = await refreshLatestEpisode(baseUrl, hintEp);
@@ -238,6 +240,48 @@ export async function getLatestEpisodeForBase(baseUrl: string, hintEp = 1): Prom
     return undefined;
   }
 }
+
+// ============================================================================
+// 🔒 Resolución segura vía edge function `resolve-stream`
+// El navegador NUNCA ve la URL madre. Solo manda { anilistId, lang, ep }.
+// El servidor la busca vía service_role y llama a la VPS.
+// ============================================================================
+export async function resolveStreamEpisode(
+  anilistId: number,
+  lang: string,
+  ep: number
+): Promise<SeekeResolved> {
+  const { data, error } = await supabase.functions.invoke("resolve-stream", {
+    body: { action: "episode", anilistId, lang, ep },
+  });
+  if (error) throw new Error(error.message || "resolve_failed");
+  if (!data?.ok || !data?.embed) throw new Error(data?.error || "resolve_failed");
+  return {
+    embed: String(data.embed),
+    episode: Number(data.episode || ep),
+    cached: !!data.cached,
+    subtitles: normalizeSeekeSubs(data.subtitles),
+    latest_episode: Number.isFinite(Number(data.latest_episode)) ? Number(data.latest_episode) : undefined,
+    qualities: normalizeSeekeQualities(data.qualities),
+  };
+}
+
+export async function resolveStreamLatest(
+  anilistId: number,
+  lang: string
+): Promise<number | undefined> {
+  try {
+    const { data, error } = await supabase.functions.invoke("resolve-stream", {
+      body: { action: "latest", anilistId, lang, ep: 1 },
+    });
+    if (error || !data?.ok) return undefined;
+    const latest = Number(data?.latest_episode);
+    return Number.isFinite(latest) ? latest : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 
 // ===== IMPROVED SLUG RESOLUTION =====
 
