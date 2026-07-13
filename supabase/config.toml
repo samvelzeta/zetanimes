@@ -9,3 +9,7 @@ verify_jwt = false
 [functions.sync-auto-episodes]
 verify_jwt = false
 
+[functions.resolve-stream]
+verify_jwt = false
+
+
