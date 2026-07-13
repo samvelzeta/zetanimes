@@ -432,6 +432,17 @@ export default function PendingApproval() {
   const approvedCount = allItems.filter((id) => approvedSet.has(id) && !hiddenSet.has(id)).length;
   const hiddenCount = hiddenSet.size;
 
+  // Si tras filtrar quedan menos de MIN_PENDING pendientes y aún no llegamos al
+  // tope de páginas extra, pedimos otra página de AniList automáticamente.
+  useEffect(() => {
+    if (loading || extraFetching) return;
+    if (!seekeMasterSet) return; // esperamos a saber cuáles ya están aprobados
+    if (pendingCount >= MIN_PENDING) return;
+    if (extraPages >= MAX_EXTRA_PAGES) return;
+    setExtraPages((n) => n + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingCount, loading, extraFetching, seekeMasterSet, extraPages]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4">
