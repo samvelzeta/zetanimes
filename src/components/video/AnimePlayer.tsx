@@ -330,7 +330,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
       }
       if (import.meta.env.DEV) console.log(`[zetAnimes] Calibrando transmisión · ep ${requestedEp}`);
       if (!anilistId || !lang) {
-        setError("Configuración del reproductor incompleta.");
+        setError(true);
         setLoading(false);
         return;
       }
