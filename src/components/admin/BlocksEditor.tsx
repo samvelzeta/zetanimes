@@ -49,7 +49,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
 
   const load = async () => {
     setLoading(true);
-    const blocks = await listBlocks(anilistId, lang);
+    const blocks = await listBlocksAdmin(anilistId, lang);
     // Detectar si hay un bloque inverso (offset > 0)
     const inverseBlock = blocks.find((b) => Number(b.source_episode_offset || 0) > 0 || b.inverse_mode);
     const normals = blocks.filter((b) => b !== inverseBlock);
