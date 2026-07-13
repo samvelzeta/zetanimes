@@ -1,6 +1,9 @@
 // ZetAPI client - API key is stored server-side in edge function
+import { supabase } from "@/integrations/supabase/client";
+
 const ZET_BASE = "https://zetapi-api.samvelzeta.workers.dev/api";
 const PROXY_BASE = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/zet-proxy`;
+
 
 export interface ZetServer {
   name: string;
