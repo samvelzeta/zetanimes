@@ -844,6 +844,8 @@ export default function Watch() {
             <StreamGuard animeId={anilistId} episode={selectedEp}>
               <AnimePlayer
                 sources={displayedSources}
+                anilistId={anilistId}
+                lang={lang}
                 title={`${displayTitle} - EP ${displayedEpisode}`}
                 onProgress={isEpisodeSwitching ? undefined : handleProgress}
                 onSeeked={isEpisodeSwitching ? undefined : handleSeeked}

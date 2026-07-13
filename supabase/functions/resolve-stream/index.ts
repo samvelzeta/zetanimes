@@ -1,0 +1,207 @@
+// Edge function que resuelve el stream de un episodio SIN exponer la URL madre
+// al navegador. El cliente envía solo { action, anilistId, lang, ep }.
+// El servidor consulta la URL madre vía service_role y llama a la VPS scraper.
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
+
+type SeekeSub = { lang?: string; language?: string; srclang?: string; url?: string; src?: string; label?: string };
+type SeekeResp = {
+  ok?: boolean;
+  embed?: string;
+  episode?: number;
+  cached?: boolean;
+  subtitles?: SeekeSub[];
+  latest_episode?: number;
+  calidades?: Record<string, string>;
+  qualities?: Record<string, string>;
+  error?: string;
+};
+
+function normalizeUrl(url: string): string {
+  const clean = url.trim();
+  try {
+    const u = new URL(clean);
+    u.search = "";
+    u.hash = "";
+    u.pathname = u.pathname.replace(/\/\d+\/?$/, "");
+    return u.toString();
+  } catch {
+    return clean.replace(/\/\d+\/?$/, "");
+  }
+}
+
+function normalizeSubs(raw: unknown) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((s: SeekeSub) => ({
+      lang: String(s?.lang || s?.language || s?.srclang || "es"),
+      url: String(s?.url || s?.src || ""),
+      label: s?.label ? String(s.label) : undefined,
+    }))
+    .filter((s) => !!s.url);
+}
+
+function normalizeQualities(raw: unknown) {
+  if (!raw || typeof raw !== "object") return [];
+  const out: { label: string; url: string }[] = [];
+  for (const [label, url] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof url === "string" && url) out.push({ label, url });
+  }
+  return out;
+}
+
+async function resolveMasterUrl(
+  supabase: ReturnType<typeof createClient>,
+  anilistId: number,
+  lang: string,
+  ep: number,
+): Promise<{ url: string; sourceEp: number } | null> {
+  // 1) Bloques (rangos de episodios con URLs madre distintas)
+  const { data: blocks } = await supabase
+    .from("video_cache_blocks")
+    .select("seeke_base_url, episode_from, episode_to, source_episode_offset, inverse_mode")
+    .eq("anilist_id", anilistId)
+    .eq("lang", lang)
+    .order("block_index", { ascending: true });
+
+  if (Array.isArray(blocks) && blocks.length > 0) {
+    const match = blocks.find(
+      (b: any) => ep >= b.episode_from && ep <= b.episode_to,
+    ) as any;
+    if (!match) return null;
+    const offset = Number(match.source_episode_offset || 0);
+    const relative = ep - match.episode_from + 1;
+    return { url: match.seeke_base_url, sourceEp: relative + offset };
+  }
+
+  // 2) URL madre única (episode=0 con sources.seeke[0])
+  const { data: base } = await supabase
+    .from("video_cache")
+    .select("sources")
+    .eq("anilist_id", anilistId)
+    .eq("lang", lang)
+    .eq("episode", 0)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+
+  const seekeArr = (base?.[0] as any)?.sources?.seeke;
+  if (Array.isArray(seekeArr) && seekeArr[0]) {
+    return { url: String(seekeArr[0]), sourceEp: ep };
+  }
+  return null;
+}
+
+async function callScraper(masterUrl: string, ep: number, latestOnly = false): Promise<SeekeResp | null> {
+  try {
+    const r = await fetch(SEEKE_BOT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        url: normalizeUrl(masterUrl),
+        ep,
+        no_cache: true,
+        force: true,
+        cache_bust: Date.now(),
+        ...(latestOnly ? { latest_only: true } : {}),
+      }),
+    });
+    if (!r.ok) return null;
+    return (await r.json()) as SeekeResp;
+  } catch {
+    return null;
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ ok: false, error: "method_not_allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  let body: any = {};
+  try { body = await req.json(); } catch { /* empty body */ }
+
+  const action = String(body?.action || "episode");
+  const anilistId = Number(body?.anilistId);
+  const lang = String(body?.lang || "sub");
+  const ep = Number(body?.ep || 1);
+
+  if (!Number.isFinite(anilistId) || anilistId <= 0) {
+    return new Response(JSON.stringify({ ok: false, error: "invalid_anilist_id" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+
+  try {
+    const master = await resolveMasterUrl(supabase, anilistId, lang, ep);
+    if (!master) {
+      return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "latest") {
+      // Solo pedimos latest_episode: primero intento ligero, fallback resolución completa.
+      let data = await callScraper(master.url, Math.max(1, master.sourceEp), true);
+      if (!data || !Number.isFinite(Number(data?.latest_episode))) {
+        data = await callScraper(master.url, Math.max(1, master.sourceEp), false);
+      }
+      const latest = Number(data?.latest_episode);
+      return new Response(
+        JSON.stringify({ ok: true, latest_episode: Number.isFinite(latest) ? latest : null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // action === "episode"
+    const data = await callScraper(master.url, master.sourceEp, false);
+    if (!data?.ok || !data?.embed) {
+      return new Response(
+        JSON.stringify({ ok: false, error: data?.error || "resolve_failed" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Devolvemos SOLO lo purificado. Nunca la URL madre.
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        embed: String(data.embed),
+        episode: Number.isFinite(Number(data.episode)) ? Number(data.episode) : ep,
+        cached: !!data.cached,
+        subtitles: normalizeSubs(data.subtitles),
+        latest_episode: Number.isFinite(Number(data.latest_episode)) ? Number(data.latest_episode) : null,
+        qualities: normalizeQualities(data.calidades ?? data.qualities),
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+});

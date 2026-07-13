@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Type, Film } from "lucide-react";
 import { isWebView } from "@/lib/webview";
-import { getSeekeEpisode, type SeekeQuality } from "@/lib/zetapi";
+import { resolveStreamEpisode, type SeekeQuality } from "@/lib/zetapi";
 import { useSubtitlePrefs, subtitleStyle, subtitlePositionClass } from "@/hooks/useSubtitlePrefs";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +26,10 @@ const EMPTY_PLAYER_SUBTITLES: PlayerSubtitle[] = [];
 
 interface Props {
   sources: PlayerSource[];
+  /** ID de AniList — obligatorio para el flujo Seeke seguro (edge function). */
+  anilistId?: number;
+  /** Idioma actual — obligatorio para el flujo Seeke seguro. */
+  lang?: string;
   title?: string;
   onProgress?: (progress: number) => void;
   /** Llamado cuando el usuario hace seek manual (adelanta/retrocede). */
@@ -143,7 +147,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   return classified;
 }
 
-export default function AnimePlayer({ sources, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, episodeThumbnails, subtitles = EMPTY_PLAYER_SUBTITLES, fullscreenContainerRef, onControlsVisibilityChange, onEpisodeListToggle, onFullscreenChange }: Props) {
+export default function AnimePlayer({ sources, anilistId, lang, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, episodeThumbnails, subtitles = EMPTY_PLAYER_SUBTITLES, fullscreenContainerRef, onControlsVisibilityChange, onEpisodeListToggle, onFullscreenChange }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -318,7 +322,6 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
 
     if (currentSource.type === "seeke") {
       const requestedEp = currentSource.episode || 1;
-      const requestedUrl = currentSource.url;
       const qualityUrlForCurrentEpisode = selectedQualityEpisodeKeyRef.current === episodeKey ? selectedQualityUrl : null;
       setLoading(true);
       if (qualityUrlForCurrentEpisode == null) {
@@ -326,7 +329,12 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         setQualities([]);
       }
       if (import.meta.env.DEV) console.log(`[zetAnimes] Calibrando transmisión · ep ${requestedEp}`);
-      getSeekeEpisode(requestedUrl, requestedEp)
+      if (!anilistId || !lang) {
+        setError(true);
+        setLoading(false);
+        return;
+      }
+      resolveStreamEpisode(anilistId, lang, requestedEp)
         .then((data) => {
           if (cancelled || abort.signal.aborted) return;
           const returnedEp = Number(data.episode);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2, Save, Layers, ArrowLeftRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { listBlocks, saveBlocks, invalidateBlocksCache, type VideoBlock } from "@/lib/video-blocks";
+import { listBlocksAdmin, saveBlocks, invalidateBlocksCache, type VideoBlock } from "@/lib/video-blocks";
 import { clearRuntimeVideoCache } from "@/lib/video-cache";
 import { clearSeekeEpisodeCache } from "@/lib/zetapi";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +49,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
 
   const load = async () => {
     setLoading(true);
-    const blocks = await listBlocks(anilistId, lang);
+    const blocks = await listBlocksAdmin(anilistId, lang);
     // Detectar si hay un bloque inverso (offset > 0)
     const inverseBlock = blocks.find((b) => Number(b.source_episode_offset || 0) > 0 || b.inverse_mode);
     const normals = blocks.filter((b) => b !== inverseBlock);
