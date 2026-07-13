@@ -254,18 +254,18 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
     return processPage(data.Page, options);
   }
 
-  const variants = buildLooseSearchVariants(cleanTerm, 3);
-  const batches = await Promise.allSettled(variants.map((variant) => runAniListSearch(variant, Math.min(Math.max(perPage, 18), 30))));
+  // Un solo variant en tiempo real: menos disparos = menos 429 = búsqueda estable.
+  const variants = [cleanTerm];
   const seen = new Map<number, AniListMedia>();
   let firstPageInfo: PageResult["pageInfo"] | null = null;
-
-  for (const batch of batches) {
-    if (batch.status !== "fulfilled") continue;
-    const pageData = batch.value?.Page;
-    if (!firstPageInfo && pageData?.pageInfo) firstPageInfo = pageData.pageInfo;
+  try {
+    const pageData = (await runAniListSearch(variants[0], Math.min(Math.max(perPage, 18), 30)))?.Page;
+    if (pageData?.pageInfo) firstPageInfo = pageData.pageInfo;
     for (const media of pageData?.media || []) {
       if (!seen.has(media.id)) seen.set(media.id, media);
     }
+  } catch {
+    // Si AniList falla o hace timeout, seguimos con Jikan más abajo.
   }
 
   if (seen.size < Math.min(perPage, 12)) {
