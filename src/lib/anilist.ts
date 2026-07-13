@@ -239,7 +239,7 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
     return processPage(data.Page, options);
   }
 
-  const variants = buildLooseSearchVariants(cleanTerm, 7);
+  const variants = buildLooseSearchVariants(cleanTerm, 3);
   const batches = await Promise.allSettled(variants.map((variant) => runAniListSearch(variant, Math.min(Math.max(perPage, 18), 30))));
   const seen = new Map<number, AniListMedia>();
   let firstPageInfo: PageResult["pageInfo"] | null = null;
