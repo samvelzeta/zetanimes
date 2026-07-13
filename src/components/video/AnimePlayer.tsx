@@ -26,6 +26,10 @@ const EMPTY_PLAYER_SUBTITLES: PlayerSubtitle[] = [];
 
 interface Props {
   sources: PlayerSource[];
+  /** ID de AniList — obligatorio para el flujo Seeke seguro (edge function). */
+  anilistId?: number;
+  /** Idioma actual — obligatorio para el flujo Seeke seguro. */
+  lang?: string;
   title?: string;
   onProgress?: (progress: number) => void;
   /** Llamado cuando el usuario hace seek manual (adelanta/retrocede). */
