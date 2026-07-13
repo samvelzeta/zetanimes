@@ -19,6 +19,7 @@ import {
 
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
 import AdOverlayGate from "@/components/ads/AdOverlayGate";
+import AdblockPlayerOverlay from "@/components/ads/AdblockPlayerOverlay";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import StreamGuard from "@/components/video/StreamGuard";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
