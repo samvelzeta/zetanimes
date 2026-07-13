@@ -73,20 +73,30 @@ export default function PendingApproval() {
   const hiddenSet = useMemo(() => new Set<number>(hiddenList.map((h) => h.anilist_id)), [hiddenList]);
 
   // 3 páginas de RELEASING para tener suficiente pool
+  // Auto-refresh cada 3 min para traer nuevos animes en emisión / finalizados
+  // sin que el admin tenga que recargar la página.
+  const AUTO_REFRESH_MS = 1000 * 60 * 3;
+
   const { data: p1, isLoading: l1 } = useQuery({
     queryKey: ["airing-page", 1],
     queryFn: () => getRecentlyUpdated(1, 50),
-    staleTime: 1000 * 60 * 15,
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: AUTO_REFRESH_MS,
+    refetchIntervalInBackground: false,
   });
   const { data: p2, isLoading: l2 } = useQuery({
     queryKey: ["airing-page", 2],
     queryFn: () => getRecentlyUpdated(2, 50),
-    staleTime: 1000 * 60 * 15,
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: AUTO_REFRESH_MS,
+    refetchIntervalInBackground: false,
   });
   const { data: p3, isLoading: l3 } = useQuery({
     queryKey: ["airing-page", 3],
     queryFn: () => getRecentlyUpdated(3, 50),
-    staleTime: 1000 * 60 * 15,
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: AUTO_REFRESH_MS,
+    refetchIntervalInBackground: false,
   });
 
   // Películas recientemente estrenadas (AniList) — también entran a pendientes
@@ -94,7 +104,9 @@ export default function PendingApproval() {
   const { data: movies, isLoading: lm } = useQuery({
     queryKey: ["recent-released-movies", 1],
     queryFn: () => getRecentReleasedMovies(1, 30),
-    staleTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: AUTO_REFRESH_MS,
+    refetchIntervalInBackground: false,
   });
 
   // También traemos las películas que se muestran en Directorio (populares + próximas)
@@ -102,28 +114,36 @@ export default function PendingApproval() {
   const { data: dirMovies, isLoading: lm2 } = useQuery({
     queryKey: ["directory-movies-pending", 1],
     queryFn: () => getMovies(1, 30, null),
-    staleTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: AUTO_REFRESH_MS,
+    refetchIntervalInBackground: false,
   });
   const { data: dirUpcoming, isLoading: lm3 } = useQuery({
     queryKey: ["directory-upcoming-movies-pending", 1],
     queryFn: () => getUpcomingMovies(1, 20),
-    staleTime: 1000 * 60 * 60,
+    staleTime: 1000 * 60 * 10,
+    refetchInterval: AUTO_REFRESH_MS,
+    refetchIntervalInBackground: false,
   });
 
   // Pool del Home: trending / popular / top / temporada. Los FINALIZADOS sin
   // enlace madre Seeke se ocultan del Home y deben aparecer aquí para poder
   // aprobarse y refrescarse.
   const { data: homeTrending } = useQuery({
-    queryKey: ["pending-home-trending"], queryFn: () => getTrending(1, 30), staleTime: 1000 * 60 * 30,
+    queryKey: ["pending-home-trending"], queryFn: () => getTrending(1, 30),
+    staleTime: 1000 * 60 * 5, refetchInterval: AUTO_REFRESH_MS, refetchIntervalInBackground: false,
   });
   const { data: homePopular } = useQuery({
-    queryKey: ["pending-home-popular"], queryFn: () => getPopular(1, 30), staleTime: 1000 * 60 * 30,
+    queryKey: ["pending-home-popular"], queryFn: () => getPopular(1, 30),
+    staleTime: 1000 * 60 * 5, refetchInterval: AUTO_REFRESH_MS, refetchIntervalInBackground: false,
   });
   const { data: homeTop } = useQuery({
-    queryKey: ["pending-home-top"], queryFn: () => getTopRated(1, 30), staleTime: 1000 * 60 * 30,
+    queryKey: ["pending-home-top"], queryFn: () => getTopRated(1, 30),
+    staleTime: 1000 * 60 * 5, refetchInterval: AUTO_REFRESH_MS, refetchIntervalInBackground: false,
   });
   const { data: homeSeason } = useQuery({
-    queryKey: ["pending-home-season"], queryFn: () => getThisSeason(1, 30), staleTime: 1000 * 60 * 30,
+    queryKey: ["pending-home-season"], queryFn: () => getThisSeason(1, 30),
+    staleTime: 1000 * 60 * 5, refetchInterval: AUTO_REFRESH_MS, refetchIntervalInBackground: false,
   });
 
 
