@@ -152,37 +152,32 @@ export async function saveBlocks(
 }
 
 /**
-   * Latest_episode global por idioma.
-   * - Sin bloques: usa la URL madre oficial guardada en DB (episode=0).
- * - Con bloques: pide a cada bloque su latest_episode y lo mapea a numeración
- *   global; devuelve el máximo absoluto.
+ * Latest_episode global por idioma. Delegado 100% al edge function seguro
+ * — el navegador nunca ve la URL madre ni consulta la VPS directamente.
  */
 export async function getLatestEpisodeByLang(
   anilistId: number,
   lang: string,
-  fallbackBaseUrl?: string
+  _fallbackBaseUrl?: string
 ): Promise<number | undefined> {
-  const blocks = await listBlocks(anilistId, lang);
-  if (blocks.length) {
-    const results = await Promise.all(
-      blocks.map(async (b) => {
-        const offset = Number(b.source_episode_offset || 0);
-        // En modo inverso (offset>0), pedimos a partir del cap real en Seeke.
-        const hint = Math.max(1, offset + 1);
-        const latestWithin = await getLatestEpisodeForBase(b.seeke_base_url, hint);
-        if (!latestWithin) return undefined;
-        // latestWithin viene en numeración de Seeke. Restamos offset para obtener
-        // el cap relativo al bloque, luego mapeamos a numeración global.
-        const blockSize = b.episode_to - b.episode_from + 1;
-        const relative = Math.max(0, latestWithin - offset); // cap visible dentro del bloque
-        if (relative <= 0) return undefined;
-        const clamped = Math.min(relative, blockSize);
-        return b.episode_from + clamped - 1;
-      })
-    );
-    const valid = results.filter((n): n is number => typeof n === "number" && n > 0);
-    return valid.length ? Math.max(...valid) : undefined;
-  }
-  if (fallbackBaseUrl) return getLatestEpisodeForBase(fallbackBaseUrl, 1);
-  return undefined;
+  return resolveStreamLatest(anilistId, lang);
 }
+
+/**
+ * Variante ADMIN: lee bloques con la URL madre real (requiere rol admin/owner).
+ * Solo debe usarse desde paneles administrativos.
+ */
+export async function listBlocksAdmin(anilistId: number, lang: string): Promise<VideoBlock[]> {
+  const { data, error } = await supabase
+    .from("video_cache_blocks" as any)
+    .select("*")
+    .eq("anilist_id", anilistId)
+    .eq("lang", lang)
+    .order("block_index", { ascending: true });
+  if (error) {
+    console.warn("[video-blocks] listBlocksAdmin error:", error);
+    return [];
+  }
+  return (data || []) as unknown as VideoBlock[];
+}
+
