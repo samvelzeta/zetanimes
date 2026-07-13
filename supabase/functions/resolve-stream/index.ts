@@ -11,6 +11,28 @@ const corsHeaders = {
 
 const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
 
+// 🧠 Caché en memoria del edge (viva mientras la instancia esté caliente).
+// TTL corto para no servir enlaces caducados pero absorbiendo picos de tráfico.
+const EPISODE_TTL_MS = 150_000; // 2.5 min
+const LATEST_TTL_MS = 60_000;   // 1 min
+type CacheEntry<T> = { at: number; value: T };
+const episodeCache = new Map<string, CacheEntry<any>>();
+const latestCache = new Map<string, CacheEntry<number | null>>();
+function cacheGet<T>(m: Map<string, CacheEntry<T>>, key: string, ttl: number): T | null {
+  const hit = m.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > ttl) { m.delete(key); return null; }
+  return hit.value;
+}
+function cacheSet<T>(m: Map<string, CacheEntry<T>>, key: string, value: T) {
+  m.set(key, { at: Date.now(), value });
+  if (m.size > 500) {
+    // LRU-ish: borra las 100 más antiguas
+    const entries = [...m.entries()].sort((a, b) => a[1].at - b[1].at).slice(0, 100);
+    for (const [k] of entries) m.delete(k);
+  }
+}
+
 type SeekeSub = { lang?: string; language?: string; srclang?: string; url?: string; src?: string; label?: string };
 type SeekeResp = {
   ok?: boolean;
