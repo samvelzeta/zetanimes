@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      const master = await resolveMasterUrl(supabase, anilistId, lang, ep);
+      const master = await resolveMasterForLatest(supabase, anilistId, lang);
       if (!master) {
         return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -250,11 +250,13 @@ Deno.serve(async (req) => {
       if (!data || !Number.isFinite(Number(data?.latest_episode))) {
         data = await callScraper(master.url, Math.max(1, master.sourceEp), false);
       }
-      const latest = Number(data?.latest_episode);
-      const finalLatest = Number.isFinite(latest) ? latest : null;
-      if (finalLatest !== null) cacheSet(latestCache, latestKey, finalLatest);
+      const latestRaw = Number(data?.latest_episode);
+      const translated = Number.isFinite(latestRaw)
+        ? (master.translate ? master.translate(latestRaw) : latestRaw)
+        : null;
+      if (translated !== null) cacheSet(latestCache, latestKey, translated);
       return new Response(
-        JSON.stringify({ ok: true, latest_episode: finalLatest }),
+        JSON.stringify({ ok: true, latest_episode: translated }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
