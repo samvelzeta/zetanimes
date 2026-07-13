@@ -53,25 +53,41 @@ async function processPage<T extends PageResult>(page: T, options?: { skipCurati
 // Deduplica requests idénticas en vuelo (evita disparar 3-4 copias por tecla).
 const inflight = new Map<string, Promise<any>>();
 
+// Timeout duro por intento — evita que un fetch colgado deje la UI cargando para siempre.
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function queryAniList(query: string, variables: Record<string, unknown> = {}) {
   const key = JSON.stringify({ query, variables });
   const existing = inflight.get(key);
   if (existing) return existing;
 
   const run = (async () => {
-    const maxAttempts = 4;
+    const maxAttempts = 3;
     let lastErr: unknown = null;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        const res = await fetch(ANILIST_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query, variables }),
-        });
-        // 429 = rate limit; 5xx = transitorio. Reintentar con backoff.
+        const res = await fetchWithTimeout(
+          ANILIST_URL,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query, variables }),
+          },
+          8000
+        );
+        // 429 = rate limit; 5xx = transitorio. Reintentar con backoff acotado.
         if (res.status === 429 || res.status >= 500) {
+          if (attempt >= maxAttempts - 1) throw new Error(`AniList HTTP ${res.status}`);
           const retryAfter = Number(res.headers.get("Retry-After")) || 0;
-          const wait = retryAfter > 0 ? retryAfter * 1000 : Math.min(1500 * Math.pow(2, attempt), 8000);
+          const wait = retryAfter > 0 ? Math.min(retryAfter * 1000, 3000) : 600 * (attempt + 1);
           await new Promise((r) => setTimeout(r, wait));
           continue;
         }
@@ -81,9 +97,8 @@ async function queryAniList(query: string, variables: Record<string, unknown> = 
         return json.data;
       } catch (err) {
         lastErr = err;
-        // Solo reintentar errores de red; errores de GraphQL ya se lanzaron arriba.
         if (attempt < maxAttempts - 1) {
-          await new Promise((r) => setTimeout(r, 800 * Math.pow(2, attempt)));
+          await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
           continue;
         }
       }
