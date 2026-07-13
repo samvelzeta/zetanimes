@@ -322,7 +322,6 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
 
     if (currentSource.type === "seeke") {
       const requestedEp = currentSource.episode || 1;
-      const requestedUrl = currentSource.url;
       const qualityUrlForCurrentEpisode = selectedQualityEpisodeKeyRef.current === episodeKey ? selectedQualityUrl : null;
       setLoading(true);
       if (qualityUrlForCurrentEpisode == null) {
@@ -330,7 +329,12 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
         setQualities([]);
       }
       if (import.meta.env.DEV) console.log(`[zetAnimes] Calibrando transmisión · ep ${requestedEp}`);
-      getSeekeEpisode(requestedUrl, requestedEp)
+      if (!anilistId || !lang) {
+        setError("Configuración del reproductor incompleta.");
+        setLoading(false);
+        return;
+      }
+      resolveStreamEpisode(anilistId, lang, requestedEp)
         .then((data) => {
           if (cancelled || abort.signal.aborted) return;
           const returnedEp = Number(data.episode);
