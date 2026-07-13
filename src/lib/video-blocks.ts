@@ -2,7 +2,7 @@
 // madre Seeke distintas (útil cuando una serie está dividida por temporadas
 // en la fuente externa pero en mi página tiene numeración continua).
 import { supabase } from "@/integrations/supabase/client";
-import { getLatestEpisodeForBase } from "@/lib/zetapi";
+import { getLatestEpisodeForBase, resolveStreamLatest } from "@/lib/zetapi";
 
 export interface VideoBlock {
   id: string;
@@ -13,6 +13,7 @@ export interface VideoBlock {
   block_label: string | null;
   episode_from: number;
   episode_to: number;
+  /** ⚠️ Solo lo llena el panel admin. En el flujo público es "". */
   seeke_base_url: string;
   /** Si > 0, modo inverso: el episodio relativo al bloque se desplaza por este valor
    *  cuando se construye la petición a la VPS.
@@ -22,6 +23,7 @@ export interface VideoBlock {
 }
 
 export interface ResolvedBlock {
+  /** ⚠️ Solo se completa en el panel admin. En el player público es "". */
   baseUrl: string;
   blockIndex: number;
   blockLabel: string | null;
@@ -35,24 +37,36 @@ export interface ResolvedBlock {
 }
 
 export async function listBlocks(anilistId: number, lang: string): Promise<VideoBlock[]> {
-  const { data, error } = await supabase
-    .from("video_cache_blocks" as any)
-    .select("*")
-    .eq("anilist_id", anilistId)
-    .eq("lang", lang)
-    .order("block_index", { ascending: true });
+  // Flujo público: RPC que NO devuelve seeke_base_url. La URL madre solo la
+  // conoce el edge function `resolve-stream` server-side.
+  const { data, error } = await supabase.rpc("list_video_blocks_public", {
+    _anilist_id: anilistId,
+    _lang: lang,
+  });
 
   if (error) {
     console.warn("[video-blocks] listBlocks error:", error);
     return [];
   }
-  const value = (data || []) as unknown as VideoBlock[];
-  return value;
+  return ((data as any[]) || []).map((b) => ({
+    id: b.id,
+    anilist_id: b.anilist_id,
+    slug: b.slug,
+    lang: b.lang,
+    block_index: b.block_index,
+    block_label: b.block_label,
+    episode_from: b.episode_from,
+    episode_to: b.episode_to,
+    seeke_base_url: "", // enmascarado
+    source_episode_offset: b.source_episode_offset,
+    inverse_mode: b.inverse_mode,
+  }));
 }
 
 export function invalidateBlocksCache(anilistId?: number, lang?: string) {
   // No-op legacy: los bloques se leen siempre directo de la base oficial.
 }
+
 
 /**
  * Si hay bloques definidos para (anilistId, lang) devuelve el bloque al que
