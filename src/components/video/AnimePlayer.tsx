@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Type, Film } from "lucide-react";
 import { isWebView } from "@/lib/webview";
-import { getSeekeEpisode, type SeekeQuality } from "@/lib/zetapi";
+import { resolveStreamEpisode, type SeekeQuality } from "@/lib/zetapi";
 import { useSubtitlePrefs, subtitleStyle, subtitlePositionClass } from "@/hooks/useSubtitlePrefs";
 import { usePlanPermissions } from "@/hooks/usePlanPermissions";
 import { useAuth } from "@/contexts/AuthContext";
