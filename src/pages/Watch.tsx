@@ -333,7 +333,7 @@ export default function Watch() {
   const { data: oppositeServerData } = useQuery({
     queryKey: ["zet-servers-opposite", zetSlug, selectedEp, oppositeLang],
     queryFn: () => getEpisodeServers(zetSlug!, selectedEp, oppositeLang),
-    enabled: !!zetSlug && cachedVideoOppositeFetched && seekeConfigReady && !hasAnySeekeConfig,
+    enabled: !!zetSlug && cachedVideoOppositeFetched && seekeConfigReady && !hasOppositeSeekeConfig,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",
