@@ -325,13 +325,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
         setSeekeSubs([]);
         setQualities([]);
       }
-      console.log("[seeke] resolve start", { url: requestedUrl, ep: requestedEp, episodeKey });
+      if (import.meta.env.DEV) console.log(`[zetAnimes] Calibrando transmisión · ep ${requestedEp}`);
       getSeekeEpisode(requestedUrl, requestedEp)
         .then((data) => {
           if (cancelled || abort.signal.aborted) return;
           const returnedEp = Number(data.episode);
           if (Number.isFinite(returnedEp) && returnedEp !== requestedEp) {
-            console.warn("[seeke] mismatch ep", { pedido: requestedEp, recibido: returnedEp, url: requestedUrl });
+            if (import.meta.env.DEV) console.warn(`[zetAnimes] desfase de episodio · pedido ${requestedEp} · recibido ${returnedEp}`);
           }
           if (Array.isArray(data.subtitles)) setSeekeSubs(data.subtitles);
           const qs = data.qualities || [];
@@ -601,13 +601,13 @@ export default function AnimePlayer({ sources, title, onProgress, onSeeked, auto
           try { localStorage.removeItem(cacheKey); } catch { void 0; }
           setParsedSubtitleCues([]);
           setActiveSubtitleText("");
-          console.warn("[Subs] No se pudo cargar el SRT por ningún método", { url: selected.url, lastErr });
+          if (import.meta.env.DEV) console.warn("[zetAnimes] No se pudo cargar el subtítulo");
         }
         return;
       }
 
       const cues = parseSrt(srtText);
-      console.log(`[Subs] SRT cargado: ${cues.length} cues — ${selected.url}`);
+      if (import.meta.env.DEV) console.log(`[zetAnimes] Subtítulo listo · ${cues.length} líneas`);
       if (cancelled) return;
       if (cues.length === 0) {
         try { localStorage.removeItem(cacheKey); } catch { void 0; }
