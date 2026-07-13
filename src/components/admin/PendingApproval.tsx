@@ -138,13 +138,41 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 30, refetchInterval: DAILY_MS, refetchIntervalInBackground: false,
   });
 
+  // Páginas extra dinámicas: si tras filtrar quedan <10 pendientes, pedimos
+  // más páginas de AniList (RELEASING + películas) para reponer la cola.
+  const MIN_PENDING = 10;
+  const MAX_EXTRA_PAGES = 12; // hasta ~12 páginas extra (600 items adicionales)
+  const [extraPages, setExtraPages] = useState(0);
+
+  const { data: extraItems, refetch: rExtra, isFetching: extraFetching } = useQuery({
+    queryKey: ["airing-extra-pages", extraPages],
+    enabled: extraPages > 0,
+    staleTime: 1000 * 60 * 30,
+    refetchInterval: DAILY_MS,
+    refetchIntervalInBackground: false,
+    queryFn: async () => {
+      const out: AiringItem[] = [];
+      for (let i = 0; i < extraPages; i++) {
+        const page = 4 + i;
+        const [rel, mov] = await Promise.all([
+          getRecentlyUpdated(page, 50).catch(() => ({ media: [] as AiringItem[] })),
+          getMovies(page, 30, null).catch(() => ({ media: [] as AiringItem[] })),
+        ]);
+        out.push(...((rel.media || []) as AiringItem[]));
+        out.push(...((mov.media || []) as AiringItem[]));
+      }
+      return out;
+    },
+  });
+
   const [refreshing, setRefreshing] = useState(false);
   async function handleManualRefresh() {
     setRefreshing(true);
     try {
       await Promise.all([
         rp1(), rp2(), rp3(), rm(), rdm(), rdu(),
-        rht(), rhp(), rhtop(), rhs(), refetchHidden(),
+        rht(), rhp(), rhtop(), rhs(), refetchHidden(), refetchSeeke(),
+        extraPages > 0 ? rExtra() : Promise.resolve(),
       ]);
       toast.success("Pendientes actualizado");
     } catch {
