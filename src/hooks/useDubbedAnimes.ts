@@ -31,16 +31,11 @@ async function fetchDubbed(): Promise<{ ids: Set<number>; slugs: Set<string> }> 
     dubbedPromise = (async () => {
       const ids = new Set<number>();
       const slugs = new Set<string>();
-      const [vc, vcb, le] = await Promise.all([
-        supabase.from("video_cache").select("anilist_id, slug").eq("lang", "latino").limit(10000),
-        supabase.from("video_cache_blocks").select("anilist_id, slug").eq("lang", "latino").limit(10000),
+      const [dubs, le] = await Promise.all([
+        supabase.rpc("list_dubbed_anime_ids"),
         supabase.from("latino_episodes").select("slug").limit(10000),
       ]);
-      (vc.data || []).forEach((r: any) => {
-        if (typeof r.anilist_id === "number") ids.add(r.anilist_id);
-        if (r.slug) slugs.add(r.slug);
-      });
-      (vcb.data || []).forEach((r: any) => {
+      ((dubs.data as any[]) || []).forEach((r: any) => {
         if (typeof r.anilist_id === "number") ids.add(r.anilist_id);
         if (r.slug) slugs.add(r.slug);
       });
