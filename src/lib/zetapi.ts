@@ -270,10 +270,10 @@ export async function resolveStreamEpisode(
   ep: number
 ): Promise<SeekeResolved> {
   const body = { action: "episode", anilistId, lang, ep };
-  // 1er intento: 4s. Si falla, reintento silencioso con 8s para tolerar cold start.
+  // Reintentos con timeouts crecientes para tolerar cold start del edge/VPS.
   let data: any = null;
   let lastErr: any = null;
-  for (const timeout of [4000, 8000]) {
+  for (const timeout of [6000, 12000]) {
     try {
       const res = await invokeWithTimeout(body, timeout);
       if (!res.error && res.data?.ok && res.data?.embed) { data = res.data; break; }
@@ -283,13 +283,19 @@ export async function resolveStreamEpisode(
     }
   }
   if (!data) throw new Error(typeof lastErr === "string" ? lastErr : (lastErr?.message || "resolve_failed"));
+  // 🔧 `data.qualities` YA viene normalizado desde el edge como [{label,url}].
+  // No re-normalizar (eso lo vaciaba y rompía el selector de calidades).
+  const rawQualities = data.qualities;
+  const qualities: SeekeQuality[] = Array.isArray(rawQualities)
+    ? rawQualities.filter((q: any) => q && typeof q.url === "string" && q.url).map((q: any) => ({ label: String(q.label || ""), url: String(q.url) }))
+    : normalizeSeekeQualities(rawQualities);
   return {
     embed: String(data.embed),
     episode: Number(data.episode || ep),
     cached: !!data.cached,
     subtitles: normalizeSeekeSubs(data.subtitles),
     latest_episode: Number.isFinite(Number(data.latest_episode)) ? Number(data.latest_episode) : undefined,
-    qualities: normalizeSeekeQualities(data.qualities),
+    qualities,
   };
 }
 
@@ -297,7 +303,7 @@ export async function resolveStreamLatest(
   anilistId: number,
   lang: string
 ): Promise<number | undefined> {
-  for (const timeout of [3500, 6000]) {
+  for (const timeout of [6000, 12000]) {
     try {
       const res = await invokeWithTimeout({ action: "latest", anilistId, lang, ep: 1 }, timeout);
       if (res.error || !res.data?.ok) continue;

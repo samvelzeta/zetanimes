@@ -120,6 +120,58 @@ async function resolveMasterUrl(
   return null;
 }
 
+/**
+ * Resuelve una URL madre para consultar `latest_episode` de todo el anime.
+ * Prioriza episode=0 (URL madre canónica) y, si no hay, usa el ÚLTIMO bloque
+ * definido — su latest se traduce a episodio absoluto acotado al rango del bloque.
+ * Nunca devuelve null si existe cualquier configuración Seeke para el idioma.
+ */
+async function resolveMasterForLatest(
+  supabase: ReturnType<typeof createClient>,
+  anilistId: number,
+  lang: string,
+): Promise<{ url: string; sourceEp: number; translate?: (vpsLatest: number) => number } | null> {
+  // 1) URL madre canónica (episode=0)
+  const { data: base } = await supabase
+    .from("video_cache")
+    .select("sources")
+    .eq("anilist_id", anilistId)
+    .eq("lang", lang)
+    .eq("episode", 0)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  const seekeArr = (base?.[0] as any)?.sources?.seeke;
+  if (Array.isArray(seekeArr) && seekeArr[0]) {
+    return { url: String(seekeArr[0]), sourceEp: 1 };
+  }
+
+  // 2) Último bloque — traducir latest relativo a episodio absoluto.
+  const { data: blocks } = await supabase
+    .from("video_cache_blocks")
+    .select("seeke_base_url, episode_from, episode_to, source_episode_offset")
+    .eq("anilist_id", anilistId)
+    .eq("lang", lang)
+    .order("block_index", { ascending: false })
+    .limit(1);
+  const last = (blocks as any[])?.[0];
+  if (last?.seeke_base_url) {
+    const offset = Number(last.source_episode_offset || 0);
+    const relTop = last.episode_to - last.episode_from + 1;
+    // Pedimos al VPS el episodio TOP del bloque para maximizar el latest_episode.
+    const probeSourceEp = Math.max(1, relTop + offset);
+    return {
+      url: String(last.seeke_base_url),
+      sourceEp: probeSourceEp,
+      translate: (vpsLatest: number) => {
+        // absolute = vpsLatest + episode_from - 1 - offset, acotado por episode_to.
+        const abs = vpsLatest + Number(last.episode_from) - 1 - offset;
+        return Math.min(Number(last.episode_to), Math.max(0, abs));
+      },
+    };
+  }
+  return null;
+}
+
 async function callScraper(masterUrl: string, ep: number, latestOnly = false): Promise<SeekeResp | null> {
   try {
     const r = await fetch(SEEKE_BOT_URL, {
@@ -188,7 +240,7 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      const master = await resolveMasterUrl(supabase, anilistId, lang, ep);
+      const master = await resolveMasterForLatest(supabase, anilistId, lang);
       if (!master) {
         return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -198,11 +250,13 @@ Deno.serve(async (req) => {
       if (!data || !Number.isFinite(Number(data?.latest_episode))) {
         data = await callScraper(master.url, Math.max(1, master.sourceEp), false);
       }
-      const latest = Number(data?.latest_episode);
-      const finalLatest = Number.isFinite(latest) ? latest : null;
-      if (finalLatest !== null) cacheSet(latestCache, latestKey, finalLatest);
+      const latestRaw = Number(data?.latest_episode);
+      const translated = Number.isFinite(latestRaw)
+        ? (master.translate ? master.translate(latestRaw) : latestRaw)
+        : null;
+      if (translated !== null) cacheSet(latestCache, latestKey, translated);
       return new Response(
-        JSON.stringify({ ok: true, latest_episode: finalLatest }),
+        JSON.stringify({ ok: true, latest_episode: translated }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -240,9 +294,9 @@ Deno.serve(async (req) => {
       qualities: normalizeQualities(data.calidades ?? data.qualities),
     };
     cacheSet(episodeCache, cacheKey, payload);
-    if (payload.latest_episode !== null) {
-      cacheSet(latestCache, `${anilistId}|${lang}`, payload.latest_episode);
-    }
+    // NO cacheamos latest_episode desde la rama "episode" porque cuando el
+    // anime usa bloques ese número es RELATIVO al bloque, no absoluto. La
+    // rama "latest" tiene la lógica correcta de traducción.
     return new Response(JSON.stringify(payload), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
