@@ -925,7 +925,9 @@ export default function Watch() {
             {shouldShowLanguageControls && (
               <div className="inline-flex rounded-xl bg-secondary/60 border border-border/60 p-1 gap-1">
                 {(["sub", "latino"] as const).map((targetLang) => {
-                  const enabled = langAvailability[targetLang] > 0;
+                  const enabled = hasSeekeConfigBothLanguages
+                    ? (targetLang === "sub" ? hasCurrentSeekeConfig || hasOppositeSeekeConfig : hasCurrentSeekeConfig || hasOppositeSeekeConfig)
+                    : langAvailability[targetLang] > 0;
                   const selected = activeLang === targetLang;
                   const meta = targetLang === "sub"
                     ? { label: "JAPONÉS", sub: "AUDIO: JPN · SUB: ESP" }
