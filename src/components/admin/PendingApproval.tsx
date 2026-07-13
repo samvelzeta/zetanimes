@@ -224,6 +224,12 @@ export default function PendingApproval() {
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
+    // Páginas extra dinámicas: se piden cuando la cola de pendientes baja de 10.
+    for (const m of (extraItems || [])) {
+      if (seekeMasterSet?.has(m.id)) continue;
+      if (m.status === "NOT_YET_RELEASED" || m.status === "CANCELLED") continue;
+      if (!map.has(m.id)) map.set(m.id, m);
+    }
     // Fuentes del Home — sólo entran si ya cambiaron de estado y aún no tienen
     // enlace madre Seeke. Descartamos NOT_YET_RELEASED / CANCELLED (ocultos hasta salir).
     for (const p of [homeTrending, homePopular, homeTop, homeSeason]) {
@@ -235,7 +241,7 @@ export default function PendingApproval() {
       }
     }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet]);
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet]);
 
   // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
   const { data: prequelMap } = useQuery({
