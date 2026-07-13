@@ -384,7 +384,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
       hardCleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSource?.type, currentSource?.url, currentSource?.episode, episodeKey, autoplay, tryNext, restoreTime, selectedQualityUrl]);
+  }, [currentSource?.type, currentSource?.url, currentSource?.episode, episodeKey, autoplay, tryNext, restoreTime, selectedQualityUrl, lang]);
 
   // Reset quality selection when episode changes
   useEffect(() => {
