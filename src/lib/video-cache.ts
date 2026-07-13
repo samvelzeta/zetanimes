@@ -130,6 +130,9 @@ function hasSeekeSources(video: CachedVideo | null | undefined) {
 
 /**
  * Busca primero en el catálogo oficial de reproducción (DB). Devuelve null si no existe.
+ * ⚠️ Usa la RPC `get_video_cache_row` que ENMASCARA `sources.seeke` — el navegador
+ * nunca recibe la URL madre. Cuando `has_seeke=true`, inyectamos un placeholder
+ * opaco `["__masked__"]` para que el player active el flujo seguro via edge function.
  */
 export async function getCachedVideo(
   slug: string,
@@ -139,30 +142,42 @@ export async function getCachedVideo(
 ): Promise<CachedVideo | null> {
   const normalizedSlug = normalizeSlug(slug);
 
-  let rows: CachedVideo[] = [];
+  type MaskedRow = {
+    id: string;
+    slug: string;
+    episode: number;
+    lang: string;
+    anilist_id: number | null;
+    anime_title: string | null;
+    sources: any;
+    has_seeke: boolean;
+    updated_at: string;
+  };
 
   const readRows = async (targetEpisode: number): Promise<CachedVideo[]> => {
-    if (anilistId) {
-      const { data, error } = await supabase
-        .from("video_cache")
-        .select("*")
-        .eq("anilist_id", anilistId)
-        .eq("episode", targetEpisode)
-        .eq("lang", lang)
-        .order("updated_at", { ascending: false });
-
-      if (!error && data?.length) return data as unknown as CachedVideo[];
-    }
-
-    const { data, error } = await supabase
-      .from("video_cache")
-      .select("*")
-      .eq("slug", normalizedSlug)
-      .eq("episode", targetEpisode)
-      .eq("lang", lang)
-      .order("updated_at", { ascending: false });
-
-    return !error && data?.length ? data as unknown as CachedVideo[] : [];
+    const { data, error } = await supabase.rpc("get_video_cache_row", {
+      _slug: normalizedSlug,
+      _episode: targetEpisode,
+      _lang: lang,
+      _anilist_id: anilistId ?? null,
+    });
+    if (error || !data) return [];
+    const rows = (data as unknown as MaskedRow[]) || [];
+    return rows.map((row) => {
+      const sources = { ...(row.sources || {}) } as VideoSources;
+      // Placeholder opaco: le indica al player "usa el flujo seguro" sin exponer la URL.
+      if (row.has_seeke) sources.seeke = ["__masked__"];
+      return {
+        id: row.id,
+        slug: row.slug,
+        episode: row.episode,
+        lang: row.lang,
+        anilist_id: row.anilist_id,
+        anime_title: row.anime_title,
+        sources,
+        updated_at: row.updated_at,
+      };
+    });
   };
 
   // Seeke usa una URL base por anime/idioma; si existe, SIEMPRE gana sobre
@@ -175,16 +190,14 @@ export async function getCachedVideo(
     }
   }
 
-  rows = await readRows(episode);
+  let rows = await readRows(episode);
   if (!rows.length && episode !== 0) rows = await readRows(0);
 
   const result = pickBestVideo(rows, normalizedSlug);
-  if (!result) {
-    return null;
-  }
-
+  if (!result) return null;
   return result;
 }
+
 
 /**
  * Guarda/actualiza un enlace oficial de reproducción (admin).
