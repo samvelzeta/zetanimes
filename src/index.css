@@ -1722,3 +1722,30 @@ img {
 .zet-reduced-motion .zf-frame-z > img,
 .zet-reduced-motion .zf-frame-blood > img { animation: none !important; }
 
+/* Anti-bypass adblock: si <html> tiene .zet-blocked, la app entera queda
+   inutilizable aunque un script de consola borre el modal del AdblockGate. */
+html.zet-blocked #root {
+  pointer-events: none !important;
+  filter: blur(10px) saturate(0.5) !important;
+  user-select: none !important;
+  overflow: hidden !important;
+}
+html.zet-blocked { overflow: hidden !important; }
+html.zet-blocked body::after {
+  content: "Bloqueador detectado — desactívalo para continuar";
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--background) / 0.92);
+  color: hsl(var(--foreground));
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  padding: 24px;
+  z-index: 2147480500;
+  pointer-events: auto;
+}
+
+
