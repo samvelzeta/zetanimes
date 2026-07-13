@@ -86,7 +86,9 @@ export async function resolveSeekeBaseForEpisode(
   const relative = episode - match.episode_from + 1; // 1-indexed within block
   const episodeWithinBlock = relative + offset;
   return {
-    baseUrl: match.seeke_base_url,
+    // Placeholder opaco — la URL real solo la conoce el edge function server-side.
+    // Debe ser único por bloque para no colapsar en deduplicaciones del player.
+    baseUrl: `__masked_block_${match.block_index}__`,
     blockIndex: match.block_index,
     blockLabel: match.block_label,
     episodeFrom: match.episode_from,
