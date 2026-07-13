@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2, Save, Layers, ArrowLeftRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { listBlocks, saveBlocks, invalidateBlocksCache, type VideoBlock } from "@/lib/video-blocks";
+import { listBlocksAdmin, saveBlocks, invalidateBlocksCache, type VideoBlock } from "@/lib/video-blocks";
 import { clearRuntimeVideoCache } from "@/lib/video-cache";
 import { clearSeekeEpisodeCache } from "@/lib/zetapi";
 import { supabase } from "@/integrations/supabase/client";
