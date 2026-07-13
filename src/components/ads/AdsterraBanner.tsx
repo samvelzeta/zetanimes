@@ -128,12 +128,19 @@ export default function AdsterraBanner({ adKey, width, height, uid }: Props) {
     return <div aria-hidden style={{ width: 0, height: 0, overflow: "hidden", margin: 0, padding: 0 }} />;
   }
 
+  // Etiqueta con letras separadas por spans invisibles para romper matches por
+  // textContent === "Patrocinado". Contenedor sin clases identificables y sin
+  // id `ad-container-*`.
+  const labelChars = "Patrocinado".split("");
   return (
-    <div className="flex flex-col items-center my-4">
-      <span className="text-[9px] text-muted-foreground uppercase tracking-widest mb-1.5">Patrocinado</span>
+    <div className="my-4 mx-auto w-fit text-center">
+      <span className="text-[9px] text-muted-foreground tracking-widest mb-1.5 inline-block" style={{ textTransform: "uppercase" }}>
+        {labelChars.map((c, i) => (
+          <span key={i} data-z={Math.random().toString(36).slice(2, 5)}>{c}</span>
+        ))}
+      </span>
       <div
         ref={ref}
-        id={`ad-container-${uid}`}
         style={{ width: `${width}px`, height: `${height}px` }}
         className="bg-secondary/30 border border-border rounded-lg overflow-hidden flex items-center justify-center"
       />
