@@ -457,7 +457,11 @@ export default function Watch() {
   const hasApiOnlyOppositeLang =
     (dbLangAvailability.sub > 0 && dbLangAvailability.latino === 0 && apiLangAvailability.latino > 0) ||
     (dbLangAvailability.latino > 0 && dbLangAvailability.sub === 0 && apiLangAvailability.sub > 0);
-  const shouldShowLanguageControls = (hasDbBothLanguages && dbLikeCount > 0) || hasApiOnlyOppositeLang;
+  // Mostrar el switch de idioma si existe configuración Seeke (URL madre o
+  // bloque) en AMBOS idiomas, o si hay fuentes DB en ambos, o si hay solo un
+  // idioma en DB pero la API cubre el opuesto.
+  const hasSeekeConfigBothLanguages = hasCurrentSeekeConfig && hasOppositeSeekeConfig;
+  const shouldShowLanguageControls = hasSeekeConfigBothLanguages || (hasDbBothLanguages && dbLikeCount > 0) || hasApiOnlyOppositeLang;
   const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls && !hasSeekeBothLanguages;
   const sortedSources = useMemo(() => {
     // REGLA ESTRICTA: el reproductor SOLO recibe fuentes del idioma seleccionado.
@@ -921,7 +925,9 @@ export default function Watch() {
             {shouldShowLanguageControls && (
               <div className="inline-flex rounded-xl bg-secondary/60 border border-border/60 p-1 gap-1">
                 {(["sub", "latino"] as const).map((targetLang) => {
-                  const enabled = langAvailability[targetLang] > 0;
+                  const enabled = hasSeekeConfigBothLanguages
+                    ? (targetLang === "sub" ? hasCurrentSeekeConfig || hasOppositeSeekeConfig : hasCurrentSeekeConfig || hasOppositeSeekeConfig)
+                    : langAvailability[targetLang] > 0;
                   const selected = activeLang === targetLang;
                   const meta = targetLang === "sub"
                     ? { label: "JAPONÉS", sub: "AUDIO: JPN · SUB: ESP" }
