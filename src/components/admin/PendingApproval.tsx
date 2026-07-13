@@ -138,13 +138,41 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 30, refetchInterval: DAILY_MS, refetchIntervalInBackground: false,
   });
 
+  // Páginas extra dinámicas: si tras filtrar quedan <10 pendientes, pedimos
+  // más páginas de AniList (RELEASING + películas) para reponer la cola.
+  const MIN_PENDING = 10;
+  const MAX_EXTRA_PAGES = 12; // hasta ~12 páginas extra (600 items adicionales)
+  const [extraPages, setExtraPages] = useState(0);
+
+  const { data: extraItems, refetch: rExtra, isFetching: extraFetching } = useQuery({
+    queryKey: ["airing-extra-pages", extraPages],
+    enabled: extraPages > 0,
+    staleTime: 1000 * 60 * 30,
+    refetchInterval: DAILY_MS,
+    refetchIntervalInBackground: false,
+    queryFn: async () => {
+      const out: AiringItem[] = [];
+      for (let i = 0; i < extraPages; i++) {
+        const page = 4 + i;
+        const [rel, mov] = await Promise.all([
+          getRecentlyUpdated(page, 50).catch(() => ({ media: [] as AiringItem[] })),
+          getMovies(page, 30, null).catch(() => ({ media: [] as AiringItem[] })),
+        ]);
+        out.push(...((rel.media || []) as AiringItem[]));
+        out.push(...((mov.media || []) as AiringItem[]));
+      }
+      return out;
+    },
+  });
+
   const [refreshing, setRefreshing] = useState(false);
   async function handleManualRefresh() {
     setRefreshing(true);
     try {
       await Promise.all([
         rp1(), rp2(), rp3(), rm(), rdm(), rdu(),
-        rht(), rhp(), rhtop(), rhs(), refetchHidden(),
+        rht(), rhp(), rhtop(), rhs(), refetchHidden(), refetchSeeke(),
+        extraPages > 0 ? rExtra() : Promise.resolve(),
       ]);
       toast.success("Pendientes actualizado");
     } catch {
@@ -196,6 +224,12 @@ export default function PendingApproval() {
         if (!map.has(m.id)) map.set(m.id, m);
       }
     }
+    // Páginas extra dinámicas: se piden cuando la cola de pendientes baja de 10.
+    for (const m of (extraItems || [])) {
+      if (seekeMasterSet?.has(m.id)) continue;
+      if (m.status === "NOT_YET_RELEASED" || m.status === "CANCELLED") continue;
+      if (!map.has(m.id)) map.set(m.id, m);
+    }
     // Fuentes del Home — sólo entran si ya cambiaron de estado y aún no tienen
     // enlace madre Seeke. Descartamos NOT_YET_RELEASED / CANCELLED (ocultos hasta salir).
     for (const p of [homeTrending, homePopular, homeTop, homeSeason]) {
@@ -207,7 +241,7 @@ export default function PendingApproval() {
       }
     }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet]);
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet]);
 
   // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
   const { data: prequelMap } = useQuery({
@@ -397,6 +431,17 @@ export default function PendingApproval() {
   const pendingCount = allItems.filter((id) => !approvedSet.has(id) && !hiddenSet.has(id)).length;
   const approvedCount = allItems.filter((id) => approvedSet.has(id) && !hiddenSet.has(id)).length;
   const hiddenCount = hiddenSet.size;
+
+  // Si tras filtrar quedan menos de MIN_PENDING pendientes y aún no llegamos al
+  // tope de páginas extra, pedimos otra página de AniList automáticamente.
+  useEffect(() => {
+    if (loading || extraFetching) return;
+    if (!seekeMasterSet) return; // esperamos a saber cuáles ya están aprobados
+    if (pendingCount >= MIN_PENDING) return;
+    if (extraPages >= MAX_EXTRA_PAGES) return;
+    setExtraPages((n) => n + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingCount, loading, extraFetching, seekeMasterSet, extraPages]);
 
   return (
     <div className="space-y-4">
