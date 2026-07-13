@@ -50,15 +50,53 @@ async function processPage<T extends PageResult>(page: T, options?: { skipCurati
   return { ...curated, media: await applyStatusOverrides(curated.media || []) };
 }
 
+// Deduplica requests idénticas en vuelo (evita disparar 3-4 copias por tecla).
+const inflight = new Map<string, Promise<any>>();
+
 async function queryAniList(query: string, variables: Record<string, unknown> = {}) {
-  const res = await fetch(ANILIST_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables }),
-  });
-  const json = await res.json();
-  if (json.errors) throw new Error(json.errors[0].message);
-  return json.data;
+  const key = JSON.stringify({ query, variables });
+  const existing = inflight.get(key);
+  if (existing) return existing;
+
+  const run = (async () => {
+    const maxAttempts = 4;
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const res = await fetch(ANILIST_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, variables }),
+        });
+        // 429 = rate limit; 5xx = transitorio. Reintentar con backoff.
+        if (res.status === 429 || res.status >= 500) {
+          const retryAfter = Number(res.headers.get("Retry-After")) || 0;
+          const wait = retryAfter > 0 ? retryAfter * 1000 : Math.min(1500 * Math.pow(2, attempt), 8000);
+          await new Promise((r) => setTimeout(r, wait));
+          continue;
+        }
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json) throw new Error(`AniList HTTP ${res.status}`);
+        if (json.errors) throw new Error(json.errors[0]?.message || "AniList error");
+        return json.data;
+      } catch (err) {
+        lastErr = err;
+        // Solo reintentar errores de red; errores de GraphQL ya se lanzaron arriba.
+        if (attempt < maxAttempts - 1) {
+          await new Promise((r) => setTimeout(r, 800 * Math.pow(2, attempt)));
+          continue;
+        }
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error("AniList request failed");
+  })();
+
+  inflight.set(key, run);
+  try {
+    return await run;
+  } finally {
+    inflight.delete(key);
+  }
 }
 
 export interface AniListMedia {
