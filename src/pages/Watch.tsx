@@ -876,6 +876,8 @@ export default function Watch() {
                 everyN={1}
                 countdownSecs={5}
               />
+              <AdblockPlayerOverlay />
+
             </StreamGuard>
           ) : (
             <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3">
