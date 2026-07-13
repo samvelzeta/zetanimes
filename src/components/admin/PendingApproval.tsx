@@ -73,78 +73,87 @@ export default function PendingApproval() {
   const hiddenSet = useMemo(() => new Set<number>(hiddenList.map((h) => h.anilist_id)), [hiddenList]);
 
   // 3 páginas de RELEASING para tener suficiente pool
-  // Auto-refresh cada 3 min para traer nuevos animes en emisión / finalizados
-  // sin que el admin tenga que recargar la página.
-  const AUTO_REFRESH_MS = 1000 * 60 * 3;
+  // Auto-refresh diario (24h). Botón manual disponible para forzar refresh.
+  const DAILY_MS = 1000 * 60 * 60 * 24;
 
-  const { data: p1, isLoading: l1 } = useQuery({
+  const { data: p1, isLoading: l1, refetch: rp1 } = useQuery({
     queryKey: ["airing-page", 1],
     queryFn: () => getRecentlyUpdated(1, 50),
-    staleTime: 1000 * 60 * 2,
-    refetchInterval: AUTO_REFRESH_MS,
+    staleTime: 1000 * 60 * 15,
+    refetchInterval: DAILY_MS,
     refetchIntervalInBackground: false,
   });
-  const { data: p2, isLoading: l2 } = useQuery({
+  const { data: p2, isLoading: l2, refetch: rp2 } = useQuery({
     queryKey: ["airing-page", 2],
     queryFn: () => getRecentlyUpdated(2, 50),
-    staleTime: 1000 * 60 * 2,
-    refetchInterval: AUTO_REFRESH_MS,
+    staleTime: 1000 * 60 * 15,
+    refetchInterval: DAILY_MS,
     refetchIntervalInBackground: false,
   });
-  const { data: p3, isLoading: l3 } = useQuery({
+  const { data: p3, isLoading: l3, refetch: rp3 } = useQuery({
     queryKey: ["airing-page", 3],
     queryFn: () => getRecentlyUpdated(3, 50),
-    staleTime: 1000 * 60 * 2,
-    refetchInterval: AUTO_REFRESH_MS,
+    staleTime: 1000 * 60 * 15,
+    refetchInterval: DAILY_MS,
     refetchIntervalInBackground: false,
   });
 
-  // Películas recientemente estrenadas (AniList) — también entran a pendientes
-  // para que el admin las revise cuando ya "salieron".
-  const { data: movies, isLoading: lm } = useQuery({
+  const { data: movies, isLoading: lm, refetch: rm } = useQuery({
     queryKey: ["recent-released-movies", 1],
     queryFn: () => getRecentReleasedMovies(1, 30),
-    staleTime: 1000 * 60 * 5,
-    refetchInterval: AUTO_REFRESH_MS,
+    staleTime: 1000 * 60 * 30,
+    refetchInterval: DAILY_MS,
     refetchIntervalInBackground: false,
   });
 
-  // También traemos las películas que se muestran en Directorio (populares + próximas)
-  // para que TODA película sin enlace madre Seeke aparezca aquí.
-  const { data: dirMovies, isLoading: lm2 } = useQuery({
+  const { data: dirMovies, isLoading: lm2, refetch: rdm } = useQuery({
     queryKey: ["directory-movies-pending", 1],
     queryFn: () => getMovies(1, 30, null),
-    staleTime: 1000 * 60 * 5,
-    refetchInterval: AUTO_REFRESH_MS,
+    staleTime: 1000 * 60 * 30,
+    refetchInterval: DAILY_MS,
     refetchIntervalInBackground: false,
   });
-  const { data: dirUpcoming, isLoading: lm3 } = useQuery({
+  const { data: dirUpcoming, isLoading: lm3, refetch: rdu } = useQuery({
     queryKey: ["directory-upcoming-movies-pending", 1],
     queryFn: () => getUpcomingMovies(1, 20),
-    staleTime: 1000 * 60 * 10,
-    refetchInterval: AUTO_REFRESH_MS,
+    staleTime: 1000 * 60 * 60,
+    refetchInterval: DAILY_MS,
     refetchIntervalInBackground: false,
   });
 
-  // Pool del Home: trending / popular / top / temporada. Los FINALIZADOS sin
-  // enlace madre Seeke se ocultan del Home y deben aparecer aquí para poder
-  // aprobarse y refrescarse.
-  const { data: homeTrending } = useQuery({
+  const { data: homeTrending, refetch: rht } = useQuery({
     queryKey: ["pending-home-trending"], queryFn: () => getTrending(1, 30),
-    staleTime: 1000 * 60 * 5, refetchInterval: AUTO_REFRESH_MS, refetchIntervalInBackground: false,
+    staleTime: 1000 * 60 * 30, refetchInterval: DAILY_MS, refetchIntervalInBackground: false,
   });
-  const { data: homePopular } = useQuery({
+  const { data: homePopular, refetch: rhp } = useQuery({
     queryKey: ["pending-home-popular"], queryFn: () => getPopular(1, 30),
-    staleTime: 1000 * 60 * 5, refetchInterval: AUTO_REFRESH_MS, refetchIntervalInBackground: false,
+    staleTime: 1000 * 60 * 30, refetchInterval: DAILY_MS, refetchIntervalInBackground: false,
   });
-  const { data: homeTop } = useQuery({
+  const { data: homeTop, refetch: rhtop } = useQuery({
     queryKey: ["pending-home-top"], queryFn: () => getTopRated(1, 30),
-    staleTime: 1000 * 60 * 5, refetchInterval: AUTO_REFRESH_MS, refetchIntervalInBackground: false,
+    staleTime: 1000 * 60 * 30, refetchInterval: DAILY_MS, refetchIntervalInBackground: false,
   });
-  const { data: homeSeason } = useQuery({
+  const { data: homeSeason, refetch: rhs } = useQuery({
     queryKey: ["pending-home-season"], queryFn: () => getThisSeason(1, 30),
-    staleTime: 1000 * 60 * 5, refetchInterval: AUTO_REFRESH_MS, refetchIntervalInBackground: false,
+    staleTime: 1000 * 60 * 30, refetchInterval: DAILY_MS, refetchIntervalInBackground: false,
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+  async function handleManualRefresh() {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        rp1(), rp2(), rp3(), rm(), rdm(), rdu(),
+        rht(), rhp(), rhtop(), rhs(), refetchHidden(),
+      ]);
+      toast.success("Pendientes actualizado");
+    } catch {
+      toast.error("Error refrescando");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
 
 
   const { data: approvedArr, refetch: refetchApproved } = useQuery({
