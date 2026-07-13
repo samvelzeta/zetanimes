@@ -1715,6 +1715,12 @@ export type Database = {
         }
       }
       gacha_pull: { Args: { _pool: string }; Returns: Json }
+      get_anime_ids_with_seeke_master: {
+        Args: never
+        Returns: {
+          anilist_id: number
+        }[]
+      }
       get_anime_like_count: { Args: { _anilist_id: number }; Returns: number }
       get_leaderboard: {
         Args: { _limit?: number }
@@ -1736,6 +1742,25 @@ export type Database = {
       get_user_max_streams: { Args: { _user_id: string }; Returns: number }
       get_user_plan_slug: { Args: { _user_id: string }; Returns: string }
       get_user_rank_position: { Args: { _user_id: string }; Returns: number }
+      get_video_cache_row: {
+        Args: {
+          _anilist_id?: number
+          _episode: number
+          _lang: string
+          _slug: string
+        }
+        Returns: {
+          anilist_id: number
+          anime_title: string
+          episode: number
+          has_seeke: boolean
+          id: string
+          lang: string
+          slug: string
+          sources: Json
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1752,6 +1777,28 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      list_dubbed_anime_ids: {
+        Args: never
+        Returns: {
+          anilist_id: number
+          slug: string
+        }[]
+      }
+      list_video_blocks_public: {
+        Args: { _anilist_id: number; _lang: string }
+        Returns: {
+          anilist_id: number
+          block_index: number
+          block_label: string
+          episode_from: number
+          episode_to: number
+          id: string
+          inverse_mode: boolean
+          lang: string
+          slug: string
+          source_episode_offset: number
+        }[]
       }
       purge_old_data: { Args: never; Returns: undefined }
       revoke_all_device_sessions: {
