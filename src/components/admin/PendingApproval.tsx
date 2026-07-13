@@ -440,6 +440,15 @@ export default function PendingApproval() {
               className="pl-8 h-9 text-xs"
             />
           </div>
+          <button
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-secondary text-foreground hover:bg-secondary/80 transition disabled:opacity-50 flex items-center gap-1.5"
+            title="Buscar nuevos animes ahora"
+          >
+            {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "🔄"}
+            {refreshing ? "Refrescando…" : "Refrescar"}
+          </button>
         </div>
       </div>
 
