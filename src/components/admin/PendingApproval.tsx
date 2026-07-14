@@ -468,20 +468,29 @@ export default function PendingApproval() {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => { setShowApproved(false); }}
+            onClick={() => { setShowApproved(false); setShowHidden(false); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              !showApproved ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              !showApproved && !showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             Pendientes ({pendingCount})
           </button>
           <button
-            onClick={() => { setShowApproved(true); }}
+            onClick={() => { setShowApproved(true); setShowHidden(false); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              showApproved ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              showApproved && !showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             Aprobados ({approvedCount})
+          </button>
+          <button
+            onClick={() => { setShowHidden(true); setShowApproved(false); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+            title="Animes ocultos 7 días — puedes devolverlos a la bandeja"
+          >
+            Ocultos 7d ({hiddenCount})
           </button>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
