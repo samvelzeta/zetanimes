@@ -399,18 +399,23 @@ export default function PendingApproval() {
       return fuzzyTextScore(q, [titleOf(a), a.title?.romaji, a.title?.english, String(a.id)]) >= 1.1;
     };
 
-    const out: PendingGroup[] = [];
+    const out: (PendingGroup & { showMain: boolean })[] = [];
     for (const g of groups) {
-      // Si el padre está oculto, todo el grupo desaparece (aunque tenga hijas)
-      if (!showHidden && hiddenSet.has(g.main.id)) continue;
-      // En vista "Pendientes": si el main ya está aprobado, no mostrar el grupo
-      // (aunque tenga hijas pendientes) — evita que reaparezca en pendientes.
-      if (!showHidden && !showApproved && approvedSet.has(g.main.id)) continue;
+      const mainHidden = hiddenSet.has(g.main.id);
+      const mainApproved = approvedSet.has(g.main.id);
+      // En vista "Ocultos": sólo grupos con main oculto
+      if (showHidden && !mainHidden && !g.related.some((r) => hiddenSet.has(r.id))) continue;
+      // En vista "Pendientes"/"Aprobados": si main está oculto, ocultamos todo el grupo
+      if (!showHidden && mainHidden) continue;
+
       const mainOk = matches(g.main);
       const relatedOk = g.related.filter(matches);
-      if (mainOk || relatedOk.length > 0) {
-        out.push({ main: g.main, related: mainOk ? g.related.filter(matches) : relatedOk });
-      }
+      if (!mainOk && relatedOk.length === 0) continue;
+
+      // Si estamos en "Pendientes" y el main está aprobado pero hay related pendientes,
+      // renderizamos el grupo SIN el main (sólo las relacionadas pendientes).
+      const hideMain = !showHidden && !showApproved && mainApproved && !mainOk && relatedOk.length > 0;
+      out.push({ main: g.main, related: relatedOk, showMain: !hideMain && mainOk });
     }
     return out;
   }, [groups, query, approvedSet, showApproved, showHidden, hiddenSet]);
@@ -429,7 +434,9 @@ export default function PendingApproval() {
     return Array.from(ids);
   }, [groups]);
   const pendingCount = allItems.filter((id) => !approvedSet.has(id) && !hiddenSet.has(id)).length;
-  const approvedCount = allItems.filter((id) => approvedSet.has(id) && !hiddenSet.has(id)).length;
+  // Aprobados: contamos TODOS los aprobados de la BD (no sólo los del pool actual de AniList),
+  // descontando los que estén ocultos.
+  const approvedCount = (approvedArr || []).filter((id) => !hiddenSet.has(id)).length;
   const hiddenCount = hiddenSet.size;
 
   // Si tras filtrar quedan menos de MIN_PENDING pendientes y aún no llegamos al
