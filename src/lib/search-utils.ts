@@ -117,9 +117,10 @@ export function fuzzyTextScore(query: string, candidates: Array<string | null | 
       let hits = 0;
       for (const token of tokens) {
         if (text.includes(token)) hits += 1;
-        else if (token.length >= 3 && words.some((word) => word.startsWith(token))) hits += 0.85;
-        else if (token.length >= 4 && words.some((word) => diceCoefficient(word, token) >= 0.72)) hits += 0.65;
-        else if (token.length >= 4 && diceCoefficient(text, token) >= 0.42) hits += 0.35;
+        else if (token.length >= 3 && words.some((word) => word.startsWith(token))) hits += 0.9;
+        else if (token.length >= 3 && words.some((word) => word.includes(token))) hits += 0.75;
+        else if (token.length >= 3 && words.some((word) => diceCoefficient(word, token) >= 0.6)) hits += 0.7;
+        else if (token.length >= 4 && diceCoefficient(text, token) >= 0.32) hits += 0.45;
       }
       score += (hits / tokens.length) * 4;
     }
