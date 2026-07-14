@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
 import { getPrequelChain, getSideStories, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
-import { hidePendingAnime, listHiddenPending } from "@/lib/hidden-pending-animes";
+import { hidePendingAnime, listHiddenPending, unhidePendingAnime } from "@/lib/hidden-pending-animes";
 import { unhideAnime } from "@/lib/hidden-animes";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 import { getStatusLabel } from "@/lib/anilist";
@@ -399,18 +399,23 @@ export default function PendingApproval() {
       return fuzzyTextScore(q, [titleOf(a), a.title?.romaji, a.title?.english, String(a.id)]) >= 1.1;
     };
 
-    const out: PendingGroup[] = [];
+    const out: (PendingGroup & { showMain: boolean })[] = [];
     for (const g of groups) {
-      // Si el padre está oculto, todo el grupo desaparece (aunque tenga hijas)
-      if (!showHidden && hiddenSet.has(g.main.id)) continue;
-      // En vista "Pendientes": si el main ya está aprobado, no mostrar el grupo
-      // (aunque tenga hijas pendientes) — evita que reaparezca en pendientes.
-      if (!showHidden && !showApproved && approvedSet.has(g.main.id)) continue;
+      const mainHidden = hiddenSet.has(g.main.id);
+      const mainApproved = approvedSet.has(g.main.id);
+      // En vista "Ocultos": sólo grupos con main oculto
+      if (showHidden && !mainHidden && !g.related.some((r) => hiddenSet.has(r.id))) continue;
+      // En vista "Pendientes"/"Aprobados": si main está oculto, ocultamos todo el grupo
+      if (!showHidden && mainHidden) continue;
+
       const mainOk = matches(g.main);
       const relatedOk = g.related.filter(matches);
-      if (mainOk || relatedOk.length > 0) {
-        out.push({ main: g.main, related: mainOk ? g.related.filter(matches) : relatedOk });
-      }
+      if (!mainOk && relatedOk.length === 0) continue;
+
+      // Si estamos en "Pendientes" y el main está aprobado pero hay related pendientes,
+      // renderizamos el grupo SIN el main (sólo las relacionadas pendientes).
+      const hideMain = !showHidden && !showApproved && mainApproved && !mainOk && relatedOk.length > 0;
+      out.push({ main: g.main, related: relatedOk, showMain: !hideMain && mainOk });
     }
     return out;
   }, [groups, query, approvedSet, showApproved, showHidden, hiddenSet]);
@@ -429,7 +434,9 @@ export default function PendingApproval() {
     return Array.from(ids);
   }, [groups]);
   const pendingCount = allItems.filter((id) => !approvedSet.has(id) && !hiddenSet.has(id)).length;
-  const approvedCount = allItems.filter((id) => approvedSet.has(id) && !hiddenSet.has(id)).length;
+  // Aprobados: contamos TODOS los aprobados de la BD (no sólo los del pool actual de AniList),
+  // descontando los que estén ocultos.
+  const approvedCount = (approvedArr || []).filter((id) => !hiddenSet.has(id)).length;
   const hiddenCount = hiddenSet.size;
 
   // Si tras filtrar quedan menos de MIN_PENDING pendientes y aún no llegamos al
@@ -461,20 +468,29 @@ export default function PendingApproval() {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => { setShowApproved(false); }}
+            onClick={() => { setShowApproved(false); setShowHidden(false); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              !showApproved ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              !showApproved && !showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             Pendientes ({pendingCount})
           </button>
           <button
-            onClick={() => { setShowApproved(true); }}
+            onClick={() => { setShowApproved(true); setShowHidden(false); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              showApproved ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+              showApproved && !showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
             Aprobados ({approvedCount})
+          </button>
+          <button
+            onClick={() => { setShowHidden(true); setShowApproved(false); }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              showHidden ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+            title="Animes ocultos 7 días — puedes devolverlos a la bandeja"
+          >
+            Ocultos 7d ({hiddenCount})
           </button>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -506,7 +522,7 @@ export default function PendingApproval() {
 
       {!loading && filteredGroups.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          {showApproved ? "Aún no has aprobado ningún anime." : "🎉 No hay animes pendientes."}
+          {showHidden ? "No hay animes ocultos." : showApproved ? "Aún no has aprobado ningún anime." : "🎉 No hay animes pendientes."}
         </div>
       )}
 
@@ -521,14 +537,16 @@ export default function PendingApproval() {
           };
           return (
             <div key={g.main.id} className="flex flex-col gap-2">
-              <PendingCard
-                anime={g.main}
-                approved={approvedSet.has(g.main.id)}
-                hasVideo={withVideo?.has(g.main.id) ?? false}
-                hidden={hiddenSet.has(g.main.id)}
-                cascadeIds={g.related.map((r) => r.id)}
-                onChanged={onChanged}
-              />
+              {g.showMain && (
+                <PendingCard
+                  anime={g.main}
+                  approved={approvedSet.has(g.main.id)}
+                  hasVideo={withVideo?.has(g.main.id) ?? false}
+                  hidden={hiddenSet.has(g.main.id)}
+                  cascadeIds={g.related.map((r) => r.id)}
+                  onChanged={onChanged}
+                />
+              )}
 
               {g.related.length > 0 && (
                 <RelatedGroup
@@ -538,6 +556,7 @@ export default function PendingApproval() {
                   hiddenSet={hiddenSet}
                   withVideo={withVideo}
                   onChanged={onChanged}
+                  defaultOpen={!g.showMain}
                 />
               )}
             </div>
@@ -555,6 +574,7 @@ function RelatedGroup({
   hiddenSet,
   withVideo,
   onChanged,
+  defaultOpen = false,
 }: {
   parentTitle: string;
   related: AiringItem[];
@@ -562,8 +582,9 @@ function RelatedGroup({
   hiddenSet: Set<number>;
   withVideo?: Set<number>;
   onChanged: () => void;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="ml-4 border-l-2 border-primary/40 pl-3">
       <button
@@ -742,60 +763,90 @@ function PendingCard({
 
   return (
     <div className="relative rounded-2xl border border-border bg-card overflow-hidden flex">
-      {/* Único botón: ocultar 7 días y eliminar del tracker */}
-      <button
-        onClick={async () => {
-          const cascade = cascadeIds.length;
-          const msg = cascade > 0
-            ? `¿Ocultar "${title}" y sus ${cascade} temporada${cascade > 1 ? "s" : ""} relacionada${cascade > 1 ? "s" : ""} durante 7 días? También se eliminarán del tracker de descargas.`
-            : `¿Ocultar "${title}" de la bandeja durante 7 días? También se eliminará del tracker de descargas.`;
-          if (!confirm(msg)) return;
-          setBusy(true);
-          try {
-            const allIds = [anime.id, ...cascadeIds];
-            for (const id of allIds) {
-              try {
-                await hidePendingAnime(id, `oculto desde bandeja${id !== anime.id ? " (cascada)" : ""}`);
-              } catch (err) {
-                console.warn("[hide] failed", id, err);
-              }
-              try {
-                const { data: trackerRow } = await supabase
-                  .from("anime_download_tracker")
-                  .select("id")
-                  .eq("anilist_id", id)
-                  .maybeSingle();
-                if (trackerRow?.id) {
-                  await supabase.rpc("delete_download_tracker", { _tracker_id: trackerRow.id });
+      {hidden ? (
+        // Vista Ocultos: botón para devolver a la bandeja
+        <button
+          onClick={async () => {
+            if (!confirm(`¿Devolver "${title}" a la bandeja de pendientes?`)) return;
+            setBusy(true);
+            try {
+              await unhidePendingAnime(anime.id);
+              await logAdminActivity({
+                area: "videos",
+                action: "unhide_pending_anime",
+                summary: `Devuelto a pendientes: ${title}`,
+                target_type: "anime",
+                target_id: String(anime.id),
+                anilist_id: anime.id,
+                anime_title: title,
+              });
+              toast.success("Devuelto a pendientes");
+              onChanged();
+            } catch (e: any) {
+              toast.error(e?.message || "Error al devolver");
+            } finally { setBusy(false); }
+          }}
+          disabled={busy}
+          title="Devolver a la bandeja de pendientes"
+          className="absolute top-1.5 right-1.5 z-10 h-7 px-2 rounded-full bg-primary/90 backdrop-blur text-primary-foreground text-[10px] font-bold flex items-center justify-center hover:bg-primary disabled:opacity-50 shadow-md"
+        >
+          ↩ Devolver
+        </button>
+      ) : (
+        <button
+          onClick={async () => {
+            const cascade = cascadeIds.length;
+            const msg = cascade > 0
+              ? `¿Ocultar "${title}" y sus ${cascade} temporada${cascade > 1 ? "s" : ""} relacionada${cascade > 1 ? "s" : ""} durante 7 días? También se eliminarán del tracker de descargas.`
+              : `¿Ocultar "${title}" de la bandeja durante 7 días? También se eliminará del tracker de descargas.`;
+            if (!confirm(msg)) return;
+            setBusy(true);
+            try {
+              const allIds = [anime.id, ...cascadeIds];
+              for (const id of allIds) {
+                try {
+                  await hidePendingAnime(id, `oculto desde bandeja${id !== anime.id ? " (cascada)" : ""}`);
+                } catch (err) {
+                  console.warn("[hide] failed", id, err);
                 }
-              } catch (err) {
-                console.warn("[hide] tracker delete failed", id, err);
+                try {
+                  const { data: trackerRow } = await supabase
+                    .from("anime_download_tracker")
+                    .select("id")
+                    .eq("anilist_id", id)
+                    .maybeSingle();
+                  if (trackerRow?.id) {
+                    await supabase.rpc("delete_download_tracker", { _tracker_id: trackerRow.id });
+                  }
+                } catch (err) {
+                  console.warn("[hide] tracker delete failed", id, err);
+                }
               }
-            }
-            await logAdminActivity({
-              area: "videos",
-              action: "hide_pending_anime",
-              summary: cascade > 0
-                ? `Ocultado 7 días + ${cascade} relacionadas + removidos del tracker: ${title}`
-                : `Ocultado 7 días + removido del tracker: ${title}`,
-              target_type: "anime",
-              target_id: String(anime.id),
-              anilist_id: anime.id,
-              anime_title: title,
-              metadata: { cascade_ids: cascadeIds },
-            });
-            toast.success(cascade > 0 ? `Oculto ${allIds.length} animes y tracker limpio` : "Oculto 7 días y removido del tracker");
-            onChanged();
-          } catch (e: any) {
-            toast.error(e?.message || "Error al ocultar");
-          } finally { setBusy(false); }
-        }}
-        disabled={busy}
-        title={cascadeIds.length > 0 ? `Ocultar 7 días (padre + ${cascadeIds.length} hijas) y eliminar del tracker` : "Ocultar 7 días y eliminar del tracker"}
-        className="absolute top-1.5 right-1.5 z-10 h-7 w-7 rounded-full bg-background/80 backdrop-blur border border-border text-foreground flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50 shadow-md"
-      >
-        <X className="w-3.5 h-3.5" />
-      </button>
+              await logAdminActivity({
+                area: "videos",
+                action: "hide_pending_anime",
+                summary: cascade > 0
+                  ? `Ocultado 7 días + ${cascade} relacionadas + removidos del tracker: ${title}`
+                  : `Ocultado 7 días + removido del tracker: ${title}`,
+                target_type: "anime",
+                target_id: String(anime.id),
+                anilist_id: anime.id,
+                anime_title: title,
+                metadata: { cascade_ids: cascadeIds },
+              });
+              toast.success(cascade > 0 ? `Oculto ${allIds.length} animes y tracker limpio` : "Oculto 7 días y removido del tracker");
+              onChanged();
+            } catch (e: any) {
+              toast.error(e?.message || "Error al ocultar");
+            } finally { setBusy(false); }
+          }}
+          disabled={busy}
+          title={cascadeIds.length > 0 ? `Ocultar 7 días (padre + ${cascadeIds.length} hijas) y eliminar del tracker` : "Ocultar 7 días y eliminar del tracker"}
+          className="absolute top-1.5 right-1.5 z-10 h-7 w-7 rounded-full bg-background/80 backdrop-blur border border-border text-foreground flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50 shadow-md"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
 
       <div className="w-24 h-36 shrink-0 bg-secondary">
         {cover && <LazyImage src={cover} alt={title} className="w-full h-full object-cover" />}
