@@ -581,8 +581,9 @@ function RelatedGroup({
   hiddenSet: Set<number>;
   withVideo?: Set<number>;
   onChanged: () => void;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!arguments);
   return (
     <div className="ml-4 border-l-2 border-primary/40 pl-3">
       <button
