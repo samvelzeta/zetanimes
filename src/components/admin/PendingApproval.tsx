@@ -522,7 +522,7 @@ export default function PendingApproval() {
 
       {!loading && filteredGroups.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          {showApproved ? "Aún no has aprobado ningún anime." : "🎉 No hay animes pendientes."}
+          {showHidden ? "No hay animes ocultos." : showApproved ? "Aún no has aprobado ningún anime." : "🎉 No hay animes pendientes."}
         </div>
       )}
 
@@ -537,14 +537,16 @@ export default function PendingApproval() {
           };
           return (
             <div key={g.main.id} className="flex flex-col gap-2">
-              <PendingCard
-                anime={g.main}
-                approved={approvedSet.has(g.main.id)}
-                hasVideo={withVideo?.has(g.main.id) ?? false}
-                hidden={hiddenSet.has(g.main.id)}
-                cascadeIds={g.related.map((r) => r.id)}
-                onChanged={onChanged}
-              />
+              {g.showMain && (
+                <PendingCard
+                  anime={g.main}
+                  approved={approvedSet.has(g.main.id)}
+                  hasVideo={withVideo?.has(g.main.id) ?? false}
+                  hidden={hiddenSet.has(g.main.id)}
+                  cascadeIds={g.related.map((r) => r.id)}
+                  onChanged={onChanged}
+                />
+              )}
 
               {g.related.length > 0 && (
                 <RelatedGroup
@@ -554,6 +556,7 @@ export default function PendingApproval() {
                   hiddenSet={hiddenSet}
                   withVideo={withVideo}
                   onChanged={onChanged}
+                  defaultOpen={!g.showMain}
                 />
               )}
             </div>
