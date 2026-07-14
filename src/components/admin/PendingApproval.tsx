@@ -574,6 +574,7 @@ function RelatedGroup({
   hiddenSet,
   withVideo,
   onChanged,
+  defaultOpen = false,
 }: {
   parentTitle: string;
   related: AiringItem[];
@@ -583,7 +584,7 @@ function RelatedGroup({
   onChanged: () => void;
   defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(!!arguments);
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="ml-4 border-l-2 border-primary/40 pl-3">
       <button
