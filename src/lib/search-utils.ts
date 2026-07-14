@@ -1,5 +1,54 @@
+// Números: mapeo bidireccional para que "naruto 2" y "naruto dos" empaten.
+// Cubrimos 0-10 en español, inglés y romaji japonés (los más comunes en títulos).
+const NUM_ALIASES: Record<string, string[]> = {
+  "0": ["cero", "zero", "rei"],
+  "1": ["uno", "one", "ichi", "i"],
+  "2": ["dos", "two", "ni", "ii"],
+  "3": ["tres", "three", "san", "iii"],
+  "4": ["cuatro", "four", "yon", "shi", "iv"],
+  "5": ["cinco", "five", "go", "v"],
+  "6": ["seis", "six", "roku", "vi"],
+  "7": ["siete", "seven", "shichi", "nana", "vii"],
+  "8": ["ocho", "eight", "hachi", "viii"],
+  "9": ["nueve", "nine", "kyuu", "ku", "ix"],
+  "10": ["diez", "ten", "juu", "x"],
+};
+
+// Índice inverso: palabra → dígito canónico.
+const WORD_TO_DIGIT: Record<string, string> = Object.entries(NUM_ALIASES).reduce(
+  (acc, [digit, words]) => {
+    for (const w of words) acc[w] = digit;
+    return acc;
+  },
+  {} as Record<string, string>,
+);
+
+/**
+ * Expande cada token para que dígitos y palabras numéricas sean intercambiables.
+ * "naruto 2" → "naruto 2 dos two ni ii" y "naruto dos" → "naruto dos 2".
+ * Se aplica al texto YA normalizado (sin acentos, minúsculas).
+ */
+function expandNumberTokens(text: string): string {
+  if (!text) return text;
+  const parts = text.split(" ");
+  const out: string[] = [];
+  for (const p of parts) {
+    out.push(p);
+    if (!p) continue;
+    if (/^\d{1,2}$/.test(p) && NUM_ALIASES[p]) {
+      out.push(...NUM_ALIASES[p]);
+    } else if (WORD_TO_DIGIT[p]) {
+      const d = WORD_TO_DIGIT[p];
+      out.push(d);
+      // añadimos también los otros alias del mismo dígito → "dos" también empata "two", "ni"
+      for (const alt of NUM_ALIASES[d] || []) if (alt !== p) out.push(alt);
+    }
+  }
+  return out.join(" ");
+}
+
 export function normalizeSearchText(value: string): string {
-  return (value || "")
+  const base = (value || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -7,7 +56,9 @@ export function normalizeSearchText(value: string): string {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+  return expandNumberTokens(base);
 }
+
 
 export function searchTokens(value: string): string[] {
   return normalizeSearchText(value)
@@ -66,9 +117,10 @@ export function fuzzyTextScore(query: string, candidates: Array<string | null | 
       let hits = 0;
       for (const token of tokens) {
         if (text.includes(token)) hits += 1;
-        else if (token.length >= 3 && words.some((word) => word.startsWith(token))) hits += 0.85;
-        else if (token.length >= 4 && words.some((word) => diceCoefficient(word, token) >= 0.72)) hits += 0.65;
-        else if (token.length >= 4 && diceCoefficient(text, token) >= 0.42) hits += 0.35;
+        else if (token.length >= 3 && words.some((word) => word.startsWith(token))) hits += 0.9;
+        else if (token.length >= 3 && words.some((word) => word.includes(token))) hits += 0.75;
+        else if (token.length >= 3 && words.some((word) => diceCoefficient(word, token) >= 0.6)) hits += 0.7;
+        else if (token.length >= 4 && diceCoefficient(text, token) >= 0.32) hits += 0.45;
       }
       score += (hits / tokens.length) * 4;
     }
