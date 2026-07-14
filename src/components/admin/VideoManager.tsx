@@ -138,22 +138,15 @@ export default function VideoManager() {
         const queryNorm = normalize(val);
         const tokens = queryNorm.split(" ").filter((t) => t.length >= 2);
 
-        // Búsqueda principal + tokens + prefijos cortos para máxima cobertura.
-        const prefixes: string[] = [];
-        if (queryNorm.length >= 3) prefixes.push(queryNorm.slice(0, 3));
-        if (queryNorm.length >= 4) prefixes.push(queryNorm.slice(0, 4));
-        const queries = Array.from(
-          new Set([val, queryNorm, ...tokens, ...prefixes].filter((q) => q && q.length >= 2))
-        ).slice(0, 6);
-        const batches = await Promise.allSettled(
-          queries.map((q) => searchAnime(q, 1, 25, [], { skipCuration: true }))
-        );
+        // Una sola llamada con el término completo: AniList ya matchea títulos parciales
+        // (romaji/english/native/synonyms) y evita 429 por spam de queries paralelas.
+        // Si no encuentra nada, reintentamos con el primer token como fallback (ej: "naruto" desde "naruto shipuden").
         const seen = new Map<number, AniListMedia>();
-        for (const b of batches) {
-          if (b.status !== "fulfilled") continue;
-          for (const m of b.value?.media || []) {
-            if (!seen.has(m.id)) seen.set(m.id, m);
-          }
+        const primary = await searchAnime(val, 1, 30, [], { skipCuration: true }).catch(() => null);
+        for (const m of primary?.media || []) if (!seen.has(m.id)) seen.set(m.id, m);
+        if (seen.size === 0 && tokens[0] && tokens[0] !== queryNorm) {
+          const fb = await searchAnime(tokens[0], 1, 30, [], { skipCuration: true }).catch(() => null);
+          for (const m of fb?.media || []) if (!seen.has(m.id)) seen.set(m.id, m);
         }
         const pool = Array.from(seen.values());
 
