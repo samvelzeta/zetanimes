@@ -10,7 +10,7 @@ import {
 } from "@/lib/zetapi";
 import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
 import { getCachedVideo, cachedVideoToSources, clearRuntimeVideoCache } from "@/lib/video-cache";
-import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang, listBlocks } from "@/lib/video-blocks";
+import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang, listBlocks, buildEpisodeSlots, type EpisodeSlot } from "@/lib/video-blocks";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, ChevronRight, AlertCircle,
@@ -35,7 +35,7 @@ import { useEpisodeThumbnails } from "@/lib/episode-thumbnails";
 
 type Lang = "sub" | "latino";
 
-type PlayerSourceItem = { name: string; embed: string; type?: string; episode?: number; lang: Lang; origin: "db" | "api" | "hls" | "seeke" };
+type PlayerSourceItem = { name: string; embed: string; type?: string; episode?: number; variant?: number; lang: Lang; origin: "db" | "api" | "hls" | "seeke" };
 
 let didResetSeekeRuntimeCache = false;
 
@@ -55,6 +55,7 @@ export default function Watch() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const epParam = Number(searchParams.get("ep") || 1);
+  const variantParam = Math.max(1, Number(searchParams.get("v") || 1));
   const { user } = useAuth();
   const { permissions } = usePlanPermissions();
   const { activeProfile } = useProfiles();
@@ -63,6 +64,7 @@ export default function Watch() {
   const inWebView = isWebView();
 
   const [selectedEp, setSelectedEp] = useState(epParam);
+  const [selectedVariant, setSelectedVariant] = useState(variantParam);
   const [lang, setLang] = useState<Lang>("sub");
   
   const watchTimeRef = useRef(0);
@@ -231,16 +233,16 @@ export default function Watch() {
 
   // Bloques: si están definidos, sobreescriben la URL madre única para el ep actual.
   const { data: currentBlock } = useQuery({
-    queryKey: ["seeke-block", anilistId, lang, selectedEp],
-    queryFn: () => resolveSeekeBaseForEpisode(anilistId, lang, selectedEp),
+    queryKey: ["seeke-block", anilistId, lang, selectedEp, selectedVariant],
+    queryFn: () => resolveSeekeBaseForEpisode(anilistId, lang, selectedEp, selectedVariant),
     enabled: anilistId > 0,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",
   });
   const { data: oppositeBlock } = useQuery({
-    queryKey: ["seeke-block", anilistId, oppositeLang, selectedEp],
-    queryFn: () => resolveSeekeBaseForEpisode(anilistId, oppositeLang, selectedEp),
+    queryKey: ["seeke-block", anilistId, oppositeLang, selectedEp, selectedVariant],
+    queryFn: () => resolveSeekeBaseForEpisode(anilistId, oppositeLang, selectedEp, selectedVariant),
     enabled: anilistId > 0,
     staleTime: 0,
     gcTime: 0,
@@ -329,6 +331,19 @@ export default function Watch() {
   const seekeCoversOpposite = oppositeSeekeAvailableForEpisode && (latestOpposite || 0) > 0 && selectedEp <= (latestOpposite || 0);
   // Sin padding con selectedEp: si el usuario pide un ep > tope, se bloquea arriba.
   const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, 0) }, (_, i) => i + 1);
+  // Slots: si hay bloques solapados, un mismo ep aparece varias veces (variant 1..N).
+  const episodeSlots = useMemo(() => {
+    if (!currentBlocks || currentBlocks.length === 0) {
+      return episodeNumbers.map((ep) => ({ ep, variant: 1, blockLabel: null as string | null }));
+    }
+    return buildEpisodeSlots(currentBlocks as any, totalEpisodes).map((s) => ({
+      ep: s.ep, variant: s.variant, blockLabel: s.blockLabel ?? null,
+    }));
+  }, [currentBlocks, episodeNumbers, totalEpisodes]);
+  const currentSlotIndex = useMemo(
+    () => episodeSlots.findIndex((s) => s.ep === selectedEp && s.variant === selectedVariant),
+    [episodeSlots, selectedEp, selectedVariant]
+  );
 
   const { data: oppositeServerData } = useQuery({
     queryKey: ["zet-servers-opposite", zetSlug, selectedEp, oppositeLang],
@@ -352,7 +367,10 @@ export default function Watch() {
         name: `Bloque ${block.blockIndex}${block.blockLabel ? " · " + block.blockLabel : ""} • ${tag}`,
         embed: block.baseUrl,
         type: "seeke",
-        episode: block.episodeWithinBlock,
+        // ⚠️ El player pasa este número al edge; debe ser el ABSOLUTO del anime
+        // para que resolve-stream vuelva a matchear el bloque correcto usando variant.
+        episode: selectedEp,
+        variant: block.variant,
         lang: sourceLang,
         origin: "seeke",
       });
@@ -509,32 +527,42 @@ export default function Watch() {
   }, [zetSlug, selectedEp]);
 
   // Use replace instead of push for episode navigation (fixes back button)
-  const selectEpisode = (epNumber: number) => {
+  const selectEpisode = (epNumber: number, variant: number = 1) => {
     const doc = document as Document & { webkitFullscreenElement?: Element | null };
     const hasFullscreen = Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
 
-    // Estilo YouTube/Netflix: el contenedor maestro (playerWrapper) nunca se desmonta
-    // ni se sale del fullscreen al cambiar de episodio. El anuncio (free) se pinta
-    // como overlay encima dentro del mismo contenedor. Si por algún motivo el
-    // fullscreen activo no está sobre el wrapper, lo re-solicitamos dentro del gesto.
     if (hasFullscreen && playerWrapperRef.current && document.fullscreenElement !== playerWrapperRef.current) {
       try { playerWrapperRef.current.requestFullscreen?.().catch(() => undefined); } catch { void 0; }
     }
-    // Bloquear orientación horizontal en móvil mientras seguimos en fullscreen.
     if (hasFullscreen) {
       const orientation = screen.orientation as ScreenOrientation & {
         lock?: (o: OrientationLockType) => Promise<void>;
       };
       try { orientation.lock?.("landscape").catch(() => undefined); } catch { void 0; }
     }
+    const v = Math.max(1, variant);
     setSelectedEp(epNumber);
+    setSelectedVariant(v);
     setActiveSourceIdx(0);
-    navigate(`/watch/${id}?ep=${epNumber}`, { replace: true });
+    const q = v > 1 ? `?ep=${epNumber}&v=${v}` : `?ep=${epNumber}`;
+    navigate(`/watch/${id}${q}`, { replace: true });
     watchTimeRef.current = 0;
     if (!inWebView) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
+  const goToSlotOffset = (delta: number) => {
+    if (currentSlotIndex < 0) {
+      selectEpisode(selectedEp + delta, 1);
+      return;
+    }
+    const next = episodeSlots[currentSlotIndex + delta];
+    if (!next) return;
+    selectEpisode(next.ep, next.variant);
+  };
+  const prevSlot = episodeSlots[currentSlotIndex - 1];
+  const nextSlot = episodeSlots[currentSlotIndex + 1];
 
   const handleAutoNext = useCallback(() => {
     const autoPlayEnabled = localStorage.getItem("zet_autoplay") !== "false";
@@ -859,15 +887,17 @@ export default function Watch() {
                 initialTime={initialTime}
                 showServerPicker={shouldShowServerControl}
                 episodeKey={displayedAutoNextKey}
-                canPrev={displayedEpisode > 1}
-                canNext={displayedEpisode < maxEpisodeForLang}
-                onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
-                onNext={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
+                canPrev={!!prevSlot}
+                canNext={!!nextSlot && (nextSlot.ep <= maxEpisodeForLang)}
+                onPrev={() => goToSlotOffset(-1)}
+                onNext={() => nextSlot && nextSlot.ep <= maxEpisodeForLang && goToSlotOffset(1)}
                 onAutoNext={isEpisodeSwitching ? undefined : handleAutoNext}
                 autoNextAlreadyTriggered={autoNextDone.has(displayedAutoNextKey)}
                 currentEpisode={displayedEpisode}
                 totalEpisodes={totalEpisodes}
-                onSelectEpisode={(n) => selectEpisode(n)}
+                episodeSlots={episodeSlots}
+                currentVariant={selectedVariant}
+                onSelectEpisode={(n, v) => selectEpisode(n, v || 1)}
                 episodeThumbnails={episodeThumbs}
                 subtitles={activeSubtitles}
                 fullscreenContainerRef={playerWrapperRef}
@@ -1000,8 +1030,8 @@ export default function Watch() {
       <div className="px-4 mb-4">
         <div className="flex min-w-0 w-full flex-row flex-nowrap items-center gap-1.5 sm:gap-2 overflow-hidden">
           <button
-            onClick={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
-            disabled={selectedEp <= 1}
+            onClick={() => prevSlot && goToSlotOffset(-1)}
+            disabled={!prevSlot}
             className="h-10 min-w-0 flex-[1_1_0%] rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-[10px] min-[380px]:text-[11px] sm:text-xs font-bold flex items-center justify-center gap-0.5 sm:gap-1 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 whitespace-nowrap overflow-hidden px-1.5 sm:px-3"
           >
             <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -1014,14 +1044,14 @@ export default function Watch() {
           >
             <List className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />
             <span className="min-w-0 truncate tabular-nums">
-              <span className="sm:hidden">EP {selectedEp}/{totalEpisodes}</span>
-              <span className="hidden sm:inline">EPISODIOS ({selectedEp}/{totalEpisodes})</span>
+              <span className="sm:hidden">EP {selectedEp}{selectedVariant > 1 ? `·P${selectedVariant}` : ""}/{totalEpisodes}</span>
+              <span className="hidden sm:inline">EPISODIOS ({selectedEp}{selectedVariant > 1 ? ` · Parte ${selectedVariant}` : ""}/{totalEpisodes})</span>
             </span>
             <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 transition-transform ${showEpisodes ? "rotate-180" : ""}`} />
           </button>
           <button
-            onClick={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
-            disabled={selectedEp >= maxEpisodeForLang}
+            onClick={() => nextSlot && nextSlot.ep <= maxEpisodeForLang && goToSlotOffset(1)}
+            disabled={!nextSlot || nextSlot.ep > maxEpisodeForLang}
             className="h-10 min-w-0 flex-[1_1_0%] rounded-lg bg-primary text-primary-foreground border border-primary hover:bg-primary/90 text-[10px] min-[380px]:text-[11px] sm:text-xs font-bold flex items-center justify-center gap-0.5 sm:gap-1 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 shadow-[0_0_12px_hsl(var(--primary)/0.35)] whitespace-nowrap overflow-hidden px-1.5 sm:px-3"
           >
             <span className="min-w-0 truncate">Siguiente</span>
@@ -1061,10 +1091,12 @@ export default function Watch() {
               streamingEpisodes={(anilistData as any)?.streamingEpisodes}
               thumbnails={episodeThumbs}
               selected={selectedEp}
+              selectedVariant={selectedVariant}
+              slots={episodeSlots}
               watched={watchedSet}
               slug={zetSlug}
               maxAvailable={maxEpisodeForLang}
-              onSelect={(ep) => { selectEpisode(ep); setShowEpisodes(false); }}
+              onSelect={(ep, v) => { selectEpisode(ep, v || 1); setShowEpisodes(false); }}
               onToggleWatched={(ep) => toggleWatched(ep)}
             />
           ) : (

@@ -30,6 +30,12 @@ interface StreamingEp {
   thumbnail?: string;
 }
 
+interface EpisodeSlotLite {
+  ep: number;
+  variant: number;
+  blockLabel?: string | null;
+}
+
 interface Props {
   total: number;
   cover: string;
@@ -37,13 +43,16 @@ interface Props {
   streamingEpisodes?: StreamingEp[];
   thumbnails?: string[];
   selected?: number;
+  selectedVariant?: number;
   watched?: Set<string>;
   slug?: string;
   maxAvailable?: number;
-  onSelect?: (ep: number) => void;
+  onSelect?: (ep: number, variant?: number) => void;
   onToggleWatched?: (ep: number) => void;
-  linkTo?: (ep: number) => string;
+  linkTo?: (ep: number, variant?: number) => string;
   pageSize?: number;
+  /** Slots opcionales — cuando hay bloques solapados un ep aparece varias veces. */
+  slots?: EpisodeSlotLite[];
 }
 
 /**
@@ -54,15 +63,18 @@ interface Props {
  */
 export default function EpisodeList({
   total, cover, animeTitle, streamingEpisodes, thumbnails,
-  selected, watched, slug, maxAvailable,
-  onSelect, onToggleWatched, linkTo, pageSize = 24,
+  selected, selectedVariant = 1, watched, slug, maxAvailable,
+  onSelect, onToggleWatched, linkTo, pageSize = 24, slots,
 }: Props) {
-  const numbers = useMemo(
-    () => Array.from({ length: Math.max(total, 0) }, (_, i) => i + 1),
-    [total]
+  const items = useMemo<EpisodeSlotLite[]>(
+    () => slots && slots.length > 0
+      ? slots
+      : Array.from({ length: Math.max(total, 0) }, (_, i) => ({ ep: i + 1, variant: 1 })),
+    [slots, total]
   );
   const [visible, setVisible] = useState(pageSize);
-  const shown = numbers.slice(0, visible);
+  const shown = items.slice(0, visible);
+  const numbers = items;
 
   if (numbers.length === 0) {
     return <p className="text-xs text-muted-foreground text-center py-8">Sin episodios disponibles</p>;
@@ -71,27 +83,31 @@ export default function EpisodeList({
   return (
     <div className="space-y-2">
       <div className="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
-        {shown.map((n) => {
+        {shown.map((slot) => {
+          const n = slot.ep;
+          const v = slot.variant;
+          const key = `${n}-${v}`;
           const s = streamingEpisodes?.[n - 1];
           const thumb = thumbnails?.[n - 1] || cover;
           const epTitle = s?.title?.replace(/^Episode\s*\d+\s*[-–]?\s*/i, "") || `Capítulo ${n}`;
-          const epSlug = slug ? `${slug}-${n}` : "";
+          const epSlug = slug ? `${slug}-${n}${v > 1 ? `-v${v}` : ""}` : "";
           const isWatched = epSlug ? !!watched?.has(epSlug) : false;
-          const isActive = selected === n;
+          const isActive = selected === n && (selectedVariant || 1) === v;
           const blocked = !!maxAvailable && n > maxAvailable;
+          const suffix = v > 1 ? ` · P${v}` : "";
 
           const inner = (
             <>
               <div className="relative w-32 sm:w-36 aspect-video flex-shrink-0 overflow-hidden bg-black">
                 <img
                   src={thumb}
-                  alt={`EP ${n}`}
+                  alt={`EP ${n}${suffix}`}
                   loading="lazy"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
                 <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/70 text-[10px] font-black text-white">
-                  EP {n}
+                  EP {n}{suffix}
                 </span>
                 {isActive && (
                   <div className="absolute inset-0 flex items-center justify-center bg-primary/40">
@@ -106,13 +122,13 @@ export default function EpisodeList({
               </div>
               <div className="flex-1 min-w-0 p-2.5 flex flex-col justify-center">
                 <p className={`text-xs font-black uppercase tracking-wide ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-                  Capítulo {n}
+                  Capítulo {n}{v > 1 ? ` · Parte ${v}` : ""}
                 </p>
                 <p className="text-sm font-bold text-foreground leading-tight mt-0.5">
                   <ExpandableTitle text={epTitle} />
                 </p>
                 <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                  <ExpandableTitle text={animeTitle} />
+                  <ExpandableTitle text={slot.blockLabel || animeTitle} />
                 </p>
 
               </div>
@@ -134,16 +150,16 @@ export default function EpisodeList({
 
           if (linkTo && !onSelect) {
             return (
-              <a key={n} href={blocked ? undefined : linkTo(n)} className={commonCls}>
+              <a key={key} href={blocked ? undefined : linkTo(n, v)} className={commonCls}>
                 {inner}
               </a>
             );
           }
           return (
             <button
-              key={n}
+              key={key}
               disabled={blocked}
-              onClick={() => { if (!blocked) onSelect?.(n); }}
+              onClick={() => { if (!blocked) onSelect?.(n, v); }}
               className={`text-left w-full ${commonCls}`}
             >
               {inner}

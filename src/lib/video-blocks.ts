@@ -34,6 +34,8 @@ export interface ResolvedBlock {
   /** Offset usado (solo informativo). */
   sourceEpisodeOffset: number;
   inverseMode: boolean;
+  /** Variante usada (1..N) cuando el mismo episodio cae en varios bloques solapados. */
+  variant: number;
 }
 
 export async function listBlocks(anilistId: number, lang: string): Promise<VideoBlock[]> {
@@ -76,12 +78,18 @@ export function invalidateBlocksCache(anilistId?: number, lang?: string) {
 export async function resolveSeekeBaseForEpisode(
   anilistId: number,
   lang: string,
-  episode: number
+  episode: number,
+  variant: number = 1
 ): Promise<ResolvedBlock | null> {
   const blocks = await listBlocks(anilistId, lang);
   if (!blocks.length) return null;
-  const match = blocks.find((b) => episode >= b.episode_from && episode <= b.episode_to);
-  if (!match) return null;
+  // Todos los bloques que cubren este episodio (ordenados por block_index).
+  const matches = blocks
+    .filter((b) => episode >= b.episode_from && episode <= b.episode_to)
+    .sort((a, b) => a.block_index - b.block_index);
+  if (!matches.length) return null;
+  const idx = Math.max(1, variant) - 1;
+  const match = matches[idx] || matches[matches.length - 1];
   const offset = Number(match.source_episode_offset || 0);
   const relative = episode - match.episode_from + 1; // 1-indexed within block
   const episodeWithinBlock = relative + offset;
@@ -96,7 +104,45 @@ export async function resolveSeekeBaseForEpisode(
     episodeWithinBlock,
     sourceEpisodeOffset: offset,
     inverseMode: !!match.inverse_mode || offset > 0,
+    variant: Math.min(idx + 1, matches.length),
   };
+}
+
+/**
+ * Construye la lista lineal de "slots" de episodios teniendo en cuenta bloques
+ * solapados. Si un mismo número de episodio está en 2 bloques, se generan 2
+ * slots (variant 1 y 2). Sin bloques → 1 slot por episodio del 1..maxEp.
+ */
+export interface EpisodeSlot {
+  ep: number;
+  variant: number;
+  blockIndex?: number;
+  blockLabel?: string | null;
+}
+
+export function buildEpisodeSlots(
+  blocks: VideoBlock[],
+  maxEp: number
+): EpisodeSlot[] {
+  const slots: EpisodeSlot[] = [];
+  if (maxEp <= 0) return slots;
+  const sortedBlocks = [...blocks].sort((a, b) => a.block_index - b.block_index);
+  for (let ep = 1; ep <= maxEp; ep++) {
+    const matches = sortedBlocks.filter((b) => ep >= b.episode_from && ep <= b.episode_to);
+    if (matches.length === 0) {
+      slots.push({ ep, variant: 1 });
+    } else {
+      matches.forEach((b, i) => {
+        slots.push({
+          ep,
+          variant: i + 1,
+          blockIndex: b.block_index,
+          blockLabel: b.block_label,
+        });
+      });
+    }
+  }
+  return slots;
 }
 
 /**

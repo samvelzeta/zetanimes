@@ -84,20 +84,23 @@ async function resolveMasterUrl(
   anilistId: number,
   lang: string,
   ep: number,
+  variant: number = 1,
 ): Promise<{ url: string; sourceEp: number } | null> {
   // 1) Bloques (rangos de episodios con URLs madre distintas)
   const { data: blocks } = await supabase
     .from("video_cache_blocks")
-    .select("seeke_base_url, episode_from, episode_to, source_episode_offset, inverse_mode")
+    .select("seeke_base_url, episode_from, episode_to, source_episode_offset, inverse_mode, block_index")
     .eq("anilist_id", anilistId)
     .eq("lang", lang)
     .order("block_index", { ascending: true });
 
   if (Array.isArray(blocks) && blocks.length > 0) {
-    const match = blocks.find(
+    const matches = (blocks as any[]).filter(
       (b: any) => ep >= b.episode_from && ep <= b.episode_to,
-    ) as any;
-    if (!match) return null;
+    );
+    if (matches.length === 0) return null;
+    const idx = Math.max(1, variant) - 1;
+    const match = matches[idx] || matches[matches.length - 1];
     const offset = Number(match.source_episode_offset || 0);
     const relative = ep - match.episode_from + 1;
     return { url: match.seeke_base_url, sourceEp: relative + offset };
@@ -214,6 +217,7 @@ Deno.serve(async (req) => {
   const anilistId = Number(body?.anilistId);
   const lang = String(body?.lang || "sub");
   const ep = Number(body?.ep || 1);
+  const variant = Math.max(1, Number(body?.variant || 1));
 
   if (!Number.isFinite(anilistId) || anilistId <= 0) {
     return new Response(JSON.stringify({ ok: false, error: "invalid_anilist_id" }), {
@@ -229,7 +233,7 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const cacheKey = `${anilistId}|${lang}|${ep}`;
+    const cacheKey = `${anilistId}|${lang}|${ep}|v${variant}`;
 
     if (action === "latest") {
       const latestKey = `${anilistId}|${lang}`;
@@ -270,7 +274,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const master = await resolveMasterUrl(supabase, anilistId, lang, ep);
+    const master = await resolveMasterUrl(supabase, anilistId, lang, ep, variant);
     if (!master) {
       return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -309,13 +309,13 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
             <AlertDialogDescription className="space-y-2 text-xs leading-relaxed">
               <span className="block font-mono text-amber-500">{overlapPrompt?.message}</span>
               <span className="block">
-                Normalmente los bloques no pueden compartir episodios. Si permites el solapamiento:
+                Normalmente cada episodio pertenece a un solo bloque. Si permites el solapamiento:
               </span>
               <ul className="list-disc pl-4 space-y-1">
-                <li>El episodio compartido será resuelto por el <strong>primer bloque que lo contenga</strong> (según orden por rango).</li>
-                <li>El segundo bloque quedará <strong>ignorado</strong> para esos capítulos, aunque su URL madre siga guardada.</li>
-                <li>Puede causar que el reproductor cargue el enlace equivocado si te confundes con los rangos.</li>
-                <li>Recomendado solo cuando sepas exactamente qué bloque debe ganar la prioridad.</li>
+                <li>El episodio compartido aparecerá <strong>varias veces en la lista</strong> del anime (ej. "155" y "155 · Parte 2"), uno por cada bloque que lo cubra.</li>
+                <li>Cada botón apunta a la <strong>URL madre de su propio bloque</strong>, así el usuario puede elegir cuál ver.</li>
+                <li>Útil cuando Seeke repite un número de capítulo (por ejemplo un especial o un cambio de infraestructura entre temporadas).</li>
+                <li>Los históricos "visto" se guardan de forma independiente por variante (ej. <code>slug-155</code> y <code>slug-155-v2</code>).</li>
               </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>

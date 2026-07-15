@@ -267,9 +267,10 @@ async function invokeWithTimeout(body: unknown, timeoutMs: number) {
 export async function resolveStreamEpisode(
   anilistId: number,
   lang: string,
-  ep: number
+  ep: number,
+  variant: number = 1
 ): Promise<SeekeResolved> {
-  const body = { action: "episode", anilistId, lang, ep };
+  const body = { action: "episode", anilistId, lang, ep, variant };
   // Reintentos con timeouts crecientes para tolerar cold start del edge/VPS.
   let data: any = null;
   let lastErr: any = null;
