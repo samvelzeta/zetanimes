@@ -30,6 +30,12 @@ interface StreamingEp {
   thumbnail?: string;
 }
 
+interface EpisodeSlotLite {
+  ep: number;
+  variant: number;
+  blockLabel?: string | null;
+}
+
 interface Props {
   total: number;
   cover: string;
@@ -37,13 +43,16 @@ interface Props {
   streamingEpisodes?: StreamingEp[];
   thumbnails?: string[];
   selected?: number;
+  selectedVariant?: number;
   watched?: Set<string>;
   slug?: string;
   maxAvailable?: number;
-  onSelect?: (ep: number) => void;
+  onSelect?: (ep: number, variant?: number) => void;
   onToggleWatched?: (ep: number) => void;
-  linkTo?: (ep: number) => string;
+  linkTo?: (ep: number, variant?: number) => string;
   pageSize?: number;
+  /** Slots opcionales — cuando hay bloques solapados un ep aparece varias veces. */
+  slots?: EpisodeSlotLite[];
 }
 
 /**
@@ -54,15 +63,18 @@ interface Props {
  */
 export default function EpisodeList({
   total, cover, animeTitle, streamingEpisodes, thumbnails,
-  selected, watched, slug, maxAvailable,
-  onSelect, onToggleWatched, linkTo, pageSize = 24,
+  selected, selectedVariant = 1, watched, slug, maxAvailable,
+  onSelect, onToggleWatched, linkTo, pageSize = 24, slots,
 }: Props) {
-  const numbers = useMemo(
-    () => Array.from({ length: Math.max(total, 0) }, (_, i) => i + 1),
-    [total]
+  const items = useMemo<EpisodeSlotLite[]>(
+    () => slots && slots.length > 0
+      ? slots
+      : Array.from({ length: Math.max(total, 0) }, (_, i) => ({ ep: i + 1, variant: 1 })),
+    [slots, total]
   );
   const [visible, setVisible] = useState(pageSize);
-  const shown = numbers.slice(0, visible);
+  const shown = items.slice(0, visible);
+  const numbers = items;
 
   if (numbers.length === 0) {
     return <p className="text-xs text-muted-foreground text-center py-8">Sin episodios disponibles</p>;
