@@ -20,7 +20,7 @@ export function useTranslatedDesc(
       return;
     }
     let alive = true;
-    translateText(clean, `anime_desc_${cacheKey}`)
+    translateText(clean, `anime_desc_${cacheKey}`, cacheKey)
       .then((t) => {
         if (!alive || !t) return;
         setText(maxLen ? t.slice(0, maxLen) : t);
