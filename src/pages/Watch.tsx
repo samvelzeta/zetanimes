@@ -10,7 +10,7 @@ import {
 } from "@/lib/zetapi";
 import { resolveSlugMultiAPI } from "@/lib/slug-resolver";
 import { getCachedVideo, cachedVideoToSources, clearRuntimeVideoCache } from "@/lib/video-cache";
-import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang, listBlocks } from "@/lib/video-blocks";
+import { resolveSeekeBaseForEpisode, getLatestEpisodeByLang, listBlocks, buildEpisodeSlots, type EpisodeSlot } from "@/lib/video-blocks";
 import { getAnimeById, getTitle } from "@/lib/anilist";
 import {
   Eye, EyeOff, ChevronLeft, ChevronRight, AlertCircle,
