@@ -99,10 +99,6 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
     setNormalRows(normalRows.map((r, i) => i === idx ? { ...r, ...patch } : r));
   };
   const removeNormalRow = (idx: number) => {
-    if (normalRows[idx]?.seeke_base_url?.trim()) {
-      toast.error("Ese bloque madre está protegido. Reemplaza su URL o rango, no lo borres.");
-      return;
-    }
     setNormalRows(normalRows.filter((_, i) => i !== idx));
   };
 
