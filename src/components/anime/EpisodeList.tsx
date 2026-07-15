@@ -94,20 +94,18 @@ export default function EpisodeList({
           const isWatched = epSlug ? !!watched?.has(epSlug) : false;
           const isActive = selected === n && (selectedVariant || 1) === v;
           const blocked = !!maxAvailable && n > maxAvailable;
-          const suffix = v > 1 ? ` · P${v}` : "";
-
           const inner = (
             <>
               <div className="relative w-32 sm:w-36 aspect-video flex-shrink-0 overflow-hidden bg-black">
                 <img
                   src={thumb}
-                  alt={`EP ${n}${suffix}`}
+                  alt={`EP ${n}`}
                   loading="lazy"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
                 <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/70 text-[10px] font-black text-white">
-                  EP {n}{suffix}
+                  EP {n}
                 </span>
                 {isActive && (
                   <div className="absolute inset-0 flex items-center justify-center bg-primary/40">
@@ -122,7 +120,7 @@ export default function EpisodeList({
               </div>
               <div className="flex-1 min-w-0 p-2.5 flex flex-col justify-center">
                 <p className={`text-xs font-black uppercase tracking-wide ${isActive ? "text-primary" : "text-muted-foreground"}`}>
-                  Capítulo {n}{v > 1 ? ` · Parte ${v}` : ""}
+                  Capítulo {n}
                 </p>
                 <p className="text-sm font-bold text-foreground leading-tight mt-0.5">
                   <ExpandableTitle text={epTitle} />
