@@ -35,7 +35,7 @@ import { useEpisodeThumbnails } from "@/lib/episode-thumbnails";
 
 type Lang = "sub" | "latino";
 
-type PlayerSourceItem = { name: string; embed: string; type?: string; episode?: number; lang: Lang; origin: "db" | "api" | "hls" | "seeke" };
+type PlayerSourceItem = { name: string; embed: string; type?: string; episode?: number; variant?: number; lang: Lang; origin: "db" | "api" | "hls" | "seeke" };
 
 let didResetSeekeRuntimeCache = false;
 
