@@ -315,8 +315,10 @@ export default function PendingApproval() {
   // Side stories directas por cada item en emisión — solo se inyectan las que
   // están RELEASING y aún no tienen enlace madre Seeke.
   const releasingIds = useMemo(
-    () => airingItems.filter((a) => a.status === "RELEASING").map((a) => a.id),
-    [airingItems],
+    () => airingItems
+      .filter((a) => a.status === "RELEASING" && !approvedSet.has(a.id) && !hiddenSet.has(a.id))
+      .map((a) => a.id),
+    [airingItems, approvedSet, hiddenSet],
   );
   const { data: sideMap } = useQuery({
     queryKey: ["approval-side-stories", releasingIds.join(",")],
