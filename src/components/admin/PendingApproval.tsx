@@ -214,6 +214,36 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 2,
   });
 
+  // Metadata (título/cover) de todos los animes ya registrados: nos permite
+  // renderizar las pestañas "Aprobados" y "Ocultos" aunque esos IDs ya no
+  // aparezcan en el pool de emisión actual de AniList.
+  const { data: trackerMeta } = useQuery({
+    queryKey: ["approval-tracker-meta"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anime_download_tracker")
+        .select("anilist_id, title, cover_image, total_episodes, airing_status")
+        .limit(2000);
+      if (error) { console.error("[tracker-meta] load error", error); return new Map<number, AiringItem>(); }
+      const map = new Map<number, AiringItem>();
+      for (const r of (data || []) as any[]) {
+        if (!r.anilist_id) continue;
+        map.set(r.anilist_id, {
+          id: r.anilist_id,
+          title: { english: r.title, romaji: r.title },
+          coverImage: { large: r.cover_image || undefined, extraLarge: r.cover_image || undefined },
+          status: r.airing_status || "FINISHED",
+          episodes: r.total_episodes || null,
+          averageScore: null,
+          format: null,
+        });
+      }
+      return map;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+
   const airingItems = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
     // Fuentes "core" — siempre se incluyen (RELEASING + películas próximas/recientes)
@@ -240,19 +270,40 @@ export default function PendingApproval() {
         map.set(m.id, m);
       }
     }
+    // Inyectamos metadata (título/cover) de aprobados y ocultos que ya no
+    // aparecen en el pool activo, para que las pestañas "Aprobados" y
+    // "Ocultos" no queden vacías.
+    if (trackerMeta) {
+      for (const id of approvedSet) {
+        if (map.has(id)) continue;
+        const meta = trackerMeta.get(id);
+        if (meta) map.set(id, meta);
+      }
+      for (const id of hiddenSet) {
+        if (map.has(id)) continue;
+        const meta = trackerMeta.get(id);
+        if (meta) map.set(id, meta);
+      }
+    }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet]);
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet, trackerMeta, approvedSet, hiddenSet]);
+
+  // Sólo pedimos precuelas para items que aún estén PENDIENTES (no aprobados,
+  // no ocultos). Para aprobados/ocultos no necesitamos expandir la cadena.
+  const pendingCandidateIds = useMemo(
+    () => airingItems.filter((a) => !approvedSet.has(a.id) && !hiddenSet.has(a.id)).map((a) => a.id),
+    [airingItems, approvedSet, hiddenSet],
+  );
 
   // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
   const { data: prequelMap } = useQuery({
-    queryKey: ["approval-prequel-chains", airingItems.map((a) => a.id).join(",")],
-    enabled: airingItems.length > 0,
+    queryKey: ["approval-prequel-chains", pendingCandidateIds.join(",")],
+    enabled: pendingCandidateIds.length > 0,
     queryFn: async () => {
       const out = new Map<number, PrequelNode[]>();
-      const ids = airingItems.map((a) => a.id);
       const CONC = 5;
-      for (let i = 0; i < ids.length; i += CONC) {
-        const slice = ids.slice(i, i + CONC);
+      for (let i = 0; i < pendingCandidateIds.length; i += CONC) {
+        const slice = pendingCandidateIds.slice(i, i + CONC);
         const results = await Promise.all(slice.map((id) => getPrequelChain(id).catch(() => [])));
         slice.forEach((id, idx) => out.set(id, results[idx] || []));
       }
@@ -264,8 +315,10 @@ export default function PendingApproval() {
   // Side stories directas por cada item en emisión — solo se inyectan las que
   // están RELEASING y aún no tienen enlace madre Seeke.
   const releasingIds = useMemo(
-    () => airingItems.filter((a) => a.status === "RELEASING").map((a) => a.id),
-    [airingItems],
+    () => airingItems
+      .filter((a) => a.status === "RELEASING" && !approvedSet.has(a.id) && !hiddenSet.has(a.id))
+      .map((a) => a.id),
+    [airingItems, approvedSet, hiddenSet],
   );
   const { data: sideMap } = useQuery({
     queryKey: ["approval-side-stories", releasingIds.join(",")],
@@ -425,19 +478,30 @@ export default function PendingApproval() {
 
   const loading = l1 || l2 || l3 || lm || lm2 || lm3;
 
-  const allItems = useMemo(() => {
-    const ids = new Set<number>();
+  // Los conteos deben reflejar lo que realmente se renderiza en cada pestaña.
+  // Antes contábamos todos los IDs del pool (incluyendo relacionados dentro de
+  // grupos cuyo main estaba oculto/aprobado), lo cual daba "15 pendientes" pero
+  // filteredGroups salía vacío. Ahora recorremos groups con la misma lógica
+  // que filteredGroups.
+  const { pendingCount, approvedCountInPool, hiddenCount } = useMemo(() => {
+    let pend = 0, appr = 0;
     for (const g of groups) {
-      ids.add(g.main.id);
-      g.related.forEach((r) => ids.add(r.id));
+      const mainHidden = hiddenSet.has(g.main.id);
+      if (mainHidden) continue; // grupos con main oculto no aparecen en pending/aprobados
+      const mainApproved = approvedSet.has(g.main.id);
+      if (mainApproved) appr++;
+      else pend++;
+      for (const r of g.related) {
+        if (hiddenSet.has(r.id)) continue;
+        if (approvedSet.has(r.id)) appr++;
+        else pend++;
+      }
     }
-    return Array.from(ids);
-  }, [groups]);
-  const pendingCount = allItems.filter((id) => !approvedSet.has(id) && !hiddenSet.has(id)).length;
-  // Aprobados: contamos TODOS los aprobados de la BD (no sólo los del pool actual de AniList),
-  // descontando los que estén ocultos.
-  const approvedCount = (approvedArr || []).filter((id) => !hiddenSet.has(id)).length;
-  const hiddenCount = hiddenSet.size;
+    return { pendingCount: pend, approvedCountInPool: appr, hiddenCount: hiddenSet.size };
+  }, [groups, approvedSet, hiddenSet]);
+  // Aprobados totales en BD (contador global, aunque la lista sólo muestre los
+  // del pool activo de AniList — que es el comportamiento actual del filtro).
+  const approvedCount = approvedCountInPool;
 
   // Si tras filtrar quedan menos de MIN_PENDING pendientes y aún no llegamos al
   // tope de páginas extra, pedimos otra página de AniList automáticamente.
