@@ -274,7 +274,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const master = await resolveMasterUrl(supabase, anilistId, lang, ep);
+    const master = await resolveMasterUrl(supabase, anilistId, lang, ep, variant);
     if (!master) {
       return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
