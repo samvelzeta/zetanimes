@@ -1091,10 +1091,12 @@ export default function Watch() {
               streamingEpisodes={(anilistData as any)?.streamingEpisodes}
               thumbnails={episodeThumbs}
               selected={selectedEp}
+              selectedVariant={selectedVariant}
+              slots={episodeSlots}
               watched={watchedSet}
               slug={zetSlug}
               maxAvailable={maxEpisodeForLang}
-              onSelect={(ep) => { selectEpisode(ep); setShowEpisodes(false); }}
+              onSelect={(ep, v) => { selectEpisode(ep, v || 1); setShowEpisodes(false); }}
               onToggleWatched={(ep) => toggleWatched(ep)}
             />
           ) : (
