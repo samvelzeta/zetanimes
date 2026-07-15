@@ -173,8 +173,15 @@ export async function saveBlocks(
     if ((b.source_episode_offset || 0) < 0) {
       return { success: false, error: `Bloque ${i + 1}: offset negativo no permitido` };
     }
-    if (i > 0 && b.episode_from <= sorted[i - 1].episode_to && !options?.allowOverlap) {
-      return { success: false, error: `Bloques ${i} y ${i + 1} se solapan`, overlap: { a: i, b: i + 1 } };
+    if (i > 0 && b.episode_from <= sorted[i - 1].episode_to) {
+      const prev = sorted[i - 1];
+      const sameUrl = prev.seeke_base_url.trim().toLowerCase() === b.seeke_base_url.trim().toLowerCase();
+      if (sameUrl) {
+        return { success: false, error: `Bloques ${i} y ${i + 1} se solapan y apuntan al mismo enlace seeke. El solapamiento solo se permite si los enlaces son distintos.`, overlap: { a: i, b: i + 1 } };
+      }
+      if (!options?.allowOverlap) {
+        return { success: false, error: `Bloques ${i} y ${i + 1} se solapan`, overlap: { a: i, b: i + 1 } };
+      }
     }
   }
 
