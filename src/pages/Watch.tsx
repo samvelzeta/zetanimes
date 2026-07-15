@@ -367,7 +367,10 @@ export default function Watch() {
         name: `Bloque ${block.blockIndex}${block.blockLabel ? " · " + block.blockLabel : ""} • ${tag}`,
         embed: block.baseUrl,
         type: "seeke",
-        episode: block.episodeWithinBlock,
+        // ⚠️ El player pasa este número al edge; debe ser el ABSOLUTO del anime
+        // para que resolve-stream vuelva a matchear el bloque correcto usando variant.
+        episode: selectedEp,
+        variant: block.variant,
         lang: sourceLang,
         origin: "seeke",
       });
