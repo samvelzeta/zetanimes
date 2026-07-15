@@ -270,8 +270,23 @@ export default function PendingApproval() {
         map.set(m.id, m);
       }
     }
+    // Inyectamos metadata (título/cover) de aprobados y ocultos que ya no
+    // aparecen en el pool activo, para que las pestañas "Aprobados" y
+    // "Ocultos" no queden vacías.
+    if (trackerMeta) {
+      for (const id of approvedSet) {
+        if (map.has(id)) continue;
+        const meta = trackerMeta.get(id);
+        if (meta) map.set(id, meta);
+      }
+      for (const id of hiddenSet) {
+        if (map.has(id)) continue;
+        const meta = trackerMeta.get(id);
+        if (meta) map.set(id, meta);
+      }
+    }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet]);
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet, trackerMeta, approvedSet, hiddenSet]);
 
   // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
   const { data: prequelMap } = useQuery({
