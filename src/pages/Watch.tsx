@@ -55,6 +55,7 @@ export default function Watch() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const epParam = Number(searchParams.get("ep") || 1);
+  const variantParam = Math.max(1, Number(searchParams.get("v") || 1));
   const { user } = useAuth();
   const { permissions } = usePlanPermissions();
   const { activeProfile } = useProfiles();
