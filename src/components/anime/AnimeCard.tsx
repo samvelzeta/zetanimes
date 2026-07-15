@@ -56,3 +56,7 @@ function AnimeCardImpl({ anime, showStatus = false, size = "default" }: AnimeCar
   );
 }
 
+const AnimeCard = memo(AnimeCardImpl);
+export default AnimeCard;
+
+
