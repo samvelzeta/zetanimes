@@ -288,16 +288,22 @@ export default function PendingApproval() {
     return Array.from(map.values());
   }, [p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet, trackerMeta, approvedSet, hiddenSet]);
 
+  // Sólo pedimos precuelas para items que aún estén PENDIENTES (no aprobados,
+  // no ocultos). Para aprobados/ocultos no necesitamos expandir la cadena.
+  const pendingCandidateIds = useMemo(
+    () => airingItems.filter((a) => !approvedSet.has(a.id) && !hiddenSet.has(a.id)).map((a) => a.id),
+    [airingItems, approvedSet, hiddenSet],
+  );
+
   // Cadena de precuelas por cada item (cacheada en IDB dentro del helper).
   const { data: prequelMap } = useQuery({
-    queryKey: ["approval-prequel-chains", airingItems.map((a) => a.id).join(",")],
-    enabled: airingItems.length > 0,
+    queryKey: ["approval-prequel-chains", pendingCandidateIds.join(",")],
+    enabled: pendingCandidateIds.length > 0,
     queryFn: async () => {
       const out = new Map<number, PrequelNode[]>();
-      const ids = airingItems.map((a) => a.id);
       const CONC = 5;
-      for (let i = 0; i < ids.length; i += CONC) {
-        const slice = ids.slice(i, i + CONC);
+      for (let i = 0; i < pendingCandidateIds.length; i += CONC) {
+        const slice = pendingCandidateIds.slice(i, i + CONC);
         const results = await Promise.all(slice.map((id) => getPrequelChain(id).catch(() => [])));
         slice.forEach((id, idx) => out.set(id, results[idx] || []));
       }
