@@ -157,16 +157,25 @@ export async function saveBlocks(
   createdBy?: string,
   options?: { allowOverlap?: boolean }
 ): Promise<{ success: boolean; error?: string; overlap?: { a: number; b: number } }> {
-  // Validar
+  // Payload vacío = desactivar por completo: borrar todas las filas de (anilist_id, lang).
   if (!blocks.length) {
-    return { success: false, error: "Los enlaces madre por bloques están protegidos y no se pueden borrar en vacío." };
+    const { error: delAllError } = await supabase
+      .from("video_cache_blocks" as any)
+      .delete()
+      .eq("anilist_id", anilistId)
+      .eq("lang", lang);
+    invalidateBlocksCache(anilistId, lang);
+    if (delAllError) return { success: false, error: delAllError.message };
+    return { success: true };
   }
 
   // Ordenar y validar solapamientos
   const sorted = [...blocks].sort((a, b) => a.episode_from - b.episode_from);
   for (let i = 0; i < sorted.length; i++) {
     const b = sorted[i];
-    if (!b.seeke_base_url.trim()) return { success: false, error: `Bloque ${i + 1} sin URL` };
+    if (!b.seeke_base_url.trim() || b.seeke_base_url.trim().startsWith("__masked")) {
+      return { success: false, error: `Bloque ${i + 1}: URL inválida (vacía o placeholder). Pega la URL madre real de Seeke.` };
+    }
     if (b.episode_from < 1 || b.episode_to < b.episode_from) {
       return { success: false, error: `Bloque ${i + 1}: rango inválido (${b.episode_from}–${b.episode_to})` };
     }
@@ -199,9 +208,17 @@ export async function saveBlocks(
     created_by: createdBy || null,
   }));
 
+  // Borrar todo lo existente para (anilist_id, lang) y reinsertar limpio.
+  // Así se eliminan filas obsoletas (bloques que el admin removió) y valores basura tipo "__masked__".
+  const { error: delError } = await supabase
+    .from("video_cache_blocks" as any)
+    .delete()
+    .eq("anilist_id", anilistId)
+    .eq("lang", lang);
+  if (delError) { invalidateBlocksCache(anilistId, lang); return { success: false, error: delError.message }; }
   const { error: insError } = await supabase
     .from("video_cache_blocks" as any)
-    .upsert(rows as any, { onConflict: "anilist_id,lang,block_index" });
+    .insert(rows as any);
   invalidateBlocksCache(anilistId, lang);
   if (insError) return { success: false, error: insError.message };
   return { success: true };
