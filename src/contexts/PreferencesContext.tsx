@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from "react";
 
 /**
  * Preferencias globales del usuario (dispositivo).
