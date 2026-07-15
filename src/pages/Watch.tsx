@@ -881,7 +881,7 @@ export default function Watch() {
                 sources={displayedSources}
                 anilistId={anilistId}
                 lang={lang}
-                title={`${displayTitle} - EP ${displayedEpisode}`}
+                title={`${displayTitle} - EP ${displayedEpisode}${selectedVariant > 1 ? ` · Parte ${selectedVariant}` : ""}`}
                 onProgress={isEpisodeSwitching ? undefined : handleProgress}
                 onSeeked={isEpisodeSwitching ? undefined : handleSeeked}
                 initialTime={initialTime}
