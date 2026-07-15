@@ -48,7 +48,10 @@ interface Props {
   autoNextAlreadyTriggered?: boolean;
   currentEpisode?: number;
   totalEpisodes?: number;
-  onSelectEpisode?: (ep: number) => void;
+  onSelectEpisode?: (ep: number, variant?: number) => void;
+  /** Lista lineal de slots (ep, variant) — cuando hay bloques solapados, un ep puede aparecer 2+ veces. */
+  episodeSlots?: Array<{ ep: number; variant: number; blockLabel?: string | null }>;
+  currentVariant?: number;
   episodeThumbnails?: string[];
   subtitles?: PlayerSubtitle[];
   fullscreenContainerRef?: React.RefObject<HTMLElement>;
