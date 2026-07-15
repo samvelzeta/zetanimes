@@ -331,6 +331,19 @@ export default function Watch() {
   const seekeCoversOpposite = oppositeSeekeAvailableForEpisode && (latestOpposite || 0) > 0 && selectedEp <= (latestOpposite || 0);
   // Sin padding con selectedEp: si el usuario pide un ep > tope, se bloquea arriba.
   const episodeNumbers = Array.from({ length: Math.max(totalEpisodes, 0) }, (_, i) => i + 1);
+  // Slots: si hay bloques solapados, un mismo ep aparece varias veces (variant 1..N).
+  const episodeSlots = useMemo(() => {
+    if (!currentBlocks || currentBlocks.length === 0) {
+      return episodeNumbers.map((ep) => ({ ep, variant: 1, blockLabel: null as string | null }));
+    }
+    return buildEpisodeSlots(currentBlocks as any, totalEpisodes).map((s) => ({
+      ep: s.ep, variant: s.variant, blockLabel: s.blockLabel ?? null,
+    }));
+  }, [currentBlocks, episodeNumbers, totalEpisodes]);
+  const currentSlotIndex = useMemo(
+    () => episodeSlots.findIndex((s) => s.ep === selectedEp && s.variant === selectedVariant),
+    [episodeSlots, selectedEp, selectedVariant]
+  );
 
   const { data: oppositeServerData } = useQuery({
     queryKey: ["zet-servers-opposite", zetSlug, selectedEp, oppositeLang],
