@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Save, Layers, ArrowLeftRight } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Layers, ArrowLeftRight, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { listBlocksAdmin, saveBlocks, invalidateBlocksCache, type VideoBlock } from "@/lib/video-blocks";
 import { clearRuntimeVideoCache } from "@/lib/video-cache";
@@ -7,6 +7,10 @@ import { clearSeekeEpisodeCache } from "@/lib/zetapi";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   anilistId: number;
