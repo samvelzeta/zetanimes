@@ -84,20 +84,23 @@ async function resolveMasterUrl(
   anilistId: number,
   lang: string,
   ep: number,
+  variant: number = 1,
 ): Promise<{ url: string; sourceEp: number } | null> {
   // 1) Bloques (rangos de episodios con URLs madre distintas)
   const { data: blocks } = await supabase
     .from("video_cache_blocks")
-    .select("seeke_base_url, episode_from, episode_to, source_episode_offset, inverse_mode")
+    .select("seeke_base_url, episode_from, episode_to, source_episode_offset, inverse_mode, block_index")
     .eq("anilist_id", anilistId)
     .eq("lang", lang)
     .order("block_index", { ascending: true });
 
   if (Array.isArray(blocks) && blocks.length > 0) {
-    const match = blocks.find(
+    const matches = (blocks as any[]).filter(
       (b: any) => ep >= b.episode_from && ep <= b.episode_to,
-    ) as any;
-    if (!match) return null;
+    );
+    if (matches.length === 0) return null;
+    const idx = Math.max(1, variant) - 1;
+    const match = matches[idx] || matches[matches.length - 1];
     const offset = Number(match.source_episode_offset || 0);
     const relative = ep - match.episode_from + 1;
     return { url: match.seeke_base_url, sourceEp: relative + offset };
