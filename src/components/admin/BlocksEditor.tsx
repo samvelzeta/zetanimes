@@ -107,7 +107,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
   };
 
   // Construye el payload combinado y guarda
-  const persist = async (next: { normals: NormalRow[]; inv: InverseConfig | null }) => {
+  const persist = async (next: { normals: NormalRow[]; inv: InverseConfig | null }, allowOverlap = false): Promise<boolean> => {
     setSaving(true);
     const payload: Array<{ block_label?: string | null; episode_from: number; episode_to: number; seeke_base_url: string; source_episode_offset?: number; inverse_mode?: boolean }> = [];
 
@@ -134,8 +134,16 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
       });
     }
 
-    const res = await saveBlocks(anilistId, slug, lang, payload, user?.id);
+    const res = await saveBlocks(anilistId, slug, lang, payload, user?.id, { allowOverlap });
     if (!res.success) {
+      if (res.overlap && !allowOverlap) {
+        setSaving(false);
+        setOverlapPrompt({
+          message: res.error || "Los bloques se solapan",
+          retry: async () => { await persist(next, true); },
+        });
+        return false;
+      }
       toast.error(res.error || "Error guardando bloques");
       setSaving(false);
       return false;
@@ -148,6 +156,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
     setSaving(false);
     return true;
   };
+
 
   const saveNormal = async () => {
     const inv = inverse.enabled ? inverse : null;
