@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import { getTitle, getStatusLabel, getStatusColor, type AniListMedia } from "@/lib/anilist";
 import { Star, Play } from "lucide-react";
@@ -10,7 +11,8 @@ interface AnimeCardProps {
   size?: "small" | "default" | "large" | "grid";
 }
 
-export default function AnimeCard({ anime, showStatus = false, size = "default" }: AnimeCardProps) {
+function AnimeCardImpl({ anime, showStatus = false, size = "default" }: AnimeCardProps) {
+
   const title = getTitle(anime);
   const image = anime.coverImage?.extraLarge || anime.coverImage?.large;
   const score = anime.averageScore;
@@ -53,4 +55,8 @@ export default function AnimeCard({ anime, showStatus = false, size = "default" 
     </Link>
   );
 }
+
+const AnimeCard = memo(AnimeCardImpl);
+export default AnimeCard;
+
 

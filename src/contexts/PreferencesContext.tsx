@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from "react";
 
 /**
  * Preferencias globales del usuario (dispositivo).
@@ -94,12 +94,18 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     setPreferences(DEFAULTS);
   }, []);
 
+  const value = useMemo(
+    () => ({ preferences, setPreference, resetPreferences }),
+    [preferences, setPreference, resetPreferences]
+  );
+
   return (
-    <PreferencesContext.Provider value={{ preferences, setPreference, resetPreferences }}>
+    <PreferencesContext.Provider value={value}>
       {children}
     </PreferencesContext.Provider>
   );
 }
+
 
 export function usePreferences() {
   const ctx = useContext(PreferencesContext);

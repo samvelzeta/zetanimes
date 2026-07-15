@@ -107,19 +107,23 @@ export default function AdblockGate() {
 
   useEffect(() => {
     if (!visible) return;
+    const parent = nodeRef.current?.parentElement || document.body;
     const obs = new MutationObserver(() => {
       if (!nodeRef.current || !document.body.contains(nodeRef.current)) {
         setTick((t) => t + 1);
       }
     });
-    obs.observe(document.body, { childList: true, subtree: true });
+    // Scope reducido: solo hijos directos del padre, no todo el árbol
+    obs.observe(parent, { childList: true, subtree: false });
+    // Chequeo mucho menos frecuente como fallback
     const iv = window.setInterval(() => {
       if (!nodeRef.current || !document.body.contains(nodeRef.current)) {
         setTick((t) => t + 1);
       }
-    }, 800);
+    }, 5000);
     return () => { obs.disconnect(); clearInterval(iv); };
   }, [visible]);
+
 
   const goPremium = () => {
     if (!user) {
