@@ -208,9 +208,17 @@ export async function saveBlocks(
     created_by: createdBy || null,
   }));
 
+  // Borrar todo lo existente para (anilist_id, lang) y reinsertar limpio.
+  // Así se eliminan filas obsoletas (bloques que el admin removió) y valores basura tipo "__masked__".
+  const { error: delError } = await supabase
+    .from("video_cache_blocks" as any)
+    .delete()
+    .eq("anilist_id", anilistId)
+    .eq("lang", lang);
+  if (delError) { invalidateBlocksCache(anilistId, lang); return { success: false, error: delError.message }; }
   const { error: insError } = await supabase
     .from("video_cache_blocks" as any)
-    .upsert(rows as any, { onConflict: "anilist_id,lang,block_index" });
+    .insert(rows as any);
   invalidateBlocksCache(anilistId, lang);
   if (insError) return { success: false, error: insError.message };
   return { success: true };
