@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const cacheKey = `${anilistId}|${lang}|${ep}`;
+    const cacheKey = `${anilistId}|${lang}|${ep}|v${variant}`;
 
     if (action === "latest") {
       const latestKey = `${anilistId}|${lang}`;
