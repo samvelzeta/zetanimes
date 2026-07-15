@@ -527,32 +527,42 @@ export default function Watch() {
   }, [zetSlug, selectedEp]);
 
   // Use replace instead of push for episode navigation (fixes back button)
-  const selectEpisode = (epNumber: number) => {
+  const selectEpisode = (epNumber: number, variant: number = 1) => {
     const doc = document as Document & { webkitFullscreenElement?: Element | null };
     const hasFullscreen = Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
 
-    // Estilo YouTube/Netflix: el contenedor maestro (playerWrapper) nunca se desmonta
-    // ni se sale del fullscreen al cambiar de episodio. El anuncio (free) se pinta
-    // como overlay encima dentro del mismo contenedor. Si por algún motivo el
-    // fullscreen activo no está sobre el wrapper, lo re-solicitamos dentro del gesto.
     if (hasFullscreen && playerWrapperRef.current && document.fullscreenElement !== playerWrapperRef.current) {
       try { playerWrapperRef.current.requestFullscreen?.().catch(() => undefined); } catch { void 0; }
     }
-    // Bloquear orientación horizontal en móvil mientras seguimos en fullscreen.
     if (hasFullscreen) {
       const orientation = screen.orientation as ScreenOrientation & {
         lock?: (o: OrientationLockType) => Promise<void>;
       };
       try { orientation.lock?.("landscape").catch(() => undefined); } catch { void 0; }
     }
+    const v = Math.max(1, variant);
     setSelectedEp(epNumber);
+    setSelectedVariant(v);
     setActiveSourceIdx(0);
-    navigate(`/watch/${id}?ep=${epNumber}`, { replace: true });
+    const q = v > 1 ? `?ep=${epNumber}&v=${v}` : `?ep=${epNumber}`;
+    navigate(`/watch/${id}${q}`, { replace: true });
     watchTimeRef.current = 0;
     if (!inWebView) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
+  const goToSlotOffset = (delta: number) => {
+    if (currentSlotIndex < 0) {
+      selectEpisode(selectedEp + delta, 1);
+      return;
+    }
+    const next = episodeSlots[currentSlotIndex + delta];
+    if (!next) return;
+    selectEpisode(next.ep, next.variant);
+  };
+  const prevSlot = episodeSlots[currentSlotIndex - 1];
+  const nextSlot = episodeSlots[currentSlotIndex + 1];
 
   const handleAutoNext = useCallback(() => {
     const autoPlayEnabled = localStorage.getItem("zet_autoplay") !== "false";
