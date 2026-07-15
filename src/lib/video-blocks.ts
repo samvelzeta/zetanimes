@@ -104,6 +104,7 @@ export async function resolveSeekeBaseForEpisode(
     episodeWithinBlock,
     sourceEpisodeOffset: offset,
     inverseMode: !!match.inverse_mode || offset > 0,
+    variant: Math.min(idx + 1, matches.length),
   };
 }
 
