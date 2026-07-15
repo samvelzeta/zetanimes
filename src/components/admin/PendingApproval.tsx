@@ -214,6 +214,36 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 2,
   });
 
+  // Metadata (título/cover) de todos los animes ya registrados: nos permite
+  // renderizar las pestañas "Aprobados" y "Ocultos" aunque esos IDs ya no
+  // aparezcan en el pool de emisión actual de AniList.
+  const { data: trackerMeta } = useQuery({
+    queryKey: ["approval-tracker-meta"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("anime_download_tracker")
+        .select("anilist_id, title, cover_image, total_episodes, airing_status")
+        .limit(2000);
+      if (error) { console.error("[tracker-meta] load error", error); return new Map<number, AiringItem>(); }
+      const map = new Map<number, AiringItem>();
+      for (const r of (data || []) as any[]) {
+        if (!r.anilist_id) continue;
+        map.set(r.anilist_id, {
+          id: r.anilist_id,
+          title: { english: r.title, romaji: r.title },
+          coverImage: { large: r.cover_image || undefined, extraLarge: r.cover_image || undefined },
+          status: r.airing_status || "FINISHED",
+          episodes: r.total_episodes || null,
+          averageScore: null,
+          format: null,
+        });
+      }
+      return map;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+
   const airingItems = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
     // Fuentes "core" — siempre se incluyen (RELEASING + películas próximas/recientes)
