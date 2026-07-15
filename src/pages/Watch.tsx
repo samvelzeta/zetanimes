@@ -64,6 +64,7 @@ export default function Watch() {
   const inWebView = isWebView();
 
   const [selectedEp, setSelectedEp] = useState(epParam);
+  const [selectedVariant, setSelectedVariant] = useState(variantParam);
   const [lang, setLang] = useState<Lang>("sub");
   
   const watchTimeRef = useRef(0);
