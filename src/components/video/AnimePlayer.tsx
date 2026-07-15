@@ -73,6 +73,7 @@ interface ClassifiedSource {
   url: string;
   name: string;
   episode?: number;
+  variant?: number;
 }
 
 const SRT_CACHE_VERSION = "v1";
