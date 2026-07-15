@@ -233,16 +233,16 @@ export default function Watch() {
 
   // Bloques: si están definidos, sobreescriben la URL madre única para el ep actual.
   const { data: currentBlock } = useQuery({
-    queryKey: ["seeke-block", anilistId, lang, selectedEp],
-    queryFn: () => resolveSeekeBaseForEpisode(anilistId, lang, selectedEp),
+    queryKey: ["seeke-block", anilistId, lang, selectedEp, selectedVariant],
+    queryFn: () => resolveSeekeBaseForEpisode(anilistId, lang, selectedEp, selectedVariant),
     enabled: anilistId > 0,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",
   });
   const { data: oppositeBlock } = useQuery({
-    queryKey: ["seeke-block", anilistId, oppositeLang, selectedEp],
-    queryFn: () => resolveSeekeBaseForEpisode(anilistId, oppositeLang, selectedEp),
+    queryKey: ["seeke-block", anilistId, oppositeLang, selectedEp, selectedVariant],
+    queryFn: () => resolveSeekeBaseForEpisode(anilistId, oppositeLang, selectedEp, selectedVariant),
     enabled: anilistId > 0,
     staleTime: 0,
     gcTime: 0,
