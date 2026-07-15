@@ -167,11 +167,17 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
   };
 
   const disableNormal = async () => {
-    toast.error("Los enlaces madre por bloques están protegidos. Reemplázalos editando la URL, no borrándolos.");
+    if (!confirm("¿Desactivar todos los bloques normales? Se borrarán al guardar.")) return;
+    setNormalRows([]);
+    setNormalEnabled(false);
+    await persist({ normals: [], inv: inverse.enabled ? inverse : null });
   };
 
   const disableInverse = async () => {
-    toast.error("El enlace madre inverso está protegido. Reemplázalo editando la URL, no borrándolo.");
+    if (!confirm("¿Desactivar el bloque inverso?")) return;
+    const next = { ...inverse, enabled: false };
+    setInverse(next);
+    await persist({ normals: normalEnabled ? normalRows : [], inv: null });
   };
 
   if (loading) return <div className="flex items-center gap-2 text-xs text-muted-foreground p-3"><Loader2 className="w-3 h-3 animate-spin" /> Cargando bloques...</div>;
