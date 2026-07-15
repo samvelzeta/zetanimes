@@ -887,15 +887,17 @@ export default function Watch() {
                 initialTime={initialTime}
                 showServerPicker={shouldShowServerControl}
                 episodeKey={displayedAutoNextKey}
-                canPrev={displayedEpisode > 1}
-                canNext={displayedEpisode < maxEpisodeForLang}
-                onPrev={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
-                onNext={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
+                canPrev={!!prevSlot}
+                canNext={!!nextSlot && (nextSlot.ep <= maxEpisodeForLang)}
+                onPrev={() => goToSlotOffset(-1)}
+                onNext={() => nextSlot && nextSlot.ep <= maxEpisodeForLang && goToSlotOffset(1)}
                 onAutoNext={isEpisodeSwitching ? undefined : handleAutoNext}
                 autoNextAlreadyTriggered={autoNextDone.has(displayedAutoNextKey)}
                 currentEpisode={displayedEpisode}
                 totalEpisodes={totalEpisodes}
-                onSelectEpisode={(n) => selectEpisode(n)}
+                episodeSlots={episodeSlots}
+                currentVariant={selectedVariant}
+                onSelectEpisode={(n, v) => selectEpisode(n, v || 1)}
                 episodeThumbnails={episodeThumbs}
                 subtitles={activeSubtitles}
                 fullscreenContainerRef={playerWrapperRef}
