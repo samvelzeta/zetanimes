@@ -298,6 +298,42 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!overlapPrompt} onOpenChange={(o) => { if (!o) setOverlapPrompt(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              ¿Permitir solapar este bloque?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 text-xs leading-relaxed">
+              <span className="block font-mono text-amber-500">{overlapPrompt?.message}</span>
+              <span className="block">
+                Normalmente los bloques no pueden compartir episodios. Si permites el solapamiento:
+              </span>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>El episodio compartido será resuelto por el <strong>primer bloque que lo contenga</strong> (según orden por rango).</li>
+                <li>El segundo bloque quedará <strong>ignorado</strong> para esos capítulos, aunque su URL madre siga guardada.</li>
+                <li>Puede causar que el reproductor cargue el enlace equivocado si te confundes con los rangos.</li>
+                <li>Recomendado solo cuando sepas exactamente qué bloque debe ganar la prioridad.</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Rechazar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const r = overlapPrompt?.retry;
+                setOverlapPrompt(null);
+                if (r) await r();
+              }}
+              className="bg-amber-500 text-background hover:bg-amber-500/90"
+            >
+              Aprobar solapamiento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
