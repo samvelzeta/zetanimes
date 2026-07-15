@@ -425,19 +425,30 @@ export default function PendingApproval() {
 
   const loading = l1 || l2 || l3 || lm || lm2 || lm3;
 
-  const allItems = useMemo(() => {
-    const ids = new Set<number>();
+  // Los conteos deben reflejar lo que realmente se renderiza en cada pestaña.
+  // Antes contábamos todos los IDs del pool (incluyendo relacionados dentro de
+  // grupos cuyo main estaba oculto/aprobado), lo cual daba "15 pendientes" pero
+  // filteredGroups salía vacío. Ahora recorremos groups con la misma lógica
+  // que filteredGroups.
+  const { pendingCount, approvedCountInPool, hiddenCount } = useMemo(() => {
+    let pend = 0, appr = 0;
     for (const g of groups) {
-      ids.add(g.main.id);
-      g.related.forEach((r) => ids.add(r.id));
+      const mainHidden = hiddenSet.has(g.main.id);
+      if (mainHidden) continue; // grupos con main oculto no aparecen en pending/aprobados
+      const mainApproved = approvedSet.has(g.main.id);
+      if (mainApproved) appr++;
+      else pend++;
+      for (const r of g.related) {
+        if (hiddenSet.has(r.id)) continue;
+        if (approvedSet.has(r.id)) appr++;
+        else pend++;
+      }
     }
-    return Array.from(ids);
-  }, [groups]);
-  const pendingCount = allItems.filter((id) => !approvedSet.has(id) && !hiddenSet.has(id)).length;
-  // Aprobados: contamos TODOS los aprobados de la BD (no sólo los del pool actual de AniList),
-  // descontando los que estén ocultos.
-  const approvedCount = (approvedArr || []).filter((id) => !hiddenSet.has(id)).length;
-  const hiddenCount = hiddenSet.size;
+    return { pendingCount: pend, approvedCountInPool: appr, hiddenCount: hiddenSet.size };
+  }, [groups, approvedSet, hiddenSet]);
+  // Aprobados totales en BD (contador global, aunque la lista sólo muestre los
+  // del pool activo de AniList — que es el comportamiento actual del filtro).
+  const approvedCount = approvedCountInPool;
 
   // Si tras filtrar quedan menos de MIN_PENDING pendientes y aún no llegamos al
   // tope de páginas extra, pedimos otra página de AniList automáticamente.
