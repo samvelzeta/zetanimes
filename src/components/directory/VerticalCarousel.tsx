@@ -88,29 +88,35 @@ export default function VerticalCarousel({ items }: Props) {
   return (
     <section className="relative w-full h-[86vh] md:h-[86vh] overflow-hidden">
       {/* Fondo dinámico — nítido con parallax en móvil, difuminado en desktop */}
-      {slides.map((a, i) => (
-        <div
-          key={`bg-${a.id}`}
-          className={`absolute inset-0 transition-opacity duration-1000 ${
-            i === index ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          {/* Móvil: imagen nítida Ken Burns */}
-          <LazyImage
-            src={a.bannerImage || a.coverImage?.extraLarge || a.coverImage?.large || ""}
-            alt=""
-            className={`md:hidden w-full h-full object-cover ${
-              i === index ? "animate-[kenburns_9s_ease-out_forwards]" : ""
+      {slides.map((a, i) => {
+        const isActive = i === index;
+        return (
+          <div
+            key={`bg-${a.id}`}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              isActive ? "opacity-100" : "opacity-0"
             }`}
-          />
-          {/* Desktop: blur cinematográfico */}
-          <LazyImage
-            src={a.bannerImage || a.coverImage?.extraLarge || a.coverImage?.large || ""}
-            alt=""
-            className="hidden md:block w-full h-full object-cover scale-110 blur-2xl opacity-60"
-          />
-        </div>
-      ))}
+          >
+            {/* Móvil: imagen nítida Ken Burns (solo activa) */}
+            {isActive && (
+              <LazyImage
+                src={a.bannerImage || a.coverImage?.extraLarge || a.coverImage?.large || ""}
+                alt=""
+                className="md:hidden w-full h-full object-cover animate-[kenburns_9s_ease-out_forwards]"
+              />
+            )}
+            {/* Desktop: blur cinematográfico (solo activa, evita compositar 6 capas blureadas) */}
+            {isActive && (
+              <LazyImage
+                src={a.bannerImage || a.coverImage?.extraLarge || a.coverImage?.large || ""}
+                alt=""
+                className="hidden md:block w-full h-full object-cover scale-110 blur-2xl opacity-60"
+              />
+            )}
+          </div>
+        );
+      })}
+
       {/* Overlays diferenciados */}
       <div className="md:hidden absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/10 pointer-events-none" />
       <div className="md:hidden absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/40 pointer-events-none" />
