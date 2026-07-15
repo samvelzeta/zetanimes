@@ -108,8 +108,9 @@ export async function saveBlocks(
   slug: string,
   lang: string,
   blocks: Array<{ block_label?: string | null; episode_from: number; episode_to: number; seeke_base_url: string; source_episode_offset?: number; inverse_mode?: boolean }>,
-  createdBy?: string
-): Promise<{ success: boolean; error?: string }> {
+  createdBy?: string,
+  options?: { allowOverlap?: boolean }
+): Promise<{ success: boolean; error?: string; overlap?: { a: number; b: number } }> {
   // Validar
   if (!blocks.length) {
     return { success: false, error: "Los enlaces madre por bloques están protegidos y no se pueden borrar en vacío." };
@@ -126,8 +127,8 @@ export async function saveBlocks(
     if ((b.source_episode_offset || 0) < 0) {
       return { success: false, error: `Bloque ${i + 1}: offset negativo no permitido` };
     }
-    if (i > 0 && b.episode_from <= sorted[i - 1].episode_to) {
-      return { success: false, error: `Bloques ${i} y ${i + 1} se solapan` };
+    if (i > 0 && b.episode_from <= sorted[i - 1].episode_to && !options?.allowOverlap) {
+      return { success: false, error: `Bloques ${i} y ${i + 1} se solapan`, overlap: { a: i, b: i + 1 } };
     }
   }
 
