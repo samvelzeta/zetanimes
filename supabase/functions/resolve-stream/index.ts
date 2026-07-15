@@ -217,6 +217,7 @@ Deno.serve(async (req) => {
   const anilistId = Number(body?.anilistId);
   const lang = String(body?.lang || "sub");
   const ep = Number(body?.ep || 1);
+  const variant = Math.max(1, Number(body?.variant || 1));
 
   if (!Number.isFinite(anilistId) || anilistId <= 0) {
     return new Response(JSON.stringify({ ok: false, error: "invalid_anilist_id" }), {
