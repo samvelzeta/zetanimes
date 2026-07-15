@@ -1030,8 +1030,8 @@ export default function Watch() {
       <div className="px-4 mb-4">
         <div className="flex min-w-0 w-full flex-row flex-nowrap items-center gap-1.5 sm:gap-2 overflow-hidden">
           <button
-            onClick={() => selectedEp > 1 && selectEpisode(selectedEp - 1)}
-            disabled={selectedEp <= 1}
+            onClick={() => prevSlot && goToSlotOffset(-1)}
+            disabled={!prevSlot}
             className="h-10 min-w-0 flex-[1_1_0%] rounded-lg bg-secondary/70 hover:bg-secondary border border-border/60 text-foreground text-[10px] min-[380px]:text-[11px] sm:text-xs font-bold flex items-center justify-center gap-0.5 sm:gap-1 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 whitespace-nowrap overflow-hidden px-1.5 sm:px-3"
           >
             <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -1044,14 +1044,14 @@ export default function Watch() {
           >
             <List className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />
             <span className="min-w-0 truncate tabular-nums">
-              <span className="sm:hidden">EP {selectedEp}/{totalEpisodes}</span>
-              <span className="hidden sm:inline">EPISODIOS ({selectedEp}/{totalEpisodes})</span>
+              <span className="sm:hidden">EP {selectedEp}{selectedVariant > 1 ? `·P${selectedVariant}` : ""}/{totalEpisodes}</span>
+              <span className="hidden sm:inline">EPISODIOS ({selectedEp}{selectedVariant > 1 ? ` · Parte ${selectedVariant}` : ""}/{totalEpisodes})</span>
             </span>
             <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 transition-transform ${showEpisodes ? "rotate-180" : ""}`} />
           </button>
           <button
-            onClick={() => selectedEp < maxEpisodeForLang && selectEpisode(selectedEp + 1)}
-            disabled={selectedEp >= maxEpisodeForLang}
+            onClick={() => nextSlot && nextSlot.ep <= maxEpisodeForLang && goToSlotOffset(1)}
+            disabled={!nextSlot || nextSlot.ep > maxEpisodeForLang}
             className="h-10 min-w-0 flex-[1_1_0%] rounded-lg bg-primary text-primary-foreground border border-primary hover:bg-primary/90 text-[10px] min-[380px]:text-[11px] sm:text-xs font-bold flex items-center justify-center gap-0.5 sm:gap-1 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95 shadow-[0_0_12px_hsl(var(--primary)/0.35)] whitespace-nowrap overflow-hidden px-1.5 sm:px-3"
           >
             <span className="min-w-0 truncate">Siguiente</span>
