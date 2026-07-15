@@ -37,6 +37,8 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [overlapPrompt, setOverlapPrompt] = useState<null | { message: string; retry: () => Promise<void> }>(null);
+
 
   // ---- MODO NORMAL ----
   const [normalEnabled, setNormalEnabled] = useState(false);
