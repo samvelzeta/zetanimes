@@ -34,6 +34,8 @@ export interface ResolvedBlock {
   /** Offset usado (solo informativo). */
   sourceEpisodeOffset: number;
   inverseMode: boolean;
+  /** Variante usada (1..N) cuando el mismo episodio cae en varios bloques solapados. */
+  variant: number;
 }
 
 export async function listBlocks(anilistId: number, lang: string): Promise<VideoBlock[]> {
