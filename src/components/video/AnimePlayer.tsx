@@ -134,9 +134,9 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
 
     // Use API-provided type if available
     if (/<iframe|<video/i.test(url)) {
-      classified.push({ type: "html", url, name: s.name, episode: s.episode });
+      classified.push({ type: "html", url, name: s.name, episode: s.episode, variant: s.variant });
     } else if (s.type === "seeke") {
-      classified.push({ type: "seeke", url, name: s.name, episode: s.episode });
+      classified.push({ type: "seeke", url, name: s.name, episode: s.episode, variant: s.variant });
     } else if (s.type === "hls" || url.includes(".m3u8")) {
       classified.push({ type: "hls", url, name: s.name });
     } else if (url.includes(".mp4")) {
