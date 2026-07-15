@@ -20,6 +20,8 @@ export interface PlayerSource {
   url?: string;
   type?: string; // "hls" | "embed" | etc from API
   episode?: number;
+  /** Variante (1..N) usada para desambiguar bloques solapados en resolve-stream. */
+  variant?: number;
 }
 
 const EMPTY_PLAYER_SUBTITLES: PlayerSubtitle[] = [];
