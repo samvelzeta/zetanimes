@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Save, Layers, ArrowLeftRight } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Layers, ArrowLeftRight, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { listBlocksAdmin, saveBlocks, invalidateBlocksCache, type VideoBlock } from "@/lib/video-blocks";
 import { clearRuntimeVideoCache } from "@/lib/video-cache";
@@ -7,6 +7,10 @@ import { clearSeekeEpisodeCache } from "@/lib/zetapi";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   anilistId: number;
@@ -33,6 +37,8 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [overlapPrompt, setOverlapPrompt] = useState<null | { message: string; retry: () => Promise<void> }>(null);
+
 
   // ---- MODO NORMAL ----
   const [normalEnabled, setNormalEnabled] = useState(false);
@@ -101,7 +107,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
   };
 
   // Construye el payload combinado y guarda
-  const persist = async (next: { normals: NormalRow[]; inv: InverseConfig | null }) => {
+  const persist = async (next: { normals: NormalRow[]; inv: InverseConfig | null }, allowOverlap = false): Promise<boolean> => {
     setSaving(true);
     const payload: Array<{ block_label?: string | null; episode_from: number; episode_to: number; seeke_base_url: string; source_episode_offset?: number; inverse_mode?: boolean }> = [];
 
@@ -128,8 +134,16 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
       });
     }
 
-    const res = await saveBlocks(anilistId, slug, lang, payload, user?.id);
+    const res = await saveBlocks(anilistId, slug, lang, payload, user?.id, { allowOverlap });
     if (!res.success) {
+      if (res.overlap && !allowOverlap) {
+        setSaving(false);
+        setOverlapPrompt({
+          message: res.error || "Los bloques se solapan",
+          retry: async () => { await persist(next, true); },
+        });
+        return false;
+      }
       toast.error(res.error || "Error guardando bloques");
       setSaving(false);
       return false;
@@ -142,6 +156,7 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
     setSaving(false);
     return true;
   };
+
 
   const saveNormal = async () => {
     const inv = inverse.enabled ? inverse : null;
@@ -283,6 +298,42 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!overlapPrompt} onOpenChange={(o) => { if (!o) setOverlapPrompt(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              ¿Permitir solapar este bloque?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 text-xs leading-relaxed">
+              <span className="block font-mono text-amber-500">{overlapPrompt?.message}</span>
+              <span className="block">
+                Normalmente los bloques no pueden compartir episodios. Si permites el solapamiento:
+              </span>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>El episodio compartido será resuelto por el <strong>primer bloque que lo contenga</strong> (según orden por rango).</li>
+                <li>El segundo bloque quedará <strong>ignorado</strong> para esos capítulos, aunque su URL madre siga guardada.</li>
+                <li>Puede causar que el reproductor cargue el enlace equivocado si te confundes con los rangos.</li>
+                <li>Recomendado solo cuando sepas exactamente qué bloque debe ganar la prioridad.</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Rechazar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const r = overlapPrompt?.retry;
+                setOverlapPrompt(null);
+                if (r) await r();
+              }}
+              className="bg-amber-500 text-background hover:bg-amber-500/90"
+            >
+              Aprobar solapamiento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
