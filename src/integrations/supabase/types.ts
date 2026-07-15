@@ -403,6 +403,30 @@ export type Database = {
         }
         Relationships: []
       }
+      anime_synopsis_es: {
+        Row: {
+          anilist_id: number
+          created_at: string
+          source_hash: string
+          translated_text: string
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          created_at?: string
+          source_hash: string
+          translated_text: string
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          created_at?: string
+          source_hash?: string
+          translated_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       anime_views: {
         Row: {
           anilist_id: number
