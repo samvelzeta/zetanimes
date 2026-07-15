@@ -340,7 +340,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
         setLoading(false);
         return;
       }
-      resolveStreamEpisode(anilistId, lang, requestedEp)
+      resolveStreamEpisode(anilistId, lang, requestedEp, currentSource.variant || 1)
         .then((data) => {
           if (cancelled || abort.signal.aborted) return;
           const returnedEp = Number(data.episode);
