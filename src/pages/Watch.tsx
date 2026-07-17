@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
-import VastAdOverlay from "@/components/ads/VastAdOverlay";
+import ClickadillaAdGate from "@/components/ads/ClickadillaAdGate";
 import AdblockPlayerOverlay from "@/components/ads/AdblockPlayerOverlay";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import StreamGuard from "@/components/video/StreamGuard";
