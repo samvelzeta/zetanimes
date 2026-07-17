@@ -21,14 +21,22 @@ import { useEffect, useRef, useState } from "react";
 import { X, Loader2, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-// 👉 Reemplaza aquí por tu Ad Tag VAST real si no usas la variable env.
-const VAST_URL_FALLBACK = "";
+// Pool de VAST tags (rotación aleatoria + waterfall fallback).
+const VAST_POOL: string[] = [
+  "https://vast.yomeno.xyz/vast?spot_id=1496604",
+  "https://vast.yomeno.xyz/vast?spot_id=1496607",
+  "https://vast.yomeno.xyz/vast?spot_id=1496606",
+  "https://vast.yomeno.xyz/vast?spot_id=1496608",
+  "https://vast.yomeno.xyz/vast?spot_id=1496609",
+  "https://vast.yomeno.xyz/vast?spot_id=1496610",
+];
 
 const TOGGLE_KEY = "zet:vast-next-show";
 const LAST_EP_KEY = "zet:vast-last-ep";
 const LAST_SEEN_KEY = "zet:vast-last-seen";
 const INACTIVITY_MS = 30 * 60 * 1000; // 30 min
-const VAST_FETCH_TIMEOUT_MS = 3000;   // 3s duros
+const VAST_PRIMARY_TIMEOUT_MS = 2500; // primer intento
+const VAST_FALLBACK_TIMEOUT_MS = 2000; // segundo intento (waterfall)
 
 interface Props {
   episodeKey: string;
