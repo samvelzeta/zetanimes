@@ -290,10 +290,14 @@ function getClickadillaNodes(): HTMLElement[] {
 function isRenderableAdNode(node: HTMLElement): boolean {
   if (node.tagName === "SCRIPT") return false;
   if (isInsidePreloadHost(node)) return false;
-  if (node.tagName === "IFRAME") return true;
   const style = window.getComputedStyle(node);
   if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
   const rect = node.getBoundingClientRect();
+  if (rect.width < 120 || rect.height < 80) return false;
+  if (node.tagName === "IFRAME") {
+    const src = (node as HTMLIFrameElement).src || "";
+    return !!src && src !== "about:blank";
+  }
   return rect.width >= 120 && rect.height >= 80;
 }
 
@@ -537,7 +541,7 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
 
     // Fallback: si en 7s no aparece nada, cerrar solos
     const fallbackTimer = window.setTimeout(() => {
-      if (!renderableAdDetected) {
+      if (!adReadyDetected) {
         console.warn("Clickadilla tardó demasiado en responder. Activando fallback de seguridad para reproducir el anime.");
         finish();
       }
