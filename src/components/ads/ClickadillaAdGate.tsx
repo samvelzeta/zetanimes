@@ -41,6 +41,51 @@ function getPlayerVideo(): HTMLVideoElement | null {
   return document.querySelector<HTMLVideoElement>("#zet-player-container video");
 }
 
+function getPlayerIframes(): HTMLIFrameElement[] {
+  return Array.from(document.querySelectorAll<HTMLIFrameElement>("#zet-player-container iframe"));
+}
+
+interface MutedState {
+  video?: { muted: boolean; volume: number };
+  iframes: Array<{ el: HTMLIFrameElement; src: string }>;
+}
+
+function silenceBehind(state: MutedState) {
+  const v = getPlayerVideo();
+  if (v) {
+    try { v.pause(); } catch {}
+    if (state.video === undefined) {
+      state.video = { muted: v.muted, volume: v.volume };
+    }
+    v.muted = true;
+    v.volume = 0;
+  }
+  // Iframes de players externos: no podemos pause() → blankear su src corta el audio
+  const iframes = getPlayerIframes();
+  for (const f of iframes) {
+    if (state.iframes.find((x) => x.el === f)) continue;
+    const src = f.src;
+    if (!src || src === "about:blank") continue;
+    state.iframes.push({ el: f, src });
+    try { f.src = "about:blank"; } catch {}
+  }
+}
+
+function restoreBehind(state: MutedState) {
+  const v = getPlayerVideo();
+  if (v && state.video) {
+    v.muted = state.video.muted;
+    v.volume = state.video.volume;
+    v.play().catch(() => undefined);
+  }
+  for (const { el, src } of state.iframes) {
+    try { el.src = src; } catch {}
+  }
+  state.iframes = [];
+  state.video = undefined;
+}
+
+
 function injectClickadilla(host: HTMLElement) {
   removeInjected();
   const s = document.createElement("script");
