@@ -154,6 +154,9 @@ function migratePreloadedAd(target: HTMLElement) {
     try { target.appendChild(node); moved++; } catch { /* noop */ }
   }
   return moved;
+}
+
+
 
 function clearAdLoadingMarker() {
   localStorage.removeItem(AD_LOADING_KEY);
