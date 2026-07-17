@@ -118,14 +118,52 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
 
     let closed = false;
     let trackedNode: HTMLElement | null = null;
+    let attachedVideo: HTMLVideoElement | null = null;
 
-    const pauseBehind = () => {
+    const forcePause = () => {
       const v = getPlayerVideo();
-      if (v && !v.paused) v.pause();
+      if (!v) return;
+      try {
+        v.pause();
+        // Marca visual + prevención de autoplay HLS.js posterior
+        (v as any).__zetAdBlocked = true;
+      } catch {}
     };
-    pauseBehind();
-    const video = getPlayerVideo();
-    video?.addEventListener("play", pauseBehind);
+
+    const onPlayAttempt = () => {
+      // Cualquier intento de play mientras el anuncio está activo se cancela
+      forcePause();
+    };
+
+    const attachTo = (v: HTMLVideoElement) => {
+      if (attachedVideo === v) return;
+      // Despega del anterior
+      if (attachedVideo) {
+        attachedVideo.removeEventListener("play", onPlayAttempt);
+        attachedVideo.removeEventListener("playing", onPlayAttempt);
+        attachedVideo.removeEventListener("loadeddata", onPlayAttempt);
+        attachedVideo.removeEventListener("canplay", onPlayAttempt);
+      }
+      attachedVideo = v;
+      v.addEventListener("play", onPlayAttempt);
+      v.addEventListener("playing", onPlayAttempt);
+      v.addEventListener("loadeddata", onPlayAttempt);
+      v.addEventListener("canplay", onPlayAttempt);
+    };
+
+    // Poll agresivo: el <video> puede no existir todavía (HLS.js monta después)
+    // Mantiene el video pausado durante toda la vida del anuncio.
+    const pauseInterval = window.setInterval(() => {
+      const v = getPlayerVideo();
+      if (v) {
+        attachTo(v);
+        if (!v.paused) forcePause();
+      }
+    }, 150);
+
+    forcePause();
+    const initialVideo = getPlayerVideo();
+    if (initialVideo) attachTo(initialVideo);
 
     const finish = () => {
       if (closed) return;
@@ -136,12 +174,19 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
       try { observer.disconnect(); } catch {}
       try { exitObserver?.disconnect(); } catch {}
       window.clearTimeout(fallbackTimer);
-      const v = getPlayerVideo();
-      v?.removeEventListener("play", pauseBehind);
+      window.clearInterval(pauseInterval);
+      if (attachedVideo) {
+        attachedVideo.removeEventListener("play", onPlayAttempt);
+        attachedVideo.removeEventListener("playing", onPlayAttempt);
+        attachedVideo.removeEventListener("loadeddata", onPlayAttempt);
+        attachedVideo.removeEventListener("canplay", onPlayAttempt);
+        (attachedVideo as any).__zetAdBlocked = false;
+      }
+      // Reanuda el video tras cerrar el anuncio
       window.setTimeout(() => {
         const vv = getPlayerVideo();
         vv?.play().catch(() => undefined);
-      }, 0);
+      }, 50);
     };
 
     let exitObserver: MutationObserver | null = null;
@@ -187,7 +232,13 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
       try { observer.disconnect(); } catch {}
       try { exitObserver?.disconnect(); } catch {}
       window.clearTimeout(fallbackTimer);
-      video?.removeEventListener("play", pauseBehind);
+      window.clearInterval(pauseInterval);
+      if (attachedVideo) {
+        attachedVideo.removeEventListener("play", onPlayAttempt);
+        attachedVideo.removeEventListener("playing", onPlayAttempt);
+        attachedVideo.removeEventListener("loadeddata", onPlayAttempt);
+        attachedVideo.removeEventListener("canplay", onPlayAttempt);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
