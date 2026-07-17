@@ -1,27 +1,16 @@
 // Overlay de anuncio VAST (video) sobre el reproductor nativo.
-// Reemplaza por completo al viejo script Anti-AdBlock de Clickadilla:
-// ya NO se inyectan scripts externos ni iframes de terceros. Solo se
-// descarga un XML VAST estándar, se extrae el MP4/WebM del anuncio y
-// se reproduce en un <video> propio encima del reproductor.
-//
-// Reglas:
-// - Alternancia 1 sí / 1 no por episodio (localStorage).
-// - Reset por inactividad: si el usuario no ve nada durante 30 min, el
-//   siguiente episodio vuelve a mostrar anuncio.
-// - Timeout duro de 3s en el fetch del VAST: si tarda más o falla, se
-//   cancela y el anime arranca sin espera. Nunca pantalla negra > 3s.
-// - Pausa el video maestro mientras el anuncio está en pantalla y lo
-//   reanuda al cerrar / terminar el anuncio.
-// - Premium: exento por completo.
-//
-// Configuración del Ad Tag:
-// - Variable de entorno VITE_VAST_TAG_URL (preferida) o
-//   VITE_CLICKADILLA_VAST_URL (compat) o VAST_URL_FALLBACK abajo.
+// - Rotación aleatoria + waterfall entre VAST_POOL.
+// - Timeout duro para no dejar pantalla negra > pocos segundos.
+// - Auto-cierre a los 15s (o al terminar el anuncio).
+// - X diminuta arriba-derecha (intencional para favorecer clic al anuncio).
+// - Click en el video → abre ClickThrough en pestaña nueva / Chrome externo (APK).
+// - Pausa el reproductor maestro mientras dura el anuncio.
+// - Premium: exento.
 import { useEffect, useRef, useState } from "react";
 import { X, Loader2, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { openExternalChrome } from "@/lib/apk-intent";
 
-// Pool de VAST tags (rotación aleatoria + waterfall fallback).
 const VAST_POOL: string[] = [
   "https://vast.yomeno.xyz/vast?spot_id=1496604",
   "https://vast.yomeno.xyz/vast?spot_id=1496607",
@@ -34,15 +23,21 @@ const VAST_POOL: string[] = [
 const TOGGLE_KEY = "zet:vast-next-show";
 const LAST_EP_KEY = "zet:vast-last-ep";
 const LAST_SEEN_KEY = "zet:vast-last-seen";
-const INACTIVITY_MS = 30 * 60 * 1000; // 30 min
-const VAST_PRIMARY_TIMEOUT_MS = 2500; // primer intento
-const VAST_FALLBACK_TIMEOUT_MS = 2000; // segundo intento (waterfall)
+const INACTIVITY_MS = 30 * 60 * 1000;
+const VAST_PRIMARY_TIMEOUT_MS = 2500;
+const VAST_FALLBACK_TIMEOUT_MS = 2000;
+const AUTO_CLOSE_MS = 15000;
 
 interface Props {
   episodeKey: string;
-  /** Segundos antes de poder cerrar. Default 5. */
+  /** Segundos máximos que dura el anuncio en pantalla. Default 15. */
   countdownSecs?: number;
   onClosed?: () => void;
+}
+
+interface VastCreative {
+  mediaUrl: string;
+  clickThrough: string | null;
 }
 
 async function fetchTextWithTimeout(url: string, timeoutMs: number): Promise<string> {
@@ -57,8 +52,12 @@ async function fetchTextWithTimeout(url: string, timeoutMs: number): Promise<str
   }
 }
 
-/** Parsea VAST/VAST Wrapper y devuelve la mejor MediaFile URL (mp4/webm). */
-async function resolveVastMedia(url: string, timeoutMs: number, depth = 0, deadline = Date.now() + timeoutMs): Promise<string | null> {
+async function resolveVastCreative(
+  url: string,
+  timeoutMs: number,
+  depth = 0,
+  deadline = Date.now() + timeoutMs,
+): Promise<VastCreative | null> {
   if (depth > 3) return null;
   const remaining = deadline - Date.now();
   if (remaining <= 0) return null;
@@ -66,7 +65,7 @@ async function resolveVastMedia(url: string, timeoutMs: number, depth = 0, deadl
   const doc = new DOMParser().parseFromString(xmlStr, "text/xml");
   const wrapper = doc.querySelector("VASTAdTagURI");
   if (wrapper?.textContent) {
-    return resolveVastMedia(wrapper.textContent.trim(), timeoutMs, depth + 1, deadline);
+    return resolveVastCreative(wrapper.textContent.trim(), timeoutMs, depth + 1, deadline);
   }
   const files = Array.from(doc.querySelectorAll("MediaFile"));
   const scored = files
@@ -77,47 +76,43 @@ async function resolveVastMedia(url: string, timeoutMs: number, depth = 0, deadl
     }))
     .filter((f) => f.url && /mp4|webm/i.test(f.type));
   scored.sort((a, b) => b.w - a.w);
-  return scored[0]?.url || null;
+  const mediaUrl = scored[0]?.url;
+  if (!mediaUrl) return null;
+  const click = doc.querySelector("ClickThrough")?.textContent?.trim() || null;
+  return { mediaUrl, clickThrough: click };
 }
 
-/** Waterfall: intenta un VAST aleatorio; si falla/timeout, prueba otro distinto. */
-async function resolveFromPool(pool: string[]): Promise<string | null> {
+async function resolveFromPool(pool: string[]): Promise<VastCreative | null> {
   if (pool.length === 0) return null;
   const first = pool[Math.floor(Math.random() * pool.length)];
   try {
-    const u = await resolveVastMedia(first, VAST_PRIMARY_TIMEOUT_MS);
-    if (u) return u;
-  } catch { /* pasa a fallback */ }
+    const c = await resolveVastCreative(first, VAST_PRIMARY_TIMEOUT_MS);
+    if (c) return c;
+  } catch { /* fallback */ }
   const rest = pool.filter((x) => x !== first);
   if (rest.length === 0) return null;
   const second = rest[Math.floor(Math.random() * rest.length)];
   try {
-    return await resolveVastMedia(second, VAST_FALLBACK_TIMEOUT_MS);
+    return await resolveVastCreative(second, VAST_FALLBACK_TIMEOUT_MS);
   } catch {
     return null;
   }
 }
 
-export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed }: Props) {
+export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed }: Props) {
   const { isPremium, loading } = useAuth();
   const [show, setShow] = useState(false);
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [secs, setSecs] = useState(countdownSecs);
+  const [creative, setCreative] = useState<VastCreative | null>(null);
   const [muted, setMuted] = useState(true);
   const [loadingAd, setLoadingAd] = useState(false);
   const adVideoRef = useRef<HTMLVideoElement>(null);
 
-  const VAST_URLS: string[] = VAST_POOL;
-
-  // Decide 1 sí / 1 no + reset por inactividad de 30 min cuando cambia el episodio.
   useEffect(() => {
-    if (loading || isPremium || !episodeKey || VAST_URLS.length === 0) return;
+    if (loading || isPremium || !episodeKey || VAST_POOL.length === 0) return;
     const lastEp = localStorage.getItem(LAST_EP_KEY);
-    if (lastEp === episodeKey) return; // ya procesado
+    if (lastEp === episodeKey) return;
     localStorage.setItem(LAST_EP_KEY, episodeKey);
 
-    // Reset por inactividad: si pasaron > 30 min desde el último episodio
-    // visto, forzamos "toca mostrar anuncio" para no perder impresión.
     const lastSeenRaw = localStorage.getItem(LAST_SEEN_KEY);
     const lastSeen = lastSeenRaw ? parseInt(lastSeenRaw, 10) : 0;
     const now = Date.now();
@@ -125,27 +120,23 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
     localStorage.setItem(LAST_SEEN_KEY, String(now));
 
     const nextShow = localStorage.getItem(TOGGLE_KEY);
-    // Default en primer episodio o tras inactividad: mostrar.
     const shouldShow = inactive || nextShow !== "false";
     localStorage.setItem(TOGGLE_KEY, shouldShow ? "false" : "true");
-
     if (!shouldShow) return;
 
     let cancelled = false;
     setLoadingAd(true);
-    setSecs(countdownSecs);
-    // Bailout global: primario (2.5s) + fallback (2s) + margen.
     const bailout = window.setTimeout(() => {
       if (cancelled) return;
       cancelled = true;
       setLoadingAd(false);
     }, VAST_PRIMARY_TIMEOUT_MS + VAST_FALLBACK_TIMEOUT_MS + 500);
 
-    resolveFromPool(VAST_URLS)
-      .then((u) => {
+    resolveFromPool(VAST_POOL)
+      .then((c) => {
         if (cancelled) return;
-        if (u) {
-          setMediaUrl(u);
+        if (c) {
+          setCreative(c);
           setShow(true);
         }
       })
@@ -159,9 +150,9 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
       cancelled = true;
       window.clearTimeout(bailout);
     };
-  }, [episodeKey, isPremium, loading, countdownSecs]);
+  }, [episodeKey, isPremium, loading]);
 
-  // Pausa el video maestro mientras dure el overlay.
+  // Pausa el video maestro mientras dura el overlay.
   useEffect(() => {
     const video = document.querySelector("#zet-player-container video") as HTMLVideoElement | null;
     if (!video || !show || isPremium) return;
@@ -171,28 +162,22 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
     return () => video.removeEventListener("play", pauseBehind);
   }, [show, isPremium]);
 
-  // Tick countdown.
+  // Autoplay + auto-close a los 15s.
   useEffect(() => {
-    if (!show || secs <= 0) return;
-    const t = setTimeout(() => setSecs((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [show, secs]);
-
-  // Autoplay del anuncio (muted para pasar políticas de autoplay).
-  useEffect(() => {
-    if (!show || !mediaUrl) return;
+    if (!show || !creative) return;
     const v = adVideoRef.current;
-    if (!v) return;
-    v.muted = true;
-    v.play().catch(() => undefined);
-  }, [show, mediaUrl]);
+    if (v) {
+      v.muted = true;
+      v.play().catch(() => undefined);
+    }
+    const closeTimer = window.setTimeout(() => close(), AUTO_CLOSE_MS);
+    return () => window.clearTimeout(closeTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, creative]);
 
-  const canClose = secs <= 0;
-
-  const handleClose = () => {
-    if (!canClose) return;
+  const close = () => {
     setShow(false);
-    setMediaUrl(null);
+    setCreative(null);
     window.setTimeout(() => {
       const video = document.querySelector("#zet-player-container video") as HTMLVideoElement | null;
       video?.play().catch(() => undefined);
@@ -200,36 +185,39 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
     onClosed?.();
   };
 
-  const handleAdEnded = () => {
-    // Al terminar el anuncio, permitir cerrar aunque queden segundos.
-    setSecs(0);
+  const handleAdClick = () => {
+    const target = creative?.clickThrough;
+    if (!target) return;
+    openExternalChrome(target);
   };
 
   return (
     <div
       id="zet-vast-overlay"
       aria-hidden={!show || isPremium}
-      className="absolute inset-0 z-[60] bg-black flex-col items-center justify-center"
-      style={{ display: show && !isPremium && mediaUrl ? "flex" : "none" }}
+      className="absolute inset-0 z-[60] bg-black flex items-center justify-center"
+      style={{ display: show && !isPremium && creative ? "flex" : "none" }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="absolute top-2 left-3 text-[10px] uppercase tracking-widest text-white/60 z-10">
-        Publicidad — Apoya ZetAnime
+      <div className="absolute top-1.5 left-2 text-[9px] uppercase tracking-widest text-white/50 z-10 pointer-events-none select-none">
+        Publicidad
       </div>
 
-      {mediaUrl && (
+      {creative && (
         <video
           ref={adVideoRef}
-          src={mediaUrl}
-          className="w-full h-full object-contain"
+          src={creative.mediaUrl}
+          className="w-full h-full object-contain cursor-pointer"
           playsInline
           autoPlay
           muted={muted}
-          onEnded={handleAdEnded}
-          onError={handleAdEnded}
+          onClick={handleAdClick}
+          onEnded={close}
+          onError={close}
         />
       )}
 
+      {/* Mute / unmute */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -238,33 +226,25 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
           setMuted(m);
           if (v) v.muted = m;
         }}
-        className="absolute top-2 right-3 w-9 h-9 rounded-full bg-black/60 border border-white/15 flex items-center justify-center text-white/80 hover:text-white z-10"
+        className="absolute bottom-2 left-2 w-7 h-7 rounded-full bg-black/60 border border-white/15 flex items-center justify-center text-white/80 hover:text-white z-10"
         aria-label={muted ? "Activar sonido" : "Silenciar"}
       >
-        {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
       </button>
 
+      {/* X diminuta arriba a la derecha — intencionalmente pequeña. */}
       <button
-        onClick={handleClose}
-        disabled={!canClose}
-        className={`absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all z-10 ${
-          canClose
-            ? "bg-primary text-primary-foreground hover:scale-105 active:scale-95 shadow-lg shadow-primary/30"
-            : "bg-white/10 text-white/60 cursor-not-allowed"
-        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          close();
+        }}
+        className="absolute top-1 right-1 w-4 h-4 rounded-sm bg-black/70 hover:bg-black/90 flex items-center justify-center text-white/70 hover:text-white z-20"
+        aria-label="Cerrar anuncio"
       >
-        {canClose ? (
-          <>
-            <X className="w-4 h-4" /> Cerrar anuncio
-          </>
-        ) : (
-          <>
-            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Cerrar en {secs}s
-          </>
-        )}
+        <X className="w-2.5 h-2.5" strokeWidth={2.5} />
       </button>
 
-      {loadingAd && !mediaUrl && (
+      {loadingAd && !creative && (
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       )}
     </div>
