@@ -21,14 +21,22 @@ import { useEffect, useRef, useState } from "react";
 import { X, Loader2, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-// 👉 Reemplaza aquí por tu Ad Tag VAST real si no usas la variable env.
-const VAST_URL_FALLBACK = "";
+// Pool de VAST tags (rotación aleatoria + waterfall fallback).
+const VAST_POOL: string[] = [
+  "https://vast.yomeno.xyz/vast?spot_id=1496604",
+  "https://vast.yomeno.xyz/vast?spot_id=1496607",
+  "https://vast.yomeno.xyz/vast?spot_id=1496606",
+  "https://vast.yomeno.xyz/vast?spot_id=1496608",
+  "https://vast.yomeno.xyz/vast?spot_id=1496609",
+  "https://vast.yomeno.xyz/vast?spot_id=1496610",
+];
 
 const TOGGLE_KEY = "zet:vast-next-show";
 const LAST_EP_KEY = "zet:vast-last-ep";
 const LAST_SEEN_KEY = "zet:vast-last-seen";
 const INACTIVITY_MS = 30 * 60 * 1000; // 30 min
-const VAST_FETCH_TIMEOUT_MS = 3000;   // 3s duros
+const VAST_PRIMARY_TIMEOUT_MS = 2500; // primer intento
+const VAST_FALLBACK_TIMEOUT_MS = 2000; // segundo intento (waterfall)
 
 interface Props {
   episodeKey: string;
@@ -50,7 +58,7 @@ async function fetchTextWithTimeout(url: string, timeoutMs: number): Promise<str
 }
 
 /** Parsea VAST/VAST Wrapper y devuelve la mejor MediaFile URL (mp4/webm). */
-async function resolveVastMedia(url: string, depth = 0, deadline = Date.now() + VAST_FETCH_TIMEOUT_MS): Promise<string | null> {
+async function resolveVastMedia(url: string, timeoutMs: number, depth = 0, deadline = Date.now() + timeoutMs): Promise<string | null> {
   if (depth > 3) return null;
   const remaining = deadline - Date.now();
   if (remaining <= 0) return null;
@@ -58,7 +66,7 @@ async function resolveVastMedia(url: string, depth = 0, deadline = Date.now() + 
   const doc = new DOMParser().parseFromString(xmlStr, "text/xml");
   const wrapper = doc.querySelector("VASTAdTagURI");
   if (wrapper?.textContent) {
-    return resolveVastMedia(wrapper.textContent.trim(), depth + 1, deadline);
+    return resolveVastMedia(wrapper.textContent.trim(), timeoutMs, depth + 1, deadline);
   }
   const files = Array.from(doc.querySelectorAll("MediaFile"));
   const scored = files
@@ -72,6 +80,24 @@ async function resolveVastMedia(url: string, depth = 0, deadline = Date.now() + 
   return scored[0]?.url || null;
 }
 
+/** Waterfall: intenta un VAST aleatorio; si falla/timeout, prueba otro distinto. */
+async function resolveFromPool(pool: string[]): Promise<string | null> {
+  if (pool.length === 0) return null;
+  const first = pool[Math.floor(Math.random() * pool.length)];
+  try {
+    const u = await resolveVastMedia(first, VAST_PRIMARY_TIMEOUT_MS);
+    if (u) return u;
+  } catch { /* pasa a fallback */ }
+  const rest = pool.filter((x) => x !== first);
+  if (rest.length === 0) return null;
+  const second = rest[Math.floor(Math.random() * rest.length)];
+  try {
+    return await resolveVastMedia(second, VAST_FALLBACK_TIMEOUT_MS);
+  } catch {
+    return null;
+  }
+}
+
 export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed }: Props) {
   const { isPremium, loading } = useAuth();
   const [show, setShow] = useState(false);
@@ -81,14 +107,11 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
   const [loadingAd, setLoadingAd] = useState(false);
   const adVideoRef = useRef<HTMLVideoElement>(null);
 
-  const VAST_URL =
-    (import.meta.env.VITE_VAST_TAG_URL as string | undefined) ||
-    (import.meta.env.VITE_CLICKADILLA_VAST_URL as string | undefined) ||
-    VAST_URL_FALLBACK;
+  const VAST_URLS: string[] = VAST_POOL;
 
   // Decide 1 sí / 1 no + reset por inactividad de 30 min cuando cambia el episodio.
   useEffect(() => {
-    if (loading || isPremium || !episodeKey || !VAST_URL) return;
+    if (loading || isPremium || !episodeKey || VAST_URLS.length === 0) return;
     const lastEp = localStorage.getItem(LAST_EP_KEY);
     if (lastEp === episodeKey) return; // ya procesado
     localStorage.setItem(LAST_EP_KEY, episodeKey);
@@ -111,15 +134,14 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
     let cancelled = false;
     setLoadingAd(true);
     setSecs(countdownSecs);
-    // Timeout hard-stop 3s: si resolveVastMedia no responde, cancelamos y
-    // dejamos que arranque el anime sin overlay.
+    // Bailout global: primario (2.5s) + fallback (2s) + margen.
     const bailout = window.setTimeout(() => {
       if (cancelled) return;
       cancelled = true;
       setLoadingAd(false);
-    }, VAST_FETCH_TIMEOUT_MS);
+    }, VAST_PRIMARY_TIMEOUT_MS + VAST_FALLBACK_TIMEOUT_MS + 500);
 
-    resolveVastMedia(VAST_URL)
+    resolveFromPool(VAST_URLS)
       .then((u) => {
         if (cancelled) return;
         if (u) {
@@ -137,7 +159,7 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
       cancelled = true;
       window.clearTimeout(bailout);
     };
-  }, [episodeKey, isPremium, loading, countdownSecs, VAST_URL]);
+  }, [episodeKey, isPremium, loading, countdownSecs]);
 
   // Pausa el video maestro mientras dure el overlay.
   useEffect(() => {
