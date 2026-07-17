@@ -107,14 +107,11 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
   const [loadingAd, setLoadingAd] = useState(false);
   const adVideoRef = useRef<HTMLVideoElement>(null);
 
-  const VAST_URL =
-    (import.meta.env.VITE_VAST_TAG_URL as string | undefined) ||
-    (import.meta.env.VITE_CLICKADILLA_VAST_URL as string | undefined) ||
-    VAST_URL_FALLBACK;
+  const VAST_URLS: string[] = VAST_POOL;
 
   // Decide 1 sí / 1 no + reset por inactividad de 30 min cuando cambia el episodio.
   useEffect(() => {
-    if (loading || isPremium || !episodeKey || !VAST_URL) return;
+    if (loading || isPremium || !episodeKey || VAST_URLS.length === 0) return;
     const lastEp = localStorage.getItem(LAST_EP_KEY);
     if (lastEp === episodeKey) return; // ya procesado
     localStorage.setItem(LAST_EP_KEY, episodeKey);
@@ -137,15 +134,14 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
     let cancelled = false;
     setLoadingAd(true);
     setSecs(countdownSecs);
-    // Timeout hard-stop 3s: si resolveVastMedia no responde, cancelamos y
-    // dejamos que arranque el anime sin overlay.
+    // Bailout global: primario (2.5s) + fallback (2s) + margen.
     const bailout = window.setTimeout(() => {
       if (cancelled) return;
       cancelled = true;
       setLoadingAd(false);
-    }, VAST_FETCH_TIMEOUT_MS);
+    }, VAST_PRIMARY_TIMEOUT_MS + VAST_FALLBACK_TIMEOUT_MS + 500);
 
-    resolveVastMedia(VAST_URL)
+    resolveFromPool(VAST_URLS)
       .then((u) => {
         if (cancelled) return;
         if (u) {
@@ -163,7 +159,7 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed 
       cancelled = true;
       window.clearTimeout(bailout);
     };
-  }, [episodeKey, isPremium, loading, countdownSecs, VAST_URL]);
+  }, [episodeKey, isPremium, loading, countdownSecs]);
 
   // Pausa el video maestro mientras dure el overlay.
   useEffect(() => {
