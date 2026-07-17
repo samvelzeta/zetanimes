@@ -72,6 +72,16 @@ interface PlayerBlockState {
   iframes: Array<{ el: HTMLIFrameElement; src: string }>;
 }
 
+type ZetBlockedVideo = HTMLVideoElement & { __zetAdBlocked?: boolean };
+
+function safe(action: () => void) {
+  try {
+    action();
+  } catch {
+    return;
+  }
+}
+
 function lockVideoElement(v: HTMLVideoElement, state: PlayerBlockState, preventPlay: EventListener) {
   let saved = state.videos.find((item) => item.el === v);
   if (!saved) {
@@ -84,19 +94,19 @@ function lockVideoElement(v: HTMLVideoElement, state: PlayerBlockState, preventP
     };
     state.videos.push(saved);
     PLAYER_BLOCK_EVENTS.forEach((eventName) => v.addEventListener(eventName, preventPlay, true));
-    try {
+    safe(() => {
       v.play = function blockedAnimePlay() {
-        try { HTMLMediaElement.prototype.pause.call(this); } catch {}
+        safe(() => HTMLMediaElement.prototype.pause.call(this));
         return Promise.resolve();
       } as HTMLVideoElement["play"];
-    } catch {}
+    });
   }
 
-  try { v.autoplay = false; } catch {}
-  try { v.pause(); } catch {}
-  try { v.muted = true; } catch {}
-  try { v.volume = 0; } catch {}
-  (v as any).__zetAdBlocked = true;
+  safe(() => { v.autoplay = false; });
+  safe(() => { v.pause(); });
+  safe(() => { v.muted = true; });
+  safe(() => { v.volume = 0; });
+  (v as ZetBlockedVideo).__zetAdBlocked = true;
 }
 
 function blockPlayerBehind(state: PlayerBlockState, preventPlay: EventListener) {
@@ -108,7 +118,7 @@ function blockPlayerBehind(state: PlayerBlockState, preventPlay: EventListener) 
     const src = f.src;
     if (!src || src === "about:blank") continue;
     state.iframes.push({ el: f, src });
-    try { f.src = "about:blank"; } catch {}
+    safe(() => { f.src = "about:blank"; });
   }
 }
 
@@ -117,14 +127,14 @@ function releasePlayerBehind(state: PlayerBlockState, preventPlay: EventListener
 
   for (const saved of state.videos) {
     PLAYER_BLOCK_EVENTS.forEach((eventName) => saved.el.removeEventListener(eventName, preventPlay, true));
-    try { saved.el.play = saved.play; } catch {}
-    try { saved.el.autoplay = saved.autoplay; } catch {}
-    try { saved.el.muted = saved.muted; } catch {}
-    try { saved.el.volume = saved.volume; } catch {}
-    try { delete (saved.el as any).__zetAdBlocked; } catch {}
+    safe(() => { saved.el.play = saved.play; });
+    safe(() => { saved.el.autoplay = saved.autoplay; });
+    safe(() => { saved.el.muted = saved.muted; });
+    safe(() => { saved.el.volume = saved.volume; });
+    safe(() => { delete (saved.el as ZetBlockedVideo).__zetAdBlocked; });
   }
   for (const { el, src } of state.iframes) {
-    try { el.src = src; } catch {}
+    safe(() => { el.src = src; });
   }
   state.videos = [];
   state.iframes = [];
@@ -242,8 +252,8 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
       setShow(false);
       setAdVisible(false);
       removeInjected();
-      try { observer.disconnect(); } catch {}
-      try { exitObserver?.disconnect(); } catch {}
+      safe(() => observer.disconnect());
+      safe(() => exitObserver?.disconnect());
       window.clearTimeout(fallbackTimer);
       window.clearInterval(pauseInterval);
       if (window._preventAnimePlay === onPlayAttempt) delete window._preventAnimePlay;
@@ -292,15 +302,14 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
 
     return () => {
       closed = true;
-      try { observer.disconnect(); } catch {}
-      try { exitObserver?.disconnect(); } catch {}
+      safe(() => observer.disconnect());
+      safe(() => exitObserver?.disconnect());
       window.clearTimeout(fallbackTimer);
       window.clearInterval(pauseInterval);
       if (window._preventAnimePlay === onPlayAttempt) delete window._preventAnimePlay;
       // Restaurar iframes/mute si el gate se desmonta con anuncio activo
       releasePlayerBehind(playerBlock, onPlayAttempt);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
 
   // Limpieza al salir de /watch
