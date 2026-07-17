@@ -41,6 +41,51 @@ function getPlayerVideo(): HTMLVideoElement | null {
   return document.querySelector<HTMLVideoElement>("#zet-player-container video");
 }
 
+function getPlayerIframes(): HTMLIFrameElement[] {
+  return Array.from(document.querySelectorAll<HTMLIFrameElement>("#zet-player-container iframe"));
+}
+
+interface MutedState {
+  video?: { muted: boolean; volume: number };
+  iframes: Array<{ el: HTMLIFrameElement; src: string }>;
+}
+
+function silenceBehind(state: MutedState) {
+  const v = getPlayerVideo();
+  if (v) {
+    try { v.pause(); } catch {}
+    if (state.video === undefined) {
+      state.video = { muted: v.muted, volume: v.volume };
+    }
+    v.muted = true;
+    v.volume = 0;
+  }
+  // Iframes de players externos: no podemos pause() → blankear su src corta el audio
+  const iframes = getPlayerIframes();
+  for (const f of iframes) {
+    if (state.iframes.find((x) => x.el === f)) continue;
+    const src = f.src;
+    if (!src || src === "about:blank") continue;
+    state.iframes.push({ el: f, src });
+    try { f.src = "about:blank"; } catch {}
+  }
+}
+
+function restoreBehind(state: MutedState) {
+  const v = getPlayerVideo();
+  if (v && state.video) {
+    v.muted = state.video.muted;
+    v.volume = state.video.volume;
+    v.play().catch(() => undefined);
+  }
+  for (const { el, src } of state.iframes) {
+    try { el.src = src; } catch {}
+  }
+  state.iframes = [];
+  state.video = undefined;
+}
+
+
 function injectClickadilla(host: HTMLElement) {
   removeInjected();
   const s = document.createElement("script");
@@ -120,14 +165,12 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     let trackedNode: HTMLElement | null = null;
     let attachedVideo: HTMLVideoElement | null = null;
 
+    const silenced: MutedState = { iframes: [] };
+
     const forcePause = () => {
+      silenceBehind(silenced);
       const v = getPlayerVideo();
-      if (!v) return;
-      try {
-        v.pause();
-        // Marca visual + prevención de autoplay HLS.js posterior
-        (v as any).__zetAdBlocked = true;
-      } catch {}
+      if (v) (v as any).__zetAdBlocked = true;
     };
 
     const onPlayAttempt = () => {
@@ -137,29 +180,27 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
 
     const attachTo = (v: HTMLVideoElement) => {
       if (attachedVideo === v) return;
-      // Despega del anterior
       if (attachedVideo) {
         attachedVideo.removeEventListener("play", onPlayAttempt);
         attachedVideo.removeEventListener("playing", onPlayAttempt);
         attachedVideo.removeEventListener("loadeddata", onPlayAttempt);
         attachedVideo.removeEventListener("canplay", onPlayAttempt);
+        attachedVideo.removeEventListener("volumechange", onPlayAttempt);
       }
       attachedVideo = v;
       v.addEventListener("play", onPlayAttempt);
       v.addEventListener("playing", onPlayAttempt);
       v.addEventListener("loadeddata", onPlayAttempt);
       v.addEventListener("canplay", onPlayAttempt);
+      v.addEventListener("volumechange", onPlayAttempt);
     };
 
-    // Poll agresivo: el <video> puede no existir todavía (HLS.js monta después)
-    // Mantiene el video pausado durante toda la vida del anuncio.
+    // Poll agresivo: mantiene el video pausado + mute + iframes cortados
     const pauseInterval = window.setInterval(() => {
       const v = getPlayerVideo();
-      if (v) {
-        attachTo(v);
-        if (!v.paused) forcePause();
-      }
-    }, 150);
+      if (v) attachTo(v);
+      forcePause();
+    }, 200);
 
     forcePause();
     const initialVideo = getPlayerVideo();
@@ -180,12 +221,12 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
         attachedVideo.removeEventListener("playing", onPlayAttempt);
         attachedVideo.removeEventListener("loadeddata", onPlayAttempt);
         attachedVideo.removeEventListener("canplay", onPlayAttempt);
+        attachedVideo.removeEventListener("volumechange", onPlayAttempt);
         (attachedVideo as any).__zetAdBlocked = false;
       }
-      // Reanuda el video tras cerrar el anuncio
+      // Restaura audio + iframes y reanuda el video
       window.setTimeout(() => {
-        const vv = getPlayerVideo();
-        vv?.play().catch(() => undefined);
+        restoreBehind(silenced);
       }, 50);
     };
 
@@ -238,7 +279,10 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
         attachedVideo.removeEventListener("playing", onPlayAttempt);
         attachedVideo.removeEventListener("loadeddata", onPlayAttempt);
         attachedVideo.removeEventListener("canplay", onPlayAttempt);
+        attachedVideo.removeEventListener("volumechange", onPlayAttempt);
       }
+      // Restaurar iframes/mute si el gate se desmonta con anuncio activo
+      restoreBehind(silenced);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
