@@ -910,10 +910,7 @@ export default function Watch() {
                   EP {selectedEp}
                 </div>
               )}
-              <VastAdOverlay
-                episodeKey={`${anilistId}-${selectedEp}`}
-                countdownSecs={5}
-              />
+              <ClickadillaAdGate episodeKey={`${anilistId}-${selectedEp}`} />
               <AdblockPlayerOverlay />
 
             </StreamGuard>
