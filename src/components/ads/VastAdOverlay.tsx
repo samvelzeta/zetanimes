@@ -107,13 +107,15 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
   const [creative, setCreative] = useState<VastCreative | null>(null);
   const [muted, setMuted] = useState(true);
   const [loadingAd, setLoadingAd] = useState(false);
+  const [secs, setSecs] = useState(countdownSecs);
   const adVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (loading || isPremium || !episodeKey || VAST_POOL.length === 0) return;
+    // NOTA: no marcamos "ya visto" aquí. Solo se marca cuando el usuario cierra
+    // con la X, para que recargar la página NO permita saltarse el anuncio.
     const lastEp = localStorage.getItem(LAST_EP_KEY);
     if (lastEp === episodeKey) return;
-    localStorage.setItem(LAST_EP_KEY, episodeKey);
 
     const lastSeenRaw = localStorage.getItem(LAST_SEEN_KEY);
     const lastSeen = lastSeenRaw ? parseInt(lastSeenRaw, 10) : 0;
@@ -123,11 +125,17 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
 
     const nextShow = localStorage.getItem(TOGGLE_KEY);
     const shouldShow = inactive || nextShow !== "false";
-    localStorage.setItem(TOGGLE_KEY, shouldShow ? "false" : "true");
-    if (!shouldShow) return;
+    if (!shouldShow) {
+      // Turno "sin anuncio": consumimos el toggle y marcamos episodio como visto
+      // para no volver a evaluar en este mismo ep.
+      localStorage.setItem(TOGGLE_KEY, "true");
+      localStorage.setItem(LAST_EP_KEY, episodeKey);
+      return;
+    }
 
     let cancelled = false;
     setLoadingAd(true);
+    setSecs(countdownSecs);
     const bailout = window.setTimeout(() => {
       if (cancelled) return;
       cancelled = true;
@@ -140,6 +148,9 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
         if (c) {
           setCreative(c);
           setShow(true);
+        } else {
+          // No hubo creativo servible: no bloqueamos al usuario, marcamos ep.
+          localStorage.setItem(LAST_EP_KEY, episodeKey);
         }
       })
       .catch(() => undefined)
@@ -152,7 +163,7 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
       cancelled = true;
       window.clearTimeout(bailout);
     };
-  }, [episodeKey, isPremium, loading]);
+  }, [episodeKey, isPremium, loading, countdownSecs]);
 
   // Pausa el video maestro mientras dura el overlay.
   useEffect(() => {
@@ -164,20 +175,29 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
     return () => video.removeEventListener("play", pauseBehind);
   }, [show, isPremium]);
 
-  // Autoplay + auto-close a los 15s.
+  // Autoplay del anuncio.
   useEffect(() => {
     if (!show || !creative) return;
     const v = adVideoRef.current;
-    if (v) {
-      v.muted = true;
-      v.play().catch(() => undefined);
-    }
-    const closeTimer = window.setTimeout(() => close(), AUTO_CLOSE_MS);
-    return () => window.clearTimeout(closeTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!v) return;
+    v.muted = true;
+    v.play().catch(() => undefined);
   }, [show, creative]);
 
+  // Contador lento: 1 tick cada TICK_MS. Cuando llega a 0 aparece la X.
+  useEffect(() => {
+    if (!show || secs <= 0) return;
+    const t = window.setTimeout(() => setSecs((s) => s - 1), TICK_MS);
+    return () => window.clearTimeout(t);
+  }, [show, secs]);
+
+  const canClose = secs <= 0;
+
   const close = () => {
+    if (!canClose) return;
+    // Recién ahora marcamos episodio como visto y alternamos toggle.
+    localStorage.setItem(LAST_EP_KEY, episodeKey);
+    localStorage.setItem(TOGGLE_KEY, "false");
     setShow(false);
     setCreative(null);
     window.setTimeout(() => {
@@ -192,6 +212,7 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
     if (!target) return;
     openExternalChrome(target);
   };
+
 
   return (
     <div
