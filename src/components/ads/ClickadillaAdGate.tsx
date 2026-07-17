@@ -107,21 +107,53 @@ function warmUpClickadilla() {
     fetch(PRELOAD_SCRIPT_HREF, { mode: "no-cors", cache: "force-cache", credentials: "omit" }).catch(() => undefined);
   });
 
-  // Precarga pasiva: no dispara el anuncio, solo deja el manager en caché para el próximo capítulo.
+  // Pre-buffer real: inyecta el script COMPLETO de Clickadilla en el host oculto
+  // para que descargue y renderice el anuncio en segundo plano (como YouTube).
   if (!window._zetClickadillaPreloaded) {
     window._zetClickadillaPreloaded = true;
     const host = ensurePassivePreloadHost();
     if (!host.querySelector(`script[${PRELOAD_SCRIPT_MARK}]`)) {
       const passiveScript = document.createElement("script");
-      passiveScript.src = PRELOAD_SCRIPT_HREF;
-      passiveScript.async = true;
-      passiveScript.defer = true;
+      passiveScript.setAttribute("data-cfasync", "false");
       passiveScript.setAttribute(PRELOAD_SCRIPT_MARK, "1");
-      passiveScript.onerror = () => { window._zetClickadillaPreloaded = false; };
+      passiveScript.text = CLICKADILLA_SCRIPT_SRC;
       host.appendChild(passiveScript);
     }
   }
 }
+
+// Oculta por completo el player nativo del anime mientras el anuncio ocupa la pantalla.
+function hidePlayerContainer() {
+  if (document.getElementById("zet-player-hide-style")) return;
+  const style = document.createElement("style");
+  style.id = "zet-player-hide-style";
+  style.textContent = `
+    #zet-player-container > video,
+    #zet-player-container > iframe,
+    #zet-player-container [data-zet-native-player],
+    #zet-player-container video:not([data-zet-clickadilla-mount] video),
+    #zet-player-container iframe:not([data-zet-clickadilla-mount] iframe) {
+      visibility: hidden !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function showPlayerContainer() {
+  document.getElementById("zet-player-hide-style")?.remove();
+}
+
+// Mueve nodos ya renderizados por Clickadilla desde el host oculto al overlay principal.
+function migratePreloadedAd(target: HTMLElement) {
+  const host = document.getElementById(PRELOAD_HOST_ID);
+  if (!host) return 0;
+  const candidates = Array.from(host.querySelectorAll<HTMLElement>("iframe, div, section, aside, ins"))
+    .filter((n) => n.tagName !== "SCRIPT" && isRenderableAdNode(n));
+  let moved = 0;
+  for (const node of candidates) {
+    try { target.appendChild(node); moved++; } catch { /* noop */ }
+  }
+  return moved;
 
 function clearAdLoadingMarker() {
   localStorage.removeItem(AD_LOADING_KEY);
