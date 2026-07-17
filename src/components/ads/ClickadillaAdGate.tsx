@@ -148,13 +148,23 @@ function migratePreloadedAd(target: HTMLElement) {
   const host = document.getElementById(PRELOAD_HOST_ID);
   if (!host) return 0;
   const candidates = Array.from(host.querySelectorAll<HTMLElement>("iframe, div, section, aside, ins"))
-    .filter((n) => n.tagName !== "SCRIPT" && isRenderableAdNode(n));
+    .filter((n) => {
+      if (n.tagName === "SCRIPT") return false;
+      const rect = n.getBoundingClientRect();
+      if (n.tagName === "IFRAME") {
+        const src = (n as HTMLIFrameElement).src || "";
+        return !!src && src !== "about:blank";
+      }
+      // Contenedores con contenido publicitario (iframes/imágenes/embeds)
+      return !!n.querySelector("iframe, object, embed, video") || rect.width * rect.height > 0;
+    });
   let moved = 0;
   for (const node of candidates) {
     try { target.appendChild(node); moved++; } catch { /* noop */ }
   }
   return moved;
 }
+
 
 
 
