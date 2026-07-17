@@ -581,9 +581,21 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     observer.observe(document.body, { childList: true, subtree: true });
     const detectInterval = window.setInterval(detectAdState, 250);
 
-    // Inyecta en el host oculto del overlay para no mostrar cuadros transparentes.
-    if (adMountRef.current) injectClickadilla(adMountRef.current);
+    // Intercambio de fuentes estilo YouTube: si el anuncio ya está pre-bufferizado
+    // en el host oculto, lo movemos al overlay para aparición instantánea.
+    if (adMountRef.current) {
+      const migrated = migratePreloadedAd(adMountRef.current);
+      if (migrated > 0) {
+        console.info(`[zetAds] Anuncio precargado migrado desde host oculto (${migrated} nodo/s).`);
+        // Ya tenemos algo renderizado: forzamos detección inmediata.
+        window.setTimeout(detectAdState, 0);
+      } else {
+        // Nada precargado aún: inyectamos el script en el mount.
+        injectClickadilla(adMountRef.current);
+      }
+    }
     detectAdState();
+
 
     // Fallback: si en 7s no aparece nada, cerrar solos
     const fallbackTimer = window.setTimeout(() => {
