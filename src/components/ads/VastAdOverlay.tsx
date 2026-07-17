@@ -233,10 +233,9 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
           className="w-full h-full object-contain cursor-pointer"
           playsInline
           autoPlay
+          loop
           muted={muted}
           onClick={handleAdClick}
-          onEnded={close}
-          onError={close}
         />
       )}
 
@@ -255,17 +254,26 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
         {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
       </button>
 
-      {/* X diminuta arriba a la derecha — intencionalmente pequeña. */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          close();
-        }}
-        className="absolute top-1 right-1 w-4 h-4 rounded-sm bg-black/70 hover:bg-black/90 flex items-center justify-center text-white/70 hover:text-white z-20"
-        aria-label="Cerrar anuncio"
-      >
-        <X className="w-2.5 h-2.5" strokeWidth={2.5} />
-      </button>
+      {/* Esquina superior derecha: contador mientras corre, X diminuta al terminar. */}
+      {canClose ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            close();
+          }}
+          className="absolute top-1 right-1 w-4 h-4 rounded-sm bg-black/70 hover:bg-black/90 flex items-center justify-center text-white/70 hover:text-white z-20"
+          aria-label="Cerrar anuncio"
+        >
+          <X className="w-2.5 h-2.5" strokeWidth={2.5} />
+        </button>
+      ) : (
+        <div
+          className="absolute top-1 right-1 min-w-[20px] h-5 px-1 rounded-sm bg-black/70 text-white/80 text-[10px] font-semibold flex items-center justify-center z-20 select-none pointer-events-none"
+          aria-label={`Puedes cerrar en ${secs}s`}
+        >
+          {secs}s
+        </div>
+      )}
 
       {loadingAd && !creative && (
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
