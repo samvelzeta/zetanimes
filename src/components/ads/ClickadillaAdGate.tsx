@@ -21,13 +21,20 @@ interface Props {
 const COUNTER_KEY = "zet_ad_counter";
 const LAST_ACTIVITY_KEY = "zet_last_activity";
 const LAST_EP_KEY = "zet_ad_last_ep";
+const AD_LOADING_KEY = "zet_ad_loading";
 const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
 const SCRIPT_MARK = "data-zet-clickadilla-ad";
+const PRELOAD_SCRIPT_MARK = "data-zet-clickadilla-preload";
 const OVERLAY_ID = "zet-clickadilla-overlay-host";
-const AD_LOAD_TIMEOUT_MS = 10_000;
+const PRELOAD_HOST_ID = "zet-clickadilla-preload-host";
+const AD_LOAD_TIMEOUT_MS = 7_000;
+const EMERGENCY_SKIP_MS = 5_000;
 const AD_CLOSE_DEBOUNCE_MS = 1_200;
-const AD_MIN_VISIBLE_MS = 1_500;
+const AD_READY_STABLE_MS = 900;
+const AD_MIN_VISIBLE_MS = 2_500;
 const PLAYER_BLOCK_EVENTS = ["play", "playing", "loadeddata", "canplay", "volumechange"] as const;
+const AD_SIGNATURE = /wpadmngr|clickadilla|admpid|admngr|admanager|adsco|crsksu|padmngr|supply-side/i;
+const AD_CLOSE_SIGNATURE = /skip|saltar|omitir|close|cerrar|dismiss|cl-skip|ad-skip|×|✕/i;
 const PRECONNECT_HOSTS = [
   "https://js.wpadmngr.com",
   "https://adblock-proxy-supply-side.crsksu.com",
@@ -37,6 +44,7 @@ const PRELOAD_SCRIPT_HREF = "https://js.wpadmngr.com/static/adManager.js";
 declare global {
   interface Window {
     _preventAnimePlay?: EventListener;
+    _zetClickadillaPreloaded?: boolean;
   }
 }
 
@@ -49,7 +57,21 @@ function removeInjected() {
     .forEach((n) => n.parentNode?.removeChild(n));
 }
 
+function ensurePassivePreloadHost() {
+  let host = document.getElementById(PRELOAD_HOST_ID);
+  if (!host) {
+    host = document.createElement("div");
+    host.id = PRELOAD_HOST_ID;
+    host.setAttribute("aria-hidden", "true");
+    host.style.cssText = "position:fixed;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;left:-9999px;top:-9999px;";
+    document.body.appendChild(host);
+  }
+  return host;
+}
+
 function warmUpClickadilla() {
+  ensurePassivePreloadHost();
+
   PRECONNECT_HOSTS.forEach((href) => {
     if (!document.head.querySelector(`link[data-zet-ad-warmup][href="${href}"]`)) {
       const preconnect = document.createElement("link");
@@ -83,11 +105,39 @@ function warmUpClickadilla() {
   safe(() => {
     fetch(PRELOAD_SCRIPT_HREF, { mode: "no-cors", cache: "force-cache", credentials: "omit" }).catch(() => undefined);
   });
+
+  // Precarga pasiva: no dispara el anuncio, solo deja el manager en caché para el próximo capítulo.
+  if (!window._zetClickadillaPreloaded) {
+    window._zetClickadillaPreloaded = true;
+    const host = ensurePassivePreloadHost();
+    if (!host.querySelector(`script[${PRELOAD_SCRIPT_MARK}]`)) {
+      const passiveScript = document.createElement("script");
+      passiveScript.src = PRELOAD_SCRIPT_HREF;
+      passiveScript.async = true;
+      passiveScript.defer = true;
+      passiveScript.setAttribute(PRELOAD_SCRIPT_MARK, "1");
+      passiveScript.onerror = () => { window._zetClickadillaPreloaded = false; };
+      host.appendChild(passiveScript);
+    }
+  }
+}
+
+function clearAdLoadingMarker() {
+  localStorage.removeItem(AD_LOADING_KEY);
+}
+
+function hadInterruptedAdLoad() {
+  return localStorage.getItem(AD_LOADING_KEY) === "true";
 }
 
 function isInsideAdHost(el: Element): boolean {
   const adHost = document.getElementById(OVERLAY_ID);
   return !!adHost && adHost.contains(el);
+}
+
+function isInsidePreloadHost(el: Element): boolean {
+  const preloadHost = document.getElementById(PRELOAD_HOST_ID);
+  return !!preloadHost && preloadHost.contains(el);
 }
 
 function getPlayerVideos(): HTMLVideoElement[] {
@@ -190,7 +240,6 @@ function releasePlayerBehind(state: PlayerBlockState, preventPlay: EventListener
   }, 80);
 }
 
-
 function injectClickadilla(host: HTMLElement) {
   removeInjected();
   const s = document.createElement("script");
@@ -204,19 +253,32 @@ function injectClickadilla(host: HTMLElement) {
 // Heurística: nodos que Clickadilla / wpadmngr suelen añadir al body
 function isClickadillaNode(node: Node): boolean {
   if (!(node instanceof HTMLElement)) return false;
+  if (isInsidePreloadHost(node)) return false;
   const tag = node.tagName;
+  const adMount = document.querySelector("[data-zet-clickadilla-mount]");
+  if (adMount?.contains(node) && node !== adMount) {
+    if (tag === "SCRIPT") return false;
+    if (/IFRAME|OBJECT|EMBED|VIDEO|INS/.test(tag)) return true;
+    if (node.querySelector?.("iframe, object, embed, video, button, [role='button']")) return true;
+  }
   if (tag === "SCRIPT") {
     const src = (node as HTMLScriptElement).src || "";
-    if (/wpadmngr|clickadilla|adManager|admngr/i.test(src)) return true;
+    if (AD_SIGNATURE.test(src)) return true;
   }
   if (tag === "IFRAME") {
     const src = (node as HTMLIFrameElement).src || "";
-    if (/wpadmngr|clickadilla|adsco\.re|admngr/i.test(src)) return true;
+    if (AD_SIGNATURE.test(src)) return true;
   }
   const id = node.id || "";
   const cls = typeof node.className === "string" ? node.className : "";
-  if (/clickadilla|wpadmngr|admpid|admngr|admanager|adsco/i.test(id + " " + cls)) return true;
-  if (node.querySelector?.('iframe[src*="wpadmngr"], iframe[src*="clickadilla"]')) return true;
+  if (AD_SIGNATURE.test(id + " " + cls)) return true;
+  if (node.querySelector?.('iframe[src*="wpadmngr"], iframe[src*="clickadilla"], iframe[src*="adsco"], iframe[src*="crsksu"]')) return true;
+  if (node.parentElement === document.body) {
+    const style = window.getComputedStyle(node);
+    const rect = node.getBoundingClientRect();
+    const zIndex = Number.parseInt(style.zIndex || "0", 10);
+    if ((style.position === "fixed" || style.position === "absolute") && zIndex >= 50 && rect.width >= 120 && rect.height >= 80) return true;
+  }
   return false;
 }
 
@@ -227,9 +289,40 @@ function getClickadillaNodes(): HTMLElement[] {
 
 function isRenderableAdNode(node: HTMLElement): boolean {
   if (node.tagName === "SCRIPT") return false;
-  if (node.tagName === "IFRAME") return true;
+  if (isInsidePreloadHost(node)) return false;
+  const style = window.getComputedStyle(node);
+  if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
   const rect = node.getBoundingClientRect();
+  if (rect.width < 120 || rect.height < 80) return false;
+  if (node.tagName === "IFRAME") {
+    const src = (node as HTMLIFrameElement).src || "";
+    return !!src && src !== "about:blank";
+  }
   return rect.width >= 120 && rect.height >= 80;
+}
+
+function hasAdCloseControl(): boolean {
+  const nodes = getClickadillaNodes();
+  for (const node of nodes) {
+    const candidates = [node, ...Array.from(node.querySelectorAll<HTMLElement>("button, a, [role='button'], [aria-label], [title], [class], [id]"))];
+    if (candidates.some((candidate) => {
+      const text = (candidate.textContent || "").trim();
+      const aria = candidate.getAttribute("aria-label") || "";
+      const title = candidate.getAttribute("title") || "";
+      const cls = typeof candidate.className === "string" ? candidate.className : "";
+      return AD_CLOSE_SIGNATURE.test(`${text} ${aria} ${title} ${candidate.id} ${cls}`) || /^[xX]$/.test(text);
+    })) return true;
+  }
+  return false;
+}
+
+function isAdCloseClick(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const control = target.closest<HTMLElement>("button, a, [role='button'], [aria-label], [title], [class], [id]");
+  if (!control) return false;
+  const text = (control.textContent || "").trim();
+  const signature = `${text} ${control.getAttribute("aria-label") || ""} ${control.getAttribute("title") || ""} ${control.id} ${typeof control.className === "string" ? control.className : ""}`;
+  return (AD_CLOSE_SIGNATURE.test(signature) || /^[xX]$/.test(text)) && getClickadillaNodes().some((node) => node.contains(control) || control.contains(node));
 }
 
 function removeClickadillaDom() {
@@ -242,9 +335,12 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
   const processedKeyRef = useRef<string | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const adMountRef = useRef<HTMLDivElement>(null);
+  const forceSkipRef = useRef<(() => void) | null>(null);
 
-  const [show, setShow] = useState(false);
+  const [activeAdEpisodeKey, setActiveAdEpisodeKey] = useState<string | null>(null);
   const [adVisible, setAdVisible] = useState(false); // Clickadilla ya está pintando
+  const [showEmergencySkip, setShowEmergencySkip] = useState(false);
+  const show = activeAdEpisodeKey === episodeKey;
 
   useEffect(() => {
     if (!loading && !isPremium) warmUpClickadilla();
@@ -271,14 +367,33 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
       if (!Number.isFinite(counter) || counter < 0) counter = 0;
     }
 
-    const shouldShowAd = counter % 2 === 0;
+    const interruptedAdLoad = hadInterruptedAdLoad();
+    const shouldShowAd = counter % 2 === 0 && !interruptedAdLoad;
+
+    if (interruptedAdLoad) {
+      console.warn("[zetAds] Carga anterior interrumpida; saltando anuncio para evitar bucle negro.");
+      clearAdLoadingMarker();
+      removeClickadillaDom();
+      const oddCounter = counter % 2 === 0 ? counter + 1 : counter;
+      localStorage.setItem(COUNTER_KEY, String(oddCounter));
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(NOW));
+      localStorage.setItem(LAST_EP_KEY, episodeKey);
+      setActiveAdEpisodeKey(null);
+      setAdVisible(false);
+      setShowEmergencySkip(false);
+      warmUpClickadilla();
+      getPlayerVideo()?.play().catch(() => undefined);
+      return;
+    }
 
     if (shouldShowAd) {
       warmUpClickadilla();
-      setShow(true);
+      localStorage.setItem(AD_LOADING_KEY, "true");
+      setActiveAdEpisodeKey(episodeKey);
       setAdVisible(false);
+      setShowEmergencySkip(false);
     } else {
-      setShow(false);
+      setActiveAdEpisodeKey(null);
       removeClickadillaDom();
       warmUpClickadilla();
       console.info("[zetAds] Capítulo limpio, sin publicidad Clickadilla.");
@@ -297,6 +412,10 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     let closed = false;
     let clickadillaDetected = false;
     let renderableAdDetected = false;
+    let adReadyDetected = false;
+    let closeControlDetected = false;
+    let closeIntentDetected = false;
+    let unloading = false;
     let renderableSince = 0;
     let closeTimer: number | null = null;
 
@@ -323,32 +442,53 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     const finish = () => {
       if (closed) return;
       closed = true;
-      setShow(false);
+      clearAdLoadingMarker();
+      setActiveAdEpisodeKey(null);
       setAdVisible(false);
+      setShowEmergencySkip(false);
       removeClickadillaDom();
       safe(() => observer.disconnect());
       window.clearTimeout(fallbackTimer);
+      window.clearTimeout(emergencySkipTimer);
+      window.clearInterval(detectInterval);
       if (closeTimer) window.clearTimeout(closeTimer);
       window.clearInterval(pauseInterval);
+      document.removeEventListener("click", onDocumentClick, true);
+      window.removeEventListener("beforeunload", onBeforeUnload);
       if (window._preventAnimePlay === onPlayAttempt) delete window._preventAnimePlay;
+      forceSkipRef.current = null;
       // Restaura audio + iframes y reanuda el video
       releasePlayerBehind(playerBlock, onPlayAttempt);
       warmUpClickadilla();
     };
 
     const scheduleCloseCheck = () => {
-      if (closed || !renderableAdDetected) return;
+      if (closed || !adReadyDetected) return;
       if (closeTimer) window.clearTimeout(closeTimer);
       closeTimer = window.setTimeout(() => {
         if (closed) return;
         blockPlayerBehind(playerBlock, onPlayAttempt);
         const activeNodes = getClickadillaNodes().filter(isRenderableAdNode);
         const visibleLongEnough = Date.now() - renderableSince >= AD_MIN_VISIBLE_MS;
-        if (visibleLongEnough && activeNodes.length === 0) {
+        if ((closeIntentDetected || closeControlDetected || visibleLongEnough) && activeNodes.length === 0) {
           console.info("[zetAds] Overlay Clickadilla cerrado; reanudando anime");
           finish();
         }
       }, AD_CLOSE_DEBOUNCE_MS);
+    };
+
+    const onDocumentClick = (event: MouseEvent) => {
+      if (closed) return;
+      if (isAdCloseClick(event.target)) {
+        closeIntentDetected = true;
+        blockPlayerBehind(playerBlock, onPlayAttempt);
+        window.setTimeout(scheduleCloseCheck, 700);
+      }
+    };
+
+    const onBeforeUnload = () => {
+      unloading = true;
+      localStorage.setItem(AD_LOADING_KEY, "true");
     };
 
     const detectAdState = () => {
@@ -357,12 +497,15 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
 
       const nodes = getClickadillaNodes();
       const renderableNodes = nodes.filter(isRenderableAdNode);
+      closeControlDetected = hasAdCloseControl();
 
       if (nodes.length > 0) clickadillaDetected = true;
       if (renderableNodes.length > 0) {
         renderableAdDetected = true;
         if (!renderableSince) renderableSince = Date.now();
-        setAdVisible(true);
+        if (Date.now() - renderableSince >= AD_READY_STABLE_MS || closeControlDetected) adReadyDetected = true;
+        setAdVisible(adReadyDetected);
+        if (closeControlDetected) setShowEmergencySkip(false);
         if (closeTimer) {
           window.clearTimeout(closeTimer);
           closeTimer = null;
@@ -372,9 +515,16 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
       }
 
       // Si solo desapareció un nodo temporal de carga, NO reanudar todavía.
-      // Reanudamos únicamente cuando ya hubo un ad renderizable y luego desapareció.
-      if (clickadillaDetected || renderableAdDetected) scheduleCloseCheck();
+      // Reanudamos únicamente cuando ya hubo un ad real/estable y luego desapareció.
+      if ((clickadillaDetected || renderableAdDetected) && adReadyDetected) scheduleCloseCheck();
     };
+
+    forceSkipRef.current = () => {
+      console.warn("[zetAds] Anuncio omitido por fallback de seguridad.");
+      finish();
+    };
+    document.addEventListener("click", onDocumentClick, true);
+    window.addEventListener("beforeunload", onBeforeUnload);
 
     // Observa apariciones de nodos Clickadilla en el body
     const observer = new MutationObserver((mutations) => {
@@ -383,31 +533,44 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
+    const detectInterval = window.setInterval(detectAdState, 250);
 
     // Inyecta en el host oculto del overlay para no mostrar cuadros transparentes.
     if (adMountRef.current) injectClickadilla(adMountRef.current);
     detectAdState();
 
-    // Fallback: si en 10s no aparece nada, cerrar solos
+    // Fallback: si en 7s no aparece nada, cerrar solos
     const fallbackTimer = window.setTimeout(() => {
-      if (!renderableAdDetected) {
-        console.warn("[zetAds] Anuncio no cargó en tiempo, continuando…");
+      if (!adReadyDetected) {
+        console.warn("Clickadilla tardó demasiado en responder. Activando fallback de seguridad para reproducir el anime.");
         finish();
       }
     }, AD_LOAD_TIMEOUT_MS);
 
+    const emergencySkipTimer = window.setTimeout(() => {
+      if (!closed && (!renderableAdDetected || !closeControlDetected)) {
+        setShowEmergencySkip(true);
+      }
+    }, EMERGENCY_SKIP_MS);
+
     return () => {
       closed = true;
+      if (!unloading) clearAdLoadingMarker();
       safe(() => observer.disconnect());
       window.clearTimeout(fallbackTimer);
+      window.clearTimeout(emergencySkipTimer);
+      window.clearInterval(detectInterval);
       if (closeTimer) window.clearTimeout(closeTimer);
       window.clearInterval(pauseInterval);
+      document.removeEventListener("click", onDocumentClick, true);
+      window.removeEventListener("beforeunload", onBeforeUnload);
       if (window._preventAnimePlay === onPlayAttempt) delete window._preventAnimePlay;
+      forceSkipRef.current = null;
       // Restaurar iframes/mute si el gate se desmonta con anuncio activo
       removeClickadillaDom();
       releasePlayerBehind(playerBlock, onPlayAttempt);
     };
-  }, [show]);
+  }, [show, episodeKey]);
 
   // Limpieza al salir de /watch
   useEffect(() => {
@@ -437,6 +600,7 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     >
       <div
         ref={adMountRef}
+        data-zet-clickadilla-mount="true"
         className="absolute inset-0 transition-opacity duration-300"
         style={{
           opacity: adVisible ? 1 : 0,
@@ -453,6 +617,19 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
             Los anuncios son los que ayudan a mantener <span className="text-primary font-bold">ZetAnime</span> online y gratis. ¡Gracias por tu apoyo! 🧡
           </p>
         </>
+      )}
+      {showEmergencySkip && (
+        <button
+          type="button"
+          className="absolute bottom-4 right-4 z-[70] rounded-md border border-border bg-background/95 px-3 py-2 text-xs font-semibold text-foreground shadow-lg"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            forceSkipRef.current?.();
+          }}
+        >
+          ¿El anuncio no carga? Omitir
+        </button>
       )}
     </div>
   );
