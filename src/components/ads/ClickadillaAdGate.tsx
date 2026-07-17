@@ -630,14 +630,23 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     };
   }, [show, episodeKey]);
 
+  // Oculta / muestra el player nativo estilo YouTube según el ad esté visible.
+  useEffect(() => {
+    if (show && adVisible) hidePlayerContainer();
+    else showPlayerContainer();
+    return () => showPlayerContainer();
+  }, [show, adVisible]);
+
   // Limpieza al salir de /watch
   useEffect(() => {
     return () => {
       removeClickadillaDom();
+      showPlayerContainer();
       const v = getPlayerVideo();
       v?.play().catch(() => undefined);
     };
   }, []);
+
 
   if (isPremium || loading) return null;
 
