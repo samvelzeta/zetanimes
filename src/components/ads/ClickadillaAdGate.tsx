@@ -99,7 +99,7 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
 
     const shouldShowAd = counter % 2 === 0;
     let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryTimer: number | null = null;
 
     if (shouldShowAd) {
       const startedAt = Date.now();
