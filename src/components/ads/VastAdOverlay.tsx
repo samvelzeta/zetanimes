@@ -26,11 +26,13 @@ const LAST_SEEN_KEY = "zet:vast-last-seen";
 const INACTIVITY_MS = 30 * 60 * 1000;
 const VAST_PRIMARY_TIMEOUT_MS = 2500;
 const VAST_FALLBACK_TIMEOUT_MS = 2000;
-const AUTO_CLOSE_MS = 15000;
+// Cada "segundo" del contador dura un poco más para que el usuario perciba
+// la espera completa antes de poder cerrar (15 ticks * 1100ms ≈ 16.5s).
+const TICK_MS = 1100;
 
 interface Props {
   episodeKey: string;
-  /** Segundos máximos que dura el anuncio en pantalla. Default 15. */
+  /** Segundos que hay que esperar antes de mostrar la X. Default 15. */
   countdownSecs?: number;
   onClosed?: () => void;
 }
