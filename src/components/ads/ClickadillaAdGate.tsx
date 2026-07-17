@@ -279,7 +279,10 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
         attachedVideo.removeEventListener("playing", onPlayAttempt);
         attachedVideo.removeEventListener("loadeddata", onPlayAttempt);
         attachedVideo.removeEventListener("canplay", onPlayAttempt);
+        attachedVideo.removeEventListener("volumechange", onPlayAttempt);
       }
+      // Restaurar iframes/mute si el gate se desmonta con anuncio activo
+      restoreBehind(silenced);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
