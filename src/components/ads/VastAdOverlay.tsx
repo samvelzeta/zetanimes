@@ -58,7 +58,7 @@ async function fetchTextWithTimeout(url: string, timeoutMs: number): Promise<str
 }
 
 /** Parsea VAST/VAST Wrapper y devuelve la mejor MediaFile URL (mp4/webm). */
-async function resolveVastMedia(url: string, depth = 0, deadline = Date.now() + VAST_FETCH_TIMEOUT_MS): Promise<string | null> {
+async function resolveVastMedia(url: string, timeoutMs: number, depth = 0, deadline = Date.now() + timeoutMs): Promise<string | null> {
   if (depth > 3) return null;
   const remaining = deadline - Date.now();
   if (remaining <= 0) return null;
@@ -66,7 +66,7 @@ async function resolveVastMedia(url: string, depth = 0, deadline = Date.now() + 
   const doc = new DOMParser().parseFromString(xmlStr, "text/xml");
   const wrapper = doc.querySelector("VASTAdTagURI");
   if (wrapper?.textContent) {
-    return resolveVastMedia(wrapper.textContent.trim(), depth + 1, deadline);
+    return resolveVastMedia(wrapper.textContent.trim(), timeoutMs, depth + 1, deadline);
   }
   const files = Array.from(doc.querySelectorAll("MediaFile"));
   const scored = files
@@ -78,6 +78,24 @@ async function resolveVastMedia(url: string, depth = 0, deadline = Date.now() + 
     .filter((f) => f.url && /mp4|webm/i.test(f.type));
   scored.sort((a, b) => b.w - a.w);
   return scored[0]?.url || null;
+}
+
+/** Waterfall: intenta un VAST aleatorio; si falla/timeout, prueba otro distinto. */
+async function resolveFromPool(pool: string[]): Promise<string | null> {
+  if (pool.length === 0) return null;
+  const first = pool[Math.floor(Math.random() * pool.length)];
+  try {
+    const u = await resolveVastMedia(first, VAST_PRIMARY_TIMEOUT_MS);
+    if (u) return u;
+  } catch { /* pasa a fallback */ }
+  const rest = pool.filter((x) => x !== first);
+  if (rest.length === 0) return null;
+  const second = rest[Math.floor(Math.random() * rest.length)];
+  try {
+    return await resolveVastMedia(second, VAST_FALLBACK_TIMEOUT_MS);
+  } catch {
+    return null;
+  }
 }
 
 export default function VastAdOverlay({ episodeKey, countdownSecs = 5, onClosed }: Props) {
