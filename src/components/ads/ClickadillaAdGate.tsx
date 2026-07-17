@@ -34,7 +34,7 @@ const AD_READY_STABLE_MS = 900;
 const AD_MIN_VISIBLE_MS = 2_500;
 const PLAYER_BLOCK_EVENTS = ["play", "playing", "loadeddata", "canplay", "volumechange"] as const;
 const AD_SIGNATURE = /wpadmngr|clickadilla|admpid|admngr|admanager|adsco|crsksu|padmngr|supply-side/i;
-const AD_CLOSE_SIGNATURE = /skip|saltar|omitir|close|cerrar|dismiss|cl-skip|ad-skip|×|✕|x/i;
+const AD_CLOSE_SIGNATURE = /skip|saltar|omitir|close|cerrar|dismiss|cl-skip|ad-skip|×|✕/i;
 const PRECONNECT_HOSTS = [
   "https://js.wpadmngr.com",
   "https://adblock-proxy-supply-side.crsksu.com",
@@ -302,11 +302,11 @@ function hasAdCloseControl(): boolean {
   for (const node of nodes) {
     const candidates = [node, ...Array.from(node.querySelectorAll<HTMLElement>("button, a, [role='button'], [aria-label], [title], [class], [id]"))];
     if (candidates.some((candidate) => {
-      const text = candidate.textContent || "";
+      const text = (candidate.textContent || "").trim();
       const aria = candidate.getAttribute("aria-label") || "";
       const title = candidate.getAttribute("title") || "";
       const cls = typeof candidate.className === "string" ? candidate.className : "";
-      return AD_CLOSE_SIGNATURE.test(`${text} ${aria} ${title} ${candidate.id} ${cls}`);
+      return AD_CLOSE_SIGNATURE.test(`${text} ${aria} ${title} ${candidate.id} ${cls}`) || /^[xX]$/.test(text);
     })) return true;
   }
   return false;
@@ -316,8 +316,9 @@ function isAdCloseClick(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const control = target.closest<HTMLElement>("button, a, [role='button'], [aria-label], [title], [class], [id]");
   if (!control) return false;
-  const signature = `${control.textContent || ""} ${control.getAttribute("aria-label") || ""} ${control.getAttribute("title") || ""} ${control.id} ${typeof control.className === "string" ? control.className : ""}`;
-  return AD_CLOSE_SIGNATURE.test(signature) && getClickadillaNodes().some((node) => node.contains(control) || control.contains(node));
+  const text = (control.textContent || "").trim();
+  const signature = `${text} ${control.getAttribute("aria-label") || ""} ${control.getAttribute("title") || ""} ${control.id} ${typeof control.className === "string" ? control.className : ""}`;
+  return (AD_CLOSE_SIGNATURE.test(signature) || /^[xX]$/.test(text)) && getClickadillaNodes().some((node) => node.contains(control) || control.contains(node));
 }
 
 function removeClickadillaDom() {
@@ -410,6 +411,7 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     let adReadyDetected = false;
     let closeControlDetected = false;
     let closeIntentDetected = false;
+    let unloading = false;
     let renderableSince = 0;
     let closeTimer: number | null = null;
 
@@ -444,6 +446,7 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
       safe(() => observer.disconnect());
       window.clearTimeout(fallbackTimer);
       window.clearTimeout(emergencySkipTimer);
+      window.clearInterval(detectInterval);
       if (closeTimer) window.clearTimeout(closeTimer);
       window.clearInterval(pauseInterval);
       document.removeEventListener("click", onDocumentClick, true);
@@ -480,6 +483,7 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     };
 
     const onBeforeUnload = () => {
+      unloading = true;
       localStorage.setItem(AD_LOADING_KEY, "true");
     };
 
@@ -496,7 +500,7 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
         renderableAdDetected = true;
         if (!renderableSince) renderableSince = Date.now();
         if (Date.now() - renderableSince >= AD_READY_STABLE_MS || closeControlDetected) adReadyDetected = true;
-        setAdVisible(true);
+        setAdVisible(adReadyDetected);
         if (closeControlDetected) setShowEmergencySkip(false);
         if (closeTimer) {
           window.clearTimeout(closeTimer);
@@ -525,12 +529,13 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
+    const detectInterval = window.setInterval(detectAdState, 250);
 
     // Inyecta en el host oculto del overlay para no mostrar cuadros transparentes.
     if (adMountRef.current) injectClickadilla(adMountRef.current);
     detectAdState();
 
-    // Fallback: si en 10s no aparece nada, cerrar solos
+    // Fallback: si en 7s no aparece nada, cerrar solos
     const fallbackTimer = window.setTimeout(() => {
       if (!renderableAdDetected) {
         console.warn("Clickadilla tardó demasiado en responder. Activando fallback de seguridad para reproducir el anime.");
@@ -546,10 +551,11 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
 
     return () => {
       closed = true;
-      clearAdLoadingMarker();
+      if (!unloading) clearAdLoadingMarker();
       safe(() => observer.disconnect());
       window.clearTimeout(fallbackTimer);
       window.clearTimeout(emergencySkipTimer);
+      window.clearInterval(detectInterval);
       if (closeTimer) window.clearTimeout(closeTimer);
       window.clearInterval(pauseInterval);
       document.removeEventListener("click", onDocumentClick, true);
@@ -565,7 +571,6 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
   // Limpieza al salir de /watch
   useEffect(() => {
     return () => {
-      clearAdLoadingMarker();
       removeClickadillaDom();
       const v = getPlayerVideo();
       v?.play().catch(() => undefined);
