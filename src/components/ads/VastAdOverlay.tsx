@@ -26,11 +26,13 @@ const LAST_SEEN_KEY = "zet:vast-last-seen";
 const INACTIVITY_MS = 30 * 60 * 1000;
 const VAST_PRIMARY_TIMEOUT_MS = 2500;
 const VAST_FALLBACK_TIMEOUT_MS = 2000;
-const AUTO_CLOSE_MS = 15000;
+// Cada "segundo" del contador dura un poco más para que el usuario perciba
+// la espera completa antes de poder cerrar (15 ticks * 1100ms ≈ 16.5s).
+const TICK_MS = 1100;
 
 interface Props {
   episodeKey: string;
-  /** Segundos máximos que dura el anuncio en pantalla. Default 15. */
+  /** Segundos que hay que esperar antes de mostrar la X. Default 15. */
   countdownSecs?: number;
   onClosed?: () => void;
 }
@@ -105,13 +107,15 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
   const [creative, setCreative] = useState<VastCreative | null>(null);
   const [muted, setMuted] = useState(true);
   const [loadingAd, setLoadingAd] = useState(false);
+  const [secs, setSecs] = useState(countdownSecs);
   const adVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (loading || isPremium || !episodeKey || VAST_POOL.length === 0) return;
+    // NOTA: no marcamos "ya visto" aquí. Solo se marca cuando el usuario cierra
+    // con la X, para que recargar la página NO permita saltarse el anuncio.
     const lastEp = localStorage.getItem(LAST_EP_KEY);
     if (lastEp === episodeKey) return;
-    localStorage.setItem(LAST_EP_KEY, episodeKey);
 
     const lastSeenRaw = localStorage.getItem(LAST_SEEN_KEY);
     const lastSeen = lastSeenRaw ? parseInt(lastSeenRaw, 10) : 0;
@@ -121,11 +125,17 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
 
     const nextShow = localStorage.getItem(TOGGLE_KEY);
     const shouldShow = inactive || nextShow !== "false";
-    localStorage.setItem(TOGGLE_KEY, shouldShow ? "false" : "true");
-    if (!shouldShow) return;
+    if (!shouldShow) {
+      // Turno "sin anuncio": consumimos el toggle y marcamos episodio como visto
+      // para no volver a evaluar en este mismo ep.
+      localStorage.setItem(TOGGLE_KEY, "true");
+      localStorage.setItem(LAST_EP_KEY, episodeKey);
+      return;
+    }
 
     let cancelled = false;
     setLoadingAd(true);
+    setSecs(countdownSecs);
     const bailout = window.setTimeout(() => {
       if (cancelled) return;
       cancelled = true;
@@ -138,6 +148,9 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
         if (c) {
           setCreative(c);
           setShow(true);
+        } else {
+          // No hubo creativo servible: no bloqueamos al usuario, marcamos ep.
+          localStorage.setItem(LAST_EP_KEY, episodeKey);
         }
       })
       .catch(() => undefined)
@@ -150,7 +163,7 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
       cancelled = true;
       window.clearTimeout(bailout);
     };
-  }, [episodeKey, isPremium, loading]);
+  }, [episodeKey, isPremium, loading, countdownSecs]);
 
   // Pausa el video maestro mientras dura el overlay.
   useEffect(() => {
@@ -162,20 +175,29 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
     return () => video.removeEventListener("play", pauseBehind);
   }, [show, isPremium]);
 
-  // Autoplay + auto-close a los 15s.
+  // Autoplay del anuncio.
   useEffect(() => {
     if (!show || !creative) return;
     const v = adVideoRef.current;
-    if (v) {
-      v.muted = true;
-      v.play().catch(() => undefined);
-    }
-    const closeTimer = window.setTimeout(() => close(), AUTO_CLOSE_MS);
-    return () => window.clearTimeout(closeTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!v) return;
+    v.muted = true;
+    v.play().catch(() => undefined);
   }, [show, creative]);
 
+  // Contador lento: 1 tick cada TICK_MS. Cuando llega a 0 aparece la X.
+  useEffect(() => {
+    if (!show || secs <= 0) return;
+    const t = window.setTimeout(() => setSecs((s) => s - 1), TICK_MS);
+    return () => window.clearTimeout(t);
+  }, [show, secs]);
+
+  const canClose = secs <= 0;
+
   const close = () => {
+    if (!canClose) return;
+    // Recién ahora marcamos episodio como visto y alternamos toggle.
+    localStorage.setItem(LAST_EP_KEY, episodeKey);
+    localStorage.setItem(TOGGLE_KEY, "false");
     setShow(false);
     setCreative(null);
     window.setTimeout(() => {
@@ -190,6 +212,7 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
     if (!target) return;
     openExternalChrome(target);
   };
+
 
   return (
     <div
@@ -210,10 +233,9 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
           className="w-full h-full object-contain cursor-pointer"
           playsInline
           autoPlay
+          loop
           muted={muted}
           onClick={handleAdClick}
-          onEnded={close}
-          onError={close}
         />
       )}
 
@@ -232,17 +254,26 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
         {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
       </button>
 
-      {/* X diminuta arriba a la derecha — intencionalmente pequeña. */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          close();
-        }}
-        className="absolute top-1 right-1 w-4 h-4 rounded-sm bg-black/70 hover:bg-black/90 flex items-center justify-center text-white/70 hover:text-white z-20"
-        aria-label="Cerrar anuncio"
-      >
-        <X className="w-2.5 h-2.5" strokeWidth={2.5} />
-      </button>
+      {/* Esquina superior derecha: contador mientras corre, X diminuta al terminar. */}
+      {canClose ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            close();
+          }}
+          className="absolute top-1 right-1 w-4 h-4 rounded-sm bg-black/70 hover:bg-black/90 flex items-center justify-center text-white/70 hover:text-white z-20"
+          aria-label="Cerrar anuncio"
+        >
+          <X className="w-2.5 h-2.5" strokeWidth={2.5} />
+        </button>
+      ) : (
+        <div
+          className="absolute top-1 right-1 min-w-[20px] h-5 px-1 rounded-sm bg-black/70 text-white/80 text-[10px] font-semibold flex items-center justify-center z-20 select-none pointer-events-none"
+          aria-label={`Puedes cerrar en ${secs}s`}
+        >
+          {secs}s
+        </div>
+      )}
 
       {loadingAd && !creative && (
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
