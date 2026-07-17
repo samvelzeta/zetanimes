@@ -22,6 +22,8 @@ const LAST_ACTIVITY_KEY = "zet_last_activity";
 const LAST_EP_KEY = "zet_ad_last_ep";
 const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 minutos
 const SCRIPT_MARK = "data-zet-clickadilla-ad";
+const MAX_WAIT_MS = 12_000;
+const RETRY_MS = 250;
 
 // Script exacto entregado por Clickadilla (Anti-Adblock).
 // No se altera su contenido — se inyecta tal cual dentro del contenedor.
@@ -33,14 +35,34 @@ function removeInjected() {
     .forEach((n) => n.parentNode?.removeChild(n));
 }
 
-function injectClickadilla() {
+function getReadyPlayerContainer() {
+  const container = document.getElementById("zet-player-container");
+  if (!container) return null;
+
+  const player = container.querySelector<HTMLElement>('[data-player-video="true"], #playerVideo');
+  if (!player) return null;
+
+  const video = player.querySelector("video");
+  const iframe = player.querySelector("iframe");
+  const htmlVideo = player.tagName === "VIDEO" ? (player as HTMLVideoElement) : null;
+  const activeVideo = video || htmlVideo;
+
+  // Para HLS/MP4 esperamos a que el <video> exista y tenga metadata/src/blob.
+  // Para embeds basta con que el iframe ya esté en el DOM.
+  if (iframe) return container;
+  if (activeVideo && (activeVideo.readyState >= 1 || !!activeVideo.currentSrc || !!activeVideo.src)) return container;
+
+  return null;
+}
+
+function injectClickadilla(container: HTMLElement) {
   removeInjected();
-  const container = document.getElementById("zet-player-container") || document.head;
   const s = document.createElement("script");
   s.setAttribute("data-cfasync", "false");
   s.setAttribute(SCRIPT_MARK, "1");
   s.text = CLICKADILLA_SCRIPT_SRC;
   container.appendChild(s);
+  console.info("[zetAds] Clickadilla Anti-Adblock inyectado en #zet-player-container");
 }
 
 export default function ClickadillaAdGate({ episodeKey }: Props) {
@@ -76,11 +98,36 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     }
 
     const shouldShowAd = counter % 2 === 0;
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
     if (shouldShowAd) {
-      injectClickadilla();
+      const startedAt = Date.now();
+
+      const tryInjectWhenPlayerReady = () => {
+        if (cancelled) return;
+
+        const container = getReadyPlayerContainer();
+        if (container) {
+          injectClickadilla(container);
+          return;
+        }
+
+        if (Date.now() - startedAt >= MAX_WAIT_MS) {
+          console.warn(
+            "[zetAds] No se pudo inyectar Clickadilla: #zet-player-container existe, pero el player/video no quedó listo a tiempo."
+          );
+          return;
+        }
+
+        retryTimer = window.setTimeout(tryInjectWhenPlayerReady, RETRY_MS);
+      };
+
+      console.info("[zetAds] Esperando a que el reproductor esté listo para inicializar Clickadilla...");
+      tryInjectWhenPlayerReady();
     } else {
       removeInjected();
+      console.info("[zetAds] Capítulo limpio, sin publicidad Clickadilla.");
     }
 
     // Solo avanzamos el contador cuando cambia el episodio real.
@@ -88,6 +135,11 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     localStorage.setItem(COUNTER_KEY, String(nextCounter));
     localStorage.setItem(LAST_ACTIVITY_KEY, String(NOW));
     localStorage.setItem(LAST_EP_KEY, episodeKey);
+
+    return () => {
+      cancelled = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
   }, [episodeKey, isPremium, loading]);
 
   // Al desmontar (salir del /watch), limpiamos el script para no dejarlo
