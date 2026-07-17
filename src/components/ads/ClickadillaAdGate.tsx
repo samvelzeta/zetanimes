@@ -27,11 +27,12 @@ const SCRIPT_MARK = "data-zet-clickadilla-ad";
 const PRELOAD_SCRIPT_MARK = "data-zet-clickadilla-preload";
 const OVERLAY_ID = "zet-clickadilla-overlay-host";
 const PRELOAD_HOST_ID = "zet-clickadilla-preload-host";
-const AD_LOAD_TIMEOUT_MS = 7_000;
-const EMERGENCY_SKIP_MS = 5_000;
-const AD_CLOSE_DEBOUNCE_MS = 1_200;
-const AD_READY_STABLE_MS = 900;
-const AD_MIN_VISIBLE_MS = 2_500;
+const AD_LOAD_TIMEOUT_MS = 3_000; // Timeout ultra-estricto estilo YouTube
+const EMERGENCY_SKIP_MS = 4_000;
+const AD_CLOSE_DEBOUNCE_MS = 900;
+const AD_READY_STABLE_MS = 250;
+const AD_MIN_VISIBLE_MS = 2_000;
+const PLAYER_HIDDEN_CLASS = "zet-player-hidden-by-ad";
 const PLAYER_BLOCK_EVENTS = ["play", "playing", "loadeddata", "canplay", "volumechange"] as const;
 const AD_SIGNATURE = /wpadmngr|clickadilla|admpid|admngr|admanager|adsco|crsksu|padmngr|supply-side/i;
 const AD_CLOSE_SIGNATURE = /skip|saltar|omitir|close|cerrar|dismiss|cl-skip|ad-skip|×|✕/i;
@@ -106,21 +107,66 @@ function warmUpClickadilla() {
     fetch(PRELOAD_SCRIPT_HREF, { mode: "no-cors", cache: "force-cache", credentials: "omit" }).catch(() => undefined);
   });
 
-  // Precarga pasiva: no dispara el anuncio, solo deja el manager en caché para el próximo capítulo.
+  // Pre-buffer real: inyecta el script COMPLETO de Clickadilla en el host oculto
+  // para que descargue y renderice el anuncio en segundo plano (como YouTube).
   if (!window._zetClickadillaPreloaded) {
     window._zetClickadillaPreloaded = true;
     const host = ensurePassivePreloadHost();
     if (!host.querySelector(`script[${PRELOAD_SCRIPT_MARK}]`)) {
       const passiveScript = document.createElement("script");
-      passiveScript.src = PRELOAD_SCRIPT_HREF;
-      passiveScript.async = true;
-      passiveScript.defer = true;
+      passiveScript.setAttribute("data-cfasync", "false");
       passiveScript.setAttribute(PRELOAD_SCRIPT_MARK, "1");
-      passiveScript.onerror = () => { window._zetClickadillaPreloaded = false; };
+      passiveScript.text = CLICKADILLA_SCRIPT_SRC;
       host.appendChild(passiveScript);
     }
   }
 }
+
+// Oculta por completo el player nativo del anime mientras el anuncio ocupa la pantalla.
+function hidePlayerContainer() {
+  if (document.getElementById("zet-player-hide-style")) return;
+  const style = document.createElement("style");
+  style.id = "zet-player-hide-style";
+  style.textContent = `
+    #zet-player-container > video,
+    #zet-player-container > iframe,
+    #zet-player-container [data-zet-native-player],
+    #zet-player-container video:not([data-zet-clickadilla-mount] video),
+    #zet-player-container iframe:not([data-zet-clickadilla-mount] iframe) {
+      visibility: hidden !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function showPlayerContainer() {
+  document.getElementById("zet-player-hide-style")?.remove();
+}
+
+// Mueve nodos ya renderizados por Clickadilla desde el host oculto al overlay principal.
+function migratePreloadedAd(target: HTMLElement) {
+  const host = document.getElementById(PRELOAD_HOST_ID);
+  if (!host) return 0;
+  const candidates = Array.from(host.querySelectorAll<HTMLElement>("iframe, div, section, aside, ins"))
+    .filter((n) => {
+      if (n.tagName === "SCRIPT") return false;
+      const rect = n.getBoundingClientRect();
+      if (n.tagName === "IFRAME") {
+        const src = (n as HTMLIFrameElement).src || "";
+        return !!src && src !== "about:blank";
+      }
+      // Contenedores con contenido publicitario (iframes/imágenes/embeds)
+      return !!n.querySelector("iframe, object, embed, video") || rect.width * rect.height > 0;
+    });
+  let moved = 0;
+  for (const node of candidates) {
+    try { target.appendChild(node); moved++; } catch { /* noop */ }
+  }
+  return moved;
+}
+
+
+
 
 function clearAdLoadingMarker() {
   localStorage.removeItem(AD_LOADING_KEY);
@@ -535,9 +581,21 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     observer.observe(document.body, { childList: true, subtree: true });
     const detectInterval = window.setInterval(detectAdState, 250);
 
-    // Inyecta en el host oculto del overlay para no mostrar cuadros transparentes.
-    if (adMountRef.current) injectClickadilla(adMountRef.current);
+    // Intercambio de fuentes estilo YouTube: si el anuncio ya está pre-bufferizado
+    // en el host oculto, lo movemos al overlay para aparición instantánea.
+    if (adMountRef.current) {
+      const migrated = migratePreloadedAd(adMountRef.current);
+      if (migrated > 0) {
+        console.info(`[zetAds] Anuncio precargado migrado desde host oculto (${migrated} nodo/s).`);
+        // Ya tenemos algo renderizado: forzamos detección inmediata.
+        window.setTimeout(detectAdState, 0);
+      } else {
+        // Nada precargado aún: inyectamos el script en el mount.
+        injectClickadilla(adMountRef.current);
+      }
+    }
     detectAdState();
+
 
     // Fallback: si en 7s no aparece nada, cerrar solos
     const fallbackTimer = window.setTimeout(() => {
@@ -572,14 +630,23 @@ export default function ClickadillaAdGate({ episodeKey }: Props) {
     };
   }, [show, episodeKey]);
 
+  // Oculta / muestra el player nativo estilo YouTube según el ad esté visible.
+  useEffect(() => {
+    if (show && adVisible) hidePlayerContainer();
+    else showPlayerContainer();
+    return () => showPlayerContainer();
+  }, [show, adVisible]);
+
   // Limpieza al salir de /watch
   useEffect(() => {
     return () => {
       removeClickadillaDom();
+      showPlayerContainer();
       const v = getPlayerVideo();
       v?.play().catch(() => undefined);
     };
   }, []);
+
 
   if (isPremium || loading) return null;
 
