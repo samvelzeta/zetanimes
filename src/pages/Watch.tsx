@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import AdsterraBanner from "@/components/ads/AdsterraBanner";
-import AdOverlayGate from "@/components/ads/AdOverlayGate";
+import VastAdOverlay from "@/components/ads/VastAdOverlay";
 import AdblockPlayerOverlay from "@/components/ads/AdblockPlayerOverlay";
 import AnimePlayer from "@/components/video/AnimePlayer";
 import StreamGuard from "@/components/video/StreamGuard";
@@ -910,9 +910,8 @@ export default function Watch() {
                   EP {selectedEp}
                 </div>
               )}
-              <AdOverlayGate
+              <VastAdOverlay
                 episodeKey={`${anilistId}-${selectedEp}`}
-                everyN={1}
                 countdownSecs={5}
               />
               <AdblockPlayerOverlay />
