@@ -144,7 +144,7 @@ export default function VerticalCarousel({ items }: Props) {
 
 
       {/* Grid con carrusel vertical */}
-      <div className="relative z-10 h-full grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-6 px-5 md:px-14 pt-28 sm:pt-32 md:pt-0 items-start md:items-center">
+      <div className="relative z-10 h-full grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-6 px-5 md:px-14 pt-44 sm:pt-52 md:pt-40 items-start md:items-center">
         {/* Cara narrativa */}
         <div className="relative min-h-[38vh] md:min-h-[60vh]">
           {slides.map((a, i) => (
