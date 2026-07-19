@@ -463,20 +463,7 @@ export async function saveCachedSlug(anilistId: number, slug: string, title: str
   }
 }
 
-// ===== LATINO HLS EPISODES =====
-
-export interface LatinoEpisode {
-  slug: string;
-  episode_number: number;
-  sources: { hls: string[] };
-  status: string;
-}
-
-export async function getLatinoEpisode(_slug: string, _episodeNumber: number): Promise<LatinoEpisode | null> {
-  // Tabla latino_episodes eliminada (funcionalidad huérfana). Se conserva la firma
-  // para no romper llamadas existentes; siempre devuelve null y el flujo cae al fallback normal.
-  return null;
-}
+// HLS Latino R2 eliminado. Solo operamos con enlaces Seeke.
 
 // ===== WATCH HISTORY (localStorage) =====
 

@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getEpisodeServers, sortServersByPriority,
   markEpisodeWatched, getWatchedEpisodes, setWatchedEpisodes, titleToSlug, getCachedSlug,
-  saveCachedSlug, getLatinoEpisode,
+  saveCachedSlug,
   clearSeekeEpisodeCache,
   type ZetServer,
 } from "@/lib/zetapi";
@@ -198,15 +198,7 @@ export default function Watch() {
     : (anilistData?.episodes || 0);
   const baseTotalEpisodes = resolvedTotal || fallbackTotal || 0;
 
-  // Latino HLS check
-  const { data: latinoEp } = useQuery({
-    queryKey: ["latino-ep", zetSlug, selectedEp],
-    queryFn: () => getLatinoEpisode(zetSlug!, selectedEp),
-    enabled: !!zetSlug,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: "always",
-  });
+  // HLS Latino R2 eliminado: seguimos usando solo enlaces Seeke.
 
   // 1) Catálogo oficial DB: lo guardado en admin manda, sin cache local.
   const { data: cachedVideo, isFetched: cachedVideoFetched } = useQuery({
@@ -420,14 +412,7 @@ export default function Watch() {
       // Solo añadimos fuentes NO-seeke del DB cache (HLS/MP4/embed manuales).
       addDb({ ...cachedVideo, sources: { ...cachedVideo.sources, seeke: [] } } as any, lang, true);
     }
-    // HLS Latino subido manualmente: SIEMPRE se agrega si existe, aunque haya
-    // Seeke configurado en JP. Esto garantiza que el switch de idioma aparezca
-    // en cualquier anime que tenga latino disponible por cualquier vía.
-    if (latinoEp?.sources?.hls?.length) {
-      latinoEp.sources.hls.forEach((url, i) => appendUniqueSource(sources, {
-        name: `HLS Latino ${i + 1} • 🌎 LAT`, embed: url, type: "hls", lang: "latino", origin: "hls",
-      }));
-    }
+    // HLS Latino R2 eliminado: solo usamos Seeke y las fuentes cargadas desde el admin.
     addApi(serverData, lang);
 
     // Opposite Seeke: si cubre el episodio actual, agregarlo.
@@ -446,7 +431,7 @@ export default function Watch() {
     addApi(oppositeServerData, oppositeLang);
 
     return sources.sort((a, b) => sourcePriority(a) - sourcePriority(b));
-  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent, seekeCoversOpposite, hasAnySeekeConfig, currentSeekeBase, oppositeSeekeBase]);
+  }, [lang, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent, seekeCoversOpposite, hasAnySeekeConfig, currentSeekeBase, oppositeSeekeBase]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
   // Embeds reales por idioma (después del dedup global de appendUniqueSource).
@@ -1008,11 +993,6 @@ export default function Watch() {
           </div>
         )}
 
-        {lang === "latino" && latinoEp && (
-          <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2 mb-4">
-            <span className="text-xs text-primary font-medium">✓ HLS Latino disponible</span>
-          </div>
-        )}
 
         {serverError && (
           <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3 mb-4">
