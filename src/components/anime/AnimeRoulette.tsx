@@ -180,7 +180,7 @@ export default function AnimeRoulette({ animes }: Props) {
           <button
             onClick={spin}
             disabled={spinning}
-            className="absolute left-1/2 -translate-x-1/2 bottom-5 z-30 flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="absolute left-1/2 -translate-x-1/2 bottom-3 z-30 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Shuffle className={`w-4 h-4 ${spinning ? "animate-spin" : ""}`} />
             {spinning ? "Girando..." : "¡Gira la Ruleta!"}
