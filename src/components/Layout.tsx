@@ -6,7 +6,7 @@ import AdblockGate from "@/components/AdblockGate";
 import ExpiryAlert from "@/components/premium/ExpiryAlert";
 import PremiumGhostAds from "@/components/ads/PremiumGhostAds";
 import CookieBanner from "@/components/CookieBanner";
-import SiteFooter from "@/components/SiteFooter";
+import PullToRevealFooter from "@/components/PullToRevealFooter";
 import CursorApplier from "@/components/premium/CursorApplier";
 import LevelUpToast from "@/components/premium/LevelUpToast";
 import { useIsTV } from "@/hooks/useIsTV";
@@ -46,7 +46,7 @@ export default function Layout() {
           <main className={`${hideNav ? "" : "pb-20 lg:pb-0"} ${!hideHeader && !transparentHeader ? "pt-12" : ""}`}>
             <Outlet />
           </main>
-          {!hideNav && !location.pathname.startsWith("/watch") && <SiteFooter />}
+          {!hideNav && !location.pathname.startsWith("/watch") && <PullToRevealFooter />}
           {!hideNav && <BottomNav />}
           <CookieBanner />
         </>

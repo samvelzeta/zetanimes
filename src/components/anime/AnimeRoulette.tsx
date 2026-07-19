@@ -84,7 +84,7 @@ export default function AnimeRoulette({ animes }: Props) {
   const radius = 205;
 
   return (
-    <section className="relative mb-0 px-4 pt-8 pb-0 bg-neutral-950/35 border-t border-border/30 overflow-hidden">
+    <section className="relative mb-0 px-4 pt-8 pb-0 overflow-hidden">
       <div className="text-center mb-5">
         <h2 className="text-lg font-black uppercase tracking-wide text-foreground mb-1">🎰 ¿NO SABES QUÉ VER?</h2>
         <p className="text-sm text-muted-foreground">Deja que te recomendemos un anime al azar</p>
@@ -172,10 +172,9 @@ export default function AnimeRoulette({ animes }: Props) {
             {spinning ? "Girando..." : "¡Gira la Ruleta!"}
           </button>
 
-          <div className="absolute inset-x-0 bottom-0 z-20 h-px bg-border/60" aria-hidden="true" />
         </div>
 
-        <div className="h-5 w-full bg-neutral-950/60" aria-hidden="true" />
+
 
       </div>
     </section>
