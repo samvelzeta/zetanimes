@@ -3,6 +3,7 @@ import { Image as ImageIcon, Loader2, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { compressToWebp } from "@/lib/image-compress";
+import { uploadCosmeticToR2 } from "@/lib/upload-cosmetic";
 
 const SETTINGS_KEY = "premium_bg_url";
 const BUCKET = "premium-assets";
@@ -34,16 +35,9 @@ export default function PremiumBackgroundUploader() {
     setUploading(true);
     try {
       const compressed = await compressToWebp(file, { maxWidthOrHeight: 1920, quality: 0.85, maxSizeMB: 1.5 });
-      const blob = compressed;
-      const path = `premium-bg/bg-${Date.now()}.webp`;
-      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, blob, {
-        contentType: "image/webp",
-        upsert: true,
-      });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      await save(pub.publicUrl);
-      setUrl(pub.publicUrl);
+      const publicUrl = await uploadCosmeticToR2(compressed, "premium-bg", `bg-${Date.now()}.webp`);
+      await save(publicUrl);
+      setUrl(publicUrl);
       toast.success("Fondo actualizado");
     } catch (e: any) {
       toast.error(e.message || "Error al subir imagen");

@@ -5,6 +5,7 @@ import { Trash2, Plus, Upload, Loader2, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { RARITY_META, type Rarity } from "@/lib/cosmetics";
 import { compressBanner } from "@/lib/image-compress";
+import { uploadCosmeticToR2 } from "@/lib/upload-cosmetic";
 
 interface Banner {
   id: string;
@@ -41,15 +42,10 @@ export default function AdminBannersManager() {
     setUploading(true);
     try {
       const file = await compressBanner(raw);
-      const path = `banners/${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
-      const { error: upErr } = await supabase.storage
-        .from("premium-assets")
-        .upload(path, file, { upsert: false, contentType: "image/webp", cacheControl: "31536000" });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("premium-assets").getPublicUrl(path);
+      const publicUrl = await uploadCosmeticToR2(file, "banners", file.name);
       const { error: insErr } = await supabase.from("admin_banners" as any).insert({
         name: file.name.replace(/\.[^.]+$/, ""),
-        image_url: pub.publicUrl,
+        image_url: publicUrl,
         requirement_type: "free",
         requirement_value: 0,
         rarity: "basico",
