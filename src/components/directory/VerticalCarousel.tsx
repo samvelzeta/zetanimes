@@ -45,7 +45,7 @@ function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number;
         Episodio {String(currentEp).padStart(2, "0")} / {String(totalEps).padStart(2, "0")}
       </p>
       <h2
-        className={`directory-hero-title ${titleSize} font-bold text-white leading-[1.1] break-words`}
+        className={`directory-hero-title ${titleSize} font-bold text-white leading-[1.1] line-clamp-3 break-words`}
         style={{ wordBreak: "break-word", hyphens: "auto" }}
       >
         {title}
