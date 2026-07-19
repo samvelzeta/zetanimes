@@ -111,8 +111,10 @@ export default function PullToRevealFooter() {
     const onTouchEnd = () => {
       gestureActiveRef.current = false;
       if (gestureEndTimer.current) window.clearTimeout(gestureEndTimer.current);
-      if (holdStart.current != null) cancelHold();
+      // No cancelamos el hold: si el usuario ya empujó lo suficiente para armar el 2º gesto,
+      // dejamos que el contador de 2 s termine solo.
     };
+
 
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
