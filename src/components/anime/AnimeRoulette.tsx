@@ -84,7 +84,7 @@ export default function AnimeRoulette({ animes }: Props) {
   const radius = 240;
 
   return (
-    <section className="relative mb-0 px-4 pt-3 pb-0 overflow-hidden isolate flex flex-col justify-end">
+    <section className="relative mb-0 px-4 pt-5 pb-0 overflow-hidden isolate flex flex-col justify-end">
       {/* Fondo difuminado con el anime seleccionado */}
       {result && (
         <div key={result.id} className="pointer-events-none absolute inset-0 -z-10 animate-fade-in">
