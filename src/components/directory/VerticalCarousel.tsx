@@ -29,7 +29,7 @@ function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number;
       }`}
     >
       <p className="text-[10px] tracking-[0.4em] uppercase text-primary/80 mb-3">
-        Episodio {String(i + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+        Episodio {String(currentEp).padStart(2, "0")} / {String(totalEps).padStart(2, "0")}
       </p>
       <h2 className="directory-hero-title text-3xl sm:text-5xl md:text-6xl font-bold text-white leading-tight line-clamp-3">
         {getTitle(a)}
