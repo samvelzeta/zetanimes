@@ -6,8 +6,6 @@ import type { AniListMedia } from "@/lib/anilist";
  * Detecta si un anime tiene doblaje latino leyendo la BBDD real:
  *   1) video_cache (episodios latino individuales)
  *   2) video_cache_blocks (bloques Seeke latino)
- *   3) latino_episodes (uploads directos)
- * Los tres se cruzan por anilist_id (video_cache*) o por slug (latino_episodes).
  * Se cachea globalmente en memoria; la carga sucede una sola vez por sesión.
  */
 
@@ -31,15 +29,11 @@ async function fetchDubbed(): Promise<{ ids: Set<number>; slugs: Set<string> }> 
     dubbedPromise = (async () => {
       const ids = new Set<number>();
       const slugs = new Set<string>();
-      const [dubs, le] = await Promise.all([
-        supabase.rpc("list_dubbed_anime_ids"),
-        supabase.from("latino_episodes").select("slug").limit(10000),
-      ]);
+      const dubs = await supabase.rpc("list_dubbed_anime_ids");
       ((dubs.data as any[]) || []).forEach((r: any) => {
         if (typeof r.anilist_id === "number") ids.add(r.anilist_id);
         if (r.slug) slugs.add(r.slug);
       });
-      (le.data || []).forEach((r: any) => r?.slug && slugs.add(r.slug));
       dubbedCache = { ids, slugs };
       return dubbedCache;
     })();

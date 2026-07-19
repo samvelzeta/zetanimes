@@ -88,8 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
-        // Precarga overlays y banners del admin en el caché HTTP del navegador
-        import("@/lib/cosmetics-preload").then((m) => m.preloadAdminCosmetics()).catch(() => {});
+        // Lazy load real: los cosméticos se cargan solo cuando el usuario abre el picker,
+        // no al iniciar sesión (ahorra egress masivo con muchos usuarios).
       }
       setLoading(false);
     });

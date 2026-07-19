@@ -840,39 +840,6 @@ export type Database = {
         }
         Relationships: []
       }
-      latino_episodes: {
-        Row: {
-          created_at: string
-          episode_number: number
-          id: string
-          slug: string
-          sources: Json
-          status: string
-          updated_at: string
-          uploaded_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          episode_number: number
-          id?: string
-          slug: string
-          sources?: Json
-          status?: string
-          updated_at?: string
-          uploaded_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          episode_number?: number
-          id?: string
-          slug?: string
-          sources?: Json
-          status?: string
-          updated_at?: string
-          uploaded_by?: string | null
-        }
-        Relationships: []
-      }
       notification_dismissals: {
         Row: {
           dismissed_at: string
