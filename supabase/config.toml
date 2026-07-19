@@ -2,3 +2,6 @@ project_id = "whrcwifudxqbrwgvhnud"
 
 [functions.bulk-upload-cosmetic]
 verify_jwt = false
+
+[functions._r2-seed]
+verify_jwt = false
