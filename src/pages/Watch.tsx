@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getEpisodeServers, sortServersByPriority,
   markEpisodeWatched, getWatchedEpisodes, setWatchedEpisodes, titleToSlug, getCachedSlug,
-  saveCachedSlug, getLatinoEpisode,
+  saveCachedSlug,
   clearSeekeEpisodeCache,
   type ZetServer,
 } from "@/lib/zetapi";
