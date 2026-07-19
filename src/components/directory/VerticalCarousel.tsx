@@ -20,8 +20,13 @@ function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number;
   const active = i === index;
   const title = getTitle(a);
   // Tamaño dinámico según longitud del título (romaji suele ser largo)
+  // Escala en 5 pasos para que SIEMPRE quepa sin truncado
   const titleSize =
-    title.length > 34
+    title.length > 60
+      ? "text-base sm:text-lg md:text-xl lg:text-2xl"
+      : title.length > 45
+      ? "text-lg sm:text-xl md:text-2xl lg:text-3xl"
+      : title.length > 34
       ? "text-xl sm:text-2xl md:text-3xl lg:text-4xl"
       : title.length > 22
       ? "text-2xl sm:text-3xl md:text-4xl lg:text-5xl"
@@ -40,7 +45,7 @@ function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number;
         Episodio {String(currentEp).padStart(2, "0")} / {String(totalEps).padStart(2, "0")}
       </p>
       <h2
-        className={`directory-hero-title ${titleSize} font-bold text-white leading-[1.05] line-clamp-3 break-words`}
+        className={`directory-hero-title ${titleSize} font-bold text-white leading-[1.1] break-words`}
         style={{ wordBreak: "break-word", hyphens: "auto" }}
       >
         {title}
@@ -141,15 +146,15 @@ export default function VerticalCarousel({ items }: Props) {
       <div className="md:hidden absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/40 pointer-events-none" />
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background pointer-events-none" />
 
-      {/* Firma — bajada para no quedar tapada por el nav superior */}
-      <div className="absolute top-20 left-4 sm:top-24 sm:left-8 md:top-28 z-20 pointer-events-none">
-        <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase leading-[1.9]">
+      {/* Firma — sutilmente elevada, con leading más compacto para respirar del título */}
+      <div className="absolute top-16 left-4 sm:top-20 sm:left-8 md:top-24 z-20 pointer-events-none">
+        <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase leading-[1.4]">
           En cartel · Estreno
         </p>
-        <p className="mt-1 text-[10px] sm:text-xs font-light tracking-[0.45em] uppercase leading-[1.9] text-primary/90">
+        <p className="mt-0.5 text-[10px] sm:text-xs font-light tracking-[0.45em] uppercase leading-[1.4] text-primary/90">
           Esto te ofrece Zani
         </p>
-        <div className="mt-2 h-px w-10 bg-primary/60" />
+        <div className="mt-1.5 h-px w-10 bg-primary/60" />
       </div>
 
 
@@ -165,7 +170,7 @@ export default function VerticalCarousel({ items }: Props) {
 
 
         {/* Torre vertical con posters */}
-        <div className="relative hidden md:block h-[70vh]">
+        <div className="relative hidden md:block h-[62vh] -mt-8">
           {slides.map((a, i) => {
             const offset = (i - index + slides.length) % slides.length;
             // -1 arriba, 0 centro, 1 abajo, resto oculto
