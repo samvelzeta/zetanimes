@@ -84,7 +84,7 @@ export default function AnimeRoulette({ animes }: Props) {
   const radius = 210;
 
   return (
-    <section className="relative mb-0 px-4 pt-8 pb-0 overflow-hidden isolate">
+    <section className="relative mb-0 px-4 pt-3 pb-0 overflow-hidden isolate flex flex-col justify-end">
       {/* Fondo difuminado con el anime seleccionado */}
       {result && (
         <div key={result.id} className="pointer-events-none absolute inset-0 -z-10 animate-fade-in">
@@ -98,9 +98,9 @@ export default function AnimeRoulette({ animes }: Props) {
         </div>
 
       )}
-      <div className="text-center mb-5">
-        <h2 className="text-lg font-black uppercase tracking-wide text-foreground mb-1">🎰 ¿NO SABES QUÉ VER?</h2>
-        <p className="text-sm text-muted-foreground">Deja que te recomendemos un anime al azar</p>
+      <div className="text-center mb-2">
+        <h2 className="text-base font-black uppercase tracking-wide text-foreground">🎰 ¿NO SABES QUÉ VER?</h2>
+        <p className="text-xs text-muted-foreground">Deja que te recomendemos un anime al azar</p>
       </div>
 
 
