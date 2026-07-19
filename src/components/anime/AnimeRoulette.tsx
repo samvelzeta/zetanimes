@@ -84,7 +84,7 @@ export default function AnimeRoulette({ animes }: Props) {
   const radius = 220;
 
   return (
-    <section className="mb-4 px-4">
+    <section className="mb-0 px-4">
       <div className="text-center mb-4">
         <h2 className="text-lg font-bold text-foreground mb-1">🎰 ¿No sabes qué ver?</h2>
         <p className="text-sm text-muted-foreground">Deja que te recomendemos un anime al azar</p>
