@@ -24,6 +24,7 @@ const AuthPage = lazy(() => import("@/pages/Auth"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const AdminPanel = lazy(() => import("@/pages/Admin"));
 const TermsPage = lazy(() => import("@/pages/Terms"));
+const DmcaPage = lazy(() => import("@/pages/Dmca"));
 const DownloadPage = lazy(() => import("@/pages/Download"));
 const VerifiedPage = lazy(() => import("@/pages/Verified"));
 const MyLists = lazy(() => import("@/pages/MyLists"));
@@ -95,6 +96,8 @@ const App = () => {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/admin" element={<AdminPanel />} />
                 <Route path="/terms" element={<TermsPage />} />
+                <Route path="/dmca" element={<DmcaPage />} />
+
               </Route>
               <Route path="/download" element={<DownloadPage />} />
               <Route path="/verified" element={<VerifiedPage />} />
