@@ -51,7 +51,7 @@ function AnimeCardImpl({ anime, showStatus = false, size = "default" }: AnimeCar
           </div>
         )}
       </div>
-      <MarqueeText text={title} className="mt-2 text-xs font-medium text-muted-foreground leading-tight group-hover:text-primary transition-colors" />
+      <p className="mt-2 text-xs font-medium text-muted-foreground leading-tight group-hover:text-primary transition-colors line-clamp-2">{title}</p>
     </Link>
   );
 }
