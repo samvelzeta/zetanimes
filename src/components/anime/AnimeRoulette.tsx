@@ -158,7 +158,7 @@ export default function AnimeRoulette({ animes }: Props) {
               return (
                 <div
                   key={anime.id}
-                  className="absolute w-[90px] h-[90px] rounded-full overflow-hidden border-2 border-primary/40 shadow-lg"
+                  className="absolute w-[75px] h-[75px] rounded-full overflow-hidden border-2 border-primary/40 shadow-lg"
                   style={{
                     left: `${x}px`,
                     top: `${-y}px`,
