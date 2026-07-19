@@ -81,12 +81,12 @@ export default function AnimeRoulette({ animes }: Props) {
 
   if (items.length < 3) return null;
 
-  const radius = 220;
+  const radius = 205;
 
   return (
-    <section className="mb-0 px-4">
-      <div className="text-center mb-4">
-        <h2 className="text-lg font-bold text-foreground mb-1">🎰 ¿No sabes qué ver?</h2>
+    <section className="relative mb-0 px-4 pt-8 pb-0 bg-neutral-950/35 border-t border-border/30 overflow-hidden">
+      <div className="text-center mb-5">
+        <h2 className="text-lg font-black uppercase tracking-wide text-foreground mb-1">🎰 ¿NO SABES QUÉ VER?</h2>
         <p className="text-sm text-muted-foreground">Deja que te recomendemos un anime al azar</p>
       </div>
 
@@ -125,8 +125,8 @@ export default function AnimeRoulette({ animes }: Props) {
           );
         })()}
 
-        {/* Half-moon arc — pegada al footer, botón absoluto en el centro del arco */}
-        <div className="relative w-full overflow-hidden" style={{ height: `${radius + 50}px` }}>
+        {/* Half-moon arc — limpio, con flecha externa, botón absoluto y sin círculo central fantasma */}
+        <div className="relative w-full overflow-hidden pb-0 mb-0" style={{ height: `${radius + 80}px` }}>
           <div
             className="absolute left-1/2 bottom-0"
             style={{
@@ -155,24 +155,27 @@ export default function AnimeRoulette({ animes }: Props) {
                 </div>
               );
             })}
-            <div className="absolute w-12 h-12 rounded-full bg-background border-2 border-primary" style={{ left: "0px", top: "0px", transform: "translate(-50%, -50%)" }} />
           </div>
-          {/* Pointer — apunta al centro de la esfera superior */}
+          {/* Pointer — fuera de las esferas, apuntando a la esfera superior */}
           <div
-            className="absolute left-1/2 -translate-x-1/2 z-20 w-0 h-0 border-l-[10px] border-r-[10px] border-t-[16px] border-l-transparent border-r-transparent border-t-primary drop-shadow-lg"
-            style={{ bottom: `${radius + 8}px` }}
+            className="absolute left-1/2 top-2 -translate-x-1/2 z-40 w-0 h-0 border-l-[11px] border-r-[11px] border-t-[18px] border-l-transparent border-r-transparent border-t-primary drop-shadow-lg"
+            aria-hidden="true"
           />
 
           {/* Spin button — absoluto, dentro del corazón del arco */}
           <button
             onClick={spin}
             disabled={spinning}
-            className="absolute left-1/2 -translate-x-1/2 bottom-6 z-30 flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="absolute left-1/2 -translate-x-1/2 bottom-5 z-30 flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Shuffle className={`w-4 h-4 ${spinning ? "animate-spin" : ""}`} />
             {spinning ? "Girando..." : "¡Gira la Ruleta!"}
           </button>
+
+          <div className="absolute inset-x-0 bottom-0 z-20 h-px bg-border/60" aria-hidden="true" />
         </div>
+
+        <div className="h-5 w-full bg-neutral-950/60" aria-hidden="true" />
 
       </div>
     </section>
