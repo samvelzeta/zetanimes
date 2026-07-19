@@ -20,8 +20,13 @@ function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number;
   const active = i === index;
   const title = getTitle(a);
   // Tamaño dinámico según longitud del título (romaji suele ser largo)
+  // Escala en 5 pasos para que SIEMPRE quepa sin truncado
   const titleSize =
-    title.length > 34
+    title.length > 60
+      ? "text-base sm:text-lg md:text-xl lg:text-2xl"
+      : title.length > 45
+      ? "text-lg sm:text-xl md:text-2xl lg:text-3xl"
+      : title.length > 34
       ? "text-xl sm:text-2xl md:text-3xl lg:text-4xl"
       : title.length > 22
       ? "text-2xl sm:text-3xl md:text-4xl lg:text-5xl"
