@@ -81,7 +81,7 @@ export default function AnimeRoulette({ animes }: Props) {
 
   if (items.length < 3) return null;
 
-  const radius = 260;
+  const radius = 210;
 
   return (
     <section className="relative mb-0 px-4 pt-8 pb-0 overflow-hidden isolate">
