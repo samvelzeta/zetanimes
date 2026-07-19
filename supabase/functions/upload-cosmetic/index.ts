@@ -16,7 +16,7 @@ const aws = new AwsClient({
   region: "auto",
 });
 
-const ALLOWED_FOLDERS = new Set(["frames", "banners", "premium-bg"]);
+const ALLOWED_FOLDERS = new Set(["frames", "banners", "premium-bg", "genres", "og"]);
 const ALLOWED_MIME = new Set(["image/webp", "image/png", "image/jpeg"]);
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 
