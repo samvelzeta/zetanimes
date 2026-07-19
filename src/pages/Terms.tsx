@@ -1,7 +1,31 @@
+import { Link } from "react-router-dom";
+import { Download, ArrowLeft } from "lucide-react";
+
 export default function TermsPage() {
   return (
     <div className="min-h-screen px-4 py-8 pb-24 max-w-3xl mx-auto">
+      {/* Barra superior: Descargar APK · Volver a ZetAnime */}
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <Link
+          to="/download"
+          className="group relative inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-primary-foreground bg-primary hover:scale-105 transition-transform"
+          style={{ boxShadow: "0 0 20px hsl(var(--primary) / 0.55)" }}
+        >
+          <Download className="w-4 h-4" />
+          <span>Descargar APK</span>
+          <span className="absolute inset-0 rounded-full ring-2 ring-primary/40 animate-pulse pointer-events-none" />
+        </Link>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs sm:text-sm font-bold text-foreground bg-secondary/70 border border-white/10 hover:bg-secondary transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Volver a ZetAnime</span>
+        </Link>
+      </div>
+
       <h1 className="text-2xl font-black text-foreground mb-6">Términos y Condiciones & Políticas de Privacidad</h1>
+
 
       {/* Aviso destacado DMCA / no alojamiento */}
       <div className="mb-8 rounded-2xl border-2 border-primary/50 bg-primary/10 p-5 space-y-3"
