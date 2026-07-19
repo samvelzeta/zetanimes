@@ -198,15 +198,8 @@ export default function Watch() {
     : (anilistData?.episodes || 0);
   const baseTotalEpisodes = resolvedTotal || fallbackTotal || 0;
 
-  // Latino HLS check
-  const { data: latinoEp } = useQuery({
-    queryKey: ["latino-ep", zetSlug, selectedEp],
-    queryFn: () => getLatinoEpisode(zetSlug!, selectedEp),
-    enabled: !!zetSlug,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: "always",
-  });
+  // HLS Latino R2 eliminado: seguimos usando solo enlaces Seeke.
+  const latinoEp = null as null;
 
   // 1) Catálogo oficial DB: lo guardado en admin manda, sin cache local.
   const { data: cachedVideo, isFetched: cachedVideoFetched } = useQuery({
