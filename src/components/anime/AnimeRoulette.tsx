@@ -92,10 +92,11 @@ export default function AnimeRoulette({ animes }: Props) {
             src={result.bannerImage || result.coverImage?.extraLarge || result.coverImage?.large}
             alt=""
             aria-hidden="true"
-            className="w-full h-full object-cover opacity-30 blur-2xl scale-110"
+            className="w-full h-full object-cover opacity-45 blur-md scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/50 to-background" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/30 to-background/80" />
         </div>
+
       )}
       <div className="text-center mb-5">
         <h2 className="text-lg font-black uppercase tracking-wide text-foreground mb-1">🎰 ¿NO SABES QUÉ VER?</h2>
