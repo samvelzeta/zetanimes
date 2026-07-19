@@ -130,8 +130,8 @@ export default function VerticalCarousel({ items }: Props) {
       <div className="md:hidden absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/40 pointer-events-none" />
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background pointer-events-none" />
 
-      {/* Firma */}
-      <div className="absolute top-6 left-4 sm:top-10 sm:left-8 z-20 pointer-events-none">
+      {/* Firma — bajada para no quedar tapada por el nav superior */}
+      <div className="absolute top-20 left-4 sm:top-24 sm:left-8 md:top-28 z-20 pointer-events-none">
         <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase leading-[1.9]">
           En cartel · Estreno
         </p>
