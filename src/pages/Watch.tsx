@@ -431,7 +431,7 @@ export default function Watch() {
     addApi(oppositeServerData, oppositeLang);
 
     return sources.sort((a, b) => sourcePriority(a) - sourcePriority(b));
-  }, [lang, latinoEp, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent, seekeCoversOpposite, hasAnySeekeConfig, currentSeekeBase, oppositeSeekeBase]);
+  }, [lang, serverData, cachedVideo, cachedVideoOpposite, oppositeLang, oppositeServerData, selectedEp, currentBlock, oppositeBlock, seekeCoversCurrent, seekeCoversOpposite, hasAnySeekeConfig, currentSeekeBase, oppositeSeekeBase]);
 
   const rawSources = useMemo(() => buildSources(), [buildSources]);
   // Embeds reales por idioma (después del dedup global de appendUniqueSource).
