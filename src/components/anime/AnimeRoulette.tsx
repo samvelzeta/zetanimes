@@ -125,14 +125,14 @@ export default function AnimeRoulette({ animes }: Props) {
           );
         })()}
 
-        {/* Half-moon arc */}
-        <div className="relative w-full overflow-hidden" style={{ height: `${radius * 0.55 + 60}px` }}>
+        {/* Half-moon arc — extendida para que las esferas toquen la línea del footer */}
+        <div className="relative w-full overflow-hidden" style={{ height: `${radius + 80}px` }}>
           <div
             className="absolute left-1/2"
             style={{
               transform: `translateX(-50%) rotate(${rotation}deg)`,
               transition: spinning ? "transform 3.5s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
-              bottom: `-${radius * 0.65}px`,
+              bottom: `-${radius * 0.15}px`,
             }}
           >
             {items.map((anime, i) => {
