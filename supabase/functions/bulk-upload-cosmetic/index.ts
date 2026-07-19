@@ -16,7 +16,7 @@ const aws = new AwsClient({
   region: "auto",
 });
 
-const ALLOWED_FOLDERS = new Set(["frames", "banners", "premium-bg"]);
+const ALLOWED_FOLDERS = new Set(["frames", "banners", "premium-bg", "genres", "og"]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
