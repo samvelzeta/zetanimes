@@ -994,11 +994,6 @@ export default function Watch() {
           </div>
         )}
 
-        {lang === "latino" && latinoEp && (
-          <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-xl px-4 py-2 mb-4">
-            <span className="text-xs text-primary font-medium">✓ HLS Latino disponible</span>
-          </div>
-        )}
 
         {serverError && (
           <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3 mb-4">
