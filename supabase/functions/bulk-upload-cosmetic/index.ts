@@ -7,7 +7,7 @@ const R2_SECRET_ACCESS_KEY = Deno.env.get("R2_SECRET_ACCESS_KEY")!;
 const R2_BUCKET_NAME = Deno.env.get("R2_BUCKET_NAME")!;
 const R2_PUBLIC_URL = Deno.env.get("R2_PUBLIC_URL")!.replace(/\/+$/, "");
 const R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
-const BRIDGE_SECRET = Deno.env.get("AI_BRIDGE_SECRET")!;
+const BRIDGE_SECRET = Deno.env.get("BULK_UPLOAD_TOKEN")!;
 
 const aws = new AwsClient({
   accessKeyId: R2_ACCESS_KEY_ID,
