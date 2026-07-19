@@ -81,10 +81,10 @@ export default function AnimeRoulette({ animes }: Props) {
 
   if (items.length < 3) return null;
 
-  const radius = 260;
+  const radius = 210;
 
   return (
-    <section className="relative mb-0 px-4 pt-8 pb-0 overflow-hidden isolate">
+    <section className="relative mb-0 px-4 pt-3 pb-0 overflow-hidden isolate flex flex-col justify-end">
       {/* Fondo difuminado con el anime seleccionado */}
       {result && (
         <div key={result.id} className="pointer-events-none absolute inset-0 -z-10 animate-fade-in">
@@ -98,9 +98,9 @@ export default function AnimeRoulette({ animes }: Props) {
         </div>
 
       )}
-      <div className="text-center mb-5">
-        <h2 className="text-lg font-black uppercase tracking-wide text-foreground mb-1">🎰 ¿NO SABES QUÉ VER?</h2>
-        <p className="text-sm text-muted-foreground">Deja que te recomendemos un anime al azar</p>
+      <div className="text-center mb-2">
+        <h2 className="text-base font-black uppercase tracking-wide text-foreground">🎰 ¿NO SABES QUÉ VER?</h2>
+        <p className="text-xs text-muted-foreground">Deja que te recomendemos un anime al azar</p>
       </div>
 
 
@@ -109,28 +109,28 @@ export default function AnimeRoulette({ animes }: Props) {
         {result && !spinning && (() => {
           const isAiring = result.status === "RELEASING";
           return (
-            <div className="mb-4 flex flex-col items-center animate-[hero-slide-up_0.5s_ease-out_forwards]" style={{ opacity: 0 }}>
+            <div className="mb-2 flex flex-col items-center animate-[hero-slide-up_0.5s_ease-out_forwards]" style={{ opacity: 0 }}>
               <Link to={`/anime/${result.id}`} className="group text-center">
                 <img
                   src={result.coverImage?.extraLarge || result.coverImage?.large}
                   alt={getTitle(result)}
-                  className="w-44 h-56 rounded-xl object-cover shadow-lg mx-auto animate-[roulette-pulse_2s_ease-in-out_infinite]"
+                  className="w-32 h-44 rounded-xl object-cover shadow-lg mx-auto animate-[roulette-pulse_2s_ease-in-out_infinite]"
                 />
-                <p className="mt-2 text-sm font-bold text-foreground group-hover:text-primary transition-colors">{getTitle(result)}</p>
+                <p className="mt-1 text-xs font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">{getTitle(result)}</p>
                 {result.genres && <p className="text-[10px] text-muted-foreground">{result.genres.slice(0, 3).join(" · ")}</p>}
               </Link>
               {isAiring ? (
                 <button
                   onClick={() => handleAddWatchLater(result)}
                   disabled={addingLater}
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline disabled:opacity-60"
+                  className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline disabled:opacity-60"
                 >
                   <Clock className="w-3 h-3" /> Añadir a ver después
                 </button>
               ) : (
                 <Link
                   to={`/anime/${result.id}`}
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                  className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
                 >
                   <Play className="w-3 h-3 fill-current" /> Ver ahora
                 </Link>
@@ -140,7 +140,7 @@ export default function AnimeRoulette({ animes }: Props) {
         })()}
 
         {/* Half-moon arc — limpio, con flecha externa, botón absoluto y sin círculo central fantasma */}
-        <div className="relative w-full overflow-hidden pb-0 mb-0" style={{ height: `${radius + 80}px` }}>
+        <div className="relative w-full overflow-hidden pb-0 mb-0" style={{ height: `${radius + 55}px` }}>
           <div
             className="absolute left-1/2 bottom-0"
             style={{
@@ -158,7 +158,7 @@ export default function AnimeRoulette({ animes }: Props) {
               return (
                 <div
                   key={anime.id}
-                  className="absolute w-[90px] h-[90px] rounded-full overflow-hidden border-2 border-primary/40 shadow-lg"
+                  className="absolute w-[75px] h-[75px] rounded-full overflow-hidden border-2 border-primary/40 shadow-lg"
                   style={{
                     left: `${x}px`,
                     top: `${-y}px`,
@@ -180,7 +180,7 @@ export default function AnimeRoulette({ animes }: Props) {
           <button
             onClick={spin}
             disabled={spinning}
-            className="absolute left-1/2 -translate-x-1/2 bottom-5 z-30 flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="absolute left-1/2 -translate-x-1/2 bottom-3 z-30 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Shuffle className={`w-4 h-4 ${spinning ? "animate-spin" : ""}`} />
             {spinning ? "Girando..." : "¡Gira la Ruleta!"}
