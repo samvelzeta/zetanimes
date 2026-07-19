@@ -54,13 +54,19 @@ export default function PullToRevealFooter() {
       setProgress(0);
     };
 
+    let lastY = window.scrollY;
     const onScroll = () => {
+      const y = window.scrollY;
+      const goingUp = y < lastY - 2;
+      lastY = y;
       atBottomRef.current = isAtBottom();
       if (!atBottomRef.current) {
         cancelHold();
-        setUnlocked(false);
+        // Sólo ocultar el footer cuando el usuario sube activamente
+        if (goingUp) setUnlocked(false);
       }
     };
+
 
 
     const onWheel = (e: WheelEvent) => {
