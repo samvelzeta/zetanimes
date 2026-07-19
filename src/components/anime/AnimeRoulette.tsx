@@ -172,10 +172,9 @@ export default function AnimeRoulette({ animes }: Props) {
             {spinning ? "Girando..." : "¡Gira la Ruleta!"}
           </button>
 
-          <div className="absolute inset-x-0 bottom-0 z-20 h-px bg-border/60" aria-hidden="true" />
         </div>
 
-        <div className="h-5 w-full bg-neutral-950/60" aria-hidden="true" />
+
 
       </div>
     </section>
