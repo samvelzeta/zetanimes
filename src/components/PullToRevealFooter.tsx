@@ -65,19 +65,22 @@ export default function PullToRevealFooter() {
 
     /** Registra un gesto discreto "hacia abajo" cuando ya estamos en el fondo. */
     const registerDownIntent = () => {
-      if (unlocked || !atBottomRef.current) return;
+      if (unlocked) return;
+      // Recalcula por si el layout creció (ej. resultado de la ruleta añadió alto)
+      atBottomRef.current = isAtBottom();
+      if (!atBottomRef.current) { resetGestures(); return; }
       if (!gestureActiveRef.current) {
         gestureActiveRef.current = true;
         gestureCountRef.current += 1;
-        // A partir del 2º gesto forzado, se inicia el hold de 2 s.
         if (gestureCountRef.current >= 2) startHold();
       }
       if (gestureEndTimer.current) window.clearTimeout(gestureEndTimer.current);
       gestureEndTimer.current = window.setTimeout(() => {
         gestureActiveRef.current = false;
-        if (holdStart.current != null) cancelHold();
+        // No cancelamos el hold aquí: si ya arrancó, lo dejamos correr hasta los 2 s.
       }, GESTURE_GAP_MS);
     };
+
 
     let lastY = window.scrollY;
     const onScroll = () => {
@@ -108,8 +111,10 @@ export default function PullToRevealFooter() {
     const onTouchEnd = () => {
       gestureActiveRef.current = false;
       if (gestureEndTimer.current) window.clearTimeout(gestureEndTimer.current);
-      if (holdStart.current != null) cancelHold();
+      // No cancelamos el hold: si el usuario ya empujó lo suficiente para armar el 2º gesto,
+      // dejamos que el contador de 2 s termine solo.
     };
+
 
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
