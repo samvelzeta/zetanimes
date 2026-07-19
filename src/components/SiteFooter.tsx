@@ -3,7 +3,7 @@ import { Mail } from "lucide-react";
 
 export default function SiteFooter() {
   return (
-    <footer className="mt-16 border-t border-border/60 bg-background/60">
+    <footer className="border-t border-border/60 bg-background/60">
       <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row items-center gap-3 md:gap-6 text-center md:text-left">
         <p className="text-[11px] text-muted-foreground leading-relaxed flex-1">
           <strong className="text-foreground">ZetAnime</strong> no aloja ni distribuye archivos de video. Somos un

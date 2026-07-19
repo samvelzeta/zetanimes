@@ -292,9 +292,7 @@ export default function Home() {
             </LazySection>
           </div>
 
-          <LazySection minHeight={400}>
-            <AnimeRoulette animes={[...filterFn(trending?.media), ...filterFn(popular?.media)]} />
-          </LazySection>
+          <AnimeRoulette animes={[...filterFn(trending?.media), ...filterFn(popular?.media)]} />
 
         </div>
       </div>
