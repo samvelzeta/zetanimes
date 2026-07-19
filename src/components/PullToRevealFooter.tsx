@@ -78,8 +78,9 @@ export default function PullToRevealFooter() {
       if (dy > 8) startHold();
     };
     const onTouchEnd = () => {
-      if (!unlocked) cancelHold();
+      cancelHold();
     };
+
 
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
