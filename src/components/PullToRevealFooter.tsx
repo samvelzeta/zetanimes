@@ -68,7 +68,7 @@ export default function PullToRevealFooter() {
       if (unlocked) return;
       // Recalcula por si el layout creció (ej. resultado de la ruleta añadió alto)
       atBottomRef.current = isAtBottom();
-      if (!atBottomRef.current) return;
+      if (!atBottomRef.current) { resetGestures(); return; }
       if (!gestureActiveRef.current) {
         gestureActiveRef.current = true;
         gestureCountRef.current += 1;
