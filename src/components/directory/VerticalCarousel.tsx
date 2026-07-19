@@ -160,7 +160,7 @@ export default function VerticalCarousel({ items }: Props) {
 
 
       {/* Grid con carrusel vertical — padding balanceado (respira desde el nav sin empujar al piso) */}
-      <div className="relative z-10 h-full grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-6 px-5 md:px-14 pt-28 sm:pt-32 md:pt-24 pb-10 items-center">
+      <div className="relative z-10 h-full grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-6 px-5 md:px-14 pt-24 sm:pt-28 md:pt-24 pb-56 sm:pb-52 md:pb-10 items-start md:items-center">
         {/* Cara narrativa */}
         <div className="relative min-h-[34vh] md:min-h-[52vh]">
           {slides.map((a, i) => (
