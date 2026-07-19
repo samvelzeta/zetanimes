@@ -81,10 +81,10 @@ export default function AnimeRoulette({ animes }: Props) {
 
   if (items.length < 3) return null;
 
-  const radius = 210;
+  const radius = 240;
 
   return (
-    <section className="relative mb-0 px-4 pt-3 pb-0 overflow-hidden isolate flex flex-col justify-end">
+    <section className="relative mb-0 px-4 pt-5 pb-0 overflow-hidden isolate flex flex-col justify-end">
       {/* Fondo difuminado con el anime seleccionado */}
       {result && (
         <div key={result.id} className="pointer-events-none absolute inset-0 -z-10 animate-fade-in">
@@ -140,7 +140,7 @@ export default function AnimeRoulette({ animes }: Props) {
         })()}
 
         {/* Half-moon arc — limpio, con flecha externa, botón absoluto y sin círculo central fantasma */}
-        <div className="relative w-full overflow-hidden pb-0 mb-0" style={{ height: `${radius + 55}px` }}>
+        <div className="relative w-full overflow-hidden pb-0 mb-0" style={{ height: `${radius + 70}px` }}>
           <div
             className="absolute left-1/2 bottom-0"
             style={{
