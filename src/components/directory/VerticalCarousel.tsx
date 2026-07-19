@@ -170,7 +170,7 @@ export default function VerticalCarousel({ items }: Props) {
 
 
         {/* Torre vertical con posters */}
-        <div className="relative hidden md:block h-[70vh]">
+        <div className="relative hidden md:block h-[62vh] -mt-8">
           {slides.map((a, i) => {
             const offset = (i - index + slides.length) % slides.length;
             // -1 arriba, 0 centro, 1 abajo, resto oculto
