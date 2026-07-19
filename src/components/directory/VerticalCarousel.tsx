@@ -105,7 +105,7 @@ export default function VerticalCarousel({ items }: Props) {
   }
 
   return (
-    <section className="relative w-full h-[86vh] md:h-[86vh] overflow-hidden">
+    <section className="relative w-full h-[75vh] min-h-[560px] max-h-[820px] md:h-[80vh] md:max-h-[780px] overflow-hidden">
       {/* Fondo dinámico — nítido con parallax en móvil, difuminado en desktop */}
       {slides.map((a, i) => {
         const isActive = i === index;
