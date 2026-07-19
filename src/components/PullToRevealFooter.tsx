@@ -1,27 +1,27 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import SiteFooter from "@/components/SiteFooter";
 
 /**
  * Footer oculto con revelación por "pull-up" al final de la página.
- * - Mientras la ruleta ocupa la base, el footer no existe visualmente.
- * - Al llegar al final y seguir intentando scrollear hacia abajo (overscroll),
- *   aparece un indicador circular con flecha; a los 2 s el footer se desliza.
- * - En móvil se coloca por encima del BottomNav (z-[60]) y se le suma padding
- *   para que la nav quede pegada abajo sin taparlo.
+ * - El 1er gesto de scroll hacia abajo al llegar al fondo sólo "arma".
+ * - El 2do gesto forzado inicia el hold de 2 s que revela el footer.
+ * - El footer se oculta sólo cuando el usuario vuelve a subir activamente.
  */
 export default function PullToRevealFooter() {
   const [unlocked, setUnlocked] = useState(false);
-  const [progress, setProgress] = useState(0); // 0..1
+  const [progress, setProgress] = useState(0);
   const holdStart = useRef<number | null>(null);
   const rafId = useRef<number | null>(null);
   const atBottomRef = useRef(false);
+  const gestureCountRef = useRef(0);
+  const gestureActiveRef = useRef(false);
+  const gestureEndTimer = useRef<number | null>(null);
 
   useEffect(() => {
-
-
     const HOLD_MS = 2000;
     const BOTTOM_THRESHOLD = 4;
+    const GESTURE_GAP_MS = 220;
 
     const isAtBottom = () => {
       const doc = document.documentElement;
@@ -54,24 +54,47 @@ export default function PullToRevealFooter() {
       setProgress(0);
     };
 
+    const resetGestures = () => {
+      gestureCountRef.current = 0;
+      gestureActiveRef.current = false;
+      if (gestureEndTimer.current) {
+        window.clearTimeout(gestureEndTimer.current);
+        gestureEndTimer.current = null;
+      }
+    };
+
+    /** Registra un gesto discreto "hacia abajo" cuando ya estamos en el fondo. */
+    const registerDownIntent = () => {
+      if (unlocked || !atBottomRef.current) return;
+      if (!gestureActiveRef.current) {
+        gestureActiveRef.current = true;
+        gestureCountRef.current += 1;
+        // A partir del 2º gesto forzado, se inicia el hold de 2 s.
+        if (gestureCountRef.current >= 2) startHold();
+      }
+      if (gestureEndTimer.current) window.clearTimeout(gestureEndTimer.current);
+      gestureEndTimer.current = window.setTimeout(() => {
+        gestureActiveRef.current = false;
+        if (holdStart.current != null) cancelHold();
+      }, GESTURE_GAP_MS);
+    };
+
     let lastY = window.scrollY;
     const onScroll = () => {
       const y = window.scrollY;
       const goingUp = y < lastY - 2;
       lastY = y;
+      const wasAtBottom = atBottomRef.current;
       atBottomRef.current = isAtBottom();
       if (!atBottomRef.current) {
         cancelHold();
-        // Sólo ocultar el footer cuando el usuario sube activamente
+        if (wasAtBottom) resetGestures();
         if (goingUp) setUnlocked(false);
       }
     };
 
-
-
     const onWheel = (e: WheelEvent) => {
-      if (!atBottomRef.current) return;
-      if (e.deltaY > 0) startHold();
+      if (e.deltaY > 0) registerDownIntent();
     };
 
     let touchStartY = 0;
@@ -79,14 +102,14 @@ export default function PullToRevealFooter() {
       touchStartY = e.touches[0].clientY;
     };
     const onTouchMove = (e: TouchEvent) => {
-      if (!atBottomRef.current) return;
       const dy = touchStartY - e.touches[0].clientY;
-      if (dy > 8) startHold();
+      if (dy > 8) registerDownIntent();
     };
     const onTouchEnd = () => {
-      cancelHold();
+      gestureActiveRef.current = false;
+      if (gestureEndTimer.current) window.clearTimeout(gestureEndTimer.current);
+      if (holdStart.current != null) cancelHold();
     };
-
 
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -102,17 +125,16 @@ export default function PullToRevealFooter() {
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
       if (rafId.current) cancelAnimationFrame(rafId.current);
+      if (gestureEndTimer.current) window.clearTimeout(gestureEndTimer.current);
     };
   }, [unlocked]);
 
-  // Indicador de "pull" — visible solo mientras el usuario forcejea el scroll
   const showIndicator = !unlocked && progress > 0;
   const circumference = 2 * Math.PI * 18;
   const dash = circumference * (1 - progress);
 
   return (
     <>
-      {/* Pull indicator anclado al fondo del viewport */}
       {showIndicator && (
         <div
           className="fixed left-1/2 -translate-x-1/2 z-[70] pointer-events-none flex flex-col items-center gap-1"
@@ -135,16 +157,13 @@ export default function PullToRevealFooter() {
         </div>
       )}
 
-      {/* Footer real — oculto hasta que se desbloquea */}
       <div
         className={`relative z-[60] overflow-hidden transition-all duration-500 ease-out ${
           unlocked ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"
         }`}
-        // En móvil dejamos espacio abajo para que el BottomNav no lo tape
         style={unlocked ? { paddingBottom: "env(safe-area-inset-bottom, 0px)" } : undefined}
       >
         <SiteFooter />
-        {/* Reserva el alto del BottomNav en móvil para que el footer no quede oculto */}
         <div className="h-16 lg:hidden" aria-hidden="true" />
       </div>
     </>
