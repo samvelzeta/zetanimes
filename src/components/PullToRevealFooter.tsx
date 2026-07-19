@@ -18,7 +18,7 @@ export default function PullToRevealFooter() {
   const atBottomRef = useRef(false);
 
   useEffect(() => {
-    if (unlocked) return;
+
 
     const HOLD_MS = 2000;
     const BOTTOM_THRESHOLD = 4;
@@ -56,8 +56,12 @@ export default function PullToRevealFooter() {
 
     const onScroll = () => {
       atBottomRef.current = isAtBottom();
-      if (!atBottomRef.current) cancelHold();
+      if (!atBottomRef.current) {
+        cancelHold();
+        setUnlocked(false);
+      }
     };
+
 
     const onWheel = (e: WheelEvent) => {
       if (!atBottomRef.current) return;
@@ -74,8 +78,9 @@ export default function PullToRevealFooter() {
       if (dy > 8) startHold();
     };
     const onTouchEnd = () => {
-      if (!unlocked) cancelHold();
+      cancelHold();
     };
+
 
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
