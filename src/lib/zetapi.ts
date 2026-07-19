@@ -472,20 +472,10 @@ export interface LatinoEpisode {
   status: string;
 }
 
-export async function getLatinoEpisode(slug: string, episodeNumber: number): Promise<LatinoEpisode | null> {
-  try {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { data } = await supabase
-      .from("latino_episodes")
-      .select("*")
-      .eq("slug", slug)
-      .eq("episode_number", episodeNumber)
-      .eq("status", "uploaded")
-      .maybeSingle();
-    return data as unknown as LatinoEpisode | null;
-  } catch {
-    return null;
-  }
+export async function getLatinoEpisode(_slug: string, _episodeNumber: number): Promise<LatinoEpisode | null> {
+  // Tabla latino_episodes eliminada (funcionalidad huérfana). Se conserva la firma
+  // para no romper llamadas existentes; siempre devuelve null y el flujo cae al fallback normal.
+  return null;
 }
 
 // ===== WATCH HISTORY (localStorage) =====
