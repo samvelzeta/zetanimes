@@ -84,11 +84,24 @@ export default function AnimeRoulette({ animes }: Props) {
   const radius = 260;
 
   return (
-    <section className="relative mb-0 px-4 pt-8 pb-0 overflow-hidden">
+    <section className="relative mb-0 px-4 pt-8 pb-0 overflow-hidden isolate">
+      {/* Fondo difuminado con el anime seleccionado */}
+      {result && (
+        <div key={result.id} className="pointer-events-none absolute inset-0 -z-10 animate-fade-in">
+          <img
+            src={result.bannerImage || result.coverImage?.extraLarge || result.coverImage?.large}
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover opacity-30 blur-2xl scale-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/50 to-background" />
+        </div>
+      )}
       <div className="text-center mb-5">
         <h2 className="text-lg font-black uppercase tracking-wide text-foreground mb-1">🎰 ¿NO SABES QUÉ VER?</h2>
         <p className="text-sm text-muted-foreground">Deja que te recomendemos un anime al azar</p>
       </div>
+
 
       <div className="flex flex-col items-center">
         {/* Result - centered with pulsating animation */}
