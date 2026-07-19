@@ -146,15 +146,15 @@ export default function VerticalCarousel({ items }: Props) {
       <div className="md:hidden absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/40 pointer-events-none" />
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background pointer-events-none" />
 
-      {/* Firma — bajada para no quedar tapada por el nav superior */}
-      <div className="absolute top-20 left-4 sm:top-24 sm:left-8 md:top-28 z-20 pointer-events-none">
-        <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase leading-[1.9]">
+      {/* Firma — sutilmente elevada, con leading más compacto para respirar del título */}
+      <div className="absolute top-16 left-4 sm:top-20 sm:left-8 md:top-24 z-20 pointer-events-none">
+        <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase leading-[1.4]">
           En cartel · Estreno
         </p>
-        <p className="mt-1 text-[10px] sm:text-xs font-light tracking-[0.45em] uppercase leading-[1.9] text-primary/90">
+        <p className="mt-0.5 text-[10px] sm:text-xs font-light tracking-[0.45em] uppercase leading-[1.4] text-primary/90">
           Esto te ofrece Zani
         </p>
-        <div className="mt-2 h-px w-10 bg-primary/60" />
+        <div className="mt-1.5 h-px w-10 bg-primary/60" />
       </div>
 
 
