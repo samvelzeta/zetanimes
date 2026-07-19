@@ -125,14 +125,13 @@ export default function AnimeRoulette({ animes }: Props) {
           );
         })()}
 
-        {/* Half-moon arc — extendida para que las esferas toquen la línea del footer */}
-        <div className="relative w-full overflow-hidden" style={{ height: `${radius + 80}px` }}>
+        {/* Half-moon arc — pegada al footer, botón absoluto en el centro del arco */}
+        <div className="relative w-full overflow-hidden" style={{ height: `${radius + 50}px` }}>
           <div
-            className="absolute left-1/2"
+            className="absolute left-1/2 bottom-0"
             style={{
               transform: `translateX(-50%) rotate(${rotation}deg)`,
               transition: spinning ? "transform 3.5s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
-              bottom: `-${radius * 0.15}px`,
             }}
           >
             {items.map((anime, i) => {
@@ -158,19 +157,23 @@ export default function AnimeRoulette({ animes }: Props) {
             })}
             <div className="absolute w-12 h-12 rounded-full bg-background border-2 border-primary" style={{ left: "0px", top: "0px", transform: "translate(-50%, -50%)" }} />
           </div>
-          {/* Pointer */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 w-0 h-0 border-l-[10px] border-r-[10px] border-t-[16px] border-l-transparent border-r-transparent border-t-primary drop-shadow-lg" />
+          {/* Pointer — apunta al centro de la esfera superior */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2 z-20 w-0 h-0 border-l-[10px] border-r-[10px] border-t-[16px] border-l-transparent border-r-transparent border-t-primary drop-shadow-lg"
+            style={{ bottom: `${radius + 8}px` }}
+          />
+
+          {/* Spin button — absoluto, dentro del corazón del arco */}
+          <button
+            onClick={spin}
+            disabled={spinning}
+            className="absolute left-1/2 -translate-x-1/2 bottom-6 z-30 flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-2xl transition-all hover:scale-105 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Shuffle className={`w-4 h-4 ${spinning ? "animate-spin" : ""}`} />
+            {spinning ? "Girando..." : "¡Gira la Ruleta!"}
+          </button>
         </div>
 
-        {/* Spin button */}
-        <button
-          onClick={spin}
-          disabled={spinning}
-          className="mt-3 flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm transition-all hover:scale-105 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Shuffle className={`w-4 h-4 ${spinning ? "animate-spin" : ""}`} />
-          {spinning ? "Girando..." : "¡Gira la Ruleta!"}
-        </button>
       </div>
     </section>
   );
