@@ -9,6 +9,14 @@ import { useIsDubbed } from "@/hooks/useDubbedAnimes";
 function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number; index: number; total: number }) {
   const desc = useTranslatedDesc(a.description, a.id, 240);
   const dubbed = useIsDubbed(a);
+  // Capítulos que lleva emitidos ahora mismo: si está en emisión, el próximo - 1;
+  // si ya terminó, el total; fallback al índice del carrusel.
+  const airedNow =
+    (a.nextAiringEpisode?.episode ? a.nextAiringEpisode.episode - 1 : null) ??
+    a.episodes ??
+    null;
+  const totalEps = a.episodes ?? airedNow ?? total;
+  const currentEp = airedNow ?? i + 1;
   const active = i === index;
   return (
     <article
@@ -21,7 +29,7 @@ function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number;
       }`}
     >
       <p className="text-[10px] tracking-[0.4em] uppercase text-primary/80 mb-3">
-        Episodio {String(i + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+        Episodio {String(currentEp).padStart(2, "0")} / {String(totalEps).padStart(2, "0")}
       </p>
       <h2 className="directory-hero-title text-3xl sm:text-5xl md:text-6xl font-bold text-white leading-tight line-clamp-3">
         {getTitle(a)}
@@ -122,8 +130,8 @@ export default function VerticalCarousel({ items }: Props) {
       <div className="md:hidden absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/40 pointer-events-none" />
       <div className="hidden md:block absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background pointer-events-none" />
 
-      {/* Firma */}
-      <div className="absolute top-6 left-4 sm:top-10 sm:left-8 z-20 pointer-events-none">
+      {/* Firma — bajada para no quedar tapada por el nav superior */}
+      <div className="absolute top-20 left-4 sm:top-24 sm:left-8 md:top-28 z-20 pointer-events-none">
         <p className="text-[10px] sm:text-xs font-light tracking-[0.45em] text-white/70 uppercase leading-[1.9]">
           En cartel · Estreno
         </p>
@@ -136,7 +144,7 @@ export default function VerticalCarousel({ items }: Props) {
 
 
       {/* Grid con carrusel vertical */}
-      <div className="relative z-10 h-full grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-6 px-5 md:px-14 pt-28 sm:pt-32 md:pt-0 items-start md:items-center">
+      <div className="relative z-10 h-full grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-6 px-5 md:px-14 pt-44 sm:pt-52 md:pt-40 items-start md:items-center">
         {/* Cara narrativa */}
         <div className="relative min-h-[38vh] md:min-h-[60vh]">
           {slides.map((a, i) => (

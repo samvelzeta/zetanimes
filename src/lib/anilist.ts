@@ -348,7 +348,8 @@ export async function getByGenre(genre: string, page = 1, perPage = 20): Promise
 }
 
 export function getTitle(media: AniListMedia): string {
-  return media?.title?.english || media?.title?.romaji || "Sin título";
+  // Prioriza romaji; si no existe, cae a english y por último native.
+  return media?.title?.romaji || media?.title?.english || media?.title?.native || "Sin título";
 }
 
 export function getStatusLabel(status: string): string {
