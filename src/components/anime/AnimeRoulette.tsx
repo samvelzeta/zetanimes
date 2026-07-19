@@ -109,28 +109,28 @@ export default function AnimeRoulette({ animes }: Props) {
         {result && !spinning && (() => {
           const isAiring = result.status === "RELEASING";
           return (
-            <div className="mb-4 flex flex-col items-center animate-[hero-slide-up_0.5s_ease-out_forwards]" style={{ opacity: 0 }}>
+            <div className="mb-2 flex flex-col items-center animate-[hero-slide-up_0.5s_ease-out_forwards]" style={{ opacity: 0 }}>
               <Link to={`/anime/${result.id}`} className="group text-center">
                 <img
                   src={result.coverImage?.extraLarge || result.coverImage?.large}
                   alt={getTitle(result)}
-                  className="w-44 h-56 rounded-xl object-cover shadow-lg mx-auto animate-[roulette-pulse_2s_ease-in-out_infinite]"
+                  className="w-32 h-44 rounded-xl object-cover shadow-lg mx-auto animate-[roulette-pulse_2s_ease-in-out_infinite]"
                 />
-                <p className="mt-2 text-sm font-bold text-foreground group-hover:text-primary transition-colors">{getTitle(result)}</p>
+                <p className="mt-1 text-xs font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">{getTitle(result)}</p>
                 {result.genres && <p className="text-[10px] text-muted-foreground">{result.genres.slice(0, 3).join(" · ")}</p>}
               </Link>
               {isAiring ? (
                 <button
                   onClick={() => handleAddWatchLater(result)}
                   disabled={addingLater}
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline disabled:opacity-60"
+                  className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline disabled:opacity-60"
                 >
                   <Clock className="w-3 h-3" /> Añadir a ver después
                 </button>
               ) : (
                 <Link
                   to={`/anime/${result.id}`}
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                  className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
                 >
                   <Play className="w-3 h-3 fill-current" /> Ver ahora
                 </Link>
