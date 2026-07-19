@@ -199,7 +199,6 @@ export default function Watch() {
   const baseTotalEpisodes = resolvedTotal || fallbackTotal || 0;
 
   // HLS Latino R2 eliminado: seguimos usando solo enlaces Seeke.
-  const latinoEp = null as null;
 
   // 1) Catálogo oficial DB: lo guardado en admin manda, sin cache local.
   const { data: cachedVideo, isFetched: cachedVideoFetched } = useQuery({
