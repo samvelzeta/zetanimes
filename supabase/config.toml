@@ -1,15 +1,4 @@
 project_id = "whrcwifudxqbrwgvhnud"
 
-[functions.subtitle-proxy]
+[functions.bulk-upload-cosmetic]
 verify_jwt = false
-
-[functions.kofi-webhook]
-verify_jwt = false
-
-[functions.sync-auto-episodes]
-verify_jwt = false
-
-[functions.resolve-stream]
-verify_jwt = false
-
-
