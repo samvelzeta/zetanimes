@@ -18,6 +18,14 @@ function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number;
   const totalEps = a.episodes ?? airedNow ?? total;
   const currentEp = airedNow ?? i + 1;
   const active = i === index;
+  const title = getTitle(a);
+  // Tamaño dinámico según longitud del título (romaji suele ser largo)
+  const titleSize =
+    title.length > 34
+      ? "text-xl sm:text-2xl md:text-3xl lg:text-4xl"
+      : title.length > 22
+      ? "text-2xl sm:text-3xl md:text-4xl lg:text-5xl"
+      : "text-3xl sm:text-4xl md:text-5xl lg:text-6xl";
   return (
     <article
       className={`absolute inset-0 flex flex-col justify-center transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
@@ -31,8 +39,11 @@ function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number;
       <p className="text-[10px] tracking-[0.4em] uppercase text-primary/80 mb-3">
         Episodio {String(currentEp).padStart(2, "0")} / {String(totalEps).padStart(2, "0")}
       </p>
-      <h2 className="directory-hero-title text-3xl sm:text-5xl md:text-6xl font-bold text-white leading-tight line-clamp-3">
-        {getTitle(a)}
+      <h2
+        className={`directory-hero-title ${titleSize} font-bold text-white leading-[1.05] line-clamp-3 break-words`}
+        style={{ wordBreak: "break-word", hyphens: "auto" }}
+      >
+        {title}
       </h2>
       {dubbed && (
         <p className="mt-2 text-[10px] sm:text-xs font-semibold tracking-[0.35em] uppercase text-primary/90">
