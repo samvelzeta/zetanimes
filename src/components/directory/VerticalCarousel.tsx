@@ -9,6 +9,14 @@ import { useIsDubbed } from "@/hooks/useDubbedAnimes";
 function VerticalSlideText({ a, i, index, total }: { a: AniListMedia; i: number; index: number; total: number }) {
   const desc = useTranslatedDesc(a.description, a.id, 240);
   const dubbed = useIsDubbed(a);
+  // Capítulos que lleva emitidos ahora mismo: si está en emisión, el próximo - 1;
+  // si ya terminó, el total; fallback al índice del carrusel.
+  const airedNow =
+    (a.nextAiringEpisode?.episode ? a.nextAiringEpisode.episode - 1 : null) ??
+    a.episodes ??
+    null;
+  const totalEps = a.episodes ?? airedNow ?? total;
+  const currentEp = airedNow ?? i + 1;
   const active = i === index;
   return (
     <article
