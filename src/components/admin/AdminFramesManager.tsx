@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { RARITY_META, type Rarity } from "@/lib/cosmetics";
 import AvatarFrame from "@/components/premium/AvatarFrame";
 import { compressFramePng } from "@/lib/image-compress";
+import { uploadCosmeticToR2 } from "@/lib/upload-cosmetic";
 
 const FRAME_SHAPES = ["circle","hex","diamond","rounded","shield","star"] as const;
 type Shape = typeof FRAME_SHAPES[number];
@@ -49,11 +50,8 @@ export default function AdminFramesManager() {
     setUploading(true);
     try {
       const file = await compressFramePng(rawFile);
-      const path = `frames/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-      const { error: upErr } = await supabase.storage.from("premium-assets").upload(path, file, { upsert: false, contentType: "image/png", cacheControl: "31536000" });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("premium-assets").getPublicUrl(path);
-      await patch(id, { image_url: pub.publicUrl });
+      const publicUrl = await uploadCosmeticToR2(file, "frames", file.name);
+      await patch(id, { image_url: publicUrl });
       toast.success("Overlay actualizado");
     } catch (e: any) { toast.error(e?.message ?? "error"); }
     finally { setUploading(false); }
