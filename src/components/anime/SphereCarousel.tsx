@@ -171,7 +171,7 @@ export default function SphereCarousel({ title, animes, loading, linkTo, variant
                   </div>
                 )}
                 <div className="mt-3 text-center">
-                  <p className="text-sm font-bold text-foreground">{getTitle(activeAnime)}</p>
+                  <p className="text-sm font-bold text-foreground line-clamp-2">{getTitle(activeAnime)}</p>
                   {activeAnime.genres && <p className="text-[10px] text-muted-foreground mt-0.5">{activeAnime.genres.slice(0, 3).join(" · ")}</p>}
                 </div>
               </Link>

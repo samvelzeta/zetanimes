@@ -248,7 +248,7 @@ export default function RecentlyWatched() {
             <p className="text-[10px] md:text-xs font-bold text-primary uppercase tracking-[0.2em] mb-1">
               Continuar viendo
             </p>
-            <h2 className="text-2xl md:text-4xl font-black text-foreground leading-tight line-clamp-2 md:line-clamp-none mb-2">
+            <h2 className="text-2xl md:text-4xl font-black text-foreground leading-tight line-clamp-2 mb-2">
               {hero.anime_title}
             </h2>
             <p className="text-sm text-muted-foreground mb-4 hidden md:block">
