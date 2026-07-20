@@ -546,30 +546,37 @@ export default function PendingApproval() {
 
   const loading = l1 || l2 || l3 || lm || lm2 || lm3;
 
-  const seedReserveRef = useRef(false);
+  // Persistimos la reserva cada vez que crece el pool descubierto. Antes se
+  // corría una sola vez por mount (seedReserveRef), lo que impedía que las
+  // páginas extra recién cargadas se guardaran en `pending_anime_reserve` — por
+  // eso el Home no veía "candidatos nuevos" aunque el admin ya los había
+  // buscado. Ahora re-seedeamos con debounce cuando el count sube.
+  const lastSeedCountRef = useRef(0);
   useEffect(() => {
-    if (seedReserveRef.current || loading || discoverableItems.length === 0) return;
-    seedReserveRef.current = true;
-    upsertPendingReserveFromAnime(discoverableItems, "auto-pending", 1000)
-      .then((res) => {
-        if (res.success && res.count > 0) {
-          refetchReserve();
-          refetchReserveStats();
-        }
-      })
-      .catch((err) => console.warn("[pending-reserve] seed failed", err));
+    if (loading) return;
+    const total = discoverableItems.length;
+    if (total === 0) return;
+    if (total <= lastSeedCountRef.current) return;
+    lastSeedCountRef.current = total;
+    const t = setTimeout(() => {
+      upsertPendingReserveFromAnime(discoverableItems, "auto-pending", 1000)
+        .then((res) => {
+          if (res.success && res.count > 0) {
+            refetchReserve();
+            refetchReserveStats();
+          }
+        })
+        .catch((err) => console.warn("[pending-reserve] seed failed", err));
+    }, 800);
+    return () => clearTimeout(t);
   }, [discoverableItems, loading, refetchReserve, refetchReserveStats]);
 
   // Los conteos deben reflejar lo que realmente se renderiza en cada pestaña.
-  // Antes contábamos todos los IDs del pool (incluyendo relacionados dentro de
-  // grupos cuyo main estaba oculto/aprobado), lo cual daba "15 pendientes" pero
-  // filteredGroups salía vacío. Ahora recorremos groups con la misma lógica
-  // que filteredGroups.
   const { pendingCount, approvedCountInPool, hiddenCount } = useMemo(() => {
     let pend = 0, appr = 0;
     for (const g of groups) {
       const mainHidden = hiddenSet.has(g.main.id);
-      if (mainHidden) continue; // grupos con main oculto no aparecen en pending/aprobados
+      if (mainHidden) continue;
       const mainApproved = approvedSet.has(g.main.id);
       if (mainApproved) appr++;
       else pend++;
@@ -581,20 +588,26 @@ export default function PendingApproval() {
     }
     return { pendingCount: pend, approvedCountInPool: appr, hiddenCount: hiddenSet.size };
   }, [groups, approvedSet, hiddenSet]);
-  // Aprobados totales en BD (contador global, aunque la lista sólo muestre los
-  // del pool activo de AniList — que es el comportamiento actual del filtro).
   const approvedCount = reserveStats?.approved ?? approvedCountInPool;
 
-  // Si tras filtrar quedan menos de MIN_PENDING pendientes y aún no llegamos al
-  // tope de páginas extra, pedimos otra página de AniList automáticamente.
+  // Auto-bump de páginas extra: además de dispararse cuando pendingCount es
+  // bajo, también avanzamos si la reserva persistente todavía tiene stock
+  // pobre. Así el sistema descubre candidatos nuevos en segundo plano cada
+  // vez que el admin abre el panel, sin depender de refresh manual.
+  const RESERVE_TARGET = 200;
   useEffect(() => {
     if (loading || extraFetching) return;
-    if (!seekeMasterSet) return; // esperamos a saber cuáles ya están aprobados
-    if (pendingCount >= MIN_PENDING) return;
+    if (!seekeMasterSet) return;
     if (extraPages >= MAX_EXTRA_PAGES) return;
-    setExtraPages((n) => n + 1);
+    const reserveAvailable = reserveStats?.available ?? 0;
+    const needsMorePool = pendingCount < MIN_PENDING;
+    const needsMoreReserve = reserveAvailable < RESERVE_TARGET;
+    if (!needsMorePool && !needsMoreReserve) return;
+    const delay = needsMorePool ? 0 : 1500;
+    const t = setTimeout(() => setExtraPages((n) => Math.min(n + 1, MAX_EXTRA_PAGES)), delay);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingCount, loading, extraFetching, seekeMasterSet, extraPages]);
+  }, [pendingCount, loading, extraFetching, seekeMasterSet, extraPages, reserveStats?.available]);
 
   return (
     <div className="space-y-4">
