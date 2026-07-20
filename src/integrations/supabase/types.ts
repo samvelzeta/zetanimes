@@ -1800,6 +1800,12 @@ export type Database = {
           total: number
         }[]
       }
+      get_unreleased_reserve_anime_ids: {
+        Args: never
+        Returns: {
+          anilist_id: number
+        }[]
+      }
       get_user_max_profiles: { Args: { _user_id: string }; Returns: number }
       get_user_max_streams: { Args: { _user_id: string }; Returns: number }
       get_user_plan_slug: { Args: { _user_id: string }; Returns: string }
