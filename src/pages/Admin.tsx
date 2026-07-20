@@ -380,6 +380,19 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
             <AlertTriangle className="w-4 h-4 text-yellow-400" /> Alertas
           </h3>
           <button
+            onClick={() => setTab("pending")}
+            className="w-full flex items-center justify-between px-3 py-3 rounded-lg bg-secondary border border-border hover:border-primary/40 transition text-left"
+          >
+            <div>
+              <p className="text-xs font-bold text-foreground">Pendientes de aprobación</p>
+              <p className="text-[10px] text-muted-foreground">Reserva de animes lista para el Home</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-black tabular-nums text-primary">{approvedTotal}</span>
+              <ShieldCheck className="w-4 h-4 text-primary" />
+            </div>
+          </button>
+          <button
             onClick={() => setTab("reports")}
             className="w-full flex items-center justify-between px-3 py-3 rounded-lg bg-secondary border border-border hover:border-yellow-500/40 transition text-left"
           >
