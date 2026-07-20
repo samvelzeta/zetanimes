@@ -34,6 +34,7 @@ import AnimeStatusOverridesAdmin from "@/components/admin/AnimeStatusOverridesAd
 import PendingApproval from "@/components/admin/PendingApproval";
 import { logAdminActivity } from "@/lib/admin-log";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
+import { getPendingReserveStats, type PendingReserveStats } from "@/lib/pending-reserve";
 
 // Tabs reservados solo para owner
 const OWNER_ONLY = new Set(["premium", "payment", "apikeys", "roles", "activity", "apk", "notifs"]);
@@ -242,13 +243,14 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
   const [stats, setStats] = useState({ users: 0, premium: 0, episodes: 0, notifs: 0, videos: 0 });
   const [reportsPending, setReportsPending] = useState(0);
   const [approvedTotal, setApprovedTotal] = useState(0);
+  const [reserveStats, setReserveStats] = useState<PendingReserveStats | null>(null);
   const [recent, setRecent] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [u, p, ep, no, vi, rp, ap, rc] = await Promise.all([
+        const [u, p, ep, no, vi, rp, ap, rc, rs] = await Promise.all([
           supabase.from("profiles").select("*", { count: "exact", head: true }),
           supabase.from("profiles").select("*", { count: "exact", head: true }).eq("subscription_status", "active"),
           supabase.from("watch_history").select("*", { count: "exact", head: true }).eq("completed", true),
@@ -257,6 +259,7 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
           supabase.from("broken_link_reports" as any).select("*", { count: "exact", head: true }).eq("resolved", false),
           supabase.from("approved_animes" as any).select("*", { count: "exact", head: true }),
           supabase.from("watch_history").select("anilist_id, anime_title, episode_number, watched_at").order("watched_at", { ascending: false }).limit(6),
+          getPendingReserveStats(),
         ]);
         setStats({
           users: u.count || 0,
@@ -267,6 +270,7 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
         });
         setReportsPending(rp.count || 0);
         setApprovedTotal(ap.count || 0);
+        setReserveStats(rs as PendingReserveStats);
         setRecent((rc.data as any[]) || []);
       } catch (e) {
         console.warn("[dashboard] load", e);
@@ -384,11 +388,15 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
             className="w-full flex items-center justify-between px-3 py-3 rounded-lg bg-secondary border border-border hover:border-primary/40 transition text-left"
           >
             <div>
-              <p className="text-xs font-bold text-foreground">Pendientes de aprobación</p>
-              <p className="text-[10px] text-muted-foreground">Reserva de animes lista para el Home</p>
+              <p className="text-xs font-bold text-foreground">Reserva de contenido</p>
+              <p className="text-[10px] text-muted-foreground">
+                {reserveStats ? `${reserveStats.total.toLocaleString()} guardados · ${approvedTotal.toLocaleString()} aprobados` : "Pendientes y aprobados"}
+              </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-black tabular-nums text-primary">{approvedTotal}</span>
+              <span className="text-lg font-black tabular-nums text-primary">
+                {reserveStats ? reserveStats.available.toLocaleString() : approvedTotal.toLocaleString()}
+              </span>
               <ShieldCheck className="w-4 h-4 text-primary" />
             </div>
           </button>

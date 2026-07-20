@@ -908,6 +908,66 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_anime_reserve: {
+        Row: {
+          anilist_id: number
+          average_score: number | null
+          consumed_at: string | null
+          cover_image: string | null
+          created_at: string
+          english_title: string | null
+          episodes: number | null
+          format: string | null
+          id: string
+          last_seen_at: string
+          priority: number
+          reserve_state: string
+          romaji_title: string | null
+          source: string
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          anilist_id: number
+          average_score?: number | null
+          consumed_at?: string | null
+          cover_image?: string | null
+          created_at?: string
+          english_title?: string | null
+          episodes?: number | null
+          format?: string | null
+          id?: string
+          last_seen_at?: string
+          priority?: number
+          reserve_state?: string
+          romaji_title?: string | null
+          source?: string
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          anilist_id?: number
+          average_score?: number | null
+          consumed_at?: string | null
+          cover_image?: string | null
+          created_at?: string
+          english_title?: string | null
+          episodes?: number | null
+          format?: string | null
+          id?: string
+          last_seen_at?: string
+          priority?: number
+          reserve_state?: string
+          romaji_title?: string | null
+          source?: string
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       premium_plan_configs: {
         Row: {
           accent_color: string
@@ -1672,6 +1732,10 @@ export type Database = {
       claim_mission: { Args: { _slug: string }; Returns: Json }
       cleanup_old_data: { Args: never; Returns: Json }
       cleanup_stale_streams: { Args: { _user_id: string }; Returns: undefined }
+      consume_weekly_pending_reserve: {
+        Args: { _limit?: number }
+        Returns: number
+      }
       delete_download_tracker: {
         Args: { _tracker_id: string }
         Returns: undefined
@@ -1727,6 +1791,23 @@ export type Database = {
           rank_slug: string
           user_id: string
           xp: number
+        }[]
+      }
+      get_pending_reserve_admin_stats: {
+        Args: never
+        Returns: {
+          approved: number
+          available: number
+          consumed: number
+          hidden_active: number
+          seeke_master: number
+          total: number
+        }[]
+      }
+      get_unreleased_reserve_anime_ids: {
+        Args: never
+        Returns: {
+          anilist_id: number
         }[]
       }
       get_user_max_profiles: { Args: { _user_id: string }; Returns: number }

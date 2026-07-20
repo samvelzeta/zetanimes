@@ -15,6 +15,7 @@ import { hidePendingAnime, listHiddenPending, unhidePendingAnime } from "@/lib/h
 import { unhideAnime } from "@/lib/hidden-animes";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 import { getStatusLabel } from "@/lib/anilist";
+import { getPendingReserveStats, listPendingReserve, upsertPendingReserveFromAnime, type PendingReserveRow } from "@/lib/pending-reserve";
 
 
 type AiringItem = {
@@ -46,7 +47,19 @@ function isMovieFormat(f?: string | null) {
 }
 
 function titleOf(a: AiringItem) {
-  return a.title?.english || a.title?.romaji || `Anime #${a.id}`;
+  return a.title?.romaji || a.title?.english || `Anime #${a.id}`;
+}
+
+function reserveToAiring(row: PendingReserveRow): AiringItem {
+  return {
+    id: row.anilist_id,
+    title: { romaji: row.romaji_title || row.title, english: row.english_title || row.title },
+    coverImage: { large: row.cover_image || undefined, extraLarge: row.cover_image || undefined },
+    status: row.status || "FINISHED",
+    episodes: row.episodes,
+    averageScore: row.average_score,
+    format: row.format,
+  };
 }
 
 function slugFromTitle(t: string) {
@@ -71,6 +84,18 @@ export default function PendingApproval() {
     staleTime: 1000 * 60,
   });
   const hiddenSet = useMemo(() => new Set<number>(hiddenList.map((h) => h.anilist_id)), [hiddenList]);
+
+  const { data: reserveRows = [], refetch: refetchReserve } = useQuery({
+    queryKey: ["pending-anime-reserve"],
+    queryFn: () => listPendingReserve(700),
+    staleTime: 1000 * 60,
+  });
+
+  const { data: reserveStats, refetch: refetchReserveStats } = useQuery({
+    queryKey: ["pending-reserve-stats"],
+    queryFn: getPendingReserveStats,
+    staleTime: 1000 * 60,
+  });
 
   // 3 páginas de RELEASING para tener suficiente pool
   // Auto-refresh diario (24h). Botón manual disponible para forzar refresh.
@@ -184,6 +209,23 @@ export default function PendingApproval() {
   });
 
   const [refreshing, setRefreshing] = useState(false);
+  const discoverableItems = useMemo<AiringItem[]>(() => {
+    const map = new Map<number, AiringItem>();
+    for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason]) {
+      for (const item of (p?.media || []) as AiringItem[]) {
+        if (!item?.id) continue;
+        if (item.status === "CANCELLED" || item.status === "NOT_YET_RELEASED") continue;
+        if (!map.has(item.id)) map.set(item.id, item);
+      }
+    }
+    for (const item of (extraItems || []) as AiringItem[]) {
+      if (!item?.id) continue;
+      if (item.status === "CANCELLED" || item.status === "NOT_YET_RELEASED") continue;
+      if (!map.has(item.id)) map.set(item.id, item);
+    }
+    return Array.from(map.values());
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason, extraItems]);
+
   async function handleManualRefresh() {
     setRefreshing(true);
     try {
@@ -192,7 +234,9 @@ export default function PendingApproval() {
         rht(), rhp(), rhtop(), rhs(), refetchHidden(), refetchSeeke(),
         extraPages > 0 ? rExtra() : Promise.resolve(),
       ]);
-      toast.success("Pendientes actualizado");
+      const save = await upsertPendingReserveFromAnime(discoverableItems, "manual-refresh", 2000);
+      await Promise.all([refetchReserve(), refetchReserveStats()]);
+      toast.success(save.count > 0 ? `Reserva actualizada: ${save.count} candidatos` : "Pendientes actualizado");
     } catch {
       toast.error("Error refrescando");
     } finally {
@@ -264,6 +308,12 @@ export default function PendingApproval() {
 
   const airingItems = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
+    // Reserva persistente: fuente principal para que la bandeja no dependa de la sesión actual.
+    for (const row of reserveRows) {
+      if (row.reserve_state !== "available") continue;
+      if (seekeMasterSet?.has(row.anilist_id) && approvedSet.has(row.anilist_id)) continue;
+      if (!map.has(row.anilist_id)) map.set(row.anilist_id, reserveToAiring(row));
+    }
     // Fuentes "core" — siempre se incluyen (RELEASING + películas próximas/recientes)
     for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming]) {
       for (const m of (p?.media || []) as AiringItem[]) {
@@ -304,7 +354,7 @@ export default function PendingApproval() {
       }
     }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet, trackerMeta, approvedSet, hiddenSet]);
+  }, [reserveRows, p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet, trackerMeta, approvedSet, hiddenSet]);
 
   // Sólo pedimos precuelas para items que aún estén PENDIENTES (no aprobados,
   // no ocultos). Para aprobados/ocultos no necesitamos expandir la cadena.
@@ -496,6 +546,20 @@ export default function PendingApproval() {
 
   const loading = l1 || l2 || l3 || lm || lm2 || lm3;
 
+  const seedReserveRef = useRef(false);
+  useEffect(() => {
+    if (seedReserveRef.current || loading || discoverableItems.length === 0) return;
+    seedReserveRef.current = true;
+    upsertPendingReserveFromAnime(discoverableItems, "auto-pending", 1000)
+      .then((res) => {
+        if (res.success && res.count > 0) {
+          refetchReserve();
+          refetchReserveStats();
+        }
+      })
+      .catch((err) => console.warn("[pending-reserve] seed failed", err));
+  }, [discoverableItems, loading, refetchReserve, refetchReserveStats]);
+
   // Los conteos deben reflejar lo que realmente se renderiza en cada pestaña.
   // Antes contábamos todos los IDs del pool (incluyendo relacionados dentro de
   // grupos cuyo main estaba oculto/aprobado), lo cual daba "15 pendientes" pero
@@ -519,7 +583,7 @@ export default function PendingApproval() {
   }, [groups, approvedSet, hiddenSet]);
   // Aprobados totales en BD (contador global, aunque la lista sólo muestre los
   // del pool activo de AniList — que es el comportamiento actual del filtro).
-  const approvedCount = approvedCountInPool;
+  const approvedCount = reserveStats?.approved ?? approvedCountInPool;
 
   // Si tras filtrar quedan menos de MIN_PENDING pendientes y aún no llegamos al
   // tope de páginas extra, pedimos otra página de AniList automáticamente.
@@ -574,6 +638,12 @@ export default function PendingApproval() {
           >
             Ocultos 7d ({hiddenCount})
           </button>
+          <span className="px-2.5 py-1 rounded-lg bg-secondary/70 text-[10px] font-bold text-muted-foreground border border-border">
+            Reserva {reserveStats?.available ?? reserveRows.filter((r) => r.reserve_state === "available").length}/{reserveStats?.total ?? reserveRows.length}
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-secondary/70 text-[10px] font-bold text-muted-foreground border border-border">
+            Seeke {reserveStats?.seeke_master ?? seekeMasterSet?.size ?? 0}
+          </span>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -587,10 +657,10 @@ export default function PendingApproval() {
             onClick={handleManualRefresh}
             disabled={refreshing}
             className="px-3 py-1.5 rounded-lg text-xs font-bold bg-secondary text-foreground hover:bg-secondary/80 transition disabled:opacity-50 flex items-center gap-1.5"
-            title="Buscar nuevos animes ahora"
+            title="Buscar nuevos animes y guardarlos en la reserva"
           >
             {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "🔄"}
-            {refreshing ? "Refrescando…" : "Refrescar"}
+            {refreshing ? "Buscando…" : "Buscar reserva"}
           </button>
         </div>
       </div>
@@ -616,6 +686,8 @@ export default function PendingApproval() {
             qc.invalidateQueries({ queryKey: ["approved-anime-ids"] });
             qc.invalidateQueries({ queryKey: ["approval-videocache-ids"] });
             qc.invalidateQueries({ queryKey: ["hidden-pending-animes"] });
+            qc.invalidateQueries({ queryKey: ["pending-anime-reserve"] });
+            qc.invalidateQueries({ queryKey: ["pending-reserve-stats"] });
           };
           return (
             <div key={g.main.id} className="flex flex-col gap-2">
