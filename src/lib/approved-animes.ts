@@ -90,11 +90,13 @@ export function filterApprovedReleasing<T extends { id: number; status?: string 
 export function filterHomeVisible<T extends { id: number; status?: string }>(
   list: T[] | undefined,
   approved: Set<number>,
-  seekeMaster: Set<number>
+  seekeMaster: Set<number>,
+  reserveHidden: Set<number> = new Set()
 ): T[] {
   if (!list) return [];
   return list.filter((a) => {
     if (a.status === "NOT_YET_RELEASED" || a.status === "CANCELLED") return false;
+    if (reserveHidden.has(a.id) && a.status !== "RELEASING") return false;
     if (approved.has(a.id)) return true;
     if (seekeMaster.has(a.id)) return true;
     // Sin aprobación ni enlace madre → ocultar del Home

@@ -16,6 +16,7 @@ import { useIsTV } from "@/hooks/useIsTV";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { getApprovedAnimeIds, filterHomeVisible, onApprovedChange } from "@/lib/approved-animes";
 import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
+import { getUnreleasedReserveAnimeIds } from "@/lib/pending-reserve";
 import LazySection from "@/components/LazySection";
 import AdBannerInline from "@/components/ads/AdBannerInline";
 import TopOtakusWidget from "@/components/premium/TopOtakusWidget";
@@ -89,11 +90,19 @@ export default function Home() {
   });
   const seekeSet = useMemo(() => new Set<number>(seekeIds || []), [seekeIds]);
 
+  // Stock aprobado pero aún no liberado: se mantiene oculto hasta rotaciones futuras.
+  const { data: reserveHiddenIds } = useQuery({
+    queryKey: ["home-unreleased-reserve-ids"],
+    queryFn: async () => Array.from(await getUnreleasedReserveAnimeIds()),
+    staleTime: 1000 * 60 * 15,
+  });
+  const reserveHiddenSet = useMemo(() => new Set<number>(reserveHiddenIds || []), [reserveHiddenIds]);
+
   useEffect(() => onApprovedChange(() => { refetchApproved(); }), [refetchApproved]);
 
   const filterFn = (list: any[] | undefined) => {
     const noHidden = (list || []).filter((a) => !hiddenSet.has(a.id));
-    return filterHomeVisible(noHidden, approvedSet, seekeSet);
+    return filterHomeVisible(noHidden, approvedSet, seekeSet, reserveHiddenSet);
   };
 
   // Above-the-fold: cargar inmediato (HeroBanner + Trending)
