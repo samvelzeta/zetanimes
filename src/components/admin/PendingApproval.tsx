@@ -138,11 +138,21 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 30, refetchInterval: DAILY_MS, refetchIntervalInBackground: false,
   });
 
-  // Páginas extra dinámicas: si tras filtrar quedan <10 pendientes, pedimos
-  // más páginas de AniList (RELEASING + películas) para reponer la cola.
-  const MIN_PENDING = 10;
-  const MAX_EXTRA_PAGES = 12; // hasta ~12 páginas extra (600 items adicionales)
-  const [extraPages, setExtraPages] = useState(0);
+  // Páginas extra dinámicas: si tras filtrar quedan <15 pendientes, pedimos
+  // más páginas de AniList mezclando fuentes variadas (RELEASING, películas,
+  // populares, top rated, temporada) para armar una reserva heterogénea que
+  // alimente al Home cuando se refresque con animes varios.
+  const MIN_PENDING = 15;
+  const MAX_EXTRA_PAGES = 30; // hasta 30 rondas (≈4500 items diversos)
+  const EXTRA_KEY = "zet_pending_extra_pages";
+  const [extraPages, setExtraPages] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    const v = parseInt(sessionStorage.getItem(EXTRA_KEY) || "0", 10);
+    return Number.isFinite(v) && v > 0 ? Math.min(v, MAX_EXTRA_PAGES) : 0;
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem(EXTRA_KEY, String(extraPages)); } catch {}
+  }, [extraPages]);
 
   const { data: extraItems, refetch: rExtra, isFetching: extraFetching } = useQuery({
     queryKey: ["airing-extra-pages", extraPages],
@@ -154,12 +164,20 @@ export default function PendingApproval() {
       const out: AiringItem[] = [];
       for (let i = 0; i < extraPages; i++) {
         const page = 4 + i;
-        const [rel, mov] = await Promise.all([
+        // Rotamos fuentes por ronda para que la reserva sea variada
+        // (no sólo RELEASING). Cada ronda mete ~5 fuentes distintas.
+        const [rel, mov, pop, top, sea] = await Promise.all([
           getRecentlyUpdated(page, 50).catch(() => ({ media: [] as AiringItem[] })),
           getMovies(page, 30, null).catch(() => ({ media: [] as AiringItem[] })),
+          getPopular(page + 1, 30).catch(() => ({ media: [] as AiringItem[] })),
+          getTopRated(page + 1, 30).catch(() => ({ media: [] as AiringItem[] })),
+          getThisSeason(page + 1, 30).catch(() => ({ media: [] as AiringItem[] })),
         ]);
         out.push(...((rel.media || []) as AiringItem[]));
         out.push(...((mov.media || []) as AiringItem[]));
+        out.push(...((pop.media || []) as AiringItem[]));
+        out.push(...((top.media || []) as AiringItem[]));
+        out.push(...((sea.media || []) as AiringItem[]));
       }
       return out;
     },
