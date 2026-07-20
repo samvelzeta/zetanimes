@@ -1,5 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { AniListMedia } from "@/lib/anilist";
+
+export interface ReserveAnimeInput {
+  id?: number;
+  title?: {
+    romaji?: string | null;
+    english?: string | null;
+  } | null;
+  coverImage?: {
+    large?: string | null;
+    extraLarge?: string | null;
+  } | null;
+  status?: string | null;
+  format?: string | null;
+  episodes?: number | null;
+  averageScore?: number | null;
+}
 
 export interface PendingReserveRow {
   id: string;
@@ -30,11 +45,11 @@ export interface PendingReserveStats {
   seeke_master: number;
 }
 
-function titleOf(media: Partial<AniListMedia>) {
+function titleOf(media: ReserveAnimeInput) {
   return media.title?.romaji || media.title?.english || `Anime #${media.id}`;
 }
 
-function reserveRowFromAnime(media: Partial<AniListMedia>, source: string, priority = 0) {
+function reserveRowFromAnime(media: ReserveAnimeInput, source: string, priority = 0) {
   return {
     anilist_id: media.id,
     title: titleOf(media),
@@ -91,11 +106,11 @@ export async function getUnreleasedReserveAnimeIds(): Promise<Set<number>> {
 }
 
 export async function upsertPendingReserveFromAnime(
-  items: Array<Partial<AniListMedia>>,
+  items: ReserveAnimeInput[],
   source: string,
   priority = 0
 ): Promise<{ success: boolean; count: number; error?: string }> {
-  const unique = new Map<number, Partial<AniListMedia>>();
+  const unique = new Map<number, ReserveAnimeInput>();
   for (const item of items) {
     if (!item?.id || !Number.isFinite(Number(item.id))) continue;
     unique.set(Number(item.id), item);

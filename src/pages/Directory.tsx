@@ -29,6 +29,7 @@ import CinemaAccordion from "@/components/directory/CinemaAccordion";
 import StickyRanking from "@/components/directory/StickyRanking";
 import { getPopularCharacters } from "@/lib/anilist-characters";
 import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
+import { getUnreleasedReserveAnimeIds } from "@/lib/pending-reserve";
 
 
 const GORE_GENRES = new Set(["Horror", "Ecchi"]);
@@ -106,6 +107,13 @@ export default function Directory() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: reserveHiddenIds } = useQuery({
+    queryKey: ["directory-unreleased-reserve-ids"],
+    queryFn: async () => Array.from(await getUnreleasedReserveAnimeIds()),
+    staleTime: 1000 * 60 * 15,
+  });
+  const reserveHiddenSet = useMemo(() => new Set<number>(reserveHiddenIds || []), [reserveHiddenIds]);
+
   const { preferences } = usePreferences();
 
   const isMovie = (a: AniListMedia) => a.format === "MOVIE";
@@ -113,6 +121,7 @@ export default function Directory() {
 
   const passesFilters = (a: AniListMedia): boolean => {
     if (hiddenSet.has(a.id)) return false;
+    if (reserveHiddenSet.has(a.id)) return false;
     if (preferences.hideGore && Array.isArray(a.genres) && a.genres.some((g) => GORE_GENRES.has(g))) return false;
     // Películas sin enlace madre Seeke → se ocultan (van a Pendientes)
     if (isMovie(a) && !movieHasSeeke(a)) return false;
@@ -126,9 +135,11 @@ export default function Directory() {
   const animes = (mainQuery.data?.media || []).filter(passesFilters);
   const loading = mainQuery.isLoading;
 
-  const heroList = (heroData?.media || []).filter((a) => !hiddenSet.has(a.id) && (!isMovie(a) || movieHasSeeke(a)));
-  const rankingList = (rankingData?.media || []).filter((a) => !hiddenSet.has(a.id) && (!isMovie(a) || movieHasSeeke(a)));
-  const cinemaList = (cinemaQuery.data?.media || []).filter((a) => !hiddenSet.has(a.id) && movieHasSeeke(a));
+  const isPublicVisible = (a: AniListMedia) => !hiddenSet.has(a.id) && !reserveHiddenSet.has(a.id);
+
+  const heroList = (heroData?.media || []).filter((a) => isPublicVisible(a) && (!isMovie(a) || movieHasSeeke(a)));
+  const rankingList = (rankingData?.media || []).filter((a) => isPublicVisible(a) && (!isMovie(a) || movieHasSeeke(a)));
+  const cinemaList = (cinemaQuery.data?.media || []).filter((a) => isPublicVisible(a) && movieHasSeeke(a));
 
   // Reutiliza los mismos datos ya cargados (sin llamadas extra)
   const storyPool = useMemo(
@@ -240,7 +251,7 @@ export default function Directory() {
       <CinemaAccordion items={cinemaList} loading={cinemaQuery.isLoading} />
       <CinemaExtras
         items={cinemaList}
-        upcomingItems={(upcomingMoviesQuery.data?.media || []).filter((a) => !hiddenSet.has(a.id) && movieHasSeeke(a))}
+        upcomingItems={(upcomingMoviesQuery.data?.media || []).filter((a) => isPublicVisible(a) && movieHasSeeke(a))}
       />
 
 
