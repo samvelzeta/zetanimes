@@ -241,19 +241,21 @@ function AdminSidebar({ tab, setTab, isOwner }: { tab: string; setTab: (k: strin
 function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: string) => void }) {
   const [stats, setStats] = useState({ users: 0, premium: 0, episodes: 0, notifs: 0, videos: 0 });
   const [reportsPending, setReportsPending] = useState(0);
+  const [approvedTotal, setApprovedTotal] = useState(0);
   const [recent, setRecent] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [u, p, ep, no, vi, rp, rc] = await Promise.all([
+        const [u, p, ep, no, vi, rp, ap, rc] = await Promise.all([
           supabase.from("profiles").select("*", { count: "exact", head: true }),
           supabase.from("profiles").select("*", { count: "exact", head: true }).eq("subscription_status", "active"),
           supabase.from("watch_history").select("*", { count: "exact", head: true }).eq("completed", true),
           supabase.from("notifications").select("*", { count: "exact", head: true }).eq("active", true),
           supabase.from("anime_download_tracker" as any).select("*", { count: "exact", head: true }).eq("status", "completed"),
           supabase.from("broken_link_reports" as any).select("*", { count: "exact", head: true }).eq("resolved", false),
+          supabase.from("approved_animes" as any).select("*", { count: "exact", head: true }),
           supabase.from("watch_history").select("anilist_id, anime_title, episode_number, watched_at").order("watched_at", { ascending: false }).limit(6),
         ]);
         setStats({
@@ -264,6 +266,7 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
           videos: vi.count || 0,
         });
         setReportsPending(rp.count || 0);
+        setApprovedTotal(ap.count || 0);
         setRecent((rc.data as any[]) || []);
       } catch (e) {
         console.warn("[dashboard] load", e);
@@ -282,7 +285,8 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
   ]), [stats]);
 
   const quickActions = [
-    { key: "videos", label: "Subir video", icon: Upload, tone: "bg-primary text-primary-foreground" },
+    { key: "pending", label: "Pendientes", icon: ShieldCheck, tone: "bg-primary text-primary-foreground" },
+    { key: "videos", label: "Subir video", icon: Upload, tone: "bg-secondary text-foreground" },
     { key: "epcount", label: "Editar episodios", icon: ListOrdered, tone: "bg-secondary text-foreground" },
     { key: "reports", label: "Ver reportes", icon: AlertTriangle, tone: "bg-secondary text-foreground" },
     ...(isOwner ? [
