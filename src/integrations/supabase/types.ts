@@ -1732,6 +1732,10 @@ export type Database = {
       claim_mission: { Args: { _slug: string }; Returns: Json }
       cleanup_old_data: { Args: never; Returns: Json }
       cleanup_stale_streams: { Args: { _user_id: string }; Returns: undefined }
+      consume_weekly_pending_reserve: {
+        Args: { _limit?: number }
+        Returns: number
+      }
       delete_download_tracker: {
         Args: { _tracker_id: string }
         Returns: undefined
