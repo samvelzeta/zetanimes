@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { RARITY_META, type Rarity } from "@/lib/cosmetics";
 import { compressBanner } from "@/lib/image-compress";
 import { uploadCosmeticToR2 } from "@/lib/upload-cosmetic";
+import { invalidateAdminBanners } from "@/lib/admin-banner-cache";
 
 interface Banner {
   id: string;
@@ -25,6 +26,7 @@ export default function AdminBannersManager() {
 
   const load = async () => {
     setLoading(true);
+    await invalidateAdminBanners();
     const { data, error } = await supabase
       .from("admin_banners" as any)
       .select("*")
