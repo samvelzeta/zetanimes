@@ -87,7 +87,7 @@ export function filterApprovedReleasing<T extends { id: number; status?: string 
  *   ya tienen enlace madre Seeke guardado. Los demás se ocultan (viajan a
  *   Pendientes de aprobación por su propio flujo).
  */
-export function filterHomeVisible<T extends { id: number; status?: string }>(
+export function filterHomeVisible<T extends { id: number; status?: string; isFallback?: boolean }>(
   list: T[] | undefined,
   approved: Set<number>,
   seekeMaster: Set<number>,
@@ -95,6 +95,7 @@ export function filterHomeVisible<T extends { id: number; status?: string }>(
 ): T[] {
   if (!list) return [];
   return list.filter((a) => {
+    if (a.isFallback) return true; // fallback externo (Jikan) no requiere aprobación
     if (a.status === "NOT_YET_RELEASED" || a.status === "CANCELLED") return false;
     if (reserveHidden.has(a.id) && a.status !== "RELEASING") return false;
     if (approved.has(a.id)) return true;
@@ -103,3 +104,4 @@ export function filterHomeVisible<T extends { id: number; status?: string }>(
     return false;
   });
 }
+
