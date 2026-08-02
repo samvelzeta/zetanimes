@@ -188,7 +188,9 @@ export async function jikanTopAnime(
   filter?: "airing" | "upcoming" | "bypopularity" | "favorite" | null
 ): Promise<PageResult> {
   const filterParam = filter ? `&filter=${filter}` : "";
-  const data = await jikanGet(`/top/anime?page=${page}&limit=${perPage}${filterParam}`);
+  // Jikan parece más estable con limit=25+; pedimos un poco más y recortamos.
+  const jikanLimit = Math.max(perPage, 25);
+  const data = await jikanGet(`/top/anime?page=${page}&limit=${jikanLimit}${filterParam}`);
   const items = Array.isArray(data) ? data : data?.data || [];
   return jikanPageResult(
     items.slice(0, perPage),
@@ -197,6 +199,7 @@ export async function jikanTopAnime(
     items.length >= perPage
   );
 }
+
 
 /** Temporada actual. */
 export async function jikanCurrentSeason(
