@@ -116,7 +116,9 @@ function jikanToAniListMedia(item: any): AniListMedia {
     tags: jikanTags(item),
     startDate: parseYearMonthDay(item.aired?.from),
     nextAiringEpisode: null,
+    isFallback: true,
   };
+
 }
 
 async function fetchWithTimeout(url: string, timeoutMs: number) {
