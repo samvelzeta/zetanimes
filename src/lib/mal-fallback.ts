@@ -223,7 +223,8 @@ export async function jikanTopMovies(
   page = 1,
   perPage = 20
 ): Promise<PageResult> {
-  const data = await jikanGet(`/top/anime?type=movie&page=${page}&limit=${perPage}`);
+  const jikanLimit = Math.max(perPage, 25);
+  const data = await jikanGet(`/top/anime?type=movie&page=${page}&limit=${jikanLimit}`);
   const items = Array.isArray(data) ? data : data?.data || [];
   return jikanPageResult(
     items.slice(0, perPage),
@@ -232,6 +233,7 @@ export async function jikanTopMovies(
     items.length >= perPage
   );
 }
+
 
 /** Búsqueda general. */
 export async function jikanSearch(
