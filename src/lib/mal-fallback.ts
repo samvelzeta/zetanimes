@@ -133,15 +133,36 @@ async function fetchWithTimeout(url: string, timeoutMs: number) {
 
 async function jikanGet(path: string, timeoutMs = 7000) {
   const url = `${JIKAN_BASE}${path}`;
+  const cacheKey = `jikan:${path}`;
   try {
-    const res = await fetchWithTimeout(url, timeoutMs);
-    if (!res.ok) return null;
-    const json = await res.json().catch(() => null);
-    return json?.data || null;
+    const cached = await idbGet<any>(cacheKey);
+    if (cached && Array.isArray(cached.data)) return cached.data;
   } catch {
-    return null;
+    // IndexedDB puede fallar; seguimos sin caché.
   }
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetchWithTimeout(url, timeoutMs);
+      if (res.status === 429 || res.status >= 500) {
+        const delay = 1000 * (attempt + 1);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      if (!res.ok) return null;
+      const json = await res.json().catch(() => null);
+      const data = json?.data || null;
+      if (Array.isArray(data)) {
+        await idbSet(cacheKey, { data }, TTL).catch(() => {});
+      }
+      return data;
+    } catch {
+      await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+    }
+  }
+  return null;
 }
+
 
 export function jikanPageResult(
   items: any[],
