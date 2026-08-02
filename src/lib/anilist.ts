@@ -378,19 +378,27 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
     if (term) variables.search = term;
     return queryAniList(
       `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$search:String,$genres:[String]){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(search:$search,type:ANIME,genre_in:$genres,isAdult:false,sort:SEARCH_MATCH){...MediaFields}}}`,
-      variables
+      variables,
+      5000
     );
   };
 
   if (!cleanTerm || page > 1) {
-    const data = await runAniListSearch(cleanTerm);
-    return processPage(data.Page, options);
+    try {
+      const data = await runAniListSearch(cleanTerm);
+      return processPage(data.Page, options);
+    } catch (err) {
+      console.warn("[anilist/search] AniList falló, fallback a Jikan", err);
+      const { jikanSearch, processJikanPage } = await import("./mal-fallback");
+      return processJikanPage(await jikanSearch(cleanTerm, page, perPage, genres[0]), options);
+    }
   }
 
   // Un solo variant en tiempo real: menos disparos = menos 429 = búsqueda estable.
   const variants = [cleanTerm];
   const seen = new Map<number, AniListMedia>();
   let firstPageInfo: PageResult["pageInfo"] | null = null;
+  let anilistFailed = false;
   try {
     const pageData = (await runAniListSearch(variants[0], Math.min(Math.max(perPage, 18), 30)))?.Page;
     if (pageData?.pageInfo) firstPageInfo = pageData.pageInfo;
@@ -398,41 +406,26 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
       if (!seen.has(media.id)) seen.set(media.id, media);
     }
   } catch {
-    // Si AniList falla o hace timeout, seguimos con Jikan más abajo.
+    anilistFailed = true;
   }
 
-  if (seen.size < Math.min(perPage, 12)) {
+  if (anilistFailed || seen.size < Math.min(perPage, 12)) {
     try {
       const jikanQuery = variants[0] || normalizeSearchText(cleanTerm);
-      const jikanRes = await fetchWithTimeout(
-        `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(jikanQuery)}&limit=${Math.min(Math.max(perPage, 12), 25)}&page=${page}&sfw=true`,
-        {},
-        6000
-      );
-      if (jikanRes.ok) {
-        const jikanJson = await jikanRes.json();
-        const malIds: number[] = (jikanJson?.data || [])
-          .map((a: any) => Number(a?.mal_id))
-          .filter((n: number) => Number.isFinite(n) && n > 0)
-          .slice(0, Math.min(Math.max(perPage, 12), 25));
-
-        if (malIds.length > 0) {
-          const aniData = await queryAniList(
-            `${MEDIA_FRAGMENT} query($ids:[Int],$perPage:Int){Page(page:1,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(idMal_in:$ids,type:ANIME,isAdult:false){...MediaFields}}}`,
-            { ids: malIds, perPage: malIds.length }
-          );
-          const order = new Map(malIds.map((id, i) => [id, i]));
-          const fetched: AniListMedia[] = aniData?.Page?.media || [];
-          fetched.sort((a: any, b: any) => (order.get(a.idMal) ?? 999) - (order.get(b.idMal) ?? 999));
-          fetched.forEach((media) => {
-            if (!seen.has(media.id)) seen.set(media.id, media);
-          });
-        }
+      const { jikanSearch: searchJikan, jikanToAniListMedia } = await import("./mal-fallback");
+      const jikanPage = await searchJikan(jikanQuery, page, Math.min(Math.max(perPage, 12), 25), genres[0]);
+      // Combinamos resultados de Jikan con los de AniList (si los hay), evitando duplicados.
+      for (const media of jikanPage.media) {
+        if (!seen.has(media.id)) seen.set(media.id, media);
+      }
+      if (anilistFailed) {
+        return processJikanPage(jikanPage, options);
       }
     } catch {
       // Si el fallback falla, se conserva lo encontrado con AniList.
     }
   }
+
 
   const allScored = Array.from(seen.values()).map((media, index) => ({
     media,
