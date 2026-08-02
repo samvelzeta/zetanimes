@@ -64,7 +64,7 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
   }
 }
 
-async function queryAniList(query: string, variables: Record<string, unknown> = {}) {
+async function queryAniList(query: string, variables: Record<string, unknown> = {}, timeoutMs = 8000) {
   const key = JSON.stringify({ query, variables });
   const existing = inflight.get(key);
   if (existing) return existing;
@@ -81,10 +81,10 @@ async function queryAniList(query: string, variables: Record<string, unknown> = 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query, variables }),
           },
-          8000
+          timeoutMs
         );
-        // 429 = rate limit; 5xx = transitorio. Reintentar con backoff acotado.
-        if (res.status === 429 || res.status >= 500) {
+        // 403 deshabilitado, 429 rate limit, 5xx transitorio. Señal clara de fallback.
+        if (res.status === 403 || res.status === 429 || res.status >= 500) {
           if (attempt >= maxAttempts - 1) throw new Error(`AniList HTTP ${res.status}`);
           const retryAfter = Number(res.headers.get("Retry-After")) || 0;
           const wait = retryAfter > 0 ? Math.min(retryAfter * 1000, 3000) : 600 * (attempt + 1);
@@ -113,6 +113,33 @@ async function queryAniList(query: string, variables: Record<string, unknown> = 
     inflight.delete(key);
   }
 }
+
+/**
+ * Fallback automático a Jikan (MyAnimeList) cuando AniList:
+ * - devuelve 403/5xx/429, o
+ * - excede el timeout de 8s.
+ *
+ * Import dinámico para evitar ciclo de imports con mal-fallback.ts.
+ */
+async function withJikanFallback(
+  kind: Parameters<typeof import("./mal-fallback").jikanFallbackPage>[0],
+  fetchAniList: () => Promise<PageResult>,
+  page = 1,
+  perPage = 20,
+  genre?: string
+): Promise<PageResult> {
+  try {
+    const result = await fetchAniList();
+    if (result?.media?.length) return result;
+  } catch (err) {
+    console.warn("[anilist] fallback activado", kind, err);
+  }
+
+  const { jikanFallbackPage, processJikanPage } = await import("./mal-fallback");
+  const fallback = await jikanFallbackPage(kind, page, perPage, genre);
+  return processJikanPage(fallback);
+}
+
 
 export interface AniListMedia {
   id: number;
