@@ -140,10 +140,11 @@ export interface AniListMedia {
 }
 
 
-interface PageResult {
+export interface PageResult {
   pageInfo: { total: number; currentPage: number; lastPage: number; hasNextPage: boolean };
   media: AniListMedia[];
 }
+
 
 export async function getTrending(page = 1, perPage = 20): Promise<PageResult> {
   const result = await withIdbCache(`trending:${page}:${perPage}`, async () => {
