@@ -164,7 +164,10 @@ export interface AniListMedia {
   streamingEpisodes?: { title: string; thumbnail: string; url: string; site: string }[];
   relations?: { edges: { relationType: string; node: { id: number; title: { romaji: string; english: string | null }; coverImage: { large: string }; format: string; type: string } }[] };
   recommendations?: { nodes: { mediaRecommendation: { id: number; title: { romaji: string; english: string | null }; coverImage: { large: string; extraLarge: string }; averageScore: number; status: string; format: string } }[] };
+  /** Verdadero si el anime proviene del fallback de Jikan (MyAnimeList). */
+  isFallback?: boolean;
 }
+
 
 
 export interface PageResult {
