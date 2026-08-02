@@ -235,7 +235,7 @@ export async function jikanTopMovies(
 }
 
 
-/** Búsqueda general. */
+/** Búsqueda general. Si falla por género, fallback a top/anime filtrado localmente. */
 export async function jikanSearch(
   q: string,
   page = 1,
@@ -248,13 +248,28 @@ export async function jikanSearch(
     8000
   );
   const items = Array.isArray(data) ? data : data?.data || [];
+  if (items.length || !genre) {
+    return jikanPageResult(
+      items.slice(0, perPage),
+      page,
+      perPage,
+      items.length >= perPage
+    );
+  }
+
+  // Fallback: traer top/anime general y filtrar por género en cliente.
+  const top = await jikanTopAnime(page, Math.max(perPage, 50));
+  const filtered = (top.media || []).filter((a) =>
+    a.genres?.some((g) => g.toLowerCase() === genre.toLowerCase())
+  );
   return jikanPageResult(
-    items.slice(0, perPage),
+    filtered.slice(0, perPage),
     page,
     perPage,
-    items.length >= perPage
+    filtered.length >= perPage
   );
 }
+
 
 /** Detalle por mal_id. */
 export async function jikanGetById(malId: number): Promise<AniListMedia | null> {
