@@ -206,7 +206,8 @@ export async function jikanCurrentSeason(
   page = 1,
   perPage = 20
 ): Promise<PageResult> {
-  const data = await jikanGet(`/seasons/now?page=${page}&limit=${perPage}`);
+  const jikanLimit = Math.max(perPage, 25);
+  const data = await jikanGet(`/seasons/now?page=${page}&limit=${jikanLimit}`);
   const items = Array.isArray(data) ? data : data?.data || [];
   return jikanPageResult(
     items.slice(0, perPage),
@@ -215,6 +216,7 @@ export async function jikanCurrentSeason(
     items.length >= perPage
   );
 }
+
 
 /** Películas recientes/top. */
 export async function jikanTopMovies(
