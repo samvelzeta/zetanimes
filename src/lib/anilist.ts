@@ -64,7 +64,7 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
   }
 }
 
-async function queryAniList(query: string, variables: Record<string, unknown> = {}) {
+async function queryAniList(query: string, variables: Record<string, unknown> = {}, timeoutMs = 8000) {
   const key = JSON.stringify({ query, variables });
   const existing = inflight.get(key);
   if (existing) return existing;
@@ -81,10 +81,11 @@ async function queryAniList(query: string, variables: Record<string, unknown> = 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query, variables }),
           },
-          8000
+          timeoutMs
         );
-        // 429 = rate limit; 5xx = transitorio. Reintentar con backoff acotado.
-        if (res.status === 429 || res.status >= 500) {
+        // 403 deshabilitado, 405 a veces de AniList, 429 rate limit, 5xx transitorio. Señal clara de fallback.
+        if (res.status === 403 || res.status === 405 || res.status === 429 || res.status >= 500) {
+
           if (attempt >= maxAttempts - 1) throw new Error(`AniList HTTP ${res.status}`);
           const retryAfter = Number(res.headers.get("Retry-After")) || 0;
           const wait = retryAfter > 0 ? Math.min(retryAfter * 1000, 3000) : 600 * (attempt + 1);
@@ -114,6 +115,33 @@ async function queryAniList(query: string, variables: Record<string, unknown> = 
   }
 }
 
+/**
+ * Fallback automático a Jikan (MyAnimeList) cuando AniList:
+ * - devuelve 403/5xx/429, o
+ * - excede el timeout de 8s.
+ *
+ * Import dinámico para evitar ciclo de imports con mal-fallback.ts.
+ */
+async function withJikanFallback(
+  kind: Parameters<typeof import("./mal-fallback").jikanFallbackPage>[0],
+  fetchAniList: () => Promise<PageResult>,
+  page = 1,
+  perPage = 20,
+  genre?: string
+): Promise<PageResult> {
+  try {
+    const result = await fetchAniList();
+    if (result?.media?.length) return result;
+  } catch (err) {
+    console.warn("[anilist] fallback activado", kind, err);
+  }
+
+  const { jikanFallbackPage, processJikanPage } = await import("./mal-fallback");
+  const fallback = await jikanFallbackPage(kind, page, perPage, genre);
+  return processJikanPage(fallback);
+}
+
+
 export interface AniListMedia {
   id: number;
   idMal?: number | null;
@@ -137,81 +165,174 @@ export interface AniListMedia {
   streamingEpisodes?: { title: string; thumbnail: string; url: string; site: string }[];
   relations?: { edges: { relationType: string; node: { id: number; title: { romaji: string; english: string | null }; coverImage: { large: string }; format: string; type: string } }[] };
   recommendations?: { nodes: { mediaRecommendation: { id: number; title: { romaji: string; english: string | null }; coverImage: { large: string; extraLarge: string }; averageScore: number; status: string; format: string } }[] };
+  /** Verdadero si el anime proviene del fallback de Jikan (MyAnimeList). */
+  isFallback?: boolean;
 }
 
 
-interface PageResult {
+
+export interface PageResult {
   pageInfo: { total: number; currentPage: number; lastPage: number; hasNextPage: boolean };
   media: AniListMedia[];
 }
 
+
 export async function getTrending(page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`trending:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:TRENDING_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage });
-    return data.Page;
-  });
-  return processPage(result);
+  return withJikanFallback(
+    "trending",
+    async () => {
+      const result = await withIdbCache(`trending:${page}:${perPage}`, async () => {
+        const data = await queryAniList(
+          `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:TRENDING_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
+          { page, perPage },
+          6000
+        );
+        return data.Page;
+      });
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 export async function getPopular(page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`popular:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage });
-    return data.Page;
-  });
-  return processPage(result);
+  return withJikanFallback(
+    "popular",
+    async () => {
+      const result = await withIdbCache(`popular:${page}:${perPage}`, async () => {
+        const data = await queryAniList(
+          `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
+          { page, perPage },
+          6000
+        );
+        return data.Page;
+      });
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 export async function getRecentlyUpdated(page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`recent:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:UPDATED_AT_DESC,type:ANIME,status:RELEASING,isAdult:false){...MediaFields}}}`, { page, perPage });
-    return data.Page;
-  }, 30 * 60 * 1000); // 30min: cambia más seguido
-  return processPage(result);
+  return withJikanFallback(
+    "recentlyUpdated",
+    async () => {
+      const result = await withIdbCache(
+        `recent:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:UPDATED_AT_DESC,type:ANIME,status:RELEASING,isAdult:false){...MediaFields}}}`,
+            { page, perPage },
+            6000
+          );
+          return data.Page;
+        },
+        30 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 export async function getTopRated(page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`toprated:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:SCORE_DESC,type:ANIME,isAdult:false,format_in:[TV,MOVIE]){...MediaFields}}}`, { page, perPage });
-    return data.Page;
-  }, 24 * 60 * 60 * 1000); // 24h
-  return processPage(result);
+  return withJikanFallback(
+    "topRated",
+    async () => {
+      const result = await withIdbCache(
+        `toprated:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:SCORE_DESC,type:ANIME,isAdult:false,format_in:[TV,MOVIE]){...MediaFields}}}`,
+            { page, perPage },
+            6000
+          );
+          return data.Page;
+        },
+        24 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 export async function getMovies(page = 1, perPage = 30, genre?: string | null): Promise<PageResult> {
   const g = genre || "";
-  const result = await withIdbCache(`movies:${g}:${page}:${perPage}`, async () => {
-    const data = await queryAniList(
-      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,isAdult:false,genre:$genre){...MediaFields}}}`,
-      { page, perPage, genre: g || undefined }
-    );
-    return data.Page;
-  }, 6 * 60 * 60 * 1000);
-  return processPage(result);
+  return withJikanFallback(
+    "movies",
+    async () => {
+      const result = await withIdbCache(
+        `movies:${g}:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,isAdult:false,genre:$genre){...MediaFields}}}`,
+            { page, perPage, genre: g || undefined },
+            6000
+          );
+          return data.Page;
+        },
+        6 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 /** Películas anunciadas / próximamente en AniList. */
 export async function getUpcomingMovies(page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`upcoming-movies:${page}:${perPage}`, async () => {
-    const data = await queryAniList(
-      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,status:NOT_YET_RELEASED,isAdult:false){...MediaFields}}}`,
-      { page, perPage }
-    );
-    return data.Page;
-  }, 6 * 60 * 60 * 1000);
-  return processPage(result);
+  return withJikanFallback(
+    "upcomingMovies",
+    async () => {
+      const result = await withIdbCache(
+        `upcoming-movies:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,status:NOT_YET_RELEASED,isAdult:false){...MediaFields}}}`,
+            { page, perPage },
+            6000
+          );
+          return data.Page;
+        },
+        6 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 /** Películas ya estrenadas recientemente (RELEASING/FINISHED) ordenadas por fecha desc. */
 export async function getRecentReleasedMovies(page = 1, perPage = 30): Promise<PageResult> {
-  const result = await withIdbCache(`recent-released-movies:${page}:${perPage}`, async () => {
-    const data = await queryAniList(
-      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:START_DATE_DESC,type:ANIME,format:MOVIE,status_in:[RELEASING,FINISHED],isAdult:false){...MediaFields}}}`,
-      { page, perPage }
-    );
-    return data.Page;
-  }, 6 * 60 * 60 * 1000);
-  return processPage(result);
+  return withJikanFallback(
+    "movies",
+    async () => {
+      const result = await withIdbCache(
+        `recent-released-movies:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:START_DATE_DESC,type:ANIME,format:MOVIE,status_in:[RELEASING,FINISHED],isAdult:false){...MediaFields}}}`,
+            { page, perPage },
+            6000
+          );
+          return data.Page;
+        },
+        6 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
+
 
 
 
@@ -221,12 +342,28 @@ export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult>
   const year = now.getFullYear();
   const seasons = ["WINTER","WINTER","SPRING","SPRING","SPRING","SUMMER","SUMMER","SUMMER","FALL","FALL","FALL","WINTER"];
   const season = seasons[month];
-  const result = await withIdbCache(`season:${season}:${year}:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$season:MediaSeason,$year:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(season:$season,seasonYear:$year,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage, season, year });
-    return data.Page;
-  }, 6 * 60 * 60 * 1000); // 6h
-  return processPage(result);
+  return withJikanFallback(
+    "thisSeason",
+    async () => {
+      const result = await withIdbCache(
+        `season:${season}:${year}:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$season:MediaSeason,$year:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(season:$season,seasonYear:$year,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
+            { page, perPage, season, year },
+            6000
+          );
+          return data.Page;
+        },
+        6 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
+
 
 /**
  * Búsqueda con fallback a Jikan (MyAnimeList).
@@ -245,19 +382,27 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
     if (term) variables.search = term;
     return queryAniList(
       `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$search:String,$genres:[String]){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(search:$search,type:ANIME,genre_in:$genres,isAdult:false,sort:SEARCH_MATCH){...MediaFields}}}`,
-      variables
+      variables,
+      5000
     );
   };
 
   if (!cleanTerm || page > 1) {
-    const data = await runAniListSearch(cleanTerm);
-    return processPage(data.Page, options);
+    try {
+      const data = await runAniListSearch(cleanTerm);
+      return processPage(data.Page, options);
+    } catch (err) {
+      console.warn("[anilist/search] AniList falló, fallback a Jikan", err);
+      const { jikanSearch, processJikanPage } = await import("./mal-fallback");
+      return processJikanPage(await jikanSearch(cleanTerm, page, perPage, genres[0]), options);
+    }
   }
 
   // Un solo variant en tiempo real: menos disparos = menos 429 = búsqueda estable.
   const variants = [cleanTerm];
   const seen = new Map<number, AniListMedia>();
   let firstPageInfo: PageResult["pageInfo"] | null = null;
+  let anilistFailed = false;
   try {
     const pageData = (await runAniListSearch(variants[0], Math.min(Math.max(perPage, 18), 30)))?.Page;
     if (pageData?.pageInfo) firstPageInfo = pageData.pageInfo;
@@ -265,41 +410,27 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
       if (!seen.has(media.id)) seen.set(media.id, media);
     }
   } catch {
-    // Si AniList falla o hace timeout, seguimos con Jikan más abajo.
+    anilistFailed = true;
   }
 
-  if (seen.size < Math.min(perPage, 12)) {
+  if (anilistFailed || seen.size < Math.min(perPage, 12)) {
     try {
       const jikanQuery = variants[0] || normalizeSearchText(cleanTerm);
-      const jikanRes = await fetchWithTimeout(
-        `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(jikanQuery)}&limit=${Math.min(Math.max(perPage, 12), 25)}&page=${page}&sfw=true`,
-        {},
-        6000
-      );
-      if (jikanRes.ok) {
-        const jikanJson = await jikanRes.json();
-        const malIds: number[] = (jikanJson?.data || [])
-          .map((a: any) => Number(a?.mal_id))
-          .filter((n: number) => Number.isFinite(n) && n > 0)
-          .slice(0, Math.min(Math.max(perPage, 12), 25));
-
-        if (malIds.length > 0) {
-          const aniData = await queryAniList(
-            `${MEDIA_FRAGMENT} query($ids:[Int],$perPage:Int){Page(page:1,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(idMal_in:$ids,type:ANIME,isAdult:false){...MediaFields}}}`,
-            { ids: malIds, perPage: malIds.length }
-          );
-          const order = new Map(malIds.map((id, i) => [id, i]));
-          const fetched: AniListMedia[] = aniData?.Page?.media || [];
-          fetched.sort((a: any, b: any) => (order.get(a.idMal) ?? 999) - (order.get(b.idMal) ?? 999));
-          fetched.forEach((media) => {
-            if (!seen.has(media.id)) seen.set(media.id, media);
-          });
-        }
+      const { jikanSearch: searchJikan, processJikanPage } = await import("./mal-fallback");
+      const jikanPage = await searchJikan(jikanQuery, page, Math.min(Math.max(perPage, 12), 25), genres[0]);
+      // Combinamos resultados de Jikan con los de AniList (si los hay), evitando duplicados.
+      for (const media of jikanPage.media) {
+        if (!seen.has(media.id)) seen.set(media.id, media);
+      }
+      if (anilistFailed) {
+        return processJikanPage(jikanPage, options);
       }
     } catch {
       // Si el fallback falla, se conserva lo encontrado con AniList.
     }
   }
+
+
 
   const allScored = Array.from(seen.values()).map((media, index) => ({
     media,
@@ -331,21 +462,51 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
 }
 
 export async function getAnimeById(id: number): Promise<AniListMedia> {
-  const result = await withIdbCache(`anime:${id}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($id:Int){Media(id:$id,type:ANIME){...MediaFields streamingEpisodes{title thumbnail url site}relations{edges{relationType node{id title{romaji english}coverImage{large}format type}}}recommendations(sort:RATING_DESC,perPage:10){nodes{mediaRecommendation{id title{romaji english}coverImage{large extraLarge}averageScore status format}}}}}`, { id });
-    return data.Media;
+  let result = await withIdbCache(`anime:${id}`, async () => {
+    try {
+      const data = await queryAniList(
+        `${MEDIA_FRAGMENT} query($id:Int){Media(id:$id,type:ANIME){...MediaFields streamingEpisodes{title thumbnail url site}relations{edges{relationType node{id title{romaji english}coverImage{large}format type}}}recommendations(sort:RATING_DESC,perPage:10){nodes{mediaRecommendation{id title{romaji english}coverImage{large extraLarge}averageScore status format}}}}}`,
+        { id },
+        6000
+      );
+      return data.Media;
+    } catch (err) {
+      // Si AniList falla, intentamos Jikan por id (suponiendo que id sea mal_id).
+      // No es perfecto, pero evita pantallas en blanco cuando AniList está caído.
+      const { jikanGetById } = await import("./mal-fallback");
+      const fallback = await jikanGetById(id);
+      if (fallback) return fallback;
+      throw err;
+    }
   }, 24 * 60 * 60 * 1000);
   const [withStatus] = await applyStatusOverrides([result]);
   return withStatus;
 }
 
 export async function getByGenre(genre: string, page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`genre:${genre}:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(genre:$genre,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage, genre });
-    return data.Page;
-  }, 6 * 60 * 60 * 1000);
-  return processPage(result);
+  return withJikanFallback(
+    "genre",
+    async () => {
+      const result = await withIdbCache(
+        `genre:${genre}:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(genre:$genre,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
+            { page, perPage, genre },
+            6000
+          );
+          return data.Page;
+        },
+        6 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage,
+    genre
+  );
 }
+
 
 export function getTitle(media: AniListMedia): string {
   // Prioriza romaji; si no existe, cae a english y por último native.
