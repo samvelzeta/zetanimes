@@ -464,21 +464,51 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
 }
 
 export async function getAnimeById(id: number): Promise<AniListMedia> {
-  const result = await withIdbCache(`anime:${id}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($id:Int){Media(id:$id,type:ANIME){...MediaFields streamingEpisodes{title thumbnail url site}relations{edges{relationType node{id title{romaji english}coverImage{large}format type}}}recommendations(sort:RATING_DESC,perPage:10){nodes{mediaRecommendation{id title{romaji english}coverImage{large extraLarge}averageScore status format}}}}}`, { id });
-    return data.Media;
+  let result = await withIdbCache(`anime:${id}`, async () => {
+    try {
+      const data = await queryAniList(
+        `${MEDIA_FRAGMENT} query($id:Int){Media(id:$id,type:ANIME){...MediaFields streamingEpisodes{title thumbnail url site}relations{edges{relationType node{id title{romaji english}coverImage{large}format type}}}recommendations(sort:RATING_DESC,perPage:10){nodes{mediaRecommendation{id title{romaji english}coverImage{large extraLarge}averageScore status format}}}}}`,
+        { id },
+        6000
+      );
+      return data.Media;
+    } catch (err) {
+      // Si AniList falla, intentamos Jikan por id (suponiendo que id sea mal_id).
+      // No es perfecto, pero evita pantallas en blanco cuando AniList está caído.
+      const { jikanGetById } = await import("./mal-fallback");
+      const fallback = await jikanGetById(id);
+      if (fallback) return fallback;
+      throw err;
+    }
   }, 24 * 60 * 60 * 1000);
   const [withStatus] = await applyStatusOverrides([result]);
   return withStatus;
 }
 
 export async function getByGenre(genre: string, page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`genre:${genre}:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(genre:$genre,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage, genre });
-    return data.Page;
-  }, 6 * 60 * 60 * 1000);
-  return processPage(result);
+  return withJikanFallback(
+    "genre",
+    async () => {
+      const result = await withIdbCache(
+        `genre:${genre}:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(genre:$genre,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
+            { page, perPage, genre },
+            6000
+          );
+          return data.Page;
+        },
+        6 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage,
+    genre
+  );
 }
+
 
 export function getTitle(media: AniListMedia): string {
   // Prioriza romaji; si no existe, cae a english y por último native.
