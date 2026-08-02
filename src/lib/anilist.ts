@@ -174,72 +174,161 @@ export interface PageResult {
 
 
 export async function getTrending(page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`trending:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:TRENDING_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage });
-    return data.Page;
-  });
-  return processPage(result);
+  return withJikanFallback(
+    "trending",
+    async () => {
+      const result = await withIdbCache(`trending:${page}:${perPage}`, async () => {
+        const data = await queryAniList(
+          `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:TRENDING_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
+          { page, perPage },
+          6000
+        );
+        return data.Page;
+      });
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 export async function getPopular(page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`popular:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage });
-    return data.Page;
-  });
-  return processPage(result);
+  return withJikanFallback(
+    "popular",
+    async () => {
+      const result = await withIdbCache(`popular:${page}:${perPage}`, async () => {
+        const data = await queryAniList(
+          `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
+          { page, perPage },
+          6000
+        );
+        return data.Page;
+      });
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 export async function getRecentlyUpdated(page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`recent:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:UPDATED_AT_DESC,type:ANIME,status:RELEASING,isAdult:false){...MediaFields}}}`, { page, perPage });
-    return data.Page;
-  }, 30 * 60 * 1000); // 30min: cambia más seguido
-  return processPage(result);
+  return withJikanFallback(
+    "recentlyUpdated",
+    async () => {
+      const result = await withIdbCache(
+        `recent:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:UPDATED_AT_DESC,type:ANIME,status:RELEASING,isAdult:false){...MediaFields}}}`,
+            { page, perPage },
+            6000
+          );
+          return data.Page;
+        },
+        30 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 export async function getTopRated(page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`toprated:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:SCORE_DESC,type:ANIME,isAdult:false,format_in:[TV,MOVIE]){...MediaFields}}}`, { page, perPage });
-    return data.Page;
-  }, 24 * 60 * 60 * 1000); // 24h
-  return processPage(result);
+  return withJikanFallback(
+    "topRated",
+    async () => {
+      const result = await withIdbCache(
+        `toprated:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:SCORE_DESC,type:ANIME,isAdult:false,format_in:[TV,MOVIE]){...MediaFields}}}`,
+            { page, perPage },
+            6000
+          );
+          return data.Page;
+        },
+        24 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 export async function getMovies(page = 1, perPage = 30, genre?: string | null): Promise<PageResult> {
   const g = genre || "";
-  const result = await withIdbCache(`movies:${g}:${page}:${perPage}`, async () => {
-    const data = await queryAniList(
-      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,isAdult:false,genre:$genre){...MediaFields}}}`,
-      { page, perPage, genre: g || undefined }
-    );
-    return data.Page;
-  }, 6 * 60 * 60 * 1000);
-  return processPage(result);
+  return withJikanFallback(
+    "movies",
+    async () => {
+      const result = await withIdbCache(
+        `movies:${g}:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,isAdult:false,genre:$genre){...MediaFields}}}`,
+            { page, perPage, genre: g || undefined },
+            6000
+          );
+          return data.Page;
+        },
+        6 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 /** Películas anunciadas / próximamente en AniList. */
 export async function getUpcomingMovies(page = 1, perPage = 20): Promise<PageResult> {
-  const result = await withIdbCache(`upcoming-movies:${page}:${perPage}`, async () => {
-    const data = await queryAniList(
-      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,status:NOT_YET_RELEASED,isAdult:false){...MediaFields}}}`,
-      { page, perPage }
-    );
-    return data.Page;
-  }, 6 * 60 * 60 * 1000);
-  return processPage(result);
+  return withJikanFallback(
+    "upcomingMovies",
+    async () => {
+      const result = await withIdbCache(
+        `upcoming-movies:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,status:NOT_YET_RELEASED,isAdult:false){...MediaFields}}}`,
+            { page, perPage },
+            6000
+          );
+          return data.Page;
+        },
+        6 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
 
 /** Películas ya estrenadas recientemente (RELEASING/FINISHED) ordenadas por fecha desc. */
 export async function getRecentReleasedMovies(page = 1, perPage = 30): Promise<PageResult> {
-  const result = await withIdbCache(`recent-released-movies:${page}:${perPage}`, async () => {
-    const data = await queryAniList(
-      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:START_DATE_DESC,type:ANIME,format:MOVIE,status_in:[RELEASING,FINISHED],isAdult:false){...MediaFields}}}`,
-      { page, perPage }
-    );
-    return data.Page;
-  }, 6 * 60 * 60 * 1000);
-  return processPage(result);
+  return withJikanFallback(
+    "movies",
+    async () => {
+      const result = await withIdbCache(
+        `recent-released-movies:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:START_DATE_DESC,type:ANIME,format:MOVIE,status_in:[RELEASING,FINISHED],isAdult:false){...MediaFields}}}`,
+            { page, perPage },
+            6000
+          );
+          return data.Page;
+        },
+        6 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
+
 
 
 
