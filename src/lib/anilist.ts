@@ -338,12 +338,28 @@ export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult>
   const year = now.getFullYear();
   const seasons = ["WINTER","WINTER","SPRING","SPRING","SPRING","SUMMER","SUMMER","SUMMER","FALL","FALL","FALL","WINTER"];
   const season = seasons[month];
-  const result = await withIdbCache(`season:${season}:${year}:${page}:${perPage}`, async () => {
-    const data = await queryAniList(`${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$season:MediaSeason,$year:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(season:$season,seasonYear:$year,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`, { page, perPage, season, year });
-    return data.Page;
-  }, 6 * 60 * 60 * 1000); // 6h
-  return processPage(result);
+  return withJikanFallback(
+    "thisSeason",
+    async () => {
+      const result = await withIdbCache(
+        `season:${season}:${year}:${page}:${perPage}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$season:MediaSeason,$year:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(season:$season,seasonYear:$year,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
+            { page, perPage, season, year },
+            6000
+          );
+          return data.Page;
+        },
+        6 * 60 * 60 * 1000
+      );
+      return processPage(result);
+    },
+    page,
+    perPage
+  );
 }
+
 
 /**
  * Búsqueda con fallback a Jikan (MyAnimeList).
