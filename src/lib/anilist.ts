@@ -412,7 +412,7 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
   if (anilistFailed || seen.size < Math.min(perPage, 12)) {
     try {
       const jikanQuery = variants[0] || normalizeSearchText(cleanTerm);
-      const { jikanSearch: searchJikan, jikanToAniListMedia } = await import("./mal-fallback");
+      const { jikanSearch: searchJikan, processJikanPage } = await import("./mal-fallback");
       const jikanPage = await searchJikan(jikanQuery, page, Math.min(Math.max(perPage, 12), 25), genres[0]);
       // Combinamos resultados de Jikan con los de AniList (si los hay), evitando duplicados.
       for (const media of jikanPage.media) {
@@ -425,6 +425,7 @@ export async function searchAnime(searchTerm: string, page = 1, perPage = 20, ge
       // Si el fallback falla, se conserva lo encontrado con AniList.
     }
   }
+
 
 
   const allScored = Array.from(seen.values()).map((media, index) => ({
