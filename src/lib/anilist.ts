@@ -83,8 +83,9 @@ async function queryAniList(query: string, variables: Record<string, unknown> = 
           },
           timeoutMs
         );
-        // 403 deshabilitado, 429 rate limit, 5xx transitorio. Señal clara de fallback.
-        if (res.status === 403 || res.status === 429 || res.status >= 500) {
+        // 403 deshabilitado, 405 a veces de AniList, 429 rate limit, 5xx transitorio. Señal clara de fallback.
+        if (res.status === 403 || res.status === 405 || res.status === 429 || res.status >= 500) {
+
           if (attempt >= maxAttempts - 1) throw new Error(`AniList HTTP ${res.status}`);
           const retryAfter = Number(res.headers.get("Retry-After")) || 0;
           const wait = retryAfter > 0 ? Math.min(retryAfter * 1000, 3000) : 600 * (attempt + 1);
