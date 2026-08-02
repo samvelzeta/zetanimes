@@ -131,9 +131,19 @@ async function fetchWithTimeout(url: string, timeoutMs: number) {
   }
 }
 
+const recentFailures = new Map<string, number>();
+const FAILURE_COOLDOWN_MS = 5 * 60 * 1000;
+
 async function jikanGet(path: string, timeoutMs = 7000) {
   const url = `${JIKAN_BASE}${path}`;
   const cacheKey = `jikan:${path}`;
+  const lastFail = recentFailures.get(path);
+  if (lastFail && Date.now() - lastFail < FAILURE_COOLDOWN_MS) {
+    // Estamos en periodo de enfriamiento; usar caché si existe, sino null.
+    const cached = await idbGet<any>(cacheKey).catch(() => null);
+    return cached?.data || null;
+  }
+
   try {
     const cached = await idbGet<any>(cacheKey);
     if (cached && Array.isArray(cached.data)) return cached.data;
@@ -141,27 +151,24 @@ async function jikanGet(path: string, timeoutMs = 7000) {
     // IndexedDB puede fallar; seguimos sin caché.
   }
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const res = await fetchWithTimeout(url, timeoutMs);
-      if (res.status === 429 || res.status >= 500) {
-        const delay = 1000 * (attempt + 1);
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
-      }
-      if (!res.ok) return null;
-      const json = await res.json().catch(() => null);
-      const data = json?.data || null;
-      if (Array.isArray(data)) {
-        await idbSet(cacheKey, { data }, TTL).catch(() => {});
-      }
-      return data;
-    } catch {
-      await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+  try {
+    const res = await fetchWithTimeout(url, timeoutMs);
+    if (!res.ok) {
+      if (res.status === 429 || res.status >= 500) recentFailures.set(path, Date.now());
+      return null;
     }
+    const json = await res.json().catch(() => null);
+    const data = json?.data || null;
+    if (Array.isArray(data)) {
+      await idbSet(cacheKey, { data }, TTL).catch(() => {});
+    }
+    return data;
+  } catch {
+    recentFailures.set(path, Date.now());
+    return null;
   }
-  return null;
 }
+
 
 
 export function jikanPageResult(
