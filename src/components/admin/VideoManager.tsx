@@ -546,7 +546,7 @@ export default function VideoManager() {
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-secondary rounded-xl p-3 border border-primary/30">
           {selected.cover && <img src={selected.cover} alt="" className="w-10 h-14 rounded object-cover flex-shrink-0" />}
           <div className="flex-1 min-w-[140px]">
-            <MarqueeText text={selected.title} className="text-sm font-bold text-foreground block" />
+            <p className="text-sm font-bold text-foreground leading-tight line-clamp-2 break-words">{selected.title}</p>
             <p className="text-[10px] text-muted-foreground font-mono break-all whitespace-normal leading-tight">
               {selected.slug}
             </p>
@@ -555,7 +555,7 @@ export default function VideoManager() {
           <button onClick={() => setShowSaved(!showSaved)} className="text-xs text-primary hover:underline px-2 flex-shrink-0">
             {showSaved ? "Ocultar" : "Ver guardados"}
           </button>
-          <button onClick={() => { setSelected(null); setSelectedEp(null); setEpStatuses({}); setSavedVideos([]); }} className="text-muted-foreground hover:text-destructive flex-shrink-0">
+          <button onClick={() => { setSelected(null); setSelectedEp(null); setEpStatuses({}); setSavedVideos([]); setShowSaved(false); }} className="text-muted-foreground hover:text-destructive flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -572,7 +572,7 @@ export default function VideoManager() {
                   className="w-full flex items-center gap-3 p-3 hover:bg-secondary transition text-left border-b border-border last:border-0">
                   <img src={anime.coverImage?.large || ""} alt="" className="w-8 h-12 rounded object-cover flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <MarqueeText text={getTitle(anime)} className="text-xs font-bold text-foreground block" />
+                    <p className="text-xs font-bold text-foreground leading-tight line-clamp-2 break-words">{getTitle(anime)}</p>
                     <p className="text-[10px] text-muted-foreground">{anime.episodes || "?"} eps · {anime.status}</p>
                   </div>
                 </button>
