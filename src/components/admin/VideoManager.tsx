@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import MarqueeText from "@/components/MarqueeText";
+
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
 import { clearSeekeEpisodeCache, titleToSlug } from "@/lib/zetapi";
 import {
