@@ -224,8 +224,7 @@ export default function VideoManager() {
       cover: anime.coverImage?.large || anime.coverImage?.extraLarge || "",
       totalEpisodes: anime.episodes || 24,
     });
-    setSearchQuery("");
-    setSearchResults([]);
+    // Keep search query/results so closing the anime returns to the search
     setSelectedEp(null);
     setEpStatuses({});
     setVisibleRange({ start: 0, end: 50 });
@@ -490,27 +489,40 @@ export default function VideoManager() {
   const editSaved = (sv: CachedVideo) => {
     setSelectedEp(sv.episode === 0 ? 1 : sv.episode);
     setLang(sv.lang as "sub" | "latino");
+    // Pre-fill URLs from the saved entry for editing
+    const allUrls = [
+      ...(sv.sources?.seeke || []),
+      ...(sv.sources?.hls || []),
+      ...(sv.sources?.mp4 || []),
+      ...(sv.sources?.embed || []),
+    ];
+    setPrimaryUrl(allUrls[0] || "");
+    setFallbackUrl(allUrls[1] || "");
+    setPcUrl(sv.sources?.pc?.[0] || "");
+    setMobileUrl(sv.sources?.mobile?.[0] || "");
     setShowSaved(false);
   };
 
   const deleteSaved = async (sv: CachedVideo) => {
-    if (sv.episode === 0 || hasSeekeSource(sv.sources)) {
-      toast.error("El enlace madre Seeke está protegido. Puedes reemplazarlo guardando uno nuevo, no borrarlo.");
-      return;
-    }
-    if (!confirm(`¿Eliminar EP ${sv.episode} (${sv.lang}) de la DB?`)) return;
+    const label = sv.episode === 0 ? "enlace madre" : `EP ${sv.episode}`;
+    if (!confirm(`¿Eliminar ${label} (${sv.lang}) de la DB? Esta acción no se puede deshacer.`)) return;
     const res = await deleteCachedVideo(sv.slug, sv.episode, sv.lang, sv.id);
     if (!res.success) {
       toast.error("Error al eliminar: " + (res.error || "desconocido"));
       return;
     }
-    toast.success(`EP ${sv.episode} eliminado`);
+    toast.success(`${label} eliminado`);
     setSavedVideos(prev => prev.filter(v => v.id !== sv.id));
     const key = `${sv.episode}-${sv.lang}`;
     setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: false } }));
     if (selectedEp === sv.episode && lang === sv.lang) {
       setPrimaryUrl("");
       setFallbackUrl("");
+    }
+    // If madre was deleted, clear runtime caches
+    if (sv.episode === 0 || hasSeekeSource(sv.sources)) {
+      clearRuntimeVideoCache();
+      clearSeekeEpisodeCache();
     }
   };
 
