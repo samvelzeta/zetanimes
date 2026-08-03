@@ -604,11 +604,9 @@ export default function VideoManager() {
                   <button onClick={() => editSaved(sv)} className="text-primary hover:bg-primary/10 p-1.5 rounded">
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
-                  {sv.episode !== 0 && !hasSeekeSource(sv.sources) && (
-                    <button onClick={() => deleteSaved(sv)} className="text-destructive hover:bg-destructive/10 p-1.5 rounded">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  <button onClick={() => deleteSaved(sv)} className="text-destructive hover:bg-destructive/10 p-1.5 rounded">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               );
             })
