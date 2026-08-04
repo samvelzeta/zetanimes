@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, Loader2, X, Check, AlertCircle, Send, Film, Edit3, Trash2, Wand2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import MarqueeText from "@/components/MarqueeText";
+
 import { searchAnime, type AniListMedia, getTitle } from "@/lib/anilist";
 import { clearSeekeEpisodeCache, titleToSlug } from "@/lib/zetapi";
 import {
@@ -224,8 +224,7 @@ export default function VideoManager() {
       cover: anime.coverImage?.large || anime.coverImage?.extraLarge || "",
       totalEpisodes: anime.episodes || 24,
     });
-    setSearchQuery("");
-    setSearchResults([]);
+    // Keep search query/results so closing the anime returns to the search
     setSelectedEp(null);
     setEpStatuses({});
     setVisibleRange({ start: 0, end: 50 });
@@ -490,27 +489,40 @@ export default function VideoManager() {
   const editSaved = (sv: CachedVideo) => {
     setSelectedEp(sv.episode === 0 ? 1 : sv.episode);
     setLang(sv.lang as "sub" | "latino");
+    // Pre-fill URLs from the saved entry for editing
+    const allUrls = [
+      ...(sv.sources?.seeke || []),
+      ...(sv.sources?.hls || []),
+      ...(sv.sources?.mp4 || []),
+      ...(sv.sources?.embed || []),
+    ];
+    setPrimaryUrl(allUrls[0] || "");
+    setFallbackUrl(allUrls[1] || "");
+    setPcUrl(sv.sources?.pc?.[0] || "");
+    setMobileUrl(sv.sources?.mobile?.[0] || "");
     setShowSaved(false);
   };
 
   const deleteSaved = async (sv: CachedVideo) => {
-    if (sv.episode === 0 || hasSeekeSource(sv.sources)) {
-      toast.error("El enlace madre Seeke está protegido. Puedes reemplazarlo guardando uno nuevo, no borrarlo.");
-      return;
-    }
-    if (!confirm(`¿Eliminar EP ${sv.episode} (${sv.lang}) de la DB?`)) return;
+    const label = sv.episode === 0 ? "enlace madre" : `EP ${sv.episode}`;
+    if (!confirm(`¿Eliminar ${label} (${sv.lang}) de la DB? Esta acción no se puede deshacer.`)) return;
     const res = await deleteCachedVideo(sv.slug, sv.episode, sv.lang, sv.id);
     if (!res.success) {
       toast.error("Error al eliminar: " + (res.error || "desconocido"));
       return;
     }
-    toast.success(`EP ${sv.episode} eliminado`);
+    toast.success(`${label} eliminado`);
     setSavedVideos(prev => prev.filter(v => v.id !== sv.id));
     const key = `${sv.episode}-${sv.lang}`;
     setEpStatuses(prev => ({ ...prev, [key]: { checked: true, exists: false } }));
     if (selectedEp === sv.episode && lang === sv.lang) {
       setPrimaryUrl("");
       setFallbackUrl("");
+    }
+    // If madre was deleted, clear runtime caches
+    if (sv.episode === 0 || hasSeekeSource(sv.sources)) {
+      clearRuntimeVideoCache();
+      clearSeekeEpisodeCache();
     }
   };
 
@@ -534,7 +546,7 @@ export default function VideoManager() {
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-secondary rounded-xl p-3 border border-primary/30">
           {selected.cover && <img src={selected.cover} alt="" className="w-10 h-14 rounded object-cover flex-shrink-0" />}
           <div className="flex-1 min-w-[140px]">
-            <MarqueeText text={selected.title} className="text-sm font-bold text-foreground block" />
+            <p className="text-sm font-bold text-foreground leading-tight line-clamp-2 break-words">{selected.title}</p>
             <p className="text-[10px] text-muted-foreground font-mono break-all whitespace-normal leading-tight">
               {selected.slug}
             </p>
@@ -543,7 +555,7 @@ export default function VideoManager() {
           <button onClick={() => setShowSaved(!showSaved)} className="text-xs text-primary hover:underline px-2 flex-shrink-0">
             {showSaved ? "Ocultar" : "Ver guardados"}
           </button>
-          <button onClick={() => { setSelected(null); setSelectedEp(null); setEpStatuses({}); setSavedVideos([]); }} className="text-muted-foreground hover:text-destructive flex-shrink-0">
+          <button onClick={() => { setSelected(null); setSelectedEp(null); setEpStatuses({}); setSavedVideos([]); setShowSaved(false); }} className="text-muted-foreground hover:text-destructive flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -560,7 +572,7 @@ export default function VideoManager() {
                   className="w-full flex items-center gap-3 p-3 hover:bg-secondary transition text-left border-b border-border last:border-0">
                   <img src={anime.coverImage?.large || ""} alt="" className="w-8 h-12 rounded object-cover flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <MarqueeText text={getTitle(anime)} className="text-xs font-bold text-foreground block" />
+                    <p className="text-xs font-bold text-foreground leading-tight line-clamp-2 break-words">{getTitle(anime)}</p>
                     <p className="text-[10px] text-muted-foreground">{anime.episodes || "?"} eps · {anime.status}</p>
                   </div>
                 </button>
@@ -592,11 +604,9 @@ export default function VideoManager() {
                   <button onClick={() => editSaved(sv)} className="text-primary hover:bg-primary/10 p-1.5 rounded">
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
-                  {sv.episode !== 0 && !hasSeekeSource(sv.sources) && (
-                    <button onClick={() => deleteSaved(sv)} className="text-destructive hover:bg-destructive/10 p-1.5 rounded">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  <button onClick={() => deleteSaved(sv)} className="text-destructive hover:bg-destructive/10 p-1.5 rounded">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               );
             })
