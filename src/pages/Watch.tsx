@@ -457,14 +457,12 @@ export default function Watch() {
   // Activar toggle de idioma también cuando solo hay Seeke en un idioma pero la
   // API (AV1/zetapi) trae servidores reales en el opuesto (embeds únicos, ya
   // filtrados por appendUniqueSource). Permite alternar JP (Seeke+AV1) ↔ LAT (AV1).
-  const hasApiOnlyOppositeLang =
-    (dbLangAvailability.sub > 0 && dbLangAvailability.latino === 0 && apiLangAvailability.latino > 0) ||
-    (dbLangAvailability.latino > 0 && dbLangAvailability.sub === 0 && apiLangAvailability.sub > 0);
-  // Mostrar el switch de idioma si existe configuración Seeke (URL madre o
-  // bloque) en AMBOS idiomas, o si hay fuentes DB en ambos, o si hay solo un
-  // idioma en DB pero la API cubre el opuesto.
+  // Mostrar el switch de idioma SOLO si hay evidencia confiable (DB/Seeke) en
+  // AMBOS idiomas. La API externa (zetapi) devuelve los mismos embeds genéricos
+  // sin importar el parámetro `lang`, así que NO es fuente confiable para
+  // determinar si un anime tiene audio latino.
   const hasSeekeConfigBothLanguages = hasCurrentSeekeConfig && hasOppositeSeekeConfig;
-  const shouldShowLanguageControls = hasSeekeConfigBothLanguages || (hasDbBothLanguages && dbLikeCount > 0) || hasApiOnlyOppositeLang;
+  const shouldShowLanguageControls = hasSeekeConfigBothLanguages || (hasDbBothLanguages && dbLikeCount > 0);
   const shouldShowServerControl = hasMultipleSources && !shouldShowLanguageControls && !hasSeekeBothLanguages;
   const sortedSources = useMemo(() => {
     // REGLA ESTRICTA: el reproductor SOLO recibe fuentes del idioma seleccionado.

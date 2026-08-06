@@ -56,8 +56,8 @@ export default function HeaderBar() {
 
 
   useEffect(() => {
+    if (!user) { setNotifications([]); return; }
     const fetchNotifs = async () => {
-      // RLS ya filtra por target_user_id IS NULL OR == auth.uid()
       const { data } = await supabase.from("notifications").select("*").eq("active", true).order("created_at", { ascending: false }).limit(20);
       if (data) setNotifications(data as Notification[]);
     };
@@ -68,7 +68,6 @@ export default function HeaderBar() {
       { event: "INSERT", schema: "public", table: "notifications" },
       (payload) => {
         const n = payload.new as Notification;
-        // Solo aceptar globales o dirigidas a este usuario.
         if (n.target_user_id && n.target_user_id !== user?.id) return;
         setNotifications((prev) => [n, ...prev]);
       }
@@ -180,12 +179,18 @@ export default function HeaderBar() {
       <div className="flex items-center gap-2">
         {user && <XPChip />}
         <div className="relative">
+        {user ? (
         <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur flex items-center justify-center hover:bg-muted transition relative">
           <Bell className="w-4 h-4 text-foreground" />
           {hasUnread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
         </button>
+        ) : (
+        <Link to="/auth" className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur flex items-center justify-center hover:bg-muted transition relative" title="Regístrate para ver notificaciones">
+          <Bell className="w-4 h-4 text-muted-foreground" />
+        </Link>
+        )}
 
-        {showNotifs && (
+        {user && showNotifs && (
           <div
             className="absolute right-0 top-10 w-[22rem] max-h-[30rem] overflow-y-auto rounded-2xl shadow-2xl z-50 animate-fade-in"
             style={{
