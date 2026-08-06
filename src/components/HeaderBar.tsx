@@ -56,8 +56,8 @@ export default function HeaderBar() {
 
 
   useEffect(() => {
+    if (!user) { setNotifications([]); return; }
     const fetchNotifs = async () => {
-      // RLS ya filtra por target_user_id IS NULL OR == auth.uid()
       const { data } = await supabase.from("notifications").select("*").eq("active", true).order("created_at", { ascending: false }).limit(20);
       if (data) setNotifications(data as Notification[]);
     };
@@ -68,7 +68,6 @@ export default function HeaderBar() {
       { event: "INSERT", schema: "public", table: "notifications" },
       (payload) => {
         const n = payload.new as Notification;
-        // Solo aceptar globales o dirigidas a este usuario.
         if (n.target_user_id && n.target_user_id !== user?.id) return;
         setNotifications((prev) => [n, ...prev]);
       }
