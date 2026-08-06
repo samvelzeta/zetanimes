@@ -191,7 +191,7 @@ export default function HeaderBar() {
         </Link>
         )}
 
-        {showNotifs && (
+        {user && showNotifs && (
           <div
             className="absolute right-0 top-10 w-[22rem] max-h-[30rem] overflow-y-auto rounded-2xl shadow-2xl z-50 animate-fade-in"
             style={{
