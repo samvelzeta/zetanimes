@@ -192,7 +192,7 @@ export default function HeaderBar() {
 
         {user && showNotifs && (
           <div
-            className="absolute right-0 top-10 w-[22rem] max-h-[30rem] overflow-y-auto rounded-2xl shadow-2xl z-50 animate-fade-in"
+            className="fixed inset-x-2 top-12 sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:w-[22rem] max-h-[80vh] sm:max-h-[30rem] overflow-y-auto rounded-2xl shadow-2xl z-50 animate-fade-in"
             style={{
               background: "linear-gradient(180deg, #1c1824 0%, #17141d 60%, #131019 100%)",
               backdropFilter: "blur(20px)",

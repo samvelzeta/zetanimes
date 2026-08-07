@@ -96,12 +96,12 @@ export type Rarity = "basico" | "especial" | "raro" | "mitico" | "legendario" | 
 export const RARITIES: Rarity[] = ["basico", "especial", "raro", "mitico", "legendario", "z"];
 
 export const RARITY_META: Record<Rarity, { label: string; color: string; ring: string; glow: string; chance: number }> = {
-  basico: { label: "Básico", color: "#94a3b8", ring: "ring-slate-400/40", glow: "0 0 6px rgba(148,163,184,0.4)", chance: 0.45 },
-  especial: { label: "Especial", color: "#10b981", ring: "ring-emerald-400/50", glow: "0 0 10px rgba(16,185,129,0.5)", chance: 0.3 },
-  raro: { label: "Raro", color: "#3b82f6", ring: "ring-blue-400/60", glow: "0 0 14px rgba(59,130,246,0.6)", chance: 0.15 },
-  mitico: { label: "Mítico", color: "#a855f7", ring: "ring-purple-400/70", glow: "0 0 18px rgba(168,85,247,0.7)", chance: 0.07 },
-  legendario: { label: "Legendario", color: "#f59e0b", ring: "ring-amber-400/80", glow: "0 0 22px rgba(245,158,11,0.85)", chance: 0.025 },
-  z: { label: "Z", color: "#ff005c", ring: "ring-rose-500", glow: "0 0 26px rgba(255,0,92,0.95)", chance: 0.002 },
+  basico: { label: "Básico", color: "#94a3b8", ring: "ring-slate-400/40", glow: "0 0 6px rgba(148,163,184,0.4)", chance: 0.70 },
+  especial: { label: "Especial", color: "#10b981", ring: "ring-emerald-400/50", glow: "0 0 10px rgba(16,185,129,0.5)", chance: 0.20 },
+  raro: { label: "Raro", color: "#3b82f6", ring: "ring-blue-400/60", glow: "0 0 14px rgba(59,130,246,0.6)", chance: 0.07 },
+  mitico: { label: "Mítico", color: "#a855f7", ring: "ring-purple-400/70", glow: "0 0 18px rgba(168,85,247,0.7)", chance: 0.025 },
+  legendario: { label: "Legendario", color: "#f59e0b", ring: "ring-amber-400/80", glow: "0 0 22px rgba(245,158,11,0.85)", chance: 0.0045 },
+  z: { label: "Z", color: "#ff005c", ring: "ring-rose-500", glow: "0 0 26px rgba(255,0,92,0.95)", chance: 0.0005 },
 };
 
 export type CosmeticRequirement =

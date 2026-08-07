@@ -80,7 +80,7 @@ export default function BrokenReports() {
       const epLabel = r.episode_number ? ` (Capítulo ${r.episode_number})` : "";
       const defaultMsg = `"${r.anime_title || r.slug}"${epLabel} fue solucionado. Ya puedes volver a disfrutarlo desde donde lo dejaste.`;
       const finalMsg = customMessage.trim() ? customMessage.trim() : defaultMsg;
-      const link = r.slug ? `/anime/${r.slug}` : null;
+      const link = r.anilist_id ? `/anime/${r.anilist_id}` : (r.slug ? `/anime/${r.slug}` : null);
 
       if (userIds.length > 0) {
         const rows = userIds.map((uid) => ({

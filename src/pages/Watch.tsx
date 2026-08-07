@@ -21,6 +21,7 @@ import AdsterraBanner from "@/components/ads/AdsterraBanner";
 import VastAdOverlay from "@/components/ads/VastAdOverlay";
 import AdblockPlayerOverlay from "@/components/ads/AdblockPlayerOverlay";
 import AnimePlayer from "@/components/video/AnimePlayer";
+import GuestSignupBanner from "@/components/video/GuestSignupBanner";
 import StreamGuard from "@/components/video/StreamGuard";
 import ReportBrokenLink from "@/components/anime/ReportBrokenLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -847,6 +848,8 @@ export default function Watch() {
               );
             })()}
 
+
+          {!user && <GuestSignupBanner />}
 
           {isEpisodeBlocked ? (
             <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3 px-4 text-center">

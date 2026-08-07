@@ -741,6 +741,27 @@ export type Database = {
         }
         Relationships: []
       }
+      gacha_pity: {
+        Row: {
+          pulls_since_legendary: number
+          pulls_since_special: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          pulls_since_legendary?: number
+          pulls_since_special?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          pulls_since_legendary?: number
+          pulls_since_special?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gacha_pulls: {
         Row: {
           created_at: string
