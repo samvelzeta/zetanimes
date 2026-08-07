@@ -848,6 +848,8 @@ export default function Watch() {
             })()}
 
 
+          {!user && <GuestSignupBanner />}
+
           {isEpisodeBlocked ? (
             <div className="aspect-video bg-secondary rounded-xl flex flex-col items-center justify-center gap-3 px-4 text-center">
               <AlertCircle className="w-10 h-10 text-primary" />
