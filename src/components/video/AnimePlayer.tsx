@@ -153,6 +153,13 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   return classified;
 }
 
+function extractEmbedSrc(html: string): string | null {
+  if (typeof window === "undefined") return null;
+  const documentNode = new DOMParser().parseFromString(html, "text/html");
+  const iframeSrc = documentNode.querySelector("iframe")?.getAttribute("src")?.trim();
+  return iframeSrc || null;
+}
+
 export default function AnimePlayer({ sources, anilistId, lang, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, episodeSlots, currentVariant = 1, episodeThumbnails, subtitles = EMPTY_PLAYER_SUBTITLES, fullscreenContainerRef, onControlsVisibilityChange, onEpisodeListToggle, onFullscreenChange }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -240,6 +247,10 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
   }, [episodeKey]);
 
   const currentSource = classified[currentIdx];
+  const normalizedEmbedUrl = useMemo(
+    () => currentSource?.type === "html" ? extractEmbedSrc(currentSource.url) : currentSource?.url || null,
+    [currentSource?.type, currentSource?.url]
+  );
 
   // Auto-fallback to next server on error
   const tryNext = useCallback(() => {
@@ -922,18 +933,19 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
   if (currentSource?.type === "embed" || currentSource?.type === "html") {
     return (
       <div ref={containerRef} id="playerVideo" data-player-video="true" className="relative aspect-video bg-black rounded-xl overflow-hidden">
-        {currentSource.type === "html" ? (
-          <div className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_video]:w-full [&_video]:h-full" dangerouslySetInnerHTML={{ __html: currentSource.url }} />
-        ) : (
+        {normalizedEmbedUrl ? (
           <iframe
-            src={currentSource.url}
-            className="w-full h-full border-0"
+            src={normalizedEmbedUrl}
+            className="absolute inset-0 block w-full h-full border-0"
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write"
             allowFullScreen
-            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms"
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            title={title}
+            referrerPolicy="no-referrer"
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms allow-downloads allow-pointer-lock allow-storage-access-by-user-activation"
+            title={title || `Reproductor ${currentSource.name}`}
           />
-        )}
+        ) : currentSource.type === "html" ? (
+          <div className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_video]:w-full [&_video]:h-full" dangerouslySetInnerHTML={{ __html: currentSource.url }} />
+        ) : null}
         {showServerPickerEnabled && classified.length > 1 && <ServerPicker />}
       </div>
     );
