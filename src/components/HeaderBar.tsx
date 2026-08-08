@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
-import { Bell, X, Users, Sparkles } from "lucide-react";
+import { Bell, X, Users, Sparkles, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,7 +171,7 @@ export default function HeaderBar() {
           <Link to="/recent" className="text-foreground/80 hover:text-primary transition">Recientes</Link>
           <Link to="/directory" className="text-foreground/80 hover:text-primary transition">Directorio</Link>
           <Link to="/ranking" className="text-foreground/80 hover:text-primary transition">Ranking</Link>
-          <Link to="/search" className="text-foreground/80 hover:text-primary transition">Buscar</Link>
+          <Link to="/search" className="text-foreground/80 hover:text-primary transition" aria-label="Buscar"><Search className="w-4 h-4" /></Link>
         </nav>
       </div>
 
