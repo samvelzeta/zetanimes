@@ -895,13 +895,13 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
 
   // Server picker UI (shared between embed and native)
   const ServerPicker = () => (
-    <div className="absolute top-2 right-2 z-20">
+    <div className="absolute top-2 left-2 z-20">
       <button onClick={(e) => { e.stopPropagation(); setShowServerPicker(!showServerPicker); }}
         className="px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs flex items-center gap-1 hover:bg-black/90 transition">
         <Server className="w-3 h-3" /> {currentSource?.name || "Servidor"}
       </button>
       {showServerPicker && (
-        <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[200px] overflow-y-auto">
+        <div className="absolute left-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[200px] overflow-y-auto">
           {classified.map((s, i) => (
             <button key={i} onClick={(e) => { e.stopPropagation(); selectServer(i); }}
               className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
