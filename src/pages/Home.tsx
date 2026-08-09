@@ -12,6 +12,7 @@ import SphereCarousel from "@/components/anime/SphereCarousel";
 import TopRanking from "@/components/anime/TopRanking";
 import FocusCarousel from "@/components/anime/FocusCarousel";
 import AnimeRoulette from "@/components/anime/AnimeRoulette";
+import AppDownloadBanner from "@/components/AppDownloadBanner";
 import { useIsTV } from "@/hooks/useIsTV";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { getApprovedAnimeIds, filterHomeVisible, onApprovedChange } from "@/lib/approved-animes";
