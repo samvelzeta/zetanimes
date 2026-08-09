@@ -193,6 +193,8 @@ export default function Home() {
       <div className="min-h-screen">
         <VerticalCarousel items={filterFn(trending?.media)} />
 
+        <AppDownloadBanner />
+
         <div className="mt-6 space-y-2">
           {/* Above-the-fold: montar inmediato */}
           <LatestEpisodes />
