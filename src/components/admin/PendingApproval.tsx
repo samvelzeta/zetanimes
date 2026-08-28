@@ -370,6 +370,24 @@ export default function PendingApproval() {
     return Array.from(map.values());
   }, [reserveRows, p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet, trackerMeta, approvedSet, hiddenSet]);
 
+  // Detecta en AniList los ids que aún no sabemos si son adultos, los marca en
+  // `adult_animes` y los borra de la reserva. Todo lo adulto sale del admin.
+  useEffect(() => {
+    const ids = airingItemsRaw.map((a) => a.id).filter(Boolean);
+    if (!ids.length) return;
+    let cancel = false;
+    detectAndFlagAdult(ids)
+      .then((set) => { if (!cancel && set.size) setDetectedAdult(new Set(set)); })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, [airingItemsRaw]);
+
+  const airingItems = useMemo<AiringItem[]>(
+    () => airingItemsRaw.filter((a) => !blockedAdult.has(a.id)),
+    [airingItemsRaw, blockedAdult],
+  );
+
+
   // Sólo pedimos precuelas para items que aún estén PENDIENTES (no aprobados,
   // no ocultos). Para aprobados/ocultos no necesitamos expandir la cadena.
   const pendingCandidateIds = useMemo(
