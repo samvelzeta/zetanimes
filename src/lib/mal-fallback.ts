@@ -334,12 +334,14 @@ export async function jikanFallbackPage(
 /** Aplica curación y overrides de status sobre un resultado Jikan. */
 export async function processJikanPage(
   page: PageResult,
-  options?: { skipCuration?: boolean }
+  options?: { skipCuration?: boolean; includeAdult?: boolean }
 ): Promise<PageResult> {
   const { applyAnimeCurationPage } = await import("./anime-curation");
   const curated = await applyAnimeCurationPage(page, options);
-  return {
-    ...curated,
-    media: await applyStatusOverrides(curated.media || []),
-  };
+  let media = await applyStatusOverrides(curated.media || []);
+  // Mismo criterio que AniList: los isAdult se ocultan salvo petición explícita
+  if (!options?.includeAdult) {
+    media = media.filter((m: any) => !m.isAdult);
+  }
+  return { ...curated, media };
 }
