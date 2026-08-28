@@ -9,8 +9,31 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SEEKE_BOT_URL = "https://a24785-7a2f.xs1.onjrnm.link/extraer";
+// URL de respaldo si `app_settings.vps_extractor_url` no existe todavía.
+const FALLBACK_VPS_BASE = "https://a24785-7a2f.xs1.onjrnm.link";
 const ZET_BASE = "https://zetapi-api.samvelzeta.workers.dev/api";
+
+// Caché corta de la URL de la VPS para no consultar app_settings en cada request.
+let vpsUrlCache: { at: number; value: string } | null = null;
+const VPS_URL_TTL_MS = 60_000;
+
+async function getSeekeBotUrl(supabase: ReturnType<typeof createClient>): Promise<string> {
+  if (vpsUrlCache && Date.now() - vpsUrlCache.at < VPS_URL_TTL_MS) return vpsUrlCache.value;
+  let base = FALLBACK_VPS_BASE;
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "vps_extractor_url")
+      .maybeSingle();
+    const raw = (data as any)?.value;
+    if (typeof raw === "string" && raw.trim().startsWith("http")) base = raw.trim();
+  } catch { /* usa el fallback */ }
+  const clean = base.replace(/\/+$/, "");
+  const full = clean.endsWith("/extraer") ? clean : `${clean}/extraer`;
+  vpsUrlCache = { at: Date.now(), value: full };
+  return full;
+}
 
 // 🧠 Caché en memoria del edge (viva mientras la instancia esté caliente).
 // TTL corto para no servir enlaces caducados pero absorbiendo picos de tráfico.
