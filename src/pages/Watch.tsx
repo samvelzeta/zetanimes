@@ -520,7 +520,7 @@ export default function Watch() {
     }
     if (hasFullscreen) {
       const orientation = screen.orientation as ScreenOrientation & {
-        lock?: (o: OrientationLockType) => Promise<void>;
+        lock?: (o: string) => Promise<void>;
       };
       try { orientation.lock?.("landscape").catch(() => undefined); } catch { void 0; }
     }
