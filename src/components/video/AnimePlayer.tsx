@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
 import { Pause, Play, Maximize, Minimize, Volume2, VolumeX, Server, Loader2, AlertCircle, SkipBack, SkipForward, Zap, X, List, ChevronLeft, ChevronRight, Captions, CaptionsOff, Gauge, Check, Type, Film } from "lucide-react";
 import { isWebView } from "@/lib/webview";
@@ -247,7 +247,26 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
     if (autoNextTimer.current) clearInterval(autoNextTimer.current);
   }, [episodeKey]);
 
+  // Cambio de idioma (sub <-> latino): conservar el minuto exacto.
+  // useLayoutEffect corre ANTES del efecto que destruye/reconstruye el stream,
+  // así capturamos currentTime antes de que el <video> se limpie.
+  const prevLangRef = useRef(lang);
+  const prevLangEpisodeKeyRef = useRef(episodeKey);
+  useLayoutEffect(() => {
+    if (prevLangRef.current !== lang && prevLangEpisodeKeyRef.current === episodeKey) {
+      const v = videoRef.current;
+      if (v && Number.isFinite(v.currentTime) && v.currentTime > 0) {
+        resumeTimeRef.current = v.currentTime;
+      }
+      // La calidad elegida pertenece al idioma anterior: invalidarla.
+      selectedQualityEpisodeKeyRef.current = "__lang_switch__";
+    }
+    prevLangRef.current = lang;
+    prevLangEpisodeKeyRef.current = episodeKey;
+  }, [lang, episodeKey]);
+
   const currentSource = classified[currentIdx];
+
   const normalizedEmbedUrl = useMemo(
     () => currentSource?.type === "html" ? extractEmbedSrc(currentSource.url) : currentSource?.url || null,
     [currentSource?.type, currentSource?.url]
