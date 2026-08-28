@@ -97,6 +97,56 @@ function cacheSet<T>(m: Map<string, CacheEntry<T>>, key: string, value: T) {
   }
 }
 
+// ☁️ Cloudflare KV — caché compartido entre TODAS las instancias del edge.
+// Reduce al mínimo las consultas a la base de datos: memoria local → KV → DB.
+const CF_ACCOUNT = Deno.env.get("R2_ACCOUNT_ID") ?? "";
+const CF_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN") ?? "";
+const CF_KV_NS = Deno.env.get("CLOUDFLARE_KV_NAMESPACE_ID") ?? "";
+const KV_ON = Boolean(CF_ACCOUNT && CF_TOKEN && CF_KV_NS);
+const KV_BASE = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_KV_NS}`;
+
+async function kvGet<T>(key: string): Promise<T | null> {
+  if (!KV_ON) return null;
+  try {
+    const res = await fetch(`${KV_BASE}/values/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${CF_TOKEN}` },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch { return null; }
+}
+
+async function kvPut(key: string, value: unknown, ttlSeconds: number): Promise<void> {
+  if (!KV_ON) return;
+  try {
+    const form = new FormData();
+    form.append("value", JSON.stringify(value));
+    form.append("metadata", "{}");
+    await fetch(
+      `${KV_BASE}/values/${encodeURIComponent(key)}?expiration_ttl=${Math.max(60, Math.floor(ttlSeconds))}`,
+      { method: "PUT", headers: { Authorization: `Bearer ${CF_TOKEN}` }, body: form },
+    );
+  } catch { /* la caché es best-effort */ }
+}
+
+async function kvDeletePrefix(prefix: string): Promise<void> {
+  if (!KV_ON) return;
+  try {
+    const res = await fetch(`${KV_BASE}/keys?prefix=${encodeURIComponent(prefix)}&limit=1000`, {
+      headers: { Authorization: `Bearer ${CF_TOKEN}` },
+    });
+    if (!res.ok) return;
+    const json = await res.json();
+    const keys: string[] = (json?.result || []).map((k: any) => k.name).filter(Boolean);
+    if (!keys.length) return;
+    await fetch(`${KV_BASE}/bulk/delete`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${CF_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify(keys),
+    });
+  } catch { /* best-effort */ }
+}
+
 type SeekeSub = { lang?: string; language?: string; srclang?: string; url?: string; src?: string; label?: string };
 type SeekeResp = {
   ok?: boolean;
