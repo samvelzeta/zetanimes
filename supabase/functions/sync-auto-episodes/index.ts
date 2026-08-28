@@ -167,7 +167,7 @@ async function trackOne(supabase: SupaClient, anilistId: number, clientStatus: s
 
 
   const startEp = Math.max((prev as any)?.latest_episode || 0, hintEp, 1);
-  const latest = await fetchSeekeLatest(seekeUrl, startEp);
+  const latest = await fetchSeekeLatest(supabase, seekeUrl, startEp);
   if (!latest) {
     if (prev) {
       await supabase.from("auto_latest_episodes")
