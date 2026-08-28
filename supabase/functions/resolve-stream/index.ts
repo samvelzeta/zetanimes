@@ -450,6 +450,7 @@ Deno.serve(async (req) => {
     // Purga manual desde el admin cuando se edita/borra un enlace Seeke o slug.
     if (action === "invalidate") {
       invalidateAnime(anilistId);
+      await kvDeletePrefix(`stream:${anilistId}:`);
       return new Response(JSON.stringify({ ok: true, invalidated: anilistId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -461,7 +462,14 @@ Deno.serve(async (req) => {
 
     if (action === "latest") {
       const latestKey = `${anilistId}|${lang}`;
-      const cachedLatest = cacheGet(latestCache, latestKey, latestTtl);
+      let cachedLatest = cacheGet(latestCache, latestKey, latestTtl);
+      if (cachedLatest === null) {
+        const kv = await kvGet<{ latest: number }>(`stream:${anilistId}:latest:${lang}`);
+        if (kv && Number.isFinite(Number(kv.latest))) {
+          cachedLatest = Number(kv.latest);
+          cacheSet(latestCache, latestKey, cachedLatest);
+        }
+      }
       if (cachedLatest !== null) {
         return new Response(
           JSON.stringify({ ok: true, latest_episode: cachedLatest, cached: true }),
@@ -482,7 +490,10 @@ Deno.serve(async (req) => {
       const translated = Number.isFinite(latestRaw)
         ? (master.translate ? master.translate(latestRaw) : latestRaw)
         : null;
-      if (translated !== null) cacheSet(latestCache, latestKey, translated);
+      if (translated !== null) {
+        cacheSet(latestCache, latestKey, translated);
+        await kvPut(`stream:${anilistId}:latest:${lang}`, { latest: translated }, latestTtl / 1000);
+      }
       return new Response(
         JSON.stringify({ ok: true, latest_episode: translated }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -490,7 +501,12 @@ Deno.serve(async (req) => {
     }
 
     // action === "episode" — servir de caché caliente si disponible
-    const cachedEp = cacheGet(episodeCache, cacheKey, episodeTtl);
+    const kvEpKey = `stream:${anilistId}:ep:${lang}:${ep}:v${variant}`;
+    let cachedEp = cacheGet(episodeCache, cacheKey, episodeTtl);
+    if (!cachedEp) {
+      const kv = await kvGet<any>(kvEpKey);
+      if (kv?.ok) { cachedEp = kv; cacheSet(episodeCache, cacheKey, kv); }
+    }
     if (cachedEp) {
       return new Response(
         JSON.stringify({ ...cachedEp, cached: true }),
@@ -505,6 +521,7 @@ Deno.serve(async (req) => {
       const slugData = await resolveSlugFallback(supabase, anilistId, ep, lang);
       if (slugData) {
         cacheSet(episodeCache, cacheKey, slugData);
+        await kvPut(kvEpKey, slugData, episodeTtl / 1000);
         return new Response(JSON.stringify(slugData), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -531,6 +548,7 @@ Deno.serve(async (req) => {
       qualities: normalizeQualities(data.calidades ?? data.qualities),
     };
     cacheSet(episodeCache, cacheKey, payload);
+    await kvPut(kvEpKey, payload, episodeTtl / 1000);
     // NO cacheamos latest_episode desde la rama "episode" porque cuando el
     // anime usa bloques ese número es RELATIVO al bloque, no absoluto. La
     // rama "latest" tiene la lógica correcta de traducción.
