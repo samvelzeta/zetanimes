@@ -6,7 +6,15 @@
 - **No modificar** las queries existentes del Home/Search/Directorio — siguen con `isAdult: false`.
 - Crear componente `src/components/admin/AdultPendingManager.tsx` con la misma lógica de Pendientes pero exclusivo para anime 18+.
 - Agregar tab "18+" en el admin sidebar bajo "Contenido".
-- Los animes 18+ aprobados se guardan en `approved_animes` con una columna o flag (o se usa un listado separado) para que nunca aparezcan en Home/Search/Relacionados públicos.
+- Los animes 18+ aprobados se guardan en `approved_animes` con una columna o flag (o se usa un listado separado) para que nunca aparezcan en Home/Search/Relacionados públicos, (no apareceran si no han sido aprovados alli, crear un boton para aprovar por medio de enlace seeke o slug) estos animes solo aparecen si en ajjustes el usuario desactiva el filtro para adultos y saldra una ventana alert indicando que si esta seguro y diciendole que confirma bajo sus propios terminos que es mayor de edad, boton soy mayor de edad, y boton cancelar, hacer funcional  el boton de ajustes con todo esto, y verificar la funcionalidad de los demas otones de ajustes que esten vinvualado a algo.
+
+1/2: verificar los cosmeticos banner, maarco, texto del titulo del nombre, etc, que funcione para el usuario , bloqueado si no lo ha obtenido del gachapon, premium o xp.
+
+hay un problema con el gachapon, sucede que el sistema pity de probabilidades noesta ciendo lo mas bajo posible y esta regalando muy rapido los baners y marcos secretos y lujosos, verificar que el sistema del banner y del marco sean con las probabilidades ams bajas posibles al estilo casino de maquina, usar o mejorar el softare que tiene para el sistema de recompensas y evitar que el usuario gane las cosas faciles
+
+&nbsp;
+
+top semanal solo hay 2 animes, verificar porque no aaparecen los demas, no se esta haciendo la llmaada a anilist de loos tops animes 
 
 ## 2. Reorganizar admin: menú "Conexiones"
 
@@ -15,6 +23,7 @@
   - API Keys (existente)
   - API JSON / Debug (existente)
 - Mover estos items del grupo "Sistema" al nuevo grupo "Conexiones".
+- subir todas las imagenes estaticas que no tienen cambio a kv y cachearlo si es posible de por vida 
 
 ## 3. Sección VPS Config en Admin
 
