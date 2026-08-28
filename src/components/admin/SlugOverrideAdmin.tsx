@@ -47,7 +47,10 @@ export default function SlugOverrideAdmin({ anilistId, animeTitle, coverImage }:
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ["zet-slug-multi"] });
     await queryClient.invalidateQueries({ queryKey: ["anime-detail", anilistId] });
+    // Purga el caché de streams (memoria del edge + Cloudflare KV) del anime.
+    await invalidateStreamCache(anilistId);
   };
+
 
   const handleSave = async () => {
     const clean = slug.trim().toLowerCase();
