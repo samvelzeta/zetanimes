@@ -48,7 +48,7 @@ async function fetchAllRows(
       .select("*")
       .range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
-    const rows = (data || []) as Record<string, unknown>[];
+    const rows = ((data || []) as unknown) as Record<string, unknown>[];
     out.push(...rows);
     onProgress?.(out.length);
     if (rows.length < PAGE_SIZE) break;
