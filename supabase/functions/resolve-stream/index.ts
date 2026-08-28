@@ -340,6 +340,15 @@ Deno.serve(async (req) => {
 
     const master = await resolveMasterUrl(supabase, anilistId, lang, ep, variant);
     if (!master) {
+      // Fallback por slug: si no hay Seeke configurado pero el anime tiene slug,
+      // llamamos a zetapi de Cloudflare directamente para resolver los servidores.
+      const slugData = await resolveSlugFallback(supabase, anilistId, ep, lang);
+      if (slugData) {
+        cacheSet(episodeCache, cacheKey, slugData);
+        return new Response(JSON.stringify(slugData), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
