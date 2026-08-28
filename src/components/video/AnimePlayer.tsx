@@ -58,7 +58,11 @@ interface Props {
   onControlsVisibilityChange?: (visible: boolean) => void;
   onEpisodeListToggle?: (open: boolean) => void;
   onFullscreenChange?: (isFullscreen: boolean) => void;
+  /** Habilita el switch JAP/LAT dentro del player (solo pantalla completa). */
+  canSwitchLang?: boolean;
+  onLangChange?: (lang: "sub" | "latino") => void;
 }
+
 
 type SourceType = "hls" | "mp4" | "embed" | "html" | "seeke";
 
