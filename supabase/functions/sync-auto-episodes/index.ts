@@ -17,7 +17,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SEEKE_BOT_URL = "https://a24785-7a2f.xs1.onjrnm.link/extraer";
+const FALLBACK_VPS = "https://a24785-7a2f.xs1.onjrnm.link/extraer";
+let _vpsCached: { at: number; url: string } | null = null;
+async function getVpsUrl(sb: ReturnType<typeof createClient>): Promise<string> {
+  if (_vpsCached && Date.now() - _vpsCached.at < 60_000) return _vpsCached.url;
+  try {
+    const { data } = await sb.from("app_settings").select("value").eq("key", "vps_extractor_url").maybeSingle();
+    const v = (data as any)?.value;
+    if (typeof v === "string" && v.trim().startsWith("http")) {
+      const base = v.trim().replace(/\/+$/, "");
+      const full = base.endsWith("/extraer") ? base : `${base}/extraer`;
+      _vpsCached = { at: Date.now(), url: full };
+      return full;
+    }
+  } catch {}
+  _vpsCached = { at: Date.now(), url: FALLBACK_VPS };
+  return FALLBACK_VPS;
+}
 const THROTTLE_MS = 1000 * 60 * 60 * 24 * 3; // 3 días
 
 const err = (e: unknown) => (e instanceof Error ? e.message : String(e));
