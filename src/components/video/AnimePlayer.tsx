@@ -492,7 +492,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
       setIsFullscreen(isFull);
       onFullscreenChange?.(isFull);
       const orientation = screen.orientation as ScreenOrientation & {
-        lock?: (orientation: OrientationLockType) => Promise<void>;
+        lock?: (orientation: string) => Promise<void>;
         unlock?: () => void;
       };
       const legacy = window.screen as unknown as {
@@ -760,7 +760,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
     const el = getFullscreenTarget();
     if (!el) return;
     const orientation = screen.orientation as ScreenOrientation & {
-      lock?: (orientation: OrientationLockType) => Promise<void>;
+      lock?: (orientation: string) => Promise<void>;
       unlock?: () => void;
     };
     if (document.fullscreenElement) {
