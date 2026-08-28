@@ -201,7 +201,7 @@ export async function getTrending(page = 1, perPage = 20): Promise<PageResult> {
     async () => {
       const result = await withIdbCache(`trending:${page}:${perPage}`, async () => {
         const data = await queryAniList(
-          `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:TRENDING_DESC,type:ANIME){...MediaFields}}}`,
+          `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:TRENDING_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
           { page, perPage },
           6000,
         );
@@ -220,7 +220,7 @@ export async function getPopular(page = 1, perPage = 20): Promise<PageResult> {
     async () => {
       const result = await withIdbCache(`popular:${page}:${perPage}`, async () => {
         const data = await queryAniList(
-          `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME){...MediaFields}}}`,
+          `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
           { page, perPage },
           6000,
         );
@@ -241,7 +241,7 @@ export async function getRecentlyUpdated(page = 1, perPage = 20): Promise<PageRe
         `recent:${page}:${perPage}`,
         async () => {
           const data = await queryAniList(
-            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:UPDATED_AT_DESC,type:ANIME,status:RELEASING){...MediaFields}}}`,
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:UPDATED_AT_DESC,type:ANIME,status:RELEASING,isAdult:false){...MediaFields}}}`,
             { page, perPage },
             6000,
           );
@@ -264,7 +264,7 @@ export async function getTopRated(page = 1, perPage = 20): Promise<PageResult> {
         `toprated:${page}:${perPage}`,
         async () => {
           const data = await queryAniList(
-            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:SCORE_DESC,type:ANIME,format_in:[TV,MOVIE]){...MediaFields}}}`,
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:SCORE_DESC,type:ANIME,format_in:[TV,MOVIE],isAdult:false){...MediaFields}}}`,
             { page, perPage },
             6000,
           );
@@ -288,7 +288,7 @@ export async function getMovies(page = 1, perPage = 30, genre?: string | null): 
         `movies:${g}:${page}:${perPage}`,
         async () => {
           const data = await queryAniList(
-            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,genre:$genre){...MediaFields}}}`,
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,genre:$genre,isAdult:false){...MediaFields}}}`,
             { page, perPage, genre: g || undefined },
             6000,
           );
@@ -312,7 +312,7 @@ export async function getUpcomingMovies(page = 1, perPage = 20): Promise<PageRes
         `upcoming-movies:${page}:${perPage}`,
         async () => {
           const data = await queryAniList(
-            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,status:NOT_YET_RELEASED){...MediaFields}}}`,
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:POPULARITY_DESC,type:ANIME,format:MOVIE,status:NOT_YET_RELEASED,isAdult:false){...MediaFields}}}`,
             { page, perPage },
             6000,
           );
@@ -336,7 +336,7 @@ export async function getRecentReleasedMovies(page = 1, perPage = 30): Promise<P
         `recent-released-movies:${page}:${perPage}`,
         async () => {
           const data = await queryAniList(
-            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:START_DATE_DESC,type:ANIME,format:MOVIE,status_in:[RELEASING,FINISHED]){...MediaFields}}}`,
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(sort:START_DATE_DESC,type:ANIME,format:MOVIE,status_in:[RELEASING,FINISHED],isAdult:false){...MediaFields}}}`,
             { page, perPage },
             6000,
           );
@@ -377,7 +377,7 @@ export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult>
         `season:${season}:${year}:${page}:${perPage}`,
         async () => {
           const data = await queryAniList(
-            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$season:MediaSeason,$year:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(season:$season,seasonYear:$year,sort:POPULARITY_DESC,type:ANIME){...MediaFields}}}`,
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$season:MediaSeason,$year:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(season:$season,seasonYear:$year,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
             { page, perPage, season, year },
             6000,
           );
@@ -414,7 +414,7 @@ export async function searchAnime(
     const variables: Record<string, unknown> = { ...baseVariables, perPage: limit };
     if (term) variables.search = term;
     return queryAniList(
-      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$search:String,$genres:[String]){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(search:$search,type:ANIME,genre_in:$genres,sort:SEARCH_MATCH){...MediaFields}}}`,
+      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$search:String,$genres:[String]){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(search:$search,type:ANIME,genre_in:$genres,sort:SEARCH_MATCH,isAdult:false){...MediaFields}}}`,
       variables,
       5000,
     );
@@ -526,7 +526,7 @@ export async function getByGenre(genre: string, page = 1, perPage = 20): Promise
         `genre:${genre}:${page}:${perPage}`,
         async () => {
           const data = await queryAniList(
-            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(genre:$genre,sort:POPULARITY_DESC,type:ANIME){...MediaFields}}}`,
+            `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int,$genre:String){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(genre:$genre,sort:POPULARITY_DESC,type:ANIME,isAdult:false){...MediaFields}}}`,
             { page, perPage, genre },
             6000,
           );
