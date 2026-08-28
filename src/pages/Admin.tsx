@@ -74,11 +74,17 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "Conexiones", icon: Database, items: [
+      { key: "vps", label: "VPS Extractor", icon: Zap },
+      { key: "apikeys", label: "API Keys", icon: Key },
+      { key: "apidebug", label: "API JSON", icon: Bug },
+    ],
+  },
+  {
     label: "Sistema", icon: Settings2, items: [
       { key: "apk", label: "APK", icon: ExternalLink },
       { key: "notifs", label: "Notifs", icon: Bell },
       { key: "payment", label: "Pago / Config", icon: CreditCard },
-      { key: "apikeys", label: "API Keys", icon: Key },
     ],
   },
 ];
