@@ -45,9 +45,14 @@ const MEDIA_FRAGMENT = `
   }
 `;
 
-async function processPage<T extends PageResult>(page: T, options?: { skipCuration?: boolean }): Promise<T> {
+async function processPage<T extends PageResult>(page: T, options?: { skipCuration?: boolean; includeAdult?: boolean }): Promise<T> {
   const curated = await applyAnimeCurationPage(page, options);
-  return { ...curated, media: await applyStatusOverrides(curated.media || []) };
+  let media = await applyStatusOverrides(curated.media || []);
+  // Ocultar isAdult de todas las vistas públicas a menos que se pida explícitamente
+  if (!options?.includeAdult) {
+    media = media.filter((m: any) => !m.isAdult);
+  }
+  return { ...curated, media };
 }
 
 // Deduplica requests idénticas en vuelo (evita disparar 3-4 copias por tecla).
