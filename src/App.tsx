@@ -38,7 +38,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       retry: 1,
       staleTime: 1000 * 60 * 30, // 30 min
-      gcTime: 1000 * 60 * 60,     // 1 h
+      gcTime: 1000 * 60 * 60, // 1 h
     },
   },
 });
@@ -51,9 +51,7 @@ const RouteFallback = () => (
 
 // Prefetch de rutas comunes en idle → navegación instantánea sin bajón de fps
 const prefetchRoutes = () => {
-  const idle =
-    (window as any).requestIdleCallback ||
-    ((cb: any) => setTimeout(cb, 1200));
+  const idle = (window as any).requestIdleCallback || ((cb: any) => setTimeout(cb, 1200));
   idle(() => {
     import("@/pages/Directory");
     import("@/pages/AnimeDetail");
@@ -67,51 +65,71 @@ const prefetchRoutes = () => {
 };
 
 const App = () => {
+  // Efecto para precargar rutas
   useEffect(prefetchRoutes, []);
-  return (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ScrollToTop />
-        <AuthProvider>
-          <ProfilesProvider>
-            <PreferencesProvider>
-            <ProfileGate />
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
-              <Route element={<Layout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/search" element={<SearchPage />} />
-                <Route path="/directory" element={<Directory />} />
-                <Route path="/anime/:id" element={<AnimeDetail />} />
-                <Route path="/watch/:id" element={<Watch />} />
-                <Route path="/recent" element={<RecentlyWatched />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/mis-listas" element={<MyLists />} />
-                <Route path="/ranking" element={<Ranking />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/admin" element={<AdminPanel />} />
-                <Route path="/terms" element={<TermsPage />} />
-                <Route path="/dmca" element={<DmcaPage />} />
 
-              </Route>
-              <Route path="/download" element={<DownloadPage />} />
-              <Route path="/verified" element={<VerifiedPage />} />
-              <Route path="/wrapped" element={<Wrapped />} />
-              <Route path="/wrapped/:year" element={<Wrapped />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            </Suspense>
-            </PreferencesProvider>
-          </ProfilesProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  // Efecto para eliminar el badge de Lovable automáticamente
+  useEffect(() => {
+    const removeBadge = () => {
+      const badge = document.getElementById("lovable-badge");
+      if (badge) {
+        badge.remove();
+      }
+    };
+
+    removeBadge();
+
+    const observer = new MutationObserver(() => {
+      removeBadge();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ScrollToTop />
+          <AuthProvider>
+            <ProfilesProvider>
+              <PreferencesProvider>
+                <ProfileGate />
+                <Suspense fallback={<RouteFallback />}>
+                  <Routes>
+                    <Route element={<Layout />}>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/search" element={<SearchPage />} />
+                      <Route path="/directory" element={<Directory />} />
+                      <Route path="/anime/:id" element={<AnimeDetail />} />
+                      <Route path="/watch/:id" element={<Watch />} />
+                      <Route path="/recent" element={<RecentlyWatched />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/mis-listas" element={<MyLists />} />
+                      <Route path="/ranking" element={<Ranking />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/auth" element={<AuthPage />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/admin" element={<AdminPanel />} />
+                      <Route path="/terms" element={<TermsPage />} />
+                      <Route path="/dmca" element={<DmcaPage />} />
+                    </Route>
+                    <Route path="/download" element={<DownloadPage />} />
+                    <Route path="/verified" element={<VerifiedPage />} />
+                    <Route path="/wrapped" element={<Wrapped />} />
+                    <Route path="/wrapped/:year" element={<Wrapped />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </PreferencesProvider>
+            </ProfilesProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
 
