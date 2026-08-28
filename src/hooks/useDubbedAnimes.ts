@@ -27,6 +27,13 @@ function toKebab(s: string): string {
     .replace(/^-|-$/g, "");
 }
 
+/** Invalida el cache de doblajes (usar tras guardar/borrar un enlace latino en admin). */
+export function clearDubbedCache() {
+  dubbedCache = null;
+  dubbedPromise = null;
+  import("@/lib/idb-cache").then(({ idbDelete }) => idbDelete(DUB_IDB_KEY)).catch(() => {});
+}
+
 async function fetchDubbed(): Promise<{ ids: Set<number>; slugs: Set<string> }> {
   if (dubbedCache) return dubbedCache;
   if (!dubbedPromise) {
