@@ -4,6 +4,10 @@ import { Bell, X, Users, Sparkles, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { idbGet, idbSet } from "@/lib/idb-cache";
+
+const NOTIF_CACHE_KEY = "active_notifications";
+const NOTIF_CACHE_TTL = 5 * 60 * 1000;
 import ProfileSelector from "@/components/profiles/ProfileSelector";
 import { useUserXP, rankColor, rankName } from "@/hooks/useUserXP";
 
@@ -58,8 +62,18 @@ export default function HeaderBar() {
   useEffect(() => {
     if (!user) { setNotifications([]); return; }
     const fetchNotifs = async () => {
+      // Caché local 5 min: realtime mantiene la lista al día, así evitamos
+      // una consulta a la base de datos en cada carga de página.
+      const cached = await idbGet<Notification[]>(NOTIF_CACHE_KEY);
+      if (cached) {
+        setNotifications(cached);
+        return;
+      }
       const { data } = await supabase.from("notifications").select("*").eq("active", true).order("created_at", { ascending: false }).limit(20);
-      if (data) setNotifications(data as Notification[]);
+      if (data) {
+        setNotifications(data as Notification[]);
+        idbSet(NOTIF_CACHE_KEY, data as Notification[], NOTIF_CACHE_TTL).catch(() => {});
+      }
     };
     fetchNotifs();
 
@@ -69,7 +83,11 @@ export default function HeaderBar() {
       (payload) => {
         const n = payload.new as Notification;
         if (n.target_user_id && n.target_user_id !== user?.id) return;
-        setNotifications((prev) => [n, ...prev]);
+        setNotifications((prev) => {
+          const next = [n, ...prev];
+          idbSet(NOTIF_CACHE_KEY, next, NOTIF_CACHE_TTL).catch(() => {});
+          return next;
+        });
       }
     ).subscribe();
 

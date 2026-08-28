@@ -14,6 +14,7 @@ import {
 } from "@/lib/video-cache";
 import { getSlugOverride } from "@/lib/slug-overrides";
 import { invalidateStreamCache } from "@/lib/stream-cache";
+import { clearSeekeMasterCache } from "@/lib/anime-prequels";
 import { approveAnime } from "@/lib/approved-animes";
 import { logAdminActivity } from "@/lib/admin-log";
 import { useAuth } from "@/contexts/AuthContext";
@@ -395,7 +396,8 @@ export default function VideoManager() {
         if (wipeError && !String(wipeError.message || "").includes("Protected Seeke")) throw wipeError;
         clearRuntimeVideoCache();
         clearSeekeEpisodeCache();
-        await invalidateStreamCache(selected.id);
+        clearSeekeMasterCache();
+      await invalidateStreamCache(selected.id);
         clearProgress();
         setEpStatuses({});
         // ⇢ Sincroniza tracker: si no existe, se crea y queda en "completed".
@@ -477,7 +479,8 @@ export default function VideoManager() {
 
     clearRuntimeVideoCache();
     clearSeekeEpisodeCache();
-    await invalidateStreamCache(selected.id);
+    clearSeekeMasterCache();
+      await invalidateStreamCache(selected.id);
     clearProgress();
     setEpStatuses({});
     setAutoLog((prev) => ["✔ URL madre guardada; reproducción hará peticiones directas a la VPS", ...prev].slice(0, 12));
@@ -518,6 +521,7 @@ export default function VideoManager() {
         cover: selected.cover,
         totalEpisodes: selected.totalEpisodes,
       });
+      clearSeekeMasterCache();
       await invalidateStreamCache(selected.id);
       await logAdminActivity({
         area: "videos",
@@ -574,6 +578,7 @@ export default function VideoManager() {
     if (sv.episode === 0 || hasSeekeSource(sv.sources)) {
       clearRuntimeVideoCache();
       clearSeekeEpisodeCache();
+      clearSeekeMasterCache();
       await invalidateStreamCache(selected?.id || sv.anilist_id || 0);
     }
   };
