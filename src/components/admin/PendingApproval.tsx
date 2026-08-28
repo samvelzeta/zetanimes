@@ -16,6 +16,7 @@ import { unhideAnime } from "@/lib/hidden-animes";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 import { getStatusLabel } from "@/lib/anilist";
 import { getPendingReserveStats, listPendingReserve, upsertPendingReserveFromAnime, type PendingReserveRow } from "@/lib/pending-reserve";
+import { getAdultAnimeIds, detectAndFlagAdult } from "@/lib/adult-animes";
 
 
 type AiringItem = {
