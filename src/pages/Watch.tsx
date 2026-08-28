@@ -581,6 +581,9 @@ export default function Watch() {
     });
   }, [user, watchedSet, watchedScope]);
 
+  const lastPersistAtRef = useRef(0);
+  const pendingPersistRef = useRef<{ currentTime: number; totalDuration: number; isCompleted: boolean } | null>(null);
+
   const getHistoryBase = useCallback(() => {
     if (!user || !anilistData) return null;
     const cover = anilistData?.coverImage?.extraLarge || anilistData?.coverImage?.large || "";
@@ -648,9 +651,19 @@ export default function Watch() {
 
   // Helper compartido: persiste el progreso a watch_history
   const persistProgress = useCallback(
-    async (currentTime: number, totalDuration: number, isCompleted: boolean) => {
+    async (currentTime: number, totalDuration: number, isCompleted: boolean, force = false) => {
       const base = getHistoryBase();
       if (!base) return;
+
+      // Throttle a nivel de red: como máximo 1 escritura cada 30s por reproducción.
+      // Se fuerza al completar, al hacer seek y al salir de la página.
+      const now = Date.now();
+      if (!force && !isCompleted && now - lastPersistAtRef.current < 30_000) {
+        pendingPersistRef.current = { currentTime, totalDuration, isCompleted };
+        return;
+      }
+      lastPersistAtRef.current = now;
+      pendingPersistRef.current = null;
 
       const entryId = await ensureHistoryEntry();
       if (!entryId) return;
@@ -700,11 +713,12 @@ export default function Watch() {
     // Guardar progreso aprox. cada 5s reales.
     if (zetSlug && video && video.duration > 0) {
       const sinceLastSave = Math.abs(pct - lastSavedProgressRef.current);
-      if (sinceLastSave >= 0.02 || watchTimeRef.current - (lastTickTimeRef as any)._lastSave > 5) {
+      if (sinceLastSave >= 0.01) {
+        // Local (sin coste de DB): siempre.
         saveVideoProgress(zetSlug, selectedEp, currentTime, video.duration);
+        // Remoto: throttled a 30s dentro de persistProgress.
         persistProgress(currentTime, video.duration, pct >= 0.7);
         lastSavedProgressRef.current = pct;
-        (lastTickTimeRef as any)._lastSave = watchTimeRef.current;
       }
     }
 
@@ -720,7 +734,7 @@ export default function Watch() {
     if (!zetSlug || !duration) return;
     saveVideoProgress(zetSlug, selectedEp, currentTime, duration);
     const pct = currentTime / duration;
-    persistProgress(currentTime, duration, pct >= 0.7);
+    persistProgress(currentTime, duration, pct >= 0.7, true);
     lastSavedProgressRef.current = pct;
   }, [zetSlug, selectedEp, persistProgress]);
 
@@ -737,7 +751,7 @@ export default function Watch() {
 
     const ESTIMATED_DURATION = 1440; // 24min
     let elapsed = 0;
-    const tick = 10; // segundos
+    const tick = 60; // segundos (antes 10s → 6x menos escrituras)
     const interval = setInterval(() => {
       elapsed += tick;
       watchTimeRef.current += tick;
