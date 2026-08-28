@@ -10,6 +10,7 @@ const corsHeaders = {
 };
 
 const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
+const ZET_BASE = "https://zetapi-api.samvelzeta.workers.dev/api";
 
 // 🧠 Caché en memoria del edge (viva mientras la instancia esté caliente).
 // TTL corto para no servir enlaces caducados pero absorbiendo picos de tráfico.
@@ -176,6 +177,7 @@ async function resolveMasterForLatest(
 }
 
 async function callScraper(masterUrl: string, ep: number, latestOnly = false): Promise<SeekeResp | null> {
+  const normalizedMaster = normalizeUrl(masterUrl);
   try {
     const r = await fetch(SEEKE_BOT_URL, {
       method: "POST",
@@ -184,7 +186,7 @@ async function callScraper(masterUrl: string, ep: number, latestOnly = false): P
         Accept: "application/json",
       },
       body: JSON.stringify({
-        url: normalizeUrl(masterUrl),
+        url: normalizedMaster,
         ep,
         no_cache: true,
         force: true,
@@ -192,8 +194,41 @@ async function callScraper(masterUrl: string, ep: number, latestOnly = false): P
         ...(latestOnly ? { latest_only: true } : {}),
       }),
     });
-    if (!r.ok) return null;
-    return (await r.json()) as SeekeResp;
+    if (r.ok) {
+      const direct = (await r.json()) as SeekeResp;
+      if (direct?.ok && (latestOnly || direct.embed)) return direct;
+    }
+  } catch {
+    // La VPS puede cambiar de dominio o tener una caída DNS. Continuar por el
+    // proxy protegido para que una caída del host directo no rompa el player.
+  }
+
+  try {
+    const apiKey = Deno.env.get("ZET_API_KEY");
+    const params = new URLSearchParams({
+      url: normalizedMaster,
+      ep: String(ep),
+      no_cache: "1",
+      force: "1",
+      _: String(Date.now()),
+    });
+    if (latestOnly) params.set("latest_only", "1");
+
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (apiKey) {
+      headers["x-api-key"] = apiKey;
+      headers["x-access-token"] = apiKey;
+      headers.apikey = apiKey;
+      headers.token = apiKey;
+      headers.Authorization = `Bearer ${apiKey}`;
+    }
+
+    const fallback = await fetch(`${ZET_BASE}/anime/episode-seeke?${params.toString()}`, {
+      method: "GET",
+      headers,
+    });
+    if (!fallback.ok) return null;
+    return (await fallback.json()) as SeekeResp;
   } catch {
     return null;
   }
