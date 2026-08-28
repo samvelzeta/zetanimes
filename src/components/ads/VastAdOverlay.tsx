@@ -40,6 +40,51 @@ interface Props {
 interface VastCreative {
   mediaUrl: string;
   clickThrough: string | null;
+  /** Píxeles <Impression> de toda la cadena (wrappers incluidos). */
+  impressions: string[];
+  /** <Tracking event="..."> agrupados por evento. */
+  tracking: Record<string, string[]>;
+  /** <ClickTracking> de toda la cadena. */
+  clickTracking: string[];
+}
+
+/** Dispara un pixel de tracking sin bloquear ni romper por CORS. */
+function firePixel(url: string) {
+  if (!url || !/^https?:\/\//i.test(url)) return;
+  try {
+    const img = new Image();
+    img.referrerPolicy = "no-referrer-when-downgrade";
+    img.src = url.replace(/\[CACHEBUSTING\]|%%CACHEBUSTER%%/gi, String(Date.now()));
+  } catch {
+    try { fetch(url, { mode: "no-cors", credentials: "omit", keepalive: true }); } catch { /* noop */ }
+  }
+}
+
+function firePixels(urls: string[] | undefined) {
+  (urls || []).forEach(firePixel);
+}
+
+function collectNodes(doc: Document, sel: string): string[] {
+  return Array.from(doc.querySelectorAll(sel))
+    .map((n) => (n.textContent || "").trim())
+    .filter(Boolean);
+}
+
+function collectTracking(doc: Document): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  Array.from(doc.querySelectorAll("TrackingEvents > Tracking")).forEach((n) => {
+    const ev = (n.getAttribute("event") || "").trim();
+    const url = (n.textContent || "").trim();
+    if (!ev || !url) return;
+    (out[ev] ||= []).push(url);
+  });
+  return out;
+}
+
+function mergeTracking(a: Record<string, string[]>, b: Record<string, string[]>) {
+  const out: Record<string, string[]> = { ...a };
+  Object.entries(b).forEach(([k, v]) => { out[k] = [...(out[k] || []), ...v]; });
+  return out;
 }
 
 async function fetchTextWithTimeout(url: string, timeoutMs: number): Promise<string> {
@@ -65,9 +110,22 @@ async function resolveVastCreative(
   if (remaining <= 0) return null;
   const xmlStr = await fetchTextWithTimeout(url, remaining);
   const doc = new DOMParser().parseFromString(xmlStr, "text/xml");
+  // Los wrappers también traen Impression/Tracking/ClickTracking: hay que
+  // conservarlos y dispararlos, si no la red no cuenta la impresión.
+  const levelImpressions = collectNodes(doc, "Impression");
+  const levelTracking = collectTracking(doc);
+  const levelClicks = collectNodes(doc, "ClickTracking");
+
   const wrapper = doc.querySelector("VASTAdTagURI");
   if (wrapper?.textContent) {
-    return resolveVastCreative(wrapper.textContent.trim(), timeoutMs, depth + 1, deadline);
+    const inner = await resolveVastCreative(wrapper.textContent.trim(), timeoutMs, depth + 1, deadline);
+    if (!inner) return null;
+    return {
+      ...inner,
+      impressions: [...levelImpressions, ...inner.impressions],
+      tracking: mergeTracking(levelTracking, inner.tracking),
+      clickTracking: [...levelClicks, ...inner.clickTracking],
+    };
   }
   const files = Array.from(doc.querySelectorAll("MediaFile"));
   const scored = files
@@ -81,7 +139,13 @@ async function resolveVastCreative(
   const mediaUrl = scored[0]?.url;
   if (!mediaUrl) return null;
   const click = doc.querySelector("ClickThrough")?.textContent?.trim() || null;
-  return { mediaUrl, clickThrough: click };
+  return {
+    mediaUrl,
+    clickThrough: click,
+    impressions: levelImpressions,
+    tracking: levelTracking,
+    clickTracking: levelClicks,
+  };
 }
 
 async function resolveFromPool(pool: string[]): Promise<VastCreative | null> {
@@ -175,13 +239,48 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
     return () => video.removeEventListener("play", pauseBehind);
   }, [show, isPremium]);
 
-  // Autoplay del anuncio.
+  // Autoplay + tracking VAST (impresión, quartiles, complete).
   useEffect(() => {
     if (!show || !creative) return;
     const v = adVideoRef.current;
     if (!v) return;
     v.muted = true;
     v.play().catch(() => undefined);
+
+    // Impresión: se cuenta al mostrar el creativo.
+    firePixels(creative.impressions);
+    firePixels(creative.tracking.creativeView);
+
+    const fired = new Set<string>();
+    const once = (ev: string) => {
+      if (fired.has(ev)) return;
+      fired.add(ev);
+      firePixels(creative.tracking[ev]);
+    };
+
+    const onPlay = () => once("start");
+    const onTime = () => {
+      const d = v.duration;
+      if (!d || !isFinite(d)) return;
+      const p = v.currentTime / d;
+      if (p >= 0.25) once("firstQuartile");
+      if (p >= 0.5) once("midpoint");
+      if (p >= 0.75) once("thirdQuartile");
+      if (p >= 0.98) once("complete");
+    };
+    const onEnded = () => { once("complete"); };
+    const onVolume = () => firePixels(creative.tracking[v.muted ? "mute" : "unmute"]);
+
+    v.addEventListener("playing", onPlay);
+    v.addEventListener("timeupdate", onTime);
+    v.addEventListener("ended", onEnded);
+    v.addEventListener("volumechange", onVolume);
+    return () => {
+      v.removeEventListener("playing", onPlay);
+      v.removeEventListener("timeupdate", onTime);
+      v.removeEventListener("ended", onEnded);
+      v.removeEventListener("volumechange", onVolume);
+    };
   }, [show, creative]);
 
   // Contador lento: 1 tick cada TICK_MS. Cuando llega a 0 aparece la X.
@@ -195,6 +294,8 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
 
   const close = () => {
     if (!canClose) return;
+    firePixels(creative?.tracking.close);
+    firePixels(creative?.tracking.closeLinear);
     // Recién ahora marcamos episodio como visto y alternamos toggle.
     localStorage.setItem(LAST_EP_KEY, episodeKey);
     localStorage.setItem(TOGGLE_KEY, "false");
@@ -208,7 +309,10 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
   };
 
   const handleAdClick = () => {
-    const target = creative?.clickThrough;
+    if (!creative) return;
+    // Los ClickTracking deben dispararse siempre, aunque no haya ClickThrough.
+    firePixels(creative.clickTracking);
+    const target = creative.clickThrough;
     if (!target) return;
     openExternalChrome(target);
   };
@@ -233,7 +337,6 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
           className="w-full h-full object-contain cursor-pointer"
           playsInline
           autoPlay
-          loop
           muted={muted}
           onClick={handleAdClick}
         />
