@@ -1153,7 +1153,7 @@ function PendingCard({
               className="h-8 px-2 rounded-lg bg-orange-600 text-white text-xs font-bold flex items-center justify-center gap-1 hover:bg-orange-500 disabled:opacity-50"
             >
               <Globe className="w-3.5 h-3.5" />
-              Slug
+              Aprobar con Slug
             </button>
           )}
           {!approved && (
