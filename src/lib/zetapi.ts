@@ -101,7 +101,7 @@ export async function getEpisodeServers(slug: string, epNumber: number, lang: st
   return res.data;
 }
 
-const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
+const SEEKE_BOT_URL = "https://a24785-7a2f.xs1.onjrnm.link/extraer";
 export type SeekeQuality = { label: string; url: string };
 type SeekeResolved = { embed: string; episode: number; cached?: boolean; subtitles?: ZetSubtitle[]; latest_episode?: number; qualities?: SeekeQuality[] };
 

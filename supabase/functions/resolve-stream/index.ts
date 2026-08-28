@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
+const SEEKE_BOT_URL = "https://a24785-7a2f.xs1.onjrnm.link/extraer";
 const ZET_BASE = "https://zetapi-api.samvelzeta.workers.dev/api";
 
 // 🧠 Caché en memoria del edge (viva mientras la instancia esté caliente).

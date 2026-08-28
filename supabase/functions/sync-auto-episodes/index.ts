@@ -17,7 +17,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SEEKE_BOT_URL = "https://a24785-ef25.xs001.jrnm.app/extraer";
+const SEEKE_BOT_URL = "https://a24785-7a2f.xs1.onjrnm.link/extraer";
 const THROTTLE_MS = 1000 * 60 * 60 * 24 * 3; // 3 días
 
 const err = (e: unknown) => (e instanceof Error ? e.message : String(e));
