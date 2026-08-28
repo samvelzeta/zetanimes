@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function Index() {
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
+  useEffect(() => 
     const t = window.setTimeout(() => setReady(true), 1200);
     return () => window.clearTimeout(t);
   }, []);
