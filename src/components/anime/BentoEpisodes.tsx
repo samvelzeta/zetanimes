@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { getRecentlyUpdated, getTitle, type AniListMedia } from "@/lib/anilist";
+import { getRecentlyUpdated, getPopular, getTitle, type AniListMedia } from "@/lib/anilist";
 import { Play, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
