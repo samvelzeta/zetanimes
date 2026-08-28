@@ -171,14 +171,27 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
 
       lines.push("SET session_replication_role = DEFAULT;");
       lines.push("COMMIT;");
-      const blob = new Blob([lines.join("\n")], { type: "text/sql" });
+      const sqlText = lines.join("\n");
+      // Comprimir con gzip: reduce drásticamente el tamaño del archivo
+      // (típicamente 80-90% menos que el .sql plano).
+      let blob: Blob;
+      let ext = ".sql";
+      try {
+        const cs = new CompressionStream("gzip");
+        const stream = new Blob([sqlText]).stream().pipeThrough(cs);
+        blob = await new Response(stream).blob();
+        ext = ".sql.gz";
+      } catch {
+        blob = new Blob([sqlText], { type: "text/sql" }); // fallback sin compresión
+      }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `zetanimes-backup${fullMode ? "-full" : ""}-${new Date().toISOString().slice(0, 10)}.sql`;
+      a.download = `zetanimes-backup${fullMode ? "-full" : ""}-${new Date().toISOString().slice(0, 10)}${ext}`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`Backup SQL generado · ${tables.length} tablas · ${totalRows} filas`);
+      const savedKB = Math.round((sqlText.length - blob.size) / 1024);
+      toast.success(`Backup SQL generado · ${tables.length} tablas · ${totalRows} filas${ext.endsWith("gz") ? ` · comprimido (ahorro ~${savedKB} KB)` : ""}`);
       onClose();
     } catch (err: any) {
       toast.error("Error: " + (err?.message || "desconocido"));

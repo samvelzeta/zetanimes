@@ -1,11 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
+import { idbGet, idbSet } from "@/lib/idb-cache";
 
 /**
  * Sistema de vistas reales por anime.
  * - Anti-spam: 1 vista por sesión (sessionStorage)
  * - Storage: tabla `anime_views` (anilist_id + view_count)
  * - Increment: función SQL `increment_anime_view(_anilist_id)`
+ * - Lecturas cacheadas en IndexedDB (TTL 10 min) para reducir consultas a la DB.
  */
+
+const VIEWS_CACHE_TTL = 10 * 60 * 1000;
+const viewsCacheKey = (ids: number[]) => `anime_views:${[...ids].sort((a, b) => a - b).join(",")}`;
 
 const SESSION_KEY = "zet_viewed_animes";
 
@@ -66,13 +71,23 @@ export async function getAnimeViewsBatch(
 ): Promise<Map<number, number>> {
   const map = new Map<number, number>();
   if (!anilistIds.length) return map;
+  const key = viewsCacheKey(anilistIds);
+  const cached = await idbGet<Record<string, number>>(key);
+  if (cached) {
+    anilistIds.forEach((id) => map.set(id, cached[id] || 0));
+    return map;
+  }
   const { data } = await supabase
     .from("anime_views" as any)
     .select("anilist_id, view_count")
     .in("anilist_id", anilistIds);
+  const obj: Record<string, number> = {};
   ((data as any[]) || []).forEach((r: any) => {
-    map.set(r.anilist_id, Number(r.view_count) || 0);
+    const v = Number(r.view_count) || 0;
+    map.set(r.anilist_id, v);
+    obj[r.anilist_id] = v;
   });
+  idbSet(key, obj, VIEWS_CACHE_TTL).catch(() => {});
   return map;
 }
 
