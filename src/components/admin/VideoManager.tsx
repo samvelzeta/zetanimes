@@ -142,10 +142,10 @@ export default function VideoManager() {
         // (romaji/english/native/synonyms) y evita 429 por spam de queries paralelas.
         // Si no encuentra nada, reintentamos con el primer token como fallback (ej: "naruto" desde "naruto shipuden").
         const seen = new Map<number, AniListMedia>();
-        const primary = await searchAnime(val, 1, 30, [], { skipCuration: true }).catch(() => null);
+        const primary = await searchAnime(val, 1, 30, [], { skipCuration: true, includeAdult: true }).catch(() => null);
         for (const m of primary?.media || []) if (!seen.has(m.id)) seen.set(m.id, m);
         if (seen.size === 0 && tokens[0] && tokens[0] !== queryNorm) {
-          const fb = await searchAnime(tokens[0], 1, 30, [], { skipCuration: true }).catch(() => null);
+          const fb = await searchAnime(tokens[0], 1, 30, [], { skipCuration: true, includeAdult: true }).catch(() => null);
           for (const m of fb?.media || []) if (!seen.has(m.id)) seen.set(m.id, m);
         }
         const pool = Array.from(seen.values());
