@@ -114,6 +114,7 @@ export default function VideoManager() {
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
   const [savedVideos, setSavedVideos] = useState<CachedVideo[]>([]);
   const [showSaved, setShowSaved] = useState(false);
+  const [approvingSlug, setApprovingSlug] = useState(false);
   const [autoFetching, setAutoFetching] = useState(false);
   const [autoLog, setAutoLog] = useState<string[]>([]);
   
