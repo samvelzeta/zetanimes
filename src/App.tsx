@@ -68,20 +68,26 @@ const App = () => {
   // Efecto para precargar rutas
   useEffect(prefetchRoutes, []);
 
-  // Efecto para eliminar el badge de Lovable automáticamente
+  // Efecto para eliminar el badge de Lovable automáticamente (versión reforzada)
   useEffect(() => {
     const removeBadge = () => {
+      // 1. Busca por ID exacto
       const badge = document.getElementById("lovable-badge");
-      if (badge) {
-        badge.remove();
-      }
+      if (badge) badge.remove();
+
+      // 2. Busca por coincidencia parcial de ID o clases que Lovable suele inyectar
+      const genericBadges = document.querySelectorAll('[id*="lovable-badge"], [class*="lovable-badge"]');
+      genericBadges.forEach((el) => el.remove());
     };
 
+    // Ejecución inicial
     removeBadge();
 
+    // Observador de cambios en el DOM para detectar inyecciones tardías
     const observer = new MutationObserver(() => {
       removeBadge();
     });
+
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => observer.disconnect();
