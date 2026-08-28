@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { getSlugOverride, saveSlugOverride, deleteSlugOverride } from "@/lib/slug-overrides";
+import { invalidateStreamCache } from "@/lib/stream-cache";
+
 
 interface Props {
   anilistId: number;
