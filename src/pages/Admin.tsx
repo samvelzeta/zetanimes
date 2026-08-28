@@ -61,7 +61,6 @@ const NAV: NavGroup[] = [
       { key: "hidden", label: "Ocultar", icon: X },
       { key: "ranking", label: "Top Ranking", icon: TrendingUp },
       { key: "reports", label: "Reportes", icon: AlertTriangle },
-      { key: "apidebug", label: "API JSON", icon: Bug },
     ],
   },
   {
