@@ -98,7 +98,7 @@ export default function SearchPage() {
 
   const { data, isFetching } = useQuery({
     queryKey: ["search-instant", debouncedQuery],
-    queryFn: () => searchAnime(debouncedQuery, 1, 18),
+    queryFn: () => searchAnime(debouncedQuery, 1, 18, [], { includeAdult: true }),
     enabled: debouncedQuery.trim().length >= 2,
     staleTime: 5 * 60 * 1000,
   });
