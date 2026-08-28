@@ -15,6 +15,7 @@ import {
 import { getSlugOverride } from "@/lib/slug-overrides";
 import { invalidateStreamCache } from "@/lib/stream-cache";
 import { clearSeekeMasterCache } from "@/lib/anime-prequels";
+import { clearDubbedCache } from "@/hooks/useDubbedAnimes";
 import { approveAnime } from "@/lib/approved-animes";
 import { logAdminActivity } from "@/lib/admin-log";
 import { useAuth } from "@/contexts/AuthContext";
@@ -397,6 +398,7 @@ export default function VideoManager() {
         clearRuntimeVideoCache();
         clearSeekeEpisodeCache();
         clearSeekeMasterCache();
+    clearDubbedCache();
       await invalidateStreamCache(selected.id);
         clearProgress();
         setEpStatuses({});
@@ -480,6 +482,7 @@ export default function VideoManager() {
     clearRuntimeVideoCache();
     clearSeekeEpisodeCache();
     clearSeekeMasterCache();
+    clearDubbedCache();
       await invalidateStreamCache(selected.id);
     clearProgress();
     setEpStatuses({});
@@ -522,6 +525,7 @@ export default function VideoManager() {
         totalEpisodes: selected.totalEpisodes,
       });
       clearSeekeMasterCache();
+    clearDubbedCache();
       await invalidateStreamCache(selected.id);
       await logAdminActivity({
         area: "videos",
@@ -579,6 +583,7 @@ export default function VideoManager() {
       clearRuntimeVideoCache();
       clearSeekeEpisodeCache();
       clearSeekeMasterCache();
+    clearDubbedCache();
       await invalidateStreamCache(selected?.id || sv.anilist_id || 0);
     }
   };
