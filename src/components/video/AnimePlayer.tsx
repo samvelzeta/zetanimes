@@ -1185,11 +1185,27 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
             </div>
             <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:gap-3">
 
+            <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:gap-3">
+
+              {/* Switch JAP/LAT — solo en pantalla completa */}
+              {isFullscreen && canSwitchLang && onLangChange && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onLangChange(lang === "latino" ? "sub" : "latino"); showControlsTemp(); }}
+                  className="group flex shrink-0 items-center gap-0.5 rounded-full border border-white/80 bg-transparent px-0.5 py-0.5 text-white/80 transition hover:border-primary hover:text-primary"
+                  aria-label="Cambiar idioma"
+                  title={lang === "latino" ? "Audio: Latino" : "Audio: Japonés"}
+                >
+                  <span className={`rounded-full px-1.5 py-[1px] text-[9px] sm:text-[10px] font-black leading-none tracking-wide transition ${lang !== "latino" ? "bg-white/85 text-black" : "text-white/70"}`}>JAP</span>
+                  <span className={`rounded-full px-1.5 py-[1px] text-[9px] sm:text-[10px] font-black leading-none tracking-wide transition ${lang === "latino" ? "bg-white/85 text-black" : "text-white/70"}`}>LAT</span>
+                </button>
+              )}
+
               {/* Personalizar subtítulos */}
               <div className="relative shrink-0">
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowSubPrefs((v) => !v); showControlsTemp(); }}
                   className="flex h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-auto sm:w-auto items-center justify-center text-white/80 hover:text-primary transition"
+
                   aria-label="Personalizar subtítulos"
                   title="Personalizar subtítulos"
                 >
