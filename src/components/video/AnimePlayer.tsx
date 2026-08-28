@@ -1185,7 +1185,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
             </div>
             <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:gap-3">
 
-            <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-1 sm:gap-3">
+
 
               {/* Switch JAP/LAT — solo en pantalla completa */}
               {isFullscreen && canSwitchLang && onLangChange && (
