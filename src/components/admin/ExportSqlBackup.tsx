@@ -159,7 +159,15 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
         </div>
 
         <div className="p-4 space-y-2 max-h-[50vh] overflow-y-auto">
-          {TABLES_TO_EXPORT.map((t) => (
+          <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${fullMode ? "border-amber-500 bg-amber-500/10" : "border-border bg-secondary/40"}`}>
+            <input type="checkbox" checked={fullMode} onChange={() => setFullMode((v) => !v)} className="accent-amber-500 w-4 h-4" />
+            <div>
+              <span className="text-xs font-bold text-foreground">Descargar ABSOLUTAMENTE TODO</span>
+              <p className="text-[10px] text-muted-foreground">Todas las tablas y todas las filas (paginado, sin límite de 1000). Incluye los ~1.100 animes, enlaces Seeke, slugs, reservas y config.</p>
+            </div>
+          </label>
+
+          {!fullMode && TABLES_TO_EXPORT.map((t) => (
             <label key={t.key} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${selected.has(t.key) ? "border-primary bg-primary/10" : "border-border bg-secondary/40"}`}>
               <input type="checkbox" checked={selected.has(t.key)} onChange={() => toggle(t.key)} className="accent-primary w-4 h-4" />
               <div>
