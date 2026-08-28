@@ -203,10 +203,11 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showSubPrefs, setShowSubPrefs] = useState(false);
   
-  const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs();
-  const { permissions } = usePlanPermissions();
-  const { isOwner } = useAuth();
-  const isPremium = permissions.slug !== "free";
+  const { permissions, ready: permsReady } = usePlanPermissions();
+  const { isOwner, user } = useAuth();
+  // Sin cuenta => nunca premium. Con cuenta, solo si el plan resuelto no es free.
+  const isPremium = !!user && permsReady && permissions.slug !== "free";
+  const { prefs: subPrefs, update: updateSubPrefs, reset: resetSubPrefs } = useSubtitlePrefs(isPremium);
 
   const subtitleOptions = useMemo(
     () => effectiveSubtitles.map((sub, index) => ({ sub, index, language: getSubtitleLanguage(sub) })),
