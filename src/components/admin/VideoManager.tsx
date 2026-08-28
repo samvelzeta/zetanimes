@@ -491,6 +491,51 @@ export default function VideoManager() {
 
 
 
+  // Aprueba el anime SOLO con slug (sin enlace Seeke). El player resolverá los
+  // episodios vía zetapi de Cloudflare y queda registrado en Descargas.
+  const approveWithSlug = async () => {
+    if (!selected) return;
+    if (!selected.slug) return toast.error("El anime no tiene slug");
+    setApprovingSlug(true);
+    try {
+      const { error: slugErr } = await supabase.from("slugs" as any).upsert({
+        anilist_id: selected.id,
+        slug: selected.slug,
+        manual_slug: selected.slug,
+        title: selected.title,
+        cover_image: selected.cover || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "anilist_id" });
+      if (slugErr) throw slugErr;
+
+      const res = await approveAnime(selected.id, `slug:${selected.slug}`);
+      if (!res.success) throw new Error(res.error || "No se pudo aprobar");
+
+      await ensureTrackerCompleted({
+        anilistId: selected.id,
+        title: selected.title,
+        cover: selected.cover,
+        totalEpisodes: selected.totalEpisodes,
+      });
+      await invalidateStreamCache(selected.id);
+      await logAdminActivity({
+        area: "videos",
+        action: "approve_anime_by_slug",
+        summary: `Aprobado por slug desde Videos: ${selected.title} (${selected.slug})`,
+        target_type: "anime",
+        target_id: String(selected.id),
+        anilist_id: selected.id,
+        anime_title: selected.title,
+        metadata: { slug: selected.slug },
+      });
+      toast.success(`Aprobado con slug: ${selected.slug}`);
+    } catch (e: any) {
+      toast.error("Error al aprobar por slug: " + (e?.message || "desconocido"));
+    } finally {
+      setApprovingSlug(false);
+    }
+  };
+
   const editSaved = (sv: CachedVideo) => {
     setSelectedEp(sv.episode === 0 ? 1 : sv.episode);
     setLang(sv.lang as "sub" | "latino");
