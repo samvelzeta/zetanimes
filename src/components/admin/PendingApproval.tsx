@@ -306,7 +306,21 @@ export default function PendingApproval() {
   });
 
 
-  const airingItems = useMemo<AiringItem[]>(() => {
+  // Animes con etiqueta isAdult en AniList: NUNCA se muestran en el admin.
+  const { data: adultArr } = useQuery({
+    queryKey: ["adult-anime-ids"],
+    queryFn: async () => Array.from(await getAdultAnimeIds(true)),
+    staleTime: 1000 * 60 * 10,
+  });
+  const adultSet = useMemo(() => new Set<number>(adultArr || []), [adultArr]);
+  const [detectedAdult, setDetectedAdult] = useState<Set<number>>(new Set());
+  const blockedAdult = useMemo(() => {
+    const s = new Set<number>(adultSet);
+    detectedAdult.forEach((id) => s.add(id));
+    return s;
+  }, [adultSet, detectedAdult]);
+
+  const airingItemsRaw = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
     // Reserva persistente: fuente principal para que la bandeja no dependa de la sesión actual.
     for (const row of reserveRows) {
