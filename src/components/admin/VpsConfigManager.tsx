@@ -57,7 +57,7 @@ export default function VpsConfigManager() {
       setInitial(normalized);
       toast.success("URL de la VPS actualizada");
       await logAdminActivity({
-        area: "sistema",
+        area: "other",
         action: "update_vps_url",
         summary: `URL de VPS actualizada a ${normalized}`,
         target_type: "setting",
