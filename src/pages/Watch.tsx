@@ -694,6 +694,24 @@ export default function Watch() {
     [ensureHistoryEntry, getHistoryBase]
   );
 
+  // Vuelca el último progreso pendiente al salir/ocultar la pestaña o cambiar de episodio.
+  useEffect(() => {
+    const flush = () => {
+      const pending = pendingPersistRef.current;
+      if (!pending) return;
+      pendingPersistRef.current = null;
+      persistProgress(pending.currentTime, pending.totalDuration, pending.isCompleted, true);
+    };
+    const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [persistProgress]);
+
   const handleProgress = useCallback((pct: number) => {
     const video = document.querySelector("video") as HTMLVideoElement | null;
     const currentTime = video?.currentTime || 0;
