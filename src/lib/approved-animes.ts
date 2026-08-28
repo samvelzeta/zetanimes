@@ -1,6 +1,10 @@
 // Whitelist de animes en emisión aprobados para mostrarse en el Home.
 // Los animes con status = "RELEASING" que NO estén aquí se filtran del Home.
 import { supabase } from "@/integrations/supabase/client";
+import { idbGet, idbSet, idbDelete } from "@/lib/idb-cache";
+
+const IDB_KEY = "approved_anime_ids";
+const IDB_TTL = 15 * 60 * 1000; // 15 min
 
 let memCache: Set<number> | null = null;
 let memPromise: Promise<Set<number>> | null = null;
@@ -19,6 +23,13 @@ export async function getApprovedAnimeIds(force = false): Promise<Set<number>> {
   if (!force && memCache) return memCache;
   if (!force && memPromise) return memPromise;
   memPromise = (async () => {
+    if (!force) {
+      const cached = await idbGet<number[]>(IDB_KEY);
+      if (cached) {
+        memCache = new Set(cached);
+        return memCache;
+      }
+    }
     const { data, error } = await supabase
       .from("approved_animes" as any)
       .select("anilist_id");
@@ -26,8 +37,10 @@ export async function getApprovedAnimeIds(force = false): Promise<Set<number>> {
       console.error("[approved-animes] load error", error);
       return new Set<number>();
     }
-    const set = new Set<number>((data || []).map((r: any) => r.anilist_id as number));
+    const ids = (data || []).map((r: any) => r.anilist_id as number);
+    const set = new Set<number>(ids);
     memCache = set;
+    idbSet(IDB_KEY, ids, IDB_TTL).catch(() => {});
     return set;
   })();
   const result = await memPromise;
@@ -53,6 +66,7 @@ export async function approveAnime(anilistId: number, notes?: string): Promise<{
     }, { onConflict: "anilist_id" });
   if (error) return { success: false, error: error.message };
   memCache?.add(anilistId);
+  idbDelete(IDB_KEY).catch(() => {});
   notify();
   return { success: true };
 }
@@ -64,6 +78,7 @@ export async function unapproveAnime(anilistId: number): Promise<{ success: bool
     .eq("anilist_id", anilistId);
   if (error) return { success: false, error: error.message };
   memCache?.delete(anilistId);
+  idbDelete(IDB_KEY).catch(() => {});
   notify();
   return { success: true };
 }
