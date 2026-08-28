@@ -5,8 +5,8 @@ import { Database, Download, Loader2, X } from "lucide-react";
 
 const TABLES_TO_EXPORT = [
   { key: "approved_animes", label: "Animes Aprobados" },
-  { key: "video_cache", label: "Video Cache (Seeke)" },
-  { key: "video_cache_blocks", label: "Bloques Seeke" },
+  { key: "video_cache", label: "Enlaces Seeke / Video Cache (sources completos)" },
+  { key: "video_cache_blocks", label: "Bloques Seeke (configuracion por rangos)" },
   { key: "slugs", label: "Slugs" },
   { key: "anime_status_overrides", label: "Override Estados" },
   { key: "episode_count_overrides", label: "Override Episodios" },
@@ -32,6 +32,7 @@ const EXTRA_TABLES_FULL = [
   "contact_links",
   "app_settings",
   "broken_link_reports",
+  "adult_animes",
 ];
 
 const PAGE_SIZE = 1000;
@@ -63,10 +64,48 @@ function escapeSQL(val: unknown): string {
   return `'${String(val).replace(/'/g, "''")}'`;
 }
 
+// Clave de conflicto por tabla → permite reimportar el .sql sobre una base
+// existente (o vacía) sin duplicar filas: ON CONFLICT ... DO UPDATE.
+const CONFLICT_KEYS: Record<string, string[]> = {
+  approved_animes: ["anilist_id"],
+  video_cache: ["slug", "episode", "lang"],
+  video_cache_blocks: ["id"],
+  slugs: ["anilist_id"],
+  anime_status_overrides: ["id"],
+  episode_count_overrides: ["id"],
+  hidden_home_animes: ["id"],
+  ranking_overrides: ["id"],
+  auto_latest_episodes: ["anilist_id"],
+  pending_anime_reserve: ["anilist_id"],
+  hidden_pending_animes: ["id"],
+  anime_download_tracker: ["id"],
+  anime_episode_downloads: ["id"],
+  anime_views: ["id"],
+  anime_like_counts: ["anilist_id"],
+  anime_synopsis_es: ["anilist_id"],
+  admin_banners: ["id"],
+  admin_frames: ["id"],
+  premium_plan_configs: ["slug"],
+  achievements: ["slug"],
+  roleplay_missions: ["slug"],
+  contact_links: ["id"],
+  app_settings: ["id"],
+  broken_link_reports: ["id"],
+  adult_animes: ["anilist_id"],
+};
+
 function rowToInsert(table: string, row: Record<string, unknown>): string {
   const cols = Object.keys(row);
   const vals = cols.map((c) => escapeSQL(row[c]));
-  return `INSERT INTO ${table} (${cols.join(", ")}) VALUES (${vals.join(", ")});`;
+  const keys = CONFLICT_KEYS[table];
+  let tail = ";";
+  if (keys) {
+    const updatable = cols.filter((c) => !keys.includes(c));
+    tail = updatable.length
+      ? ` ON CONFLICT (${keys.join(", ")}) DO UPDATE SET ${updatable.map((c) => `${c} = EXCLUDED.${c}`).join(", ")};`
+      : ` ON CONFLICT (${keys.join(", ")}) DO NOTHING;`;
+  }
+  return `INSERT INTO public.${table} (${cols.join(", ")}) VALUES (${vals.join(", ")})${tail}`;
 }
 
 interface Props {
@@ -98,10 +137,15 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
     setBusy(true);
     try {
       const lines: string[] = [
-        "-- ZetAnimes SQL Backup",
+        "-- ZetAnimes SQL Backup (restaurable)",
+        "-- Restaurar: psql <conn> -f este-archivo.sql   (o pegarlo en el editor SQL)",
+        "-- Cada INSERT trae ON CONFLICT DO UPDATE: se puede reimportar encima sin duplicar.",
         `-- Generado: ${new Date().toISOString()}`,
         `-- Modo: ${fullMode ? "COMPLETO (todas las filas, sin límite)" : "Selección"}`,
         `-- Tablas: ${tables.join(", ")}`,
+        "",
+        "BEGIN;",
+        "SET session_replication_role = replica; -- evita triggers durante la restauracion",
         "",
       ];
 
@@ -125,6 +169,8 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
         lines.push("");
       }
 
+      lines.push("SET session_replication_role = DEFAULT;");
+      lines.push("COMMIT;");
       const blob = new Blob([lines.join("\n")], { type: "text/sql" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
