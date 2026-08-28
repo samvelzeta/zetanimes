@@ -99,7 +99,33 @@ async function fetchTextWithTimeout(url: string, timeoutMs: number): Promise<str
   }
 }
 
+// --- Filtro de anuncios para adultos -------------------------------------
+// VAST no obliga a declarar categoría, así que combinamos 3 señales:
+// 1) <Category> IAB (IAB25-3 = adult content), 2) dominios conocidos,
+// 3) palabras clave en título/descripción/URLs.
+const ADULT_IAB = /IAB25-3|IAB26|adult|mature/i;
+const ADULT_DOMAINS = /(pornhub|xvideos|xnxx|xhamster|redtube|youporn|brazzers|stripchat|chaturbate|bongacams|livejasmin|camsoda|myfreecams|onlyfans|adultfriendfinder|juicyads|exoclick|trafficjunky|eroadvertising|plugrush|tsyndicate|hentai|nutaku|sexlikereal|adsforsex|clickadu\.com\/adult)/i;
+const ADULT_WORDS = /(porn|xxx|sex\b|sexo\b|hentai|milf|escort|camgirl|webcam\s?sex|desnud|erotic|erótic|nude|naked|fuck|anal\b|boobs|tetas|putas?|prostit|dating\s?18|adult\s?dating|18\+|nsfw)/i;
+
+function isAdultVast(doc: Document, mediaUrl: string, click: string | null): boolean {
+  const cats = Array.from(doc.querySelectorAll("Category, AdCategory"))
+    .map((n) => `${n.textContent || ""} ${n.getAttribute("authority") || ""}`)
+    .join(" ");
+  if (cats && ADULT_IAB.test(cats)) return true;
+
+  const text = [
+    doc.querySelector("AdTitle")?.textContent || "",
+    doc.querySelector("Description")?.textContent || "",
+    doc.querySelector("Advertiser")?.textContent || "",
+    mediaUrl,
+    click || "",
+  ].join(" ");
+
+  return ADULT_DOMAINS.test(text) || ADULT_WORDS.test(text);
+}
+
 async function resolveVastCreative(
+
   url: string,
   timeoutMs: number,
   depth = 0,
