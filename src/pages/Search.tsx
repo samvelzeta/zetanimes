@@ -16,6 +16,7 @@ import {
   Settings,
 } from "lucide-react";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
+import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
 
 const SUGGESTIONS = [
   "Naruto",
