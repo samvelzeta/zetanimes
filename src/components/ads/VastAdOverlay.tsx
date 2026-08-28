@@ -337,7 +337,6 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
           className="w-full h-full object-contain cursor-pointer"
           playsInline
           autoPlay
-          loop
           muted={muted}
           onClick={handleAdClick}
         />
