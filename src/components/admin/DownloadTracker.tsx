@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import MarqueeText from "@/components/MarqueeText";
 import {
   Search, Plus, Loader2, Check, Download, Clock, CheckCircle2,
-  ChevronDown, ChevronUp, RefreshCw, Trash2, Eye, User, FileSpreadsheet,
+  ChevronDown, ChevronUp, RefreshCw, Trash2, Eye, User, FileSpreadsheet, Database,
 } from "lucide-react";
 import { logAdminActivity } from "@/lib/admin-log";
 import { useAuth } from "@/contexts/AuthContext";
@@ -403,9 +403,9 @@ export default function DownloadTracker() {
             onClick={() => setExportOpen(true)}
             disabled={trackers.length === 0}
             className="py-2.5 px-4 rounded-xl bg-green-600 text-white font-bold text-xs hover:bg-green-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Exportar completados a Excel"
+            title="Exportar completados a SQL (Seeke + Slugs)"
           >
-            <FileSpreadsheet className="w-4 h-4" /> Exportar Excel
+            <Database className="w-4 h-4" /> Exportar SQL
           </button>
         )}
       </div>

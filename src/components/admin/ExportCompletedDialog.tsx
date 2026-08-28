@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { X, FileSpreadsheet, Download, Loader2 } from "lucide-react";
+import { X, Database, Download, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ExportTrackerItem {
@@ -17,13 +16,20 @@ export interface ExportTrackerItem {
 type FilterKey = "all" | "movies" | "series" | "releasing" | "finished" | "year";
 
 const FILTERS: { key: FilterKey; label: string; hint: string }[] = [
-  { key: "all", label: "Todos los completados", hint: "Exporta la lista completa" },
+  { key: "all", label: "Todos los completados", hint: "Exporta la lista completa con Seeke + Slugs" },
   { key: "movies", label: "Solo películas", hint: "1 episodio (formato MOVIE)" },
   { key: "series", label: "Solo series", hint: "Más de 1 episodio" },
   { key: "releasing", label: "En emisión", hint: "Todavía emitiéndose" },
   { key: "finished", label: "Finalizados", hint: "Emisión terminada" },
   { key: "year", label: "Por año", hint: "Filtra por año de agregado" },
 ];
+
+function escapeSQL(val: unknown): string {
+  if (val === null || val === undefined) return "NULL";
+  if (typeof val === "number" || typeof val === "boolean") return String(val);
+  if (typeof val === "object") return `'${JSON.stringify(val).replace(/'/g, "''")}'`;
+  return `'${String(val).replace(/'/g, "''")}'`;
+}
 
 interface Props {
   open: boolean;
@@ -65,72 +71,93 @@ export default function ExportCompletedDialog({ open, onClose, items }: Props) {
     }
     setBusy(true);
     try {
-      // Traer capítulos de todos los animes filtrados
-      const ids = filtered.map((f) => f.id);
-      const { data: epsData } = await supabase
-        .from("anime_episode_downloads")
-        .select("tracker_id, episode_number, downloaded")
-        .in("tracker_id", ids)
-        .order("episode_number");
-      const epsByTracker = new Map<string, { episode_number: number; downloaded: boolean }[]>();
-      (epsData || []).forEach((e: any) => {
-        const arr = epsByTracker.get(e.tracker_id) || [];
-        arr.push({ episode_number: e.episode_number, downloaded: e.downloaded });
-        epsByTracker.set(e.tracker_id, arr);
+      const anilistIds = filtered.map((f) => f.anilist_id);
+
+      // Fetch Seeke links
+      const { data: videoCacheData } = await supabase
+        .from("video_cache")
+        .select("anilist_id, slug, episode, lang, sources, anime_title")
+        .in("anilist_id", anilistIds);
+
+      // Fetch Slugs
+      const { data: slugsData } = await supabase
+        .from("slugs")
+        .select("anilist_id, slug, manual_slug, title")
+        .in("anilist_id", anilistIds);
+
+      // Build maps
+      const seekeByAnime = new Map<number, Array<{ slug: string; episode: number; lang: string; sources: any }>>();
+      (videoCacheData || []).forEach((v: any) => {
+        const arr = seekeByAnime.get(v.anilist_id) || [];
+        arr.push({ slug: v.slug, episode: v.episode, lang: v.lang, sources: v.sources });
+        seekeByAnime.set(v.anilist_id, arr);
       });
 
-      // Hoja 1: resumen por anime
-      const summaryRows = filtered.map((i) => {
-        const eps = epsByTracker.get(i.id) || [];
-        const done = eps.filter((e) => e.downloaded).length;
-        return {
-          "AniList ID": i.anilist_id,
-          "Título": i.title,
-          "Episodios totales": i.total_episodes ?? 0,
-          "Episodios descargados": done,
-          "Estado emisión": i.airing_status ?? "—",
-          "Géneros": (i.genres || []).join(", "),
-          "Agregado": new Date(i.created_at).toLocaleDateString("es-ES"),
-        };
+      const slugByAnime = new Map<number, { slug: string | null; manual_slug: string | null }>();
+      (slugsData || []).forEach((s: any) => {
+        slugByAnime.set(s.anilist_id, { slug: s.slug, manual_slug: s.manual_slug });
       });
-      const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
-      wsSummary["!cols"] = [
-        { wch: 10 }, { wch: 50 }, { wch: 12 }, { wch: 14 },
-        { wch: 14 }, { wch: 40 }, { wch: 12 },
+
+      // Generate SQL
+      const lines: string[] = [
+        "-- ZetAnimes Export: Animes + Seeke + Slugs",
+        `-- Generado: ${new Date().toISOString()}`,
+        `-- Filtro: ${filter}${filter === "year" ? ` (${year})` : ""}`,
+        `-- Total animes: ${filtered.length}`,
+        "",
       ];
 
-      // Hoja 2: episodios detallados por anime
-      const epRows: any[] = [];
-      filtered.forEach((i) => {
-        const eps = epsByTracker.get(i.id) || [];
-        if (eps.length === 0) {
-          epRows.push({
-            "Anime": i.title,
-            "AniList ID": i.anilist_id,
-            "Episodio": "—",
-            "Descargado": "—",
-          });
-        } else {
-          eps.forEach((e) => {
-            epRows.push({
-              "Anime": i.title,
-              "AniList ID": i.anilist_id,
-              "Episodio": `EP ${e.episode_number}`,
-              "Descargado": e.downloaded ? "Sí" : "No",
-            });
-          });
+      // Section: Anime info
+      lines.push("-- =====================");
+      lines.push("-- ANIMES INDEXADOS");
+      lines.push("-- =====================");
+      filtered.forEach((anime) => {
+        const slugInfo = slugByAnime.get(anime.anilist_id);
+        const seeke = seekeByAnime.get(anime.anilist_id);
+        lines.push(`-- [${anime.anilist_id}] ${anime.title} | eps: ${anime.total_episodes} | estado: ${anime.airing_status || "?"}`);
+        if (slugInfo) {
+          lines.push(`--   slug: ${slugInfo.slug || "—"} | manual: ${slugInfo.manual_slug || "—"}`);
         }
+        if (seeke && seeke.length > 0) {
+          const langs = [...new Set(seeke.map((s) => s.lang))];
+          lines.push(`--   seeke langs: ${langs.join(", ")} | entries: ${seeke.length}`);
+        }
+        lines.push("");
       });
-      const wsEps = XLSX.utils.json_to_sheet(epRows);
-      wsEps["!cols"] = [{ wch: 50 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, wsSummary, "Animes");
-      XLSX.utils.book_append_sheet(wb, wsEps, "Episodios");
+      // Section: Slugs INSERT
+      lines.push("");
+      lines.push("-- =====================");
+      lines.push(`-- SLUGS (${slugsData?.length || 0} filas)`);
+      lines.push("-- =====================");
+      (slugsData || []).forEach((row: any) => {
+        const cols = Object.keys(row);
+        const vals = cols.map((c) => escapeSQL(row[c]));
+        lines.push(`INSERT INTO slugs (${cols.join(", ")}) VALUES (${vals.join(", ")});`);
+      });
+
+      // Section: Video Cache INSERT
+      lines.push("");
+      lines.push("-- =====================");
+      lines.push(`-- VIDEO_CACHE / Seeke (${videoCacheData?.length || 0} filas)`);
+      lines.push("-- =====================");
+      (videoCacheData || []).forEach((row: any) => {
+        const cols = Object.keys(row);
+        const vals = cols.map((c) => escapeSQL(row[c]));
+        lines.push(`INSERT INTO video_cache (${cols.join(", ")}) VALUES (${vals.join(", ")});`);
+      });
+
+      // Download
+      const blob = new Blob([lines.join("\n")], { type: "text/sql" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
       const stamp = new Date().toISOString().slice(0, 10);
       const suffix = filter === "year" ? `-${year}` : `-${filter}`;
-      XLSX.writeFile(wb, `zetanime-completados${suffix}-${stamp}.xlsx`);
-      toast.success(`Exportados ${filtered.length} animes (${epRows.length} episodios)`);
+      a.download = `zetanimes-animes-seeke${suffix}-${stamp}.sql`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Exportados ${filtered.length} animes con Seeke + Slugs`);
       onClose();
     } catch (err: any) {
       console.error(err);
@@ -151,12 +178,12 @@ export default function ExportCompletedDialog({ open, onClose, items }: Props) {
       >
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-green-500/15 flex items-center justify-center">
-              <FileSpreadsheet className="w-5 h-5 text-green-500" />
+            <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center">
+              <Database className="w-5 h-5 text-blue-500" />
             </div>
             <div>
-              <h3 className="text-sm font-black text-foreground">Exportar a Excel</h3>
-              <p className="text-[10px] text-muted-foreground">Incluye animes y episodios detallados</p>
+              <h3 className="text-sm font-black text-foreground">Exportar SQL (Animes + Seeke)</h3>
+              <p className="text-[10px] text-muted-foreground">Incluye enlaces madre Seeke y slugs editados</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted">
@@ -207,10 +234,10 @@ export default function ExportCompletedDialog({ open, onClose, items }: Props) {
           <button
             onClick={handleExport}
             disabled={filtered.length === 0 || busy}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            {busy ? "Generando..." : "Descargar .xlsx"}
+            {busy ? "Generando..." : "Descargar .sql"}
           </button>
         </div>
       </div>

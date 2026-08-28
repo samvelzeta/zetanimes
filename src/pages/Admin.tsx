@@ -7,7 +7,7 @@ import {
   ArrowLeft, BarChart3, Crown, Store, CreditCard, LayoutDashboard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search, Upload,
   Trash2, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered, Bug, Activity, Tv,
-  ChevronRight, TrendingUp, Zap, FolderCog, Settings2, ShieldCheck, Image as ImageIcon,
+  ChevronRight, TrendingUp, Zap, FolderCog, Settings2, ShieldCheck, Image as ImageIcon, Database,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,6 +35,7 @@ import PendingApproval from "@/components/admin/PendingApproval";
 import { logAdminActivity } from "@/lib/admin-log";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 import { getPendingReserveStats, type PendingReserveStats } from "@/lib/pending-reserve";
+import ExportSqlBackup from "@/components/admin/ExportSqlBackup";
 
 // Tabs reservados solo para owner
 const OWNER_ONLY = new Set(["premium", "payment", "apikeys", "roles", "activity", "apk", "notifs"]);
@@ -246,6 +247,7 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
   const [reserveStats, setReserveStats] = useState<PendingReserveStats | null>(null);
   const [recent, setRecent] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sqlBackupOpen, setSqlBackupOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -332,8 +334,17 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
               <a.icon className="w-4 h-4" /> {a.label}
             </button>
           ))}
+          <button
+            onClick={() => setSqlBackupOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:opacity-90 transition border border-border"
+            title="Exportar backup SQL de las tablas críticas"
+          >
+            <Database className="w-4 h-4" /> Backup SQL
+          </button>
         </div>
       </section>
+
+      <ExportSqlBackup open={sqlBackupOpen} onClose={() => setSqlBackupOpen(false)} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Activity */}
