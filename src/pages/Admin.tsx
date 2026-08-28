@@ -7,7 +7,7 @@ import {
   ArrowLeft, BarChart3, Crown, Store, CreditCard, LayoutDashboard,
   Bell, MessageSquare, Users, Shield, X, Loader2, Search, Upload,
   Trash2, Plus, ExternalLink, Key, Link2, Film, AlertTriangle, ListOrdered, Bug, Activity, Tv,
-  ChevronRight, TrendingUp, Zap, FolderCog, Settings2, ShieldCheck, Image as ImageIcon,
+  ChevronRight, TrendingUp, Zap, FolderCog, Settings2, ShieldCheck, Image as ImageIcon, Database,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
