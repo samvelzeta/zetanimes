@@ -165,7 +165,10 @@ async function resolveVastCreative(
   const mediaUrl = scored[0]?.url;
   if (!mediaUrl) return null;
   const click = doc.querySelector("ClickThrough")?.textContent?.trim() || null;
+  // Descartamos creatividades para adultos: no se muestran ni se trackean.
+  if (isAdultVast(doc, mediaUrl, click)) return null;
   return {
+
     mediaUrl,
     clickThrough: click,
     impressions: levelImpressions,
