@@ -5,7 +5,7 @@ import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovi
 import { getApprovedAnimeIds, approveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch, ChevronDown, Film, Tv } from "lucide-react";
+import { Loader2, Check, X, Link2, Search, ShieldCheck, Play, Settings2, Save, GitBranch, ChevronDown, Film, Tv, Globe } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
@@ -1094,7 +1094,7 @@ function PendingCard({
           />
         </div>
 
-        <div className="flex gap-2 mt-auto">
+        <div className="flex flex-wrap gap-2 mt-auto">
           <button
             onClick={handleApprove}
             disabled={busy || (!seekeUrl.trim() && !existingUrl)}
@@ -1103,6 +1103,59 @@ function PendingCard({
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
             {approved ? "Actualizar" : "Aprobar"}
           </button>
+          {!approved && (
+            <button
+              onClick={async () => {
+                if (!confirm(`¿Aprobar "${title}" por Slug (sin Seeke)?\nEl player resolverá episodios vía zetapi de Cloudflare.`)) return;
+                setBusy(true);
+                try {
+                  // Guardar slug en la tabla slugs
+                  await supabase.from("slugs" as any).upsert({
+                    anilist_id: anime.id,
+                    slug,
+                    title,
+                    cover_image: cover || null,
+                    updated_at: new Date().toISOString(),
+                  }, { onConflict: "anilist_id" });
+                  // Aprobar el anime
+                  const res = await approveAnime(anime.id, `slug:${slug}`);
+                  if (!res.success) throw new Error(res.error || "No se pudo aprobar");
+                  try {
+                    await supabase.from("anime_download_tracker").upsert({
+                      anilist_id: anime.id,
+                      title,
+                      cover_image: cover || null,
+                      total_episodes: anime.episodes || 0,
+                      status: "completed",
+                      airing_status: anime.status || null,
+                      updated_at: new Date().toISOString(),
+                    } as any, { onConflict: "anilist_id" });
+                  } catch {}
+                  try { await unhideAnime(anime.id); } catch {}
+                  await logAdminActivity({
+                    area: "videos",
+                    action: "approve_anime_by_slug",
+                    summary: `Aprobado por slug: ${title} (${slug})`,
+                    target_type: "anime",
+                    target_id: String(anime.id),
+                    anilist_id: anime.id,
+                    anime_title: title,
+                    metadata: { slug, lang },
+                  });
+                  toast.success(`Aprobado por slug: ${slug}`);
+                  onChanged();
+                } catch (e: any) {
+                  toast.error(e?.message || "Error al aprobar por slug");
+                } finally { setBusy(false); }
+              }}
+              disabled={busy}
+              title="Aprobar sin Seeke — usa zetapi Cloudflare por slug"
+              className="h-8 px-2 rounded-lg bg-orange-600 text-white text-xs font-bold flex items-center justify-center gap-1 hover:bg-orange-500 disabled:opacity-50"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              Slug
+            </button>
+          )}
           {!approved && (
             <button
               onClick={handleSaveOnly}

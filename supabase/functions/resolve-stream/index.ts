@@ -263,6 +263,64 @@ async function callScraper(
   }
 }
 
+/**
+ * Fallback por slug: cuando no hay URL madre Seeke, busca el slug del anime
+ * en la tabla `slugs` y llama a zetapi Cloudflare `/anime/:slug/episode/:ep?lang=`.
+ */
+async function resolveSlugFallback(
+  supabase: ReturnType<typeof createClient>,
+  anilistId: number,
+  ep: number,
+  lang: string,
+): Promise<any | null> {
+  const { data: slugRow } = await supabase
+    .from("slugs")
+    .select("slug, manual_slug")
+    .eq("anilist_id", anilistId)
+    .maybeSingle();
+  const slug = (slugRow as any)?.manual_slug || (slugRow as any)?.slug;
+  if (!slug) return null;
+
+  const apiKey = Deno.env.get("ZET_API_KEY");
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (apiKey) {
+    headers["x-api-key"] = apiKey;
+    headers["x-access-token"] = apiKey;
+    headers.apikey = apiKey;
+    headers.token = apiKey;
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+
+  try {
+    const url = `${ZET_BASE}/anime/${encodeURIComponent(slug)}/episode/${ep}?lang=${lang}`;
+    const res = await fetch(url, { method: "GET", headers });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json?.success || !json?.data) return null;
+    const d = json.data;
+    const servers = Array.isArray(d.servers) ? d.servers : [];
+    const bestEmbed = servers.find((s: any) => s?.embed)?.embed || null;
+    if (!bestEmbed) return null;
+    return {
+      ok: true,
+      embed: bestEmbed,
+      episode: d.number || ep,
+      cached: false,
+      subtitles: Array.isArray(d.subtitles) ? d.subtitles.map((s: any) => ({
+        lang: s?.lang || "es",
+        url: s?.url || "",
+        label: s?.label,
+      })).filter((s: any) => s.url) : [],
+      latest_episode: null,
+      qualities: [],
+      servers,
+      source: "slug",
+    };
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -340,6 +398,15 @@ Deno.serve(async (req) => {
 
     const master = await resolveMasterUrl(supabase, anilistId, lang, ep, variant);
     if (!master) {
+      // Fallback por slug: si no hay Seeke configurado pero el anime tiene slug,
+      // llamamos a zetapi de Cloudflare directamente para resolver los servidores.
+      const slugData = await resolveSlugFallback(supabase, anilistId, ep, lang);
+      if (slugData) {
+        cacheSet(episodeCache, cacheKey, slugData);
+        return new Response(JSON.stringify(slugData), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
