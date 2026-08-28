@@ -334,8 +334,17 @@ function DashboardTab({ isOwner, setTab }: { isOwner: boolean; setTab: (k: strin
               <a.icon className="w-4 h-4" /> {a.label}
             </button>
           ))}
+          <button
+            onClick={() => setSqlBackupOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:opacity-90 transition border border-border"
+            title="Exportar backup SQL de las tablas críticas"
+          >
+            <Database className="w-4 h-4" /> Backup SQL
+          </button>
         </div>
       </section>
+
+      <ExportSqlBackup open={sqlBackupOpen} onClose={() => setSqlBackupOpen(false)} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Activity */}
