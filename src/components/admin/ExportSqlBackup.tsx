@@ -179,8 +179,10 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
         </div>
 
         <div className="p-4 border-t border-border flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground">{selected.size} tabla{selected.size !== 1 ? "s" : ""}</span>
-          <button onClick={handleExport} disabled={selected.size === 0 || busy} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition disabled:opacity-50">
+          <span className="text-[11px] text-muted-foreground truncate max-w-[55%]">
+            {progress || (fullMode ? `${TABLES_TO_EXPORT.length + EXTRA_TABLES_FULL.length} tablas (todo)` : `${selected.size} tabla${selected.size !== 1 ? "s" : ""}`)}
+          </span>
+          <button onClick={handleExport} disabled={(!fullMode && selected.size === 0) || busy} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition disabled:opacity-50">
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             {busy ? "Generando..." : "Descargar .sql"}
           </button>
