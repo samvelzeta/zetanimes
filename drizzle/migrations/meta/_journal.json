@@ -8,6 +8,13 @@
       "when": 1787954201497,
       "tag": "0000_create_adult_animes",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787959078301,
+      "tag": "0001_perf_indexes_hot_paths",
+      "breakpoints": true
     }
   ]
 }
