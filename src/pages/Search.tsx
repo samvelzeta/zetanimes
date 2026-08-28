@@ -16,6 +16,7 @@ import {
   Settings,
 } from "lucide-react";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
+import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
 
 const SUGGESTIONS = [
   "Naruto",
@@ -98,7 +99,7 @@ export default function SearchPage() {
 
   const { data, isFetching } = useQuery({
     queryKey: ["search-instant", debouncedQuery],
-    queryFn: () => searchAnime(debouncedQuery, 1, 18),
+    queryFn: () => searchAnime(debouncedQuery, 1, 18, [], { includeAdult: true }),
     enabled: debouncedQuery.trim().length >= 2,
     staleTime: 5 * 60 * 1000,
   });
@@ -116,7 +117,18 @@ export default function SearchPage() {
     refetchOnMount: "always",
   });
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
-  const allAnimes = (data?.media || []).filter((a) => !hiddenSet.has(a.id));
+
+  // Los títulos marcados isAdult solo son visibles en búsqueda si ya tienen enlace madre Seeke guardado.
+  const { data: seekeIds } = useQuery({
+    queryKey: ["search-seeke-master-ids"],
+    queryFn: async () => Array.from(await getAnimeIdsWithSeekeMaster()),
+    staleTime: 1000 * 60 * 5,
+  });
+  const seekeSet = useMemo(() => new Set<number>(seekeIds || []), [seekeIds]);
+
+  const allAnimes = (data?.media || []).filter(
+    (a) => !hiddenSet.has(a.id) && (!(a as any).isAdult || seekeSet.has(a.id)),
+  );
   const animes = useMemo(() => {
     const filter = FILTERS.find((f) => f.key === activeFilter);
     if (!filter) return allAnimes;

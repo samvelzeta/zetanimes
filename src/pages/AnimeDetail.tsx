@@ -191,7 +191,8 @@ export default function AnimeDetail() {
   const cover = anime.coverImage?.extraLarge || anime.coverImage?.large;
   const description = translatedDesc || rawDescription;
   const isLongDesc = description.length > SYNOPSIS_LIMIT;
-  const recommendations = anime.recommendations?.nodes?.map((n: any) => n.mediaRecommendation).filter(Boolean) || [];
+  // Nunca sugerir títulos marcados isAdult en relacionados/recomendados
+  const recommendations = anime.recommendations?.nodes?.map((n: any) => n.mediaRecommendation).filter((m: any) => m && !m.isAdult) || [];
   const streamingEpisodes = (anime as any).streamingEpisodes as { title?: string; thumbnail?: string }[] | undefined;
   const totalEps = anime.nextAiringEpisode?.episode ? anime.nextAiringEpisode.episode - 1 : (anime.episodes || 0);
   const studio = (anime as any).studios?.nodes?.find((s: any) => s.isAnimationStudio)?.name || (anime as any).studios?.nodes?.[0]?.name;
@@ -472,6 +473,7 @@ export default function AnimeDetail() {
           const all = (anime.relations?.edges || []).filter(
             (e: any) =>
               e.node.type === "ANIME" &&
+              !e.node.isAdult &&
               (e.relationType === "SEQUEL" ||
                 e.relationType === "PREQUEL" ||
                 e.relationType === "SIDE_STORY")
