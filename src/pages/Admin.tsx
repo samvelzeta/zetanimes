@@ -209,7 +209,8 @@ function AdminSidebar({ tab, setTab, isOwner }: { tab: string; setTab: (k: strin
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      {/* pb extra: evita que el nav inferior del navegador/app tape los últimos ítems */}
+      <SidebarContent className="pb-32 lg:pb-8">
         {NAV.map((group) => {
           const items = group.items.filter((i) => isOwner || !OWNER_ONLY.has(i.key));
           if (items.length === 0) return null;

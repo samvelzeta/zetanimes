@@ -37,11 +37,51 @@ async function getSeekeBotUrl(supabase: ReturnType<typeof createClient>): Promis
 
 // 🧠 Caché en memoria del edge (viva mientras la instancia esté caliente).
 // TTL corto para no servir enlaces caducados pero absorbiendo picos de tráfico.
-const EPISODE_TTL_MS = 150_000; // 2.5 min
-const LATEST_TTL_MS = 60_000;   // 1 min
+// Los animes EN EMISIÓN cambian seguido → TTL corto.
+// Los FINALIZADOS casi nunca cambian → TTL largo (menos consultas a la DB).
+const EPISODE_TTL_RELEASING_MS = 150_000;      // 2.5 min
+const EPISODE_TTL_FINISHED_MS = 6 * 60 * 60_000; // 6 h
+const LATEST_TTL_RELEASING_MS = 60_000;        // 1 min
+const LATEST_TTL_FINISHED_MS = 60 * 60_000;    // 1 h
 type CacheEntry<T> = { at: number; value: T };
 const episodeCache = new Map<string, CacheEntry<any>>();
 const latestCache = new Map<string, CacheEntry<number | null>>();
+
+// Caché del estado de emisión (para decidir el TTL) — 1 h.
+const statusCache = new Map<number, CacheEntry<string>>();
+async function getAiringStatus(
+  supabase: ReturnType<typeof createClient>,
+  anilistId: number,
+): Promise<string> {
+  const hit = statusCache.get(anilistId);
+  if (hit && Date.now() - hit.at < 3_600_000) return hit.value;
+  let status = "UNKNOWN";
+  try {
+    const { data } = await supabase
+      .from("anime_download_tracker")
+      .select("airing_status")
+      .eq("anilist_id", anilistId)
+      .maybeSingle();
+    if ((data as any)?.airing_status) status = String((data as any).airing_status).toUpperCase();
+  } catch { /* usa UNKNOWN */ }
+  statusCache.set(anilistId, { at: Date.now(), value: status });
+  return status;
+}
+function isReleasing(status: string) {
+  return status === "RELEASING" || status === "NOT_YET_RELEASED" || status === "UNKNOWN";
+}
+
+/** Anula el caché caliente de un anime (lo llama el admin al editar/borrar enlaces). */
+function invalidateAnime(anilistId: number) {
+  for (const k of [...episodeCache.keys()]) {
+    if (k.startsWith(`${anilistId}|`)) episodeCache.delete(k);
+  }
+  for (const k of [...latestCache.keys()]) {
+    if (k.startsWith(`${anilistId}|`)) latestCache.delete(k);
+  }
+  statusCache.delete(anilistId);
+}
+
 function cacheGet<T>(m: Map<string, CacheEntry<T>>, key: string, ttl: number): T | null {
   const hit = m.get(key);
   if (!hit) return null;
@@ -357,9 +397,21 @@ Deno.serve(async (req) => {
   try {
     const cacheKey = `${anilistId}|${lang}|${ep}|v${variant}`;
 
+    // Purga manual desde el admin cuando se edita/borra un enlace Seeke o slug.
+    if (action === "invalidate") {
+      invalidateAnime(anilistId);
+      return new Response(JSON.stringify({ ok: true, invalidated: anilistId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const releasing = isReleasing(await getAiringStatus(supabase, anilistId));
+    const episodeTtl = releasing ? EPISODE_TTL_RELEASING_MS : EPISODE_TTL_FINISHED_MS;
+    const latestTtl = releasing ? LATEST_TTL_RELEASING_MS : LATEST_TTL_FINISHED_MS;
+
     if (action === "latest") {
       const latestKey = `${anilistId}|${lang}`;
-      const cachedLatest = cacheGet(latestCache, latestKey, LATEST_TTL_MS);
+      const cachedLatest = cacheGet(latestCache, latestKey, latestTtl);
       if (cachedLatest !== null) {
         return new Response(
           JSON.stringify({ ok: true, latest_episode: cachedLatest, cached: true }),
@@ -388,7 +440,7 @@ Deno.serve(async (req) => {
     }
 
     // action === "episode" — servir de caché caliente si disponible
-    const cachedEp = cacheGet(episodeCache, cacheKey, EPISODE_TTL_MS);
+    const cachedEp = cacheGet(episodeCache, cacheKey, episodeTtl);
     if (cachedEp) {
       return new Response(
         JSON.stringify({ ...cachedEp, cached: true }),

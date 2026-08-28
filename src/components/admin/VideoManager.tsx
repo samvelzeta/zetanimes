@@ -13,6 +13,9 @@ import {
   clearRuntimeVideoCache,
 } from "@/lib/video-cache";
 import { getSlugOverride } from "@/lib/slug-overrides";
+import { invalidateStreamCache } from "@/lib/stream-cache";
+import { approveAnime } from "@/lib/approved-animes";
+import { logAdminActivity } from "@/lib/admin-log";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -111,6 +114,7 @@ export default function VideoManager() {
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
   const [savedVideos, setSavedVideos] = useState<CachedVideo[]>([]);
   const [showSaved, setShowSaved] = useState(false);
+  const [approvingSlug, setApprovingSlug] = useState(false);
   const [autoFetching, setAutoFetching] = useState(false);
   const [autoLog, setAutoLog] = useState<string[]>([]);
   
@@ -391,6 +395,7 @@ export default function VideoManager() {
         if (wipeError && !String(wipeError.message || "").includes("Protected Seeke")) throw wipeError;
         clearRuntimeVideoCache();
         clearSeekeEpisodeCache();
+        await invalidateStreamCache(selected.id);
         clearProgress();
         setEpStatuses({});
         // ⇢ Sincroniza tracker: si no existe, se crea y queda en "completed".
@@ -472,6 +477,7 @@ export default function VideoManager() {
 
     clearRuntimeVideoCache();
     clearSeekeEpisodeCache();
+    await invalidateStreamCache(selected.id);
     clearProgress();
     setEpStatuses({});
     setAutoLog((prev) => ["✔ URL madre guardada; reproducción hará peticiones directas a la VPS", ...prev].slice(0, 12));
@@ -485,6 +491,51 @@ export default function VideoManager() {
   // para no dejar toda la app sin fuentes de video.
 
 
+
+  // Aprueba el anime SOLO con slug (sin enlace Seeke). El player resolverá los
+  // episodios vía zetapi de Cloudflare y queda registrado en Descargas.
+  const approveWithSlug = async () => {
+    if (!selected) return;
+    if (!selected.slug) return toast.error("El anime no tiene slug");
+    setApprovingSlug(true);
+    try {
+      const { error: slugErr } = await supabase.from("slugs" as any).upsert({
+        anilist_id: selected.id,
+        slug: selected.slug,
+        manual_slug: selected.slug,
+        title: selected.title,
+        cover_image: selected.cover || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "anilist_id" });
+      if (slugErr) throw slugErr;
+
+      const res = await approveAnime(selected.id, `slug:${selected.slug}`);
+      if (!res.success) throw new Error(res.error || "No se pudo aprobar");
+
+      await ensureTrackerCompleted({
+        anilistId: selected.id,
+        title: selected.title,
+        cover: selected.cover,
+        totalEpisodes: selected.totalEpisodes,
+      });
+      await invalidateStreamCache(selected.id);
+      await logAdminActivity({
+        area: "videos",
+        action: "approve_anime_by_slug",
+        summary: `Aprobado por slug desde Videos: ${selected.title} (${selected.slug})`,
+        target_type: "anime",
+        target_id: String(selected.id),
+        anilist_id: selected.id,
+        anime_title: selected.title,
+        metadata: { slug: selected.slug },
+      });
+      toast.success(`Aprobado con slug: ${selected.slug}`);
+    } catch (e: any) {
+      toast.error("Error al aprobar por slug: " + (e?.message || "desconocido"));
+    } finally {
+      setApprovingSlug(false);
+    }
+  };
 
   const editSaved = (sv: CachedVideo) => {
     setSelectedEp(sv.episode === 0 ? 1 : sv.episode);
@@ -523,6 +574,7 @@ export default function VideoManager() {
     if (sv.episode === 0 || hasSeekeSource(sv.sources)) {
       clearRuntimeVideoCache();
       clearSeekeEpisodeCache();
+      await invalidateStreamCache(selected?.id || sv.anilist_id || 0);
     }
   };
 
@@ -552,6 +604,15 @@ export default function VideoManager() {
             </p>
             <p className="text-[10px] text-muted-foreground">{totalEps} eps · {savedVideos.length} guardados</p>
           </div>
+          <button
+            onClick={approveWithSlug}
+            disabled={approvingSlug}
+            title="Aprobar este anime usando su slug (sin enlace Seeke). El player resolverá por zetapi Cloudflare."
+            className="h-8 px-3 rounded-lg bg-orange-600 text-white text-xs font-bold flex items-center gap-1 hover:bg-orange-500 disabled:opacity-50 flex-shrink-0"
+          >
+            {approvingSlug ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+            Aprobar con Slug
+          </button>
           <button onClick={() => setShowSaved(!showSaved)} className="text-xs text-primary hover:underline px-2 flex-shrink-0">
             {showSaved ? "Ocultar" : "Ver guardados"}
           </button>

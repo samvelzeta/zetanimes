@@ -15,6 +15,47 @@ const TABLES_TO_EXPORT = [
   { key: "auto_latest_episodes", label: "Últimos Episodios" },
 ];
 
+// Modo "TODO": incluye además catálogo, reservas, cosméticos y config.
+const EXTRA_TABLES_FULL = [
+  "pending_anime_reserve",
+  "hidden_pending_animes",
+  "anime_download_tracker",
+  "anime_episode_downloads",
+  "anime_views",
+  "anime_like_counts",
+  "anime_synopsis_es",
+  "admin_banners",
+  "admin_frames",
+  "premium_plan_configs",
+  "achievements",
+  "roleplay_missions",
+  "contact_links",
+  "app_settings",
+  "broken_link_reports",
+];
+
+const PAGE_SIZE = 1000;
+
+/** Descarga TODAS las filas de una tabla paginando (sin el límite de 1000 de PostgREST). */
+async function fetchAllRows(
+  table: string,
+  onProgress?: (n: number) => void,
+): Promise<Record<string, unknown>[]> {
+  const out: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from(table as any)
+      .select("*")
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = ((data || []) as unknown) as Record<string, unknown>[];
+    out.push(...rows);
+    onProgress?.(out.length);
+    if (rows.length < PAGE_SIZE) break;
+  }
+  return out;
+}
+
 function escapeSQL(val: unknown): string {
   if (val === null || val === undefined) return "NULL";
   if (typeof val === "number" || typeof val === "boolean") return String(val);
@@ -35,6 +76,8 @@ interface Props {
 
 export default function ExportSqlBackup({ open, onClose }: Props) {
   const [busy, setBusy] = useState(false);
+  const [fullMode, setFullMode] = useState(false);
+  const [progress, setProgress] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set(TABLES_TO_EXPORT.map((t) => t.key)));
 
   if (!open) return null;
@@ -48,26 +91,37 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
   };
 
   const handleExport = async () => {
-    if (selected.size === 0) { toast.error("Selecciona al menos una tabla"); return; }
+    const tables = fullMode
+      ? [...TABLES_TO_EXPORT.map((t) => t.key), ...EXTRA_TABLES_FULL]
+      : TABLES_TO_EXPORT.filter((t) => selected.has(t.key)).map((t) => t.key);
+    if (tables.length === 0) { toast.error("Selecciona al menos una tabla"); return; }
     setBusy(true);
     try {
       const lines: string[] = [
         "-- ZetAnimes SQL Backup",
         `-- Generado: ${new Date().toISOString()}`,
-        `-- Tablas: ${[...selected].join(", ")}`,
+        `-- Modo: ${fullMode ? "COMPLETO (todas las filas, sin límite)" : "Selección"}`,
+        `-- Tablas: ${tables.join(", ")}`,
         "",
       ];
 
-      for (const tbl of TABLES_TO_EXPORT) {
-        if (!selected.has(tbl.key)) continue;
-        const { data, error } = await supabase.from(tbl.key as any).select("*");
-        if (error) { lines.push(`-- ERROR ${tbl.key}: ${error.message}`); continue; }
-        if (!data || data.length === 0) { lines.push(`-- ${tbl.key}: vacía (0 filas)`); lines.push(""); continue; }
+      let totalRows = 0;
+      for (const tbl of tables) {
+        setProgress(`Exportando ${tbl}…`);
+        let rows: Record<string, unknown>[] = [];
+        try {
+          rows = await fetchAllRows(tbl, (n) => setProgress(`Exportando ${tbl}… ${n} filas`));
+        } catch (e: any) {
+          lines.push(`-- ERROR ${tbl}: ${e?.message || "desconocido"}`);
+          continue;
+        }
+        if (rows.length === 0) { lines.push(`-- ${tbl}: vacía (0 filas)`); lines.push(""); continue; }
 
+        totalRows += rows.length;
         lines.push(`-- =====================`);
-        lines.push(`-- ${tbl.key} (${data.length} filas)`);
+        lines.push(`-- ${tbl} (${rows.length} filas)`);
         lines.push(`-- =====================`);
-        data.forEach((row: any) => lines.push(rowToInsert(tbl.key, row)));
+        rows.forEach((row) => lines.push(rowToInsert(tbl, row)));
         lines.push("");
       }
 
@@ -75,14 +129,15 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `zetanimes-backup-${new Date().toISOString().slice(0, 10)}.sql`;
+      a.download = `zetanimes-backup${fullMode ? "-full" : ""}-${new Date().toISOString().slice(0, 10)}.sql`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`Backup SQL generado (${[...selected].length} tablas)`);
+      toast.success(`Backup SQL generado · ${tables.length} tablas · ${totalRows} filas`);
       onClose();
     } catch (err: any) {
       toast.error("Error: " + (err?.message || "desconocido"));
     } finally {
+      setProgress("");
       setBusy(false);
     }
   };
@@ -104,7 +159,15 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
         </div>
 
         <div className="p-4 space-y-2 max-h-[50vh] overflow-y-auto">
-          {TABLES_TO_EXPORT.map((t) => (
+          <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${fullMode ? "border-amber-500 bg-amber-500/10" : "border-border bg-secondary/40"}`}>
+            <input type="checkbox" checked={fullMode} onChange={() => setFullMode((v) => !v)} className="accent-amber-500 w-4 h-4" />
+            <div>
+              <span className="text-xs font-bold text-foreground">Descargar ABSOLUTAMENTE TODO</span>
+              <p className="text-[10px] text-muted-foreground">Todas las tablas y todas las filas (paginado, sin límite de 1000). Incluye los ~1.100 animes, enlaces Seeke, slugs, reservas y config.</p>
+            </div>
+          </label>
+
+          {!fullMode && TABLES_TO_EXPORT.map((t) => (
             <label key={t.key} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${selected.has(t.key) ? "border-primary bg-primary/10" : "border-border bg-secondary/40"}`}>
               <input type="checkbox" checked={selected.has(t.key)} onChange={() => toggle(t.key)} className="accent-primary w-4 h-4" />
               <div>
@@ -116,8 +179,10 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
         </div>
 
         <div className="p-4 border-t border-border flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground">{selected.size} tabla{selected.size !== 1 ? "s" : ""}</span>
-          <button onClick={handleExport} disabled={selected.size === 0 || busy} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition disabled:opacity-50">
+          <span className="text-[11px] text-muted-foreground truncate max-w-[55%]">
+            {progress || (fullMode ? `${TABLES_TO_EXPORT.length + EXTRA_TABLES_FULL.length} tablas (todo)` : `${selected.size} tabla${selected.size !== 1 ? "s" : ""}`)}
+          </span>
+          <button onClick={handleExport} disabled={(!fullMode && selected.size === 0) || busy} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition disabled:opacity-50">
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             {busy ? "Generando..." : "Descargar .sql"}
           </button>
