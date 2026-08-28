@@ -76,6 +76,8 @@ interface Props {
 
 export default function ExportSqlBackup({ open, onClose }: Props) {
   const [busy, setBusy] = useState(false);
+  const [fullMode, setFullMode] = useState(false);
+  const [progress, setProgress] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set(TABLES_TO_EXPORT.map((t) => t.key)));
 
   if (!open) return null;
