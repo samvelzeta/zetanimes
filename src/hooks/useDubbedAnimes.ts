@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { idbGet, idbSet } from "@/lib/idb-cache";
 import type { AniListMedia } from "@/lib/anilist";
 
 /**
@@ -8,6 +9,9 @@ import type { AniListMedia } from "@/lib/anilist";
  *   2) video_cache_blocks (bloques Seeke latino)
  * Se cachea globalmente en memoria; la carga sucede una sola vez por sesión.
  */
+
+const DUB_IDB_KEY = "dubbed_anime_ids";
+const DUB_TTL = 30 * 60 * 1000; // 30 min
 
 let dubbedPromise: Promise<{ ids: Set<number>; slugs: Set<string> }> | null = null;
 let dubbedCache: { ids: Set<number>; slugs: Set<string> } | null = null;
@@ -27,6 +31,11 @@ async function fetchDubbed(): Promise<{ ids: Set<number>; slugs: Set<string> }> 
   if (dubbedCache) return dubbedCache;
   if (!dubbedPromise) {
     dubbedPromise = (async () => {
+      const cached = await idbGet<{ ids: number[]; slugs: string[] }>(DUB_IDB_KEY);
+      if (cached) {
+        dubbedCache = { ids: new Set(cached.ids), slugs: new Set(cached.slugs) };
+        return dubbedCache;
+      }
       const ids = new Set<number>();
       const slugs = new Set<string>();
       const dubs = await supabase.rpc("list_dubbed_anime_ids");
@@ -35,6 +44,7 @@ async function fetchDubbed(): Promise<{ ids: Set<number>; slugs: Set<string> }> 
         if (r.slug) slugs.add(r.slug);
       });
       dubbedCache = { ids, slugs };
+      idbSet(DUB_IDB_KEY, { ids: [...ids], slugs: [...slugs] }, DUB_TTL).catch(() => {});
       return dubbedCache;
     })();
   }

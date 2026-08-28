@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { idbGet, idbSet, idbDelete } from "@/lib/idb-cache";
 import { getAdultAnimeIds } from "@/lib/adult-animes";
 
 export interface ReserveAnimeInput {
@@ -100,10 +101,36 @@ export async function getPendingReserveStats(): Promise<PendingReserveStats> {
   };
 }
 
+const RESERVE_IDB_KEY = "unreleased_reserve_ids";
+const RESERVE_TTL = 10 * 60 * 1000;
+let reserveMem: Set<number> | null = null;
+let reservePromise: Promise<Set<number>> | null = null;
+
+export function clearUnreleasedReserveCache() {
+  reserveMem = null;
+  reservePromise = null;
+  idbDelete(RESERVE_IDB_KEY).catch(() => {});
+}
+
 export async function getUnreleasedReserveAnimeIds(): Promise<Set<number>> {
-  const { data, error } = await (supabase as any).rpc("get_unreleased_reserve_anime_ids");
-  if (error) return new Set<number>();
-  return new Set<number>(((data as any[]) || []).map((r) => Number(r.anilist_id)).filter(Number.isFinite));
+  if (reserveMem) return reserveMem;
+  if (reservePromise) return reservePromise;
+  reservePromise = (async () => {
+    const cached = await idbGet<number[]>(RESERVE_IDB_KEY);
+    if (cached) {
+      reserveMem = new Set(cached);
+      return reserveMem;
+    }
+    const { data, error } = await (supabase as any).rpc("get_unreleased_reserve_anime_ids");
+    if (error) return new Set<number>();
+    const ids = ((data as any[]) || []).map((r) => Number(r.anilist_id)).filter(Number.isFinite);
+    reserveMem = new Set<number>(ids);
+    idbSet(RESERVE_IDB_KEY, ids, RESERVE_TTL).catch(() => {});
+    return reserveMem;
+  })();
+  const res = await reservePromise;
+  reservePromise = null;
+  return res;
 }
 
 export async function upsertPendingReserveFromAnime(
