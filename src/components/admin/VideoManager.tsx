@@ -13,6 +13,9 @@ import {
   clearRuntimeVideoCache,
 } from "@/lib/video-cache";
 import { getSlugOverride } from "@/lib/slug-overrides";
+import { invalidateStreamCache } from "@/lib/stream-cache";
+import { approveAnime } from "@/lib/approved-animes";
+import { logAdminActivity } from "@/lib/admin-log";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -391,6 +394,7 @@ export default function VideoManager() {
         if (wipeError && !String(wipeError.message || "").includes("Protected Seeke")) throw wipeError;
         clearRuntimeVideoCache();
         clearSeekeEpisodeCache();
+        await invalidateStreamCache(selected.id);
         clearProgress();
         setEpStatuses({});
         // ⇢ Sincroniza tracker: si no existe, se crea y queda en "completed".
@@ -472,6 +476,7 @@ export default function VideoManager() {
 
     clearRuntimeVideoCache();
     clearSeekeEpisodeCache();
+    await invalidateStreamCache(selected.id);
     clearProgress();
     setEpStatuses({});
     setAutoLog((prev) => ["✔ URL madre guardada; reproducción hará peticiones directas a la VPS", ...prev].slice(0, 12));
@@ -523,6 +528,7 @@ export default function VideoManager() {
     if (sv.episode === 0 || hasSeekeSource(sv.sources)) {
       clearRuntimeVideoCache();
       clearSeekeEpisodeCache();
+      await invalidateStreamCache(selected?.id || sv.anilist_id || 0);
     }
   };
 
