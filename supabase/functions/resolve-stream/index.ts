@@ -199,10 +199,16 @@ async function resolveMasterForLatest(
   return null;
 }
 
-async function callScraper(masterUrl: string, ep: number, latestOnly = false): Promise<SeekeResp | null> {
+async function callScraper(
+  supabase: ReturnType<typeof createClient>,
+  masterUrl: string,
+  ep: number,
+  latestOnly = false,
+): Promise<SeekeResp | null> {
   const normalizedMaster = normalizeUrl(masterUrl);
   try {
-    const r = await fetch(SEEKE_BOT_URL, {
+    const seekeBotUrl = await getSeekeBotUrl(supabase);
+    const r = await fetch(seekeBotUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
