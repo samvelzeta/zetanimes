@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { getRecentlyUpdated, getTitle, type AniListMedia } from "@/lib/anilist";
+import { getRecentlyUpdated, getPopular, getTitle, type AniListMedia } from "@/lib/anilist";
 import { Play, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,12 +45,27 @@ export default function BentoEpisodes({
   const approvedSet = new Set<number>(approvedIds || []);
   useEffect(() => onApprovedChange(() => { refetchApproved(); }), [refetchApproved]);
 
+  // Fallback: animes populares aprobados para rellenar huecos si no hay suficientes en emisión
+  const { data: fallbackData } = useQuery({
+    queryKey: ["popular-fallback-bento"],
+    queryFn: () => getPopular(1, 20),
+    staleTime: 1000 * 60 * 30,
+  });
+
   const noHidden = (data?.media || []).filter((a) => !hidden.has(a.id));
   const allItems = filterApprovedReleasing(noHidden, approvedSet).slice(skip);
   // Modo sin hero: 4 tarjetas iguales (o 3 + anuncio para free).
   // Modo hero: 5 cuadros premium / 4 + anuncio free.
   const maxItems = hideHero ? (isPremium ? 4 : 3) : (isPremium ? 5 : 4);
-  const items = allItems.slice(0, maxItems);
+
+  // Si no hay suficientes en emisión, rellenamos con populares/finalizados aprobados
+  let items = allItems.slice(0, maxItems);
+  if (items.length < maxItems && fallbackData?.media) {
+    const usedIds = new Set(items.map((a) => a.id));
+    const fallbacks = fallbackData.media
+      .filter((a) => !hidden.has(a.id) && approvedSet.has(a.id) && !usedIds.has(a.id));
+    items = [...items, ...fallbacks.slice(0, maxItems - items.length)];
+  }
 
   if (isLoading) {
     return (

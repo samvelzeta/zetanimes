@@ -36,6 +36,7 @@ import { logAdminActivity } from "@/lib/admin-log";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 import { getPendingReserveStats, type PendingReserveStats } from "@/lib/pending-reserve";
 import ExportSqlBackup from "@/components/admin/ExportSqlBackup";
+import VpsConfigManager from "@/components/admin/VpsConfigManager";
 
 // Tabs reservados solo para owner
 const OWNER_ONLY = new Set(["premium", "payment", "apikeys", "roles", "activity", "apk", "notifs"]);
@@ -61,7 +62,6 @@ const NAV: NavGroup[] = [
       { key: "hidden", label: "Ocultar", icon: X },
       { key: "ranking", label: "Top Ranking", icon: TrendingUp },
       { key: "reports", label: "Reportes", icon: AlertTriangle },
-      { key: "apidebug", label: "API JSON", icon: Bug },
     ],
   },
   {
@@ -74,11 +74,17 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "Conexiones", icon: Database, items: [
+      { key: "vps", label: "VPS Extractor", icon: Zap },
+      { key: "apikeys", label: "API Keys", icon: Key },
+      { key: "apidebug", label: "API JSON", icon: Bug },
+    ],
+  },
+  {
     label: "Sistema", icon: Settings2, items: [
       { key: "apk", label: "APK", icon: ExternalLink },
       { key: "notifs", label: "Notifs", icon: Bell },
       { key: "payment", label: "Pago / Config", icon: CreditCard },
-      { key: "apikeys", label: "API Keys", icon: Key },
     ],
   },
 ];
@@ -153,6 +159,7 @@ export default function AdminPanel() {
               {tab === "downloads" && <DownloadTracker />}
               {tab === "videos" && <VideoManager />}
               {tab === "apidebug" && <ApiDebugPanel />}
+              {tab === "vps" && <VpsConfigManager />}
               {tab === "epcount" && <EpisodeCountManager />}
               {tab === "status" && <AnimeStatusOverridesAdmin />}
               {tab === "slugs" && <SlugManager />}

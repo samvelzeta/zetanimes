@@ -9,8 +9,31 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SEEKE_BOT_URL = "https://a24785-7a2f.xs1.onjrnm.link/extraer";
+// URL de respaldo si `app_settings.vps_extractor_url` no existe todavía.
+const FALLBACK_VPS_BASE = "https://a24785-7a2f.xs1.onjrnm.link";
 const ZET_BASE = "https://zetapi-api.samvelzeta.workers.dev/api";
+
+// Caché corta de la URL de la VPS para no consultar app_settings en cada request.
+let vpsUrlCache: { at: number; value: string } | null = null;
+const VPS_URL_TTL_MS = 60_000;
+
+async function getSeekeBotUrl(supabase: ReturnType<typeof createClient>): Promise<string> {
+  if (vpsUrlCache && Date.now() - vpsUrlCache.at < VPS_URL_TTL_MS) return vpsUrlCache.value;
+  let base = FALLBACK_VPS_BASE;
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "vps_extractor_url")
+      .maybeSingle();
+    const raw = (data as any)?.value;
+    if (typeof raw === "string" && raw.trim().startsWith("http")) base = raw.trim();
+  } catch { /* usa el fallback */ }
+  const clean = base.replace(/\/+$/, "");
+  const full = clean.endsWith("/extraer") ? clean : `${clean}/extraer`;
+  vpsUrlCache = { at: Date.now(), value: full };
+  return full;
+}
 
 // 🧠 Caché en memoria del edge (viva mientras la instancia esté caliente).
 // TTL corto para no servir enlaces caducados pero absorbiendo picos de tráfico.
@@ -176,10 +199,16 @@ async function resolveMasterForLatest(
   return null;
 }
 
-async function callScraper(masterUrl: string, ep: number, latestOnly = false): Promise<SeekeResp | null> {
+async function callScraper(
+  supabase: ReturnType<typeof createClient>,
+  masterUrl: string,
+  ep: number,
+  latestOnly = false,
+): Promise<SeekeResp | null> {
   const normalizedMaster = normalizeUrl(masterUrl);
   try {
-    const r = await fetch(SEEKE_BOT_URL, {
+    const seekeBotUrl = await getSeekeBotUrl(supabase);
+    const r = await fetch(seekeBotUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -285,9 +314,9 @@ Deno.serve(async (req) => {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      let data = await callScraper(master.url, Math.max(1, master.sourceEp), true);
+      let data = await callScraper(supabase, master.url, Math.max(1, master.sourceEp), true);
       if (!data || !Number.isFinite(Number(data?.latest_episode))) {
-        data = await callScraper(master.url, Math.max(1, master.sourceEp), false);
+        data = await callScraper(supabase, master.url, Math.max(1, master.sourceEp), false);
       }
       const latestRaw = Number(data?.latest_episode);
       const translated = Number.isFinite(latestRaw)
@@ -315,7 +344,7 @@ Deno.serve(async (req) => {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const data = await callScraper(master.url, master.sourceEp, false);
+    const data = await callScraper(supabase, master.url, master.sourceEp, false);
     if (!data?.ok || !data?.embed) {
       return new Response(
         JSON.stringify({ ok: false, error: data?.error || "resolve_failed" }),
