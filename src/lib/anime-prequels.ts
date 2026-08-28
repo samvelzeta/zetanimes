@@ -27,7 +27,7 @@ async function fetchWithRelations(id: number): Promise<any | null> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        query: `query($id:Int){Media(id:$id,type:ANIME){id title{romaji english}coverImage{large}episodes status format relations{edges{relationType node{id type format title{romaji english}coverImage{large}episodes status}}}}}`,
+        query: `query($id:Int){Media(id:$id,type:ANIME){id title{romaji english}coverImage{large}episodes status format relations{edges{relationType node{id type format title{romaji english}coverImage{large}episodes status isAdult}}}}}`,
         variables: { id },
       }),
     });
@@ -57,6 +57,7 @@ export async function getPrequelChain(anilistId: number, maxDepth = 6): Promise<
         PREQUEL_TYPES.has(e.relationType) &&
         e.node?.type === "ANIME" &&
         e.node?.format !== "MOVIE" &&
+        !(e.node as any)?.isAdult &&
         !visited.has(e.node.id)
     );
     if (!edge) break;
@@ -87,6 +88,7 @@ export async function getSideStories(anilistId: number): Promise<PrequelNode[]> 
   for (const e of media.relations?.edges || []) {
     if (e.relationType !== "SIDE_STORY") continue;
     const n = e.node;
+    if ((n as any)?.isAdult) continue;
     if (!n || n.type !== "ANIME" || n.format === "MOVIE") continue;
     out.push({
       id: n.id,
