@@ -440,7 +440,7 @@ Deno.serve(async (req) => {
     }
 
     // action === "episode" — servir de caché caliente si disponible
-    const cachedEp = cacheGet(episodeCache, cacheKey, EPISODE_TTL_MS);
+    const cachedEp = cacheGet(episodeCache, cacheKey, episodeTtl);
     if (cachedEp) {
       return new Response(
         JSON.stringify({ ...cachedEp, cached: true }),
