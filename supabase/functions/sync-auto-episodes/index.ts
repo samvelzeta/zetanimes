@@ -50,10 +50,11 @@ function normalizeSeekeUrl(baseUrl: string) {
   }
 }
 
-async function fetchSeekeLatest(baseUrl: string, hintEp: number): Promise<number | null> {
+async function fetchSeekeLatest(sb: ReturnType<typeof createClient>, baseUrl: string, hintEp: number): Promise<number | null> {
   const url = normalizeSeekeUrl(baseUrl);
   try {
-    const r = await fetch(SEEKE_BOT_URL, {
+    const vpsUrl = await getVpsUrl(sb);
+    const r = await fetch(vpsUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ url, ep: hintEp, latest_only: true, no_cache: true, force: true, cache_bust: Date.now() }),
