@@ -15,6 +15,47 @@ const TABLES_TO_EXPORT = [
   { key: "auto_latest_episodes", label: "Últimos Episodios" },
 ];
 
+// Modo "TODO": incluye además catálogo, reservas, cosméticos y config.
+const EXTRA_TABLES_FULL = [
+  "pending_anime_reserve",
+  "hidden_pending_animes",
+  "anime_download_tracker",
+  "anime_episode_downloads",
+  "anime_views",
+  "anime_like_counts",
+  "anime_synopsis_es",
+  "admin_banners",
+  "admin_frames",
+  "premium_plan_configs",
+  "achievements",
+  "roleplay_missions",
+  "contact_links",
+  "app_settings",
+  "broken_link_reports",
+];
+
+const PAGE_SIZE = 1000;
+
+/** Descarga TODAS las filas de una tabla paginando (sin el límite de 1000 de PostgREST). */
+async function fetchAllRows(
+  table: string,
+  onProgress?: (n: number) => void,
+): Promise<Record<string, unknown>[]> {
+  const out: Record<string, unknown>[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from(table as any)
+      .select("*")
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = (data || []) as Record<string, unknown>[];
+    out.push(...rows);
+    onProgress?.(out.length);
+    if (rows.length < PAGE_SIZE) break;
+  }
+  return out;
+}
+
 function escapeSQL(val: unknown): string {
   if (val === null || val === undefined) return "NULL";
   if (typeof val === "number" || typeof val === "boolean") return String(val);
