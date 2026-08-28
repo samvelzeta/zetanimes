@@ -558,6 +558,15 @@ export default function VideoManager() {
             </p>
             <p className="text-[10px] text-muted-foreground">{totalEps} eps · {savedVideos.length} guardados</p>
           </div>
+          <button
+            onClick={approveWithSlug}
+            disabled={approvingSlug}
+            title="Aprobar este anime usando su slug (sin enlace Seeke). El player resolverá por zetapi Cloudflare."
+            className="h-8 px-3 rounded-lg bg-orange-600 text-white text-xs font-bold flex items-center gap-1 hover:bg-orange-500 disabled:opacity-50 flex-shrink-0"
+          >
+            {approvingSlug ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+            Aprobar con Slug
+          </button>
           <button onClick={() => setShowSaved(!showSaved)} className="text-xs text-primary hover:underline px-2 flex-shrink-0">
             {showSaved ? "Ocultar" : "Ver guardados"}
           </button>
