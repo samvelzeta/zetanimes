@@ -409,7 +409,7 @@ export async function searchAnime(
   page = 1,
   perPage = 20,
   genres: string[] = [],
-  options?: { skipCuration?: boolean },
+  options?: { skipCuration?: boolean; includeAdult?: boolean },
 ): Promise<PageResult> {
   const cleanTerm = searchTerm.trim();
   const baseVariables: Record<string, unknown> = { page, perPage };
