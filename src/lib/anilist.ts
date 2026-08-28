@@ -503,7 +503,7 @@ export async function getAnimeById(id: number): Promise<AniListMedia> {
     async () => {
       try {
         const data = await queryAniList(
-          `${MEDIA_FRAGMENT} query($id:Int){Media(id:$id){...MediaFields streamingEpisodes{title thumbnail url site}relations{edges{relationType node{id title{romaji english}coverImage{large}format type}}}recommendations(sort:RATING_DESC,perPage:10){nodes{mediaRecommendation{id title{romaji english}coverImage{large extraLarge}averageScore status format}}}}}`,
+          `${MEDIA_FRAGMENT} query($id:Int){Media(id:$id){...MediaFields streamingEpisodes{title thumbnail url site}relations{edges{relationType node{id title{romaji english}coverImage{large}format type isAdult}}}recommendations(sort:RATING_DESC,perPage:10){nodes{mediaRecommendation{id title{romaji english}coverImage{large extraLarge}averageScore status format isAdult}}}}}`,
           { id },
           6000,
         );
