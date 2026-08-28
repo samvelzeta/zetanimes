@@ -91,26 +91,37 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
   };
 
   const handleExport = async () => {
-    if (selected.size === 0) { toast.error("Selecciona al menos una tabla"); return; }
+    const tables = fullMode
+      ? [...TABLES_TO_EXPORT.map((t) => t.key), ...EXTRA_TABLES_FULL]
+      : TABLES_TO_EXPORT.filter((t) => selected.has(t.key)).map((t) => t.key);
+    if (tables.length === 0) { toast.error("Selecciona al menos una tabla"); return; }
     setBusy(true);
     try {
       const lines: string[] = [
         "-- ZetAnimes SQL Backup",
         `-- Generado: ${new Date().toISOString()}`,
-        `-- Tablas: ${[...selected].join(", ")}`,
+        `-- Modo: ${fullMode ? "COMPLETO (todas las filas, sin límite)" : "Selección"}`,
+        `-- Tablas: ${tables.join(", ")}`,
         "",
       ];
 
-      for (const tbl of TABLES_TO_EXPORT) {
-        if (!selected.has(tbl.key)) continue;
-        const { data, error } = await supabase.from(tbl.key as any).select("*");
-        if (error) { lines.push(`-- ERROR ${tbl.key}: ${error.message}`); continue; }
-        if (!data || data.length === 0) { lines.push(`-- ${tbl.key}: vacía (0 filas)`); lines.push(""); continue; }
+      let totalRows = 0;
+      for (const tbl of tables) {
+        setProgress(`Exportando ${tbl}…`);
+        let rows: Record<string, unknown>[] = [];
+        try {
+          rows = await fetchAllRows(tbl, (n) => setProgress(`Exportando ${tbl}… ${n} filas`));
+        } catch (e: any) {
+          lines.push(`-- ERROR ${tbl}: ${e?.message || "desconocido"}`);
+          continue;
+        }
+        if (rows.length === 0) { lines.push(`-- ${tbl}: vacía (0 filas)`); lines.push(""); continue; }
 
+        totalRows += rows.length;
         lines.push(`-- =====================`);
-        lines.push(`-- ${tbl.key} (${data.length} filas)`);
+        lines.push(`-- ${tbl} (${rows.length} filas)`);
         lines.push(`-- =====================`);
-        data.forEach((row: any) => lines.push(rowToInsert(tbl.key, row)));
+        rows.forEach((row) => lines.push(rowToInsert(tbl, row)));
         lines.push("");
       }
 
@@ -118,14 +129,15 @@ export default function ExportSqlBackup({ open, onClose }: Props) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `zetanimes-backup-${new Date().toISOString().slice(0, 10)}.sql`;
+      a.download = `zetanimes-backup${fullMode ? "-full" : ""}-${new Date().toISOString().slice(0, 10)}.sql`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`Backup SQL generado (${[...selected].length} tablas)`);
+      toast.success(`Backup SQL generado · ${tables.length} tablas · ${totalRows} filas`);
       onClose();
     } catch (err: any) {
       toast.error("Error: " + (err?.message || "desconocido"));
     } finally {
+      setProgress("");
       setBusy(false);
     }
   };
