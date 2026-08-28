@@ -1,11 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
+import { idbGet, idbSet } from "@/lib/idb-cache";
 
 /**
  * Sistema de vistas reales por anime.
  * - Anti-spam: 1 vista por sesión (sessionStorage)
  * - Storage: tabla `anime_views` (anilist_id + view_count)
  * - Increment: función SQL `increment_anime_view(_anilist_id)`
+ * - Lecturas cacheadas en IndexedDB (TTL 10 min) para reducir consultas a la DB.
  */
+
+const VIEWS_CACHE_TTL = 10 * 60 * 1000;
+const viewsCacheKey = (ids: number[]) => `anime_views:${[...ids].sort((a, b) => a - b).join(",")}`;
 
 const SESSION_KEY = "zet_viewed_animes";
 
