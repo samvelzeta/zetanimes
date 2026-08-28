@@ -117,7 +117,18 @@ export default function SearchPage() {
     refetchOnMount: "always",
   });
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
-  const allAnimes = (data?.media || []).filter((a) => !hiddenSet.has(a.id));
+
+  // Los títulos marcados isAdult solo son visibles en búsqueda si ya tienen enlace madre Seeke guardado.
+  const { data: seekeIds } = useQuery({
+    queryKey: ["search-seeke-master-ids"],
+    queryFn: async () => Array.from(await getAnimeIdsWithSeekeMaster()),
+    staleTime: 1000 * 60 * 5,
+  });
+  const seekeSet = useMemo(() => new Set<number>(seekeIds || []), [seekeIds]);
+
+  const allAnimes = (data?.media || []).filter(
+    (a) => !hiddenSet.has(a.id) && (!(a as any).isAdult || seekeSet.has(a.id)),
+  );
   const animes = useMemo(() => {
     const filter = FILTERS.find((f) => f.key === activeFilter);
     if (!filter) return allAnimes;
