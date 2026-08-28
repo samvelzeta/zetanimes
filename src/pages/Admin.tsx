@@ -36,6 +36,7 @@ import { logAdminActivity } from "@/lib/admin-log";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 import { getPendingReserveStats, type PendingReserveStats } from "@/lib/pending-reserve";
 import ExportSqlBackup from "@/components/admin/ExportSqlBackup";
+import VpsConfigManager from "@/components/admin/VpsConfigManager";
 
 // Tabs reservados solo para owner
 const OWNER_ONLY = new Set(["premium", "payment", "apikeys", "roles", "activity", "apk", "notifs"]);
