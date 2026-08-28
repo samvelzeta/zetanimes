@@ -221,6 +221,24 @@ export type Database = {
         }
         Relationships: []
       }
+      adult_animes: {
+        Row: {
+          anilist_id: number
+          detected_at: string
+          title: string | null
+        }
+        Insert: {
+          anilist_id: number
+          detected_at?: string
+          title?: string | null
+        }
+        Update: {
+          anilist_id?: number
+          detected_at?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
       anime_download_tracker: {
         Row: {
           added_by: string | null

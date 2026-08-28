@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getAdultAnimeIds } from "@/lib/adult-animes";
 
 export interface ReserveAnimeInput {
   id?: number;
@@ -110,9 +111,12 @@ export async function upsertPendingReserveFromAnime(
   source: string,
   priority = 0
 ): Promise<{ success: boolean; count: number; error?: string }> {
+  const adult = await getAdultAnimeIds();
   const unique = new Map<number, ReserveAnimeInput>();
   for (const item of items) {
     if (!item?.id || !Number.isFinite(Number(item.id))) continue;
+    // Nunca guardamos animes con etiqueta adulta en la reserva de pendientes.
+    if (adult.has(Number(item.id))) continue;
     unique.set(Number(item.id), item);
   }
   const rows = Array.from(unique.values()).map((item, idx) => reserveRowFromAnime(item, source, priority - idx));
