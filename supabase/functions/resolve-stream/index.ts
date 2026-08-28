@@ -314,9 +314,9 @@ Deno.serve(async (req) => {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      let data = await callScraper(master.url, Math.max(1, master.sourceEp), true);
+      let data = await callScraper(supabase, master.url, Math.max(1, master.sourceEp), true);
       if (!data || !Number.isFinite(Number(data?.latest_episode))) {
-        data = await callScraper(master.url, Math.max(1, master.sourceEp), false);
+        data = await callScraper(supabase, master.url, Math.max(1, master.sourceEp), false);
       }
       const latestRaw = Number(data?.latest_episode);
       const translated = Number.isFinite(latestRaw)
@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const data = await callScraper(master.url, master.sourceEp, false);
+    const data = await callScraper(supabase, master.url, master.sourceEp, false);
     if (!data?.ok || !data?.embed) {
       return new Response(
         JSON.stringify({ ok: false, error: data?.error || "resolve_failed" }),
