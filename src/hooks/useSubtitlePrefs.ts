@@ -22,24 +22,60 @@ export const DEFAULT_SUB_PREFS: SubtitlePrefs = {
 
 const KEY = "zet:sub-prefs:v1";
 
-export function useSubtitlePrefs() {
+// Fuente de verdad de lo que es gratis. Debe coincidir con SubtitleSettings.
+export const FREE_SUB_COLORS = ["#ffffff", "#ffe600"];
+export const FREE_SUB_FONTS: SubFont[] = ["serif", "cursive"];
+
+// Valores por defecto para cuentas gratis / invitados (nada premium preseleccionado).
+export const FREE_SUB_PREFS: SubtitlePrefs = {
+  ...DEFAULT_SUB_PREFS,
+  size: 100,
+  color: "#ffffff",
+  bg: "none",
+  font: "serif",
+};
+
+/** Fuerza que un usuario no premium nunca tenga opciones de pago activas. */
+export function sanitizeSubPrefs(prefs: SubtitlePrefs, isPremium: boolean): SubtitlePrefs {
+  if (isPremium) return prefs;
+  return {
+    ...prefs,
+    size: FREE_SUB_PREFS.size,
+    bg: FREE_SUB_PREFS.bg,
+    color: FREE_SUB_COLORS.includes((prefs.color || "").toLowerCase()) ? prefs.color : FREE_SUB_PREFS.color,
+    font: FREE_SUB_FONTS.includes(prefs.font) ? prefs.font : FREE_SUB_PREFS.font,
+  };
+}
+
+export function useSubtitlePrefs(isPremium = false) {
   const [prefs, setPrefs] = useState<SubtitlePrefs>(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) return { ...DEFAULT_SUB_PREFS, ...JSON.parse(raw) };
+      if (raw) return sanitizeSubPrefs({ ...DEFAULT_SUB_PREFS, ...JSON.parse(raw) }, isPremium);
     } catch { /* noop */ }
-    return DEFAULT_SUB_PREFS;
+    return isPremium ? DEFAULT_SUB_PREFS : FREE_SUB_PREFS;
   });
+
+  // Si el plan cambia (logout, expiración), se revierten las opciones de pago.
+  useEffect(() => {
+    setPrefs((p) => {
+      const clean = sanitizeSubPrefs(p, isPremium);
+      return JSON.stringify(clean) === JSON.stringify(p) ? p : clean;
+    });
+  }, [isPremium]);
 
   useEffect(() => {
     try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch { /* noop */ }
   }, [prefs]);
 
   const update = useCallback((patch: Partial<SubtitlePrefs>) => {
-    setPrefs((p) => ({ ...p, ...patch }));
-  }, []);
+    setPrefs((p) => sanitizeSubPrefs({ ...p, ...patch }, isPremium));
+  }, [isPremium]);
 
-  const reset = useCallback(() => setPrefs(DEFAULT_SUB_PREFS), []);
+  const reset = useCallback(
+    () => setPrefs(isPremium ? DEFAULT_SUB_PREFS : FREE_SUB_PREFS),
+    [isPremium]
+  );
 
   return { prefs, update, reset };
 }
