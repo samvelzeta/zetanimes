@@ -397,9 +397,21 @@ Deno.serve(async (req) => {
   try {
     const cacheKey = `${anilistId}|${lang}|${ep}|v${variant}`;
 
+    // Purga manual desde el admin cuando se edita/borra un enlace Seeke o slug.
+    if (action === "invalidate") {
+      invalidateAnime(anilistId);
+      return new Response(JSON.stringify({ ok: true, invalidated: anilistId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const releasing = isReleasing(await getAiringStatus(supabase, anilistId));
+    const episodeTtl = releasing ? EPISODE_TTL_RELEASING_MS : EPISODE_TTL_FINISHED_MS;
+    const latestTtl = releasing ? LATEST_TTL_RELEASING_MS : LATEST_TTL_FINISHED_MS;
+
     if (action === "latest") {
       const latestKey = `${anilistId}|${lang}`;
-      const cachedLatest = cacheGet(latestCache, latestKey, LATEST_TTL_MS);
+      const cachedLatest = cacheGet(latestCache, latestKey, latestTtl);
       if (cachedLatest !== null) {
         return new Response(
           JSON.stringify({ ok: true, latest_episode: cachedLatest, cached: true }),
