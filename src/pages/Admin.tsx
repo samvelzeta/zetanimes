@@ -159,6 +159,7 @@ export default function AdminPanel() {
               {tab === "downloads" && <DownloadTracker />}
               {tab === "videos" && <VideoManager />}
               {tab === "apidebug" && <ApiDebugPanel />}
+              {tab === "vps" && <VpsConfigManager />}
               {tab === "epcount" && <EpisodeCountManager />}
               {tab === "status" && <AnimeStatusOverridesAdmin />}
               {tab === "slugs" && <SlugManager />}
