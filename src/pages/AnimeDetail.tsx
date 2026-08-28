@@ -473,6 +473,7 @@ export default function AnimeDetail() {
           const all = (anime.relations?.edges || []).filter(
             (e: any) =>
               e.node.type === "ANIME" &&
+              !e.node.isAdult &&
               (e.relationType === "SEQUEL" ||
                 e.relationType === "PREQUEL" ||
                 e.relationType === "SIDE_STORY")
