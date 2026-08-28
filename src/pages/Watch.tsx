@@ -922,6 +922,9 @@ export default function Watch() {
                 onControlsVisibilityChange={setPlayerControlsVisible}
                 onEpisodeListToggle={setPlayerEpPanelOpen}
                 onFullscreenChange={setPlayerIsFullscreen}
+                canSwitchLang={shouldShowLanguageControls}
+                onLangChange={(next) => { setLang(next); setActiveSourceIdx(0); }}
+
               />
               {isEpisodeSwitching && (
                 <div className="pointer-events-none absolute right-3 top-3 z-40 rounded-md border border-primary/35 bg-background/80 px-2.5 py-1.5 text-[10px] font-bold text-foreground shadow-[0_0_18px_hsl(var(--primary)/0.25)]">
