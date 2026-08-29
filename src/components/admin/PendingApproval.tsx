@@ -384,7 +384,9 @@ export default function PendingApproval() {
   }, [airingItemsRaw]);
 
   const airingItems = useMemo<AiringItem[]>(
-    () => airingItemsRaw.filter((a) => !blockedAdult.has(a.id)),
+    // Fuera cualquier adulto conocido/detectado y también los que traigan el
+    // flag isAdult directamente en la respuesta de AniList (oculto inmediato).
+    () => airingItemsRaw.filter((a) => !blockedAdult.has(a.id) && (a as any).isAdult !== true),
     [airingItemsRaw, blockedAdult],
   );
 
@@ -451,6 +453,7 @@ export default function PendingApproval() {
       const seen = new Set<number>();
       const chain = prequelMap.get(parentId) || [];
       for (const p of chain) {
+        if (blockedAdult.has(p.id)) continue;
         if (seekeMasterSet.has(p.id) || seen.has(p.id) || mainIds.has(p.id) && p.id !== parentId) continue;
         if (p.id === parentId) continue;
         seen.add(p.id);
