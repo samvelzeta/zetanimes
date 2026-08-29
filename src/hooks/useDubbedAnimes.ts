@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { idbGet, idbSet } from "@/lib/idb-cache";
+import { getVisibility, invalidateVisibility } from "@/lib/visibility-manifest";
 import type { AniListMedia } from "@/lib/anilist";
 
 /**
@@ -32,6 +33,7 @@ export function clearDubbedCache() {
   dubbedCache = null;
   dubbedPromise = null;
   import("@/lib/idb-cache").then(({ idbDelete }) => idbDelete(DUB_IDB_KEY)).catch(() => {});
+  invalidateVisibility().catch(() => {});
 }
 
 async function fetchDubbed(): Promise<{ ids: Set<number>; slugs: Set<string> }> {
@@ -43,13 +45,10 @@ async function fetchDubbed(): Promise<{ ids: Set<number>; slugs: Set<string> }> 
         dubbedCache = { ids: new Set(cached.ids), slugs: new Set(cached.slugs) };
         return dubbedCache;
       }
-      const ids = new Set<number>();
+      // IDs desde el manifiesto compartido (KV) — sin consulta extra a la base.
+      const { dubbed } = await getVisibility();
+      const ids = new Set<number>(dubbed);
       const slugs = new Set<string>();
-      const dubs = await supabase.rpc("list_dubbed_anime_ids");
-      ((dubs.data as any[]) || []).forEach((r: any) => {
-        if (typeof r.anilist_id === "number") ids.add(r.anilist_id);
-        if (r.slug) slugs.add(r.slug);
-      });
       dubbedCache = { ids, slugs };
       idbSet(DUB_IDB_KEY, { ids: [...ids], slugs: [...slugs] }, DUB_TTL).catch(() => {});
       return dubbedCache;

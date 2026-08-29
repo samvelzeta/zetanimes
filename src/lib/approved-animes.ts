@@ -1,7 +1,7 @@
 // Whitelist de animes en emisión aprobados para mostrarse en el Home.
 // Los animes con status = "RELEASING" que NO estén aquí se filtran del Home.
 import { supabase } from "@/integrations/supabase/client";
-import { idbGet, idbSet, idbDelete } from "@/lib/idb-cache";
+import { getVisibility, invalidateVisibility } from "@/lib/visibility-manifest";
 
 const IDB_KEY = "approved_anime_ids";
 const IDB_TTL = 15 * 60 * 1000; // 15 min
@@ -20,32 +20,9 @@ export function onApprovedChange(cb: () => void): () => void {
 }
 
 export async function getApprovedAnimeIds(force = false): Promise<Set<number>> {
-  if (!force && memCache) return memCache;
-  if (!force && memPromise) return memPromise;
-  memPromise = (async () => {
-    if (!force) {
-      const cached = await idbGet<number[]>(IDB_KEY);
-      if (cached) {
-        memCache = new Set(cached);
-        return memCache;
-      }
-    }
-    const { data, error } = await supabase
-      .from("approved_animes" as any)
-      .select("anilist_id");
-    if (error) {
-      console.error("[approved-animes] load error", error);
-      return new Set<number>();
-    }
-    const ids = (data || []).map((r: any) => r.anilist_id as number);
-    const set = new Set<number>(ids);
-    memCache = set;
-    idbSet(IDB_KEY, ids, IDB_TTL).catch(() => {});
-    return set;
-  })();
-  const result = await memPromise;
-  memPromise = null;
-  return result;
+  const sets = await getVisibility(force);
+  memCache = sets.approved;
+  return sets.approved;
 }
 
 export async function isAnimeApproved(anilistId: number): Promise<boolean> {
