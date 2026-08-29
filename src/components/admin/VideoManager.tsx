@@ -568,8 +568,7 @@ export default function VideoManager() {
   };
 
   const deleteSaved = async (sv: CachedVideo) => {
-    const label = sv.episode === 0 ? "enlace madre" : `EP ${sv.episode}`;
-    if (!confirm(`¿Eliminar ${label} (${sv.lang}) de la DB? Esta acción no se puede deshacer.`)) return;
+    const label = sv.episode === 0 ? "enlace madre Seeke" : `EP ${sv.episode}`;
     const res = await deleteCachedVideo(sv.slug, sv.episode, sv.lang, sv.id);
     if (!res.success) {
       toast.error("Error al eliminar: " + (res.error || "desconocido"));
