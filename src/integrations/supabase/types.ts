@@ -1985,6 +1985,10 @@ export type Database = {
         Args: { _pool: string; _slug: string; _user_id: string }
         Returns: boolean
       }
+      verify_profile_pin: {
+        Args: { _pin: string; _profile_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       anime_list_type:
