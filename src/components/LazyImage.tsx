@@ -42,6 +42,7 @@ export default function LazyImage({
   const [loaded, setLoaded] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [malSrc, setMalSrc] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const dataSaver = getStaticPreference("dataSaver");
 
@@ -50,6 +51,7 @@ export default function LazyImage({
     setLoaded(false);
     setAttempt(0);
     setFailed(false);
+    setMalSrc(null);
     return () => { if (timer.current) clearTimeout(timer.current); };
   }, [src]);
 
@@ -57,18 +59,39 @@ export default function LazyImage({
   // de "modo ahorro" apunta a un tamaño inexistente) + cache-buster, porque el
   // CDN de AniList devuelve 429/5xx de forma intermitente.
   const baseSrc = attempt === 0 && dataSaver ? toLightSrc(src) : src;
-  const finalSrc = attempt > 0 && baseSrc ? `${baseSrc}${baseSrc.includes("?") ? "&" : "?"}r=${attempt}` : baseSrc;
+  const retrySrc = attempt > 0 && baseSrc ? `${baseSrc}${baseSrc.includes("?") ? "&" : "?"}r=${attempt}` : baseSrc;
+  const finalSrc = malSrc || retrySrc;
 
   const handleError = () => {
-    if (attempt >= MAX_RETRIES) {
+    if (malSrc) {
+      // Ya estábamos usando MyAnimeList y también falló.
       setFailed(true);
-      setLoaded(true); // evita skeleton infinito
+      setLoaded(true);
+      return;
+    }
+    if (attempt >= MAX_RETRIES) {
+      // Segunda vía: portada equivalente en MyAnimeList (Jikan).
+      import("@/lib/mal-fallback")
+        .then((m) => m.malImageFromAniListUrl(src))
+        .then((url) => {
+          if (url) {
+            setMalSrc(url);
+          } else {
+            setFailed(true);
+            setLoaded(true);
+          }
+        })
+        .catch(() => {
+          setFailed(true);
+          setLoaded(true);
+        });
       return;
     }
     const delay = 400 * Math.pow(2, attempt); // 400ms, 800ms, 1.6s
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setAttempt((a) => a + 1), delay);
   };
+
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
@@ -77,7 +100,7 @@ export default function LazyImage({
       )}
       {failed && <div className="absolute inset-0 bg-secondary" aria-hidden />}
       <img
-        key={attempt}
+        key={malSrc ?? attempt}
         src={finalSrc}
         alt={alt}
         loading="lazy"

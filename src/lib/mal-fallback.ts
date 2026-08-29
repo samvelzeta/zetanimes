@@ -121,11 +121,11 @@ function jikanToAniListMedia(item: any): AniListMedia {
 
 }
 
-async function fetchWithTimeout(url: string, timeoutMs: number) {
+async function fetchWithTimeout(url: string, timeoutMs: number, init?: RequestInit) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    return await fetch(url, { signal: ctrl.signal });
+    return await fetch(url, { ...init, signal: ctrl.signal });
   } finally {
     clearTimeout(timer);
   }
@@ -344,4 +344,47 @@ export async function processJikanPage(
     media = media.filter((m: any) => !m.isAdult);
   }
   return { ...curated, media };
+}
+
+/**
+ * Fallback de IMAGEN: cuando el CDN de AniList falla repetidamente para una
+ * portada, resolvemos la imagen equivalente en MyAnimeList (vía Jikan).
+ *
+ * Las URLs de AniList incluyen el id del media: .../cover/large/bx1234-abc.png
+ * Con ese id pedimos el idMal a AniList (GraphQL suele seguir vivo aunque el
+ * CDN de imágenes esté caído) y luego la portada a Jikan.
+ */
+export async function malImageFromAniListUrl(url: string): Promise<string | null> {
+  try {
+    if (!url || !/anilistcdn/.test(url)) return null;
+    const m = url.match(/\/(?:b|bx|nx|n)(\d+)-/);
+    if (!m) return null;
+    const anilistId = Number(m[1]);
+    if (!anilistId) return null;
+
+    const cacheKey = `mal-img:${anilistId}`;
+    const cached = await idbGet<string>(cacheKey);
+    if (cached) return cached;
+
+    const res = await fetchWithTimeout("https://graphql.anilist.co", 6000, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: "query($id:Int){Media(id:$id,type:ANIME){idMal}}",
+        variables: { id: anilistId },
+      }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json().catch(() => null);
+    const malId = json?.data?.Media?.idMal;
+    if (!malId) return null;
+
+    const data = await jikanGet(`/anime/${malId}`);
+    const img = jikanImageUrl(data);
+    if (!img) return null;
+    await idbSet(cacheKey, img, TTL);
+    return img;
+  } catch {
+    return null;
+  }
 }
