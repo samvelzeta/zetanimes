@@ -2,11 +2,15 @@
 // Se ejecuta vía pg_cron (mensual). Usa service_role para llamar admin.deleteUser.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { assertInternalCaller } from "../_shared/cron-auth.ts";
 
 const INACTIVITY_MONTHS = 6;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const denied = await assertInternalCaller(req, { staffOnly: true });
+  if (denied) return new Response(denied.body, { status: denied.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,

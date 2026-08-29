@@ -11,6 +11,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { assertInternalCaller } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -202,6 +203,9 @@ async function trackOne(supabase: SupaClient, anilistId: number, clientStatus: s
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const denied = await assertInternalCaller(req, {});
+  if (denied) return new Response(denied.body, { status: denied.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const supabase = createClient(

@@ -3,6 +3,7 @@
 // - Envía UNA notificación resumen al owner con el total enviado.
 // - Dispara auto-expiración y limpieza de BD.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { assertInternalCaller } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,9 @@ const KOFI_URL = "https://ko-fi.com/zetanimes";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const denied = await assertInternalCaller(req, { staffOnly: true });
+  if (denied) return new Response(denied.body, { status: denied.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const supabase = createClient(
