@@ -85,27 +85,58 @@ Deno.serve(async (req) => {
     }
     url = target.toString();
 
+    // Seguimos redirects manualmente, validando cada salto (anti-SSRF).
+    let current = target;
+    let upstream: Response | null = null;
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      const referer = `${current.protocol}//${current.host}/`;
+      const res = await fetch(current.toString(), {
+        redirect: "manual",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+          "Accept": "application/x-subrip,text/vtt,text/plain,*/*",
+          "Referer": referer,
+        },
+      });
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("location");
+        const next = loc ? validateUrl(new URL(loc, current).toString()) : null;
+        if (!next) {
+          return new Response(JSON.stringify({ ok: false, error: "blocked redirect" }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        current = next;
+        continue;
+      }
+      upstream = res;
+      break;
+    }
 
-    const referer = (() => {
-      try { const u = new URL(url); return `${u.protocol}//${u.host}/`; } catch { return url; }
-    })();
-
-    const upstream = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-        "Accept": "application/x-subrip,text/vtt,text/plain,*/*",
-        "Referer": referer,
-      },
-    });
-
-    if (!upstream.ok) {
-      return new Response(JSON.stringify({ ok: false, error: `upstream ${upstream.status}` }), {
+    if (!upstream || !upstream.ok) {
+      return new Response(JSON.stringify({ ok: false, error: `upstream ${upstream?.status ?? "redirects"}` }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const content = await upstream.text();
+    const declared = Number(upstream.headers.get("content-length") || "0");
+    if (declared > MAX_BYTES) {
+      return new Response(JSON.stringify({ ok: false, error: "too large" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const buf = new Uint8Array(await upstream.arrayBuffer());
+    if (buf.byteLength > MAX_BYTES) {
+      return new Response(JSON.stringify({ ok: false, error: "too large" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const content = new TextDecoder().decode(buf);
     return new Response(JSON.stringify({ ok: true, content }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" },
