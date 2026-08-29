@@ -186,10 +186,15 @@ export async function setProfilePin(profileId: string, pin: string | null): Prom
     .eq("id", profileId);
 }
 
+/** Verificación 100% server-side: el hash nunca llega al navegador. */
 export async function verifyProfilePin(profile: AccountProfile, pin: string): Promise<boolean> {
-  if (!profile.pin_enabled || !profile.pin_hash) return true;
-  const hash = await hashProfilePin(profile.id, pin);
-  return hash === profile.pin_hash;
+  if (!profile.pin_enabled) return true;
+  const { data, error } = await supabase.rpc("verify_profile_pin", {
+    _profile_id: profile.id,
+    _pin: pin,
+  });
+  if (error) throw error;
+  return data === true;
 }
 
 export async function deleteProfile(id: string): Promise<void> {
