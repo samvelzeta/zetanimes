@@ -97,7 +97,7 @@ export async function hashProfilePin(profileId: string, pin: string): Promise<st
 export async function listProfiles(userId: string): Promise<AccountProfile[]> {
   const { data } = await supabase
     .from("account_profiles")
-    .select("*")
+    .select(PROFILE_COLUMNS)
     .eq("user_id", userId)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: true });
@@ -147,7 +147,7 @@ export async function createProfile(
   const { data, error } = await supabase
     .from("account_profiles")
     .insert(insertPayload)
-    .select()
+    .select(PROFILE_COLUMNS)
     .single();
   if (error) throw error;
   const created = data as AccountProfile;
@@ -157,7 +157,6 @@ export async function createProfile(
       .from("account_profiles")
       .update({ pin_hash: hash, pin_enabled: true })
       .eq("id", created.id);
-    created.pin_hash = hash;
     created.pin_enabled = true;
   }
   return created;
