@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStaticPreference } from "@/contexts/PreferencesContext";
 
@@ -29,6 +29,8 @@ function toLightSrc(src: string): string {
  * - Respeta la preferencia global "Modo Ahorro de Datos" degradando la calidad.
  * - Una vez cargada queda fija en el DOM.
  */
+const MAX_RETRIES = 3;
+
 export default function LazyImage({
   src,
   alt,
@@ -38,25 +40,57 @@ export default function LazyImage({
   ...rest
 }: Props) {
   const [loaded, setLoaded] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
   const dataSaver = getStaticPreference("dataSaver");
-  const finalSrc = dataSaver ? toLightSrc(src) : src;
+
+  // Reset cuando cambia la imagen
+  useEffect(() => {
+    setLoaded(false);
+    setAttempt(0);
+    setFailed(false);
+    return () => { if (timer.current) clearTimeout(timer.current); };
+  }, [src]);
+
+  // Intento 0: variante normal. Intento 1+: URL original (por si el downgrade
+  // de "modo ahorro" apunta a un tamaño inexistente) + cache-buster, porque el
+  // CDN de AniList devuelve 429/5xx de forma intermitente.
+  const baseSrc = attempt === 0 && dataSaver ? toLightSrc(src) : src;
+  const finalSrc = attempt > 0 && baseSrc ? `${baseSrc}${baseSrc.includes("?") ? "&" : "?"}r=${attempt}` : baseSrc;
+
+  const handleError = () => {
+    if (attempt >= MAX_RETRIES) {
+      setFailed(true);
+      setLoaded(true); // evita skeleton infinito
+      return;
+    }
+    const delay = 400 * Math.pow(2, attempt); // 400ms, 800ms, 1.6s
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setAttempt((a) => a + 1), delay);
+  };
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {!loaded && (
         <Skeleton bolt className={`absolute inset-0 bg-secondary rounded-none ${placeholderClassName}`} />
       )}
+      {failed && <div className="absolute inset-0 bg-secondary" aria-hidden />}
       <img
+        key={attempt}
         src={finalSrc}
         alt={alt}
         loading="lazy"
         decoding="async"
-        onLoad={() => setLoaded(true)}
+        referrerPolicy="no-referrer"
+        onLoad={() => { setLoaded(true); setFailed(false); }}
+        onError={handleError}
         className={`w-full h-full object-cover transition-opacity duration-300 ${
-          loaded ? "opacity-100" : "opacity-0"
+          loaded && !failed ? "opacity-100" : "opacity-0"
         }`}
         {...rest}
       />
     </div>
   );
 }
+
