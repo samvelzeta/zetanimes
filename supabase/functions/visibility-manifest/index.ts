@@ -78,10 +78,33 @@ Deno.serve(async (req) => {
   }
 
   if (action === "invalidate") {
+    // Sólo admin/owner autenticado puede borrar la caché compartida.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader.startsWith("Bearer ")) return json({ ok: false, error: "unauthorized" }, 401);
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userRes } = await userClient.auth.getUser();
+    const uid = userRes?.user?.id;
+    if (!uid) return json({ ok: false, error: "unauthorized" }, 401);
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: roles } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", uid)
+      .in("role", ["owner", "admin"]);
+    if (!roles?.length) return json({ ok: false, error: "forbidden" }, 403);
+
     mem = null;
     await kvDelete(KV_KEY);
     return json({ ok: true, invalidated: true });
   }
+
 
   if (mem && Date.now() - mem.at < MEM_TTL) {
     return json({ ok: true, source: "memory", manifest: mem.data });
