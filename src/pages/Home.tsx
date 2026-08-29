@@ -129,12 +129,24 @@ export default function Home() {
   });
 
   const { data: topRated, isLoading: l4 } = useQuery({
-    queryKey: ["topRated"],
-    queryFn: () => getTopRated(1, isTV ? 10 : 15),
+    queryKey: ["topRated-ranking"],
+    // Pool amplio: tras filtrar aprobados/ocultos deben quedar al menos 10
+    queryFn: () => getTopRated(1, 50),
     staleTime: 1000 * 60 * 30,
     // En TV se monta directo en el home simplificado; en PC espera al LazySection
     enabled: isTV || enableTopRated,
   });
+
+  // Lista final del Top: filtrada; si quedan menos de 10, se rellena con el resto
+  // del top de AniList (sin ocultos) para que el ranking nunca se vea vacío.
+  const rankingList = useMemo(() => {
+    const all = (topRated?.media || []).filter((a: any) => !hiddenSet.has(a.id));
+    const primary = filterHomeVisible(all, approvedSet, seekeSet, reserveHiddenSet);
+    if (primary.length >= 10) return primary.slice(0, 10);
+    const ids = new Set(primary.map((a: any) => a.id));
+    return [...primary, ...all.filter((a: any) => !ids.has(a.id))].slice(0, 10);
+  }, [topRated, hiddenSet, approvedSet, seekeSet, reserveHiddenSet]);
+
 
   const { data: season, isLoading: l5 } = useQuery({
     queryKey: ["thisSeason"],
