@@ -9,10 +9,14 @@ export interface AccountProfile {
   font_family: string | null;
   is_default: boolean;
   pin_enabled: boolean;
-  pin_hash: string | null;
   created_at: string;
   updated_at: string;
 }
+
+/** Columnas legibles por el cliente. `pin_hash` NUNCA se expone al navegador. */
+export const PROFILE_COLUMNS =
+  "id, user_id, name, avatar_url, accent_color, font_family, is_default, pin_enabled, created_at, updated_at";
+
 
 export const MAX_PROFILES_FREE = 2;
 export const MAX_PROFILES_PREMIUM = 3;
@@ -93,7 +97,7 @@ export async function hashProfilePin(profileId: string, pin: string): Promise<st
 export async function listProfiles(userId: string): Promise<AccountProfile[]> {
   const { data } = await supabase
     .from("account_profiles")
-    .select("*")
+    .select(PROFILE_COLUMNS)
     .eq("user_id", userId)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: true });
@@ -143,7 +147,7 @@ export async function createProfile(
   const { data, error } = await supabase
     .from("account_profiles")
     .insert(insertPayload)
-    .select()
+    .select(PROFILE_COLUMNS)
     .single();
   if (error) throw error;
   const created = data as AccountProfile;
@@ -153,7 +157,6 @@ export async function createProfile(
       .from("account_profiles")
       .update({ pin_hash: hash, pin_enabled: true })
       .eq("id", created.id);
-    created.pin_hash = hash;
     created.pin_enabled = true;
   }
   return created;
@@ -183,10 +186,15 @@ export async function setProfilePin(profileId: string, pin: string | null): Prom
     .eq("id", profileId);
 }
 
+/** Verificación 100% server-side: el hash nunca llega al navegador. */
 export async function verifyProfilePin(profile: AccountProfile, pin: string): Promise<boolean> {
-  if (!profile.pin_enabled || !profile.pin_hash) return true;
-  const hash = await hashProfilePin(profile.id, pin);
-  return hash === profile.pin_hash;
+  if (!profile.pin_enabled) return true;
+  const { data, error } = await supabase.rpc("verify_profile_pin", {
+    _profile_id: profile.id,
+    _pin: pin,
+  });
+  if (error) throw error;
+  return data === true;
 }
 
 export async function deleteProfile(id: string): Promise<void> {

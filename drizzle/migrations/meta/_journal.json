@@ -15,6 +15,20 @@
       "when": 1787959078301,
       "tag": "0001_perf_indexes_hot_paths",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787963042088,
+      "tag": "0002_verify_profile_pin_server_side",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787963074117,
+      "tag": "0003_hide_pin_hash_from_clients",
+      "breakpoints": true
     }
   ]
 }
