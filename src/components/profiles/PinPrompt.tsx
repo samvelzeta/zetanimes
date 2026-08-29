@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, KeyRound, ArrowLeft } from "lucide-react";
-import { hashProfilePin, markProfilePin, type AccountProfile } from "@/lib/account-profiles";
-import { supabase } from "@/integrations/supabase/client";
+import { verifyProfilePin, markProfilePin, type AccountProfile } from "@/lib/account-profiles";
 import { toast } from "sonner";
 
 interface Props {
@@ -21,24 +20,12 @@ export default function PinPrompt({ profile, onSuccess, onCancel }: Props) {
     if (value.length !== 4 || busy) return;
     setBusy(true);
     try {
-      // Re-fetch the latest hash from DB to avoid stale state
-      const { data, error } = await supabase
-        .from("account_profiles")
-        .select("pin_enabled, pin_hash")
-        .eq("id", profile.id)
-        .maybeSingle();
-      if (error) {
+      let ok = false;
+      try {
+        ok = await verifyProfilePin(profile, value);
+      } catch {
         toast.error("Error al validar PIN");
         return;
-      }
-      const pinEnabled = data?.pin_enabled ?? profile.pin_enabled;
-      const pinHash = data?.pin_hash ?? profile.pin_hash;
-      let ok = false;
-      if (!pinEnabled || !pinHash) {
-        ok = true;
-      } else {
-        const hash = await hashProfilePin(profile.id, value);
-        ok = hash === pinHash;
       }
       if (ok) {
         markProfilePin(profile.id);
