@@ -100,7 +100,7 @@ export default function LazyImage({
       )}
       {failed && <div className="absolute inset-0 bg-secondary" aria-hidden />}
       <img
-        key={attempt}
+        key={malSrc ?? attempt}
         src={finalSrc}
         alt={alt}
         loading="lazy"
