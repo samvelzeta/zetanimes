@@ -82,9 +82,10 @@ async function fetchAdultFlags(ids: number[]): Promise<{ id: number; title: stri
  */
 export async function detectAndFlagAdult(ids: number[]): Promise<Set<number>> {
   const known = await getAdultAnimeIds();
-  const unknown = ids.filter((id) => id && !checked.has(id));
+  // Máx. 200 ids por pasada para no ahogar AniList; el resto se revisa en la
+  // siguiente ejecución del efecto.
+  const unknown = ids.filter((id) => id && !checked.has(id)).slice(0, 200);
   if (!unknown.length) return known;
-  unknown.forEach((id) => checked.add(id));
 
   const found = await fetchAdultFlags(unknown);
   if (!found.length) return known;
