@@ -43,7 +43,7 @@ export async function approveAnime(anilistId: number, notes?: string): Promise<{
     }, { onConflict: "anilist_id" });
   if (error) return { success: false, error: error.message };
   memCache?.add(anilistId);
-  idbDelete(IDB_KEY).catch(() => {});
+  invalidateVisibility().catch(() => {});
   notify();
   return { success: true };
 }
@@ -55,7 +55,7 @@ export async function unapproveAnime(anilistId: number): Promise<{ success: bool
     .eq("anilist_id", anilistId);
   if (error) return { success: false, error: error.message };
   memCache?.delete(anilistId);
-  idbDelete(IDB_KEY).catch(() => {});
+  invalidateVisibility().catch(() => {});
   notify();
   return { success: true };
 }
