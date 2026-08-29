@@ -392,7 +392,7 @@ export default function SearchPage() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                   {trendingList.map((anime) => (
                     <div key={anime.id} className="animate-in fade-in duration-500">
-                      <AnimeCard anime={anime} />
+                      <AnimeCard anime={anime} size="grid" />
                     </div>
                   ))}
                 </div>
