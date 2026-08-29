@@ -41,25 +41,37 @@ async function fetchAdultFlags(ids: number[]): Promise<{ id: number; title: stri
   const out: { id: number; title: string }[] = [];
   for (let i = 0; i < ids.length; i += 50) {
     const slice = ids.slice(i, i + 50);
-    try {
-      const res = await fetch(ANILIST_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `query($ids:[Int]){Page(page:1,perPage:50){media(id_in:$ids,type:ANIME){id isAdult title{romaji english}}}}`,
-          variables: { ids: slice },
-        }),
-      });
-      if (!res.ok) continue;
-      const json = await res.json();
-      for (const m of json?.data?.Page?.media || []) {
-        if (m?.isAdult === true) {
-          out.push({ id: m.id, title: m.title?.romaji || m.title?.english || `Anime #${m.id}` });
+    let ok = false;
+    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+      try {
+        const res = await fetch(ANILIST_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: `query($ids:[Int]){Page(page:1,perPage:50){media(id_in:$ids,type:ANIME){id isAdult title{romaji english}}}}`,
+            variables: { ids: slice },
+          }),
+        });
+        if (res.status === 429) {
+          // Rate limit: esperamos y reintentamos; NO marcamos como revisados.
+          await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+          continue;
         }
+        if (!res.ok) break;
+        ok = true;
+        const json = await res.json();
+        for (const m of json?.data?.Page?.media || []) {
+          if (m?.isAdult === true) {
+            out.push({ id: m.id, title: m.title?.romaji || m.title?.english || `Anime #${m.id}` });
+          }
+        }
+      } catch {
+        /* red caída: se reintenta en la próxima carga */
       }
-    } catch {
-      /* red caída: se reintenta en la próxima carga */
     }
+    // Sólo marcamos como revisados los ids de lotes que respondieron bien;
+    // si falló, se reintentarán en la próxima pasada.
+    if (ok) slice.forEach((id) => checked.add(id));
   }
   return out;
 }
@@ -70,9 +82,10 @@ async function fetchAdultFlags(ids: number[]): Promise<{ id: number; title: stri
  */
 export async function detectAndFlagAdult(ids: number[]): Promise<Set<number>> {
   const known = await getAdultAnimeIds();
-  const unknown = ids.filter((id) => id && !checked.has(id));
+  // Máx. 200 ids por pasada para no ahogar AniList; el resto se revisa en la
+  // siguiente ejecución del efecto.
+  const unknown = ids.filter((id) => id && !checked.has(id)).slice(0, 200);
   if (!unknown.length) return known;
-  unknown.forEach((id) => checked.add(id));
 
   const found = await fetchAdultFlags(unknown);
   if (!found.length) return known;

@@ -384,7 +384,9 @@ export default function PendingApproval() {
   }, [airingItemsRaw]);
 
   const airingItems = useMemo<AiringItem[]>(
-    () => airingItemsRaw.filter((a) => !blockedAdult.has(a.id)),
+    // Fuera cualquier adulto conocido/detectado y también los que traigan el
+    // flag isAdult directamente en la respuesta de AniList (oculto inmediato).
+    () => airingItemsRaw.filter((a) => !blockedAdult.has(a.id) && (a as any).isAdult !== true),
     [airingItemsRaw, blockedAdult],
   );
 
@@ -451,6 +453,7 @@ export default function PendingApproval() {
       const seen = new Set<number>();
       const chain = prequelMap.get(parentId) || [];
       for (const p of chain) {
+        if (blockedAdult.has(p.id)) continue;
         if (seekeMasterSet.has(p.id) || seen.has(p.id) || mainIds.has(p.id) && p.id !== parentId) continue;
         if (p.id === parentId) continue;
         seen.add(p.id);
@@ -467,6 +470,7 @@ export default function PendingApproval() {
       }
       const sides = sideMap?.get(parentId) || [];
       for (const s of sides) {
+        if (blockedAdult.has(s.id)) continue;
         if (seekeMasterSet.has(s.id) || seen.has(s.id) || mainIds.has(s.id)) continue;
         if (s.status !== "RELEASING") continue;
         seen.add(s.id);
@@ -490,7 +494,21 @@ export default function PendingApproval() {
     }
     // Filtra grupos cuyo main haya sido reclamado como related de otro (no debería pasar, pero por seguridad)
     return result.filter((g) => !claimedAsRelated.has(g.main.id));
-  }, [airingItems, prequelMap, sideMap, seekeMasterSet]);
+  }, [airingItems, prequelMap, sideMap, seekeMasterSet, blockedAdult]);
+
+  // Los relacionados (precuelas/side stories) también pasan por el detector de
+  // adultos: si alguno es isAdult se marca, se borra de la reserva y desaparece.
+  useEffect(() => {
+    const ids: number[] = [];
+    prequelMap?.forEach((chain) => chain.forEach((p) => ids.push(p.id)));
+    sideMap?.forEach((sides) => sides.forEach((s) => ids.push(s.id)));
+    if (!ids.length) return;
+    let cancel = false;
+    detectAndFlagAdult(ids)
+      .then((set) => { if (!cancel && set.size) setDetectedAdult(new Set(set)); })
+      .catch(() => {});
+    return () => { cancel = true; };
+  }, [prequelMap, sideMap]);
 
   // Auto-aprobar: si el item TIENE enlace madre Seeke y TODAS sus precuelas
   // también → lo mandamos directo a "aprobados" sin que el admin toque nada.
