@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getVisibility, invalidateVisibility } from "@/lib/visibility-manifest";
 
 export type AnimeStatus = "RELEASING" | "FINISHED" | "NOT_YET_RELEASED" | "CANCELLED" | "HIATUS";
 
@@ -15,11 +16,13 @@ export interface AnimeStatusOverride {
 export async function getAnimeStatusOverrides(ids: number[]): Promise<Map<number, AnimeStatus>> {
   const clean = Array.from(new Set(ids.filter(Boolean)));
   if (!clean.length) return new Map();
-  const { data } = await supabase
-    .from("anime_status_overrides" as any)
-    .select("anilist_id,manual_status")
-    .in("anilist_id", clean);
-  return new Map(((data as any[]) || []).map((row) => [row.anilist_id, row.manual_status as AnimeStatus]));
+  const { statusOverrides } = await getVisibility();
+  const out = new Map<number, AnimeStatus>();
+  for (const id of clean) {
+    const st = statusOverrides.get(id);
+    if (st) out.set(id, st as AnimeStatus);
+  }
+  return out;
 }
 
 export async function applyStatusOverrides<T extends { id: number; status?: string | null }>(media: T[]): Promise<T[]> {
@@ -54,10 +57,12 @@ export async function upsertAnimeStatusOverride(params: {
     created_by: params.created_by ?? null,
     updated_at: new Date().toISOString(),
   } as any, { onConflict: "anilist_id" });
+  await invalidateVisibility().catch(() => {});
   return { success: !error, error: error?.message };
 }
 
 export async function deleteAnimeStatusOverride(anilistId: number) {
   const { error } = await supabase.from("anime_status_overrides" as any).delete().eq("anilist_id", anilistId);
+  await invalidateVisibility().catch(() => {});
   return { success: !error, error: error?.message };
 }

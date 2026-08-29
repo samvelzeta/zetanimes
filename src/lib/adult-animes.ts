@@ -4,6 +4,7 @@
 // búsqueda de la sección Videos y, una vez aprobados (Seeke o slug), aparecen
 // únicamente en la búsqueda pública.
 import { supabase } from "@/integrations/supabase/client";
+import { getVisibility, invalidateVisibility } from "@/lib/visibility-manifest";
 
 const ANILIST_URL = "https://graphql.anilist.co";
 
@@ -12,25 +13,10 @@ let inflight: Promise<Set<number>> | null = null;
 const checked = new Set<number>(); // ids ya consultados en esta sesión
 
 export async function getAdultAnimeIds(force = false): Promise<Set<number>> {
-  if (!force && memCache) return memCache;
-  if (!force && inflight) return inflight;
-  inflight = (async () => {
-    const { data, error } = await supabase
-      .from("adult_animes" as any)
-      .select("anilist_id")
-      .limit(5000);
-    if (error) {
-      console.error("[adult-animes] load error", error);
-      return memCache ?? new Set<number>();
-    }
-    const set = new Set<number>((data || []).map((r: any) => r.anilist_id as number));
-    set.forEach((id) => checked.add(id));
-    memCache = set;
-    return set;
-  })();
-  const res = await inflight;
-  inflight = null;
-  return res;
+  const sets = await getVisibility(force);
+  memCache = sets.adult;
+  memCache.forEach((id) => checked.add(id));
+  return memCache;
 }
 
 export function isKnownAdult(id: number): boolean {
