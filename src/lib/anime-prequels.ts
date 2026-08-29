@@ -1,6 +1,7 @@
 // Helpers para detectar temporadas anteriores (PREQUEL/PARENT) en AniList
 // y saber cuáles ya tienen enlace madre Seeke en video_cache.
 import { supabase } from "@/integrations/supabase/client";
+import { getVisibility, invalidateVisibility } from "@/lib/visibility-manifest";
 import { idbGet, idbSet, idbDelete } from "@/lib/idb-cache";
 
 const ANILIST_URL = "https://graphql.anilist.co";
