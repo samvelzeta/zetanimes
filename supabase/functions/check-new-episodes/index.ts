@@ -15,11 +15,12 @@ function errorMessage(error: unknown): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   const denied = await assertInternalCaller(req, {});
   if (denied) return new Response(denied.body, { status: denied.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    return new Response(null, { headers: corsHeaders });
-  }
+
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
