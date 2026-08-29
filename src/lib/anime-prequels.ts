@@ -106,39 +106,13 @@ export async function getSideStories(anilistId: number): Promise<PrequelNode[]> 
  * Devuelve el conjunto de anilist_ids que YA tienen enlace madre Seeke
  * (episode=0 y sources.seeke con al menos una URL). Lee todo en un solo query.
  */
-const SEEKE_IDB_KEY = "seeke_master_ids";
-const SEEKE_TTL = 10 * 60 * 1000; // 10 min
-let seekeMem: Set<number> | null = null;
-let seekePromise: Promise<Set<number>> | null = null;
-
 /** Invalida la caché tras guardar/editar enlaces madre en admin. */
 export function clearSeekeMasterCache() {
-  seekeMem = null;
-  seekePromise = null;
-  idbDelete(SEEKE_IDB_KEY).catch(() => {});
+  invalidateVisibility().catch(() => {});
 }
 
 export async function getAnimeIdsWithSeekeMaster(): Promise<Set<number>> {
-  if (seekeMem) return seekeMem;
-  if (seekePromise) return seekePromise;
-  seekePromise = (async () => {
-    const cached = await idbGet<number[]>(SEEKE_IDB_KEY);
-    if (cached) {
-      seekeMem = new Set(cached);
-      return seekeMem;
-    }
-    const { data, error } = await supabase.rpc("get_anime_ids_with_seeke_master");
-    if (error) return new Set<number>();
-    const ids: number[] = [];
-    ((data as any[]) || []).forEach((row) => {
-      if (typeof row?.anilist_id === "number") ids.push(row.anilist_id);
-    });
-    seekeMem = new Set(ids);
-    idbSet(SEEKE_IDB_KEY, ids, SEEKE_TTL).catch(() => {});
-    return seekeMem;
-  })();
-  const res = await seekePromise;
-  seekePromise = null;
-  return res;
+  return (await getVisibility()).seeke;
 }
+
 
