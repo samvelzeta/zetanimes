@@ -9,10 +9,14 @@ export interface AccountProfile {
   font_family: string | null;
   is_default: boolean;
   pin_enabled: boolean;
-  pin_hash: string | null;
   created_at: string;
   updated_at: string;
 }
+
+/** Columnas legibles por el cliente. `pin_hash` NUNCA se expone al navegador. */
+export const PROFILE_COLUMNS =
+  "id, user_id, name, avatar_url, accent_color, font_family, is_default, pin_enabled, created_at, updated_at";
+
 
 export const MAX_PROFILES_FREE = 2;
 export const MAX_PROFILES_PREMIUM = 3;
