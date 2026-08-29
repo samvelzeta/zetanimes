@@ -123,6 +123,7 @@ export default function VideoManager() {
   const [approvingSlug, setApprovingSlug] = useState(false);
   const [autoFetching, setAutoFetching] = useState(false);
   const [autoLog, setAutoLog] = useState<string[]>([]);
+  const [pendingDelete, setPendingDelete] = useState<CachedVideo | null>(null);
   
 
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
