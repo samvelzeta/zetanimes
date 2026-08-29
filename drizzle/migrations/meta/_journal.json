@@ -29,6 +29,13 @@
       "when": 1787963074117,
       "tag": "0003_hide_pin_hash_from_clients",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787964565069,
+      "tag": "0004_allow_delete_seeke_master_video",
+      "breakpoints": true
     }
   ]
 }

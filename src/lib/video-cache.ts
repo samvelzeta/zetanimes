@@ -333,9 +333,9 @@ export async function deleteCachedVideo(
   id?: string,
   anilistId?: number
 ): Promise<{ success: boolean; error?: string }> {
-  if (episode === 0) {
-    return { success: false, error: "El enlace madre Seeke está protegido y no se puede eliminar." };
-  }
+  // El enlace madre (episode=0) ahora también se puede eliminar; la
+  // confirmación se maneja en la UI antes de llamar a esta función.
+
 
   const normalizedSlug = normalizeSlug(slug);
   let query = supabase.from("video_cache").delete().select("slug, anilist_id");

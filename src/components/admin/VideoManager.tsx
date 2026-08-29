@@ -22,6 +22,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import BlocksEditor from "./BlocksEditor";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const API_BASE = "https://zetapi-api.samvelzeta.workers.dev";
 
@@ -119,6 +123,7 @@ export default function VideoManager() {
   const [approvingSlug, setApprovingSlug] = useState(false);
   const [autoFetching, setAutoFetching] = useState(false);
   const [autoLog, setAutoLog] = useState<string[]>([]);
+  const [pendingDelete, setPendingDelete] = useState<CachedVideo | null>(null);
   
 
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -563,8 +568,7 @@ export default function VideoManager() {
   };
 
   const deleteSaved = async (sv: CachedVideo) => {
-    const label = sv.episode === 0 ? "enlace madre" : `EP ${sv.episode}`;
-    if (!confirm(`¿Eliminar ${label} (${sv.lang}) de la DB? Esta acción no se puede deshacer.`)) return;
+    const label = sv.episode === 0 ? "enlace madre Seeke" : `EP ${sv.episode}`;
     const res = await deleteCachedVideo(sv.slug, sv.episode, sv.lang, sv.id);
     if (!res.success) {
       toast.error("Error al eliminar: " + (res.error || "desconocido"));
@@ -675,7 +679,7 @@ export default function VideoManager() {
                   <button onClick={() => editSaved(sv)} className="text-primary hover:bg-primary/10 p-1.5 rounded">
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => deleteSaved(sv)} className="text-destructive hover:bg-destructive/10 p-1.5 rounded">
+                  <button onClick={() => setPendingDelete(sv)} title="Eliminar enlace" className="text-destructive hover:bg-destructive/10 p-1.5 rounded">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -843,6 +847,48 @@ export default function VideoManager() {
           </div>
         </div>
       )}
+
+      {/* Confirmación de eliminación (episodio o enlace madre Seeke) */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              {pendingDelete?.episode === 0 ? "¿Eliminar enlace madre Seeke?" : `¿Eliminar EP ${pendingDelete?.episode}?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 text-xs leading-relaxed">
+              {pendingDelete?.episode === 0 ? (
+                <>
+                  <span className="block">
+                    Vas a eliminar el <strong>enlace madre Seeke</strong> ({pendingDelete?.lang}) de <strong>{selected?.title || pendingDelete?.slug}</strong>.
+                  </span>
+                  <span className="block text-destructive font-bold">
+                    Todos los episodios que dependen de este enlace dejarán de reproducirse hasta que guardes uno nuevo.
+                  </span>
+                  <span className="block">Los bloques configurados en este anime seguirán guardados. Esta acción no se puede deshacer.</span>
+                </>
+              ) : (
+                <span className="block">
+                  Se eliminará el enlace ({pendingDelete?.lang}) de la base de datos. Esta acción no se puede deshacer.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const sv = pendingDelete;
+                setPendingDelete(null);
+                if (sv) await deleteSaved(sv);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
