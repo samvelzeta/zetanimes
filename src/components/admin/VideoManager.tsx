@@ -847,6 +847,48 @@ export default function VideoManager() {
           </div>
         </div>
       )}
+
+      {/* Confirmación de eliminación (episodio o enlace madre Seeke) */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              {pendingDelete?.episode === 0 ? "¿Eliminar enlace madre Seeke?" : `¿Eliminar EP ${pendingDelete?.episode}?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2 text-xs leading-relaxed">
+              {pendingDelete?.episode === 0 ? (
+                <>
+                  <span className="block">
+                    Vas a eliminar el <strong>enlace madre Seeke</strong> ({pendingDelete?.lang}) de <strong>{selected?.title || pendingDelete?.slug}</strong>.
+                  </span>
+                  <span className="block text-destructive font-bold">
+                    Todos los episodios que dependen de este enlace dejarán de reproducirse hasta que guardes uno nuevo.
+                  </span>
+                  <span className="block">Los bloques configurados en este anime seguirán guardados. Esta acción no se puede deshacer.</span>
+                </>
+              ) : (
+                <span className="block">
+                  Se eliminará el enlace ({pendingDelete?.lang}) de la base de datos. Esta acción no se puede deshacer.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const sv = pendingDelete;
+                setPendingDelete(null);
+                if (sv) await deleteSaved(sv);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
