@@ -1872,6 +1872,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_visibility_manifest: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1921,6 +1922,10 @@ export type Database = {
         Returns: undefined
       }
       rotate_weekly_missions: { Args: never; Returns: Json }
+      run_weekly_pending_reserve_consumption: {
+        Args: { _limit?: number }
+        Returns: number
+      }
       start_stream: {
         Args: {
           _anime_id: number

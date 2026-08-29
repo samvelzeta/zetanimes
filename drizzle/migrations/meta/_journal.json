@@ -43,6 +43,13 @@
       "when": 1788037254920,
       "tag": "0005_gacha_harder_rates_frames_basico",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788037574129,
+      "tag": "0006_visibility_manifest_and_readonly_reserve",
+      "breakpoints": true
     }
   ]
 }
