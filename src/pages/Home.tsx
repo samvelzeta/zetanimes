@@ -189,7 +189,7 @@ export default function Home() {
         <GenreList />
         <TopRanking
           title="🏆 Top de Animes"
-          animes={filterFn(topRated?.media)}
+          animes={rankingList}
           loading={l4}
         />
       </div>
@@ -275,7 +275,7 @@ export default function Home() {
                   <ActionTrigger onMount={() => setEnableTopRated(true)} />
                   <TopRanking
                     title="🏆 Top 10 Semanal"
-                    animes={filterFn(topRated?.media)}
+                    animes={rankingList}
                     loading={l4}
                   />
                 </LazySection>
