@@ -82,7 +82,7 @@ function readHistoryCache(userId: string, profileId: string | null): WatchEntry[
   } catch { return []; }
 }
 function writeHistoryCache(userId: string, profileId: string | null, list: WatchEntry[]) {
-  try { localStorage.setItem(historyCacheKey(userId, profileId), JSON.stringify(list.slice(0, 100))); } catch {}
+  try { localStorage.setItem(historyCacheKey(userId, profileId), JSON.stringify(list.slice(0, 10))); } catch {}
 }
 
 export default function RecentlyWatched() {
