@@ -50,6 +50,13 @@
       "when": 1788037574129,
       "tag": "0006_visibility_manifest_and_readonly_reserve",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788119846070,
+      "tag": "0007_limit_watch_history_10",
+      "breakpoints": true
     }
   ]
 }

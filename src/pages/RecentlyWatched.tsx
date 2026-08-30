@@ -82,7 +82,7 @@ function readHistoryCache(userId: string, profileId: string | null): WatchEntry[
   } catch { return []; }
 }
 function writeHistoryCache(userId: string, profileId: string | null, list: WatchEntry[]) {
-  try { localStorage.setItem(historyCacheKey(userId, profileId), JSON.stringify(list.slice(0, 100))); } catch {}
+  try { localStorage.setItem(historyCacheKey(userId, profileId), JSON.stringify(list.slice(0, 10))); } catch {}
 }
 
 export default function RecentlyWatched() {
@@ -115,7 +115,7 @@ export default function RecentlyWatched() {
     if (!user) return;
     let q = supabase.from("watch_history").select("*").eq("user_id", user.id);
     q = profileId ? q.eq("profile_id", profileId) : q.is("profile_id", null);
-    const { data } = await q.order("created_at", { ascending: false }).limit(100);
+    const { data } = await q.order("created_at", { ascending: false }).limit(10);
     const list = (data as unknown as WatchEntry[]) || [];
     setHistory(list);
     setLoading(false);
