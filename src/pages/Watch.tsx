@@ -141,6 +141,7 @@ export default function Watch() {
     watchTimeRef.current = 0;
     lastTickTimeRef.current = null;
     lastSavedProgressRef.current = 0;
+    completedPersistedRef.current = false;
   }, [user?.id, anilistId, selectedEp]);
 
   const { data: anilistData } = useQuery({
