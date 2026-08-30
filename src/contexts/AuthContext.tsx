@@ -183,7 +183,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await touchCurrentDevice(user.id);
       }
     };
-    const interval = window.setInterval(check, 15000);
+    // Antes cada 15 s: generaba miles de UPDATE/SELECT por sesión y saturaba el IO.
+    // Ahora cada 5 min y solo con la pestaña visible (touchCurrentDevice además throttlea).
+    const tick = () => { if (document.visibilityState === "visible") check(); };
+    const interval = window.setInterval(tick, 5 * 60 * 1000);
     const onVisible = () => { if (document.visibilityState === "visible") check(); };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
