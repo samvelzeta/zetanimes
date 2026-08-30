@@ -582,6 +582,7 @@ export default function Watch() {
   }, [user, watchedSet, watchedScope]);
 
   const lastPersistAtRef = useRef(0);
+  const completedPersistedRef = useRef(false);
   const pendingPersistRef = useRef<{ currentTime: number; totalDuration: number; isCompleted: boolean } | null>(null);
 
   const getHistoryBase = useCallback(() => {
