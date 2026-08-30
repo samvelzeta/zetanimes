@@ -34,9 +34,16 @@ export async function applyAnimeCuration<T extends CuratableAnime>(media: T[], o
   );
   if (autoHiddenToPersist.length > 0) {
     autoHiddenToPersist.forEach((anime) => persisted.add(anime.id));
-    supabase.functions
-      .invoke("curate-anime", { body: { ids: autoHiddenToPersist.map((anime) => anime.id) } })
-      .then(() => invalidateVisibility(false))
+    // La función curate-anime exige usuario autenticado; los invitados no la invocan
+    // (el filtrado local ya oculta los títulos igualmente).
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!data.session) return null;
+        return supabase.functions
+          .invoke("curate-anime", { body: { ids: autoHiddenToPersist.map((anime) => anime.id) } })
+          .then(() => invalidateVisibility(false));
+      })
       .catch(() => null);
   }
 
