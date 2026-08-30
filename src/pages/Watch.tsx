@@ -655,13 +655,16 @@ export default function Watch() {
       const base = getHistoryBase();
       if (!base) return;
 
-      // Throttle a nivel de red: como máximo 1 escritura cada 30s por reproducción.
-      // Se fuerza al completar, al hacer seek y al salir de la página.
+      // Throttle a nivel de red: como máximo 1 escritura cada 60s por reproducción.
+      // `isCompleted` solo salta el throttle la PRIMERA vez (antes escribía en cada
+      // tick a partir del 70%, saturando el IO de disco de la base de datos).
       const now = Date.now();
-      if (!force && !isCompleted && now - lastPersistAtRef.current < 30_000) {
+      const completedFirstTime = isCompleted && !completedPersistedRef.current;
+      if (!force && !completedFirstTime && now - lastPersistAtRef.current < 60_000) {
         pendingPersistRef.current = { currentTime, totalDuration, isCompleted };
         return;
       }
+      if (isCompleted) completedPersistedRef.current = true;
       lastPersistAtRef.current = now;
       pendingPersistRef.current = null;
 
