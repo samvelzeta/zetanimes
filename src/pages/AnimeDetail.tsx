@@ -82,9 +82,13 @@ export default function AnimeDetail() {
     if (!animeId || !anime?.status) return;
     const status = anime.status;
     if (status !== "RELEASING" && status !== "FINISHED" && status !== "CANCELLED") return;
-    supabase.functions
-      .invoke("sync-auto-episodes", { body: { anilist_id: animeId, status } })
-      .catch(() => {});
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) return; // el guard del server exige sesión; invitados no disparan el track
+      supabase.functions
+        .invoke("sync-auto-episodes", { body: { anilist_id: animeId, status } })
+        .catch(() => {});
+    });
+
   }, [animeId, anime?.status]);
 
   // Set de IDs con enlace madre Seeke — filtra side stories (solo se muestran si tienen Seeke).
