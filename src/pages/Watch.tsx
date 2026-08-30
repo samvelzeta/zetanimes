@@ -141,6 +141,7 @@ export default function Watch() {
     watchTimeRef.current = 0;
     lastTickTimeRef.current = null;
     lastSavedProgressRef.current = 0;
+    completedPersistedRef.current = false;
   }, [user?.id, anilistId, selectedEp]);
 
   const { data: anilistData } = useQuery({
@@ -582,6 +583,7 @@ export default function Watch() {
   }, [user, watchedSet, watchedScope]);
 
   const lastPersistAtRef = useRef(0);
+  const completedPersistedRef = useRef(false);
   const pendingPersistRef = useRef<{ currentTime: number; totalDuration: number; isCompleted: boolean } | null>(null);
 
   const getHistoryBase = useCallback(() => {
@@ -655,13 +657,16 @@ export default function Watch() {
       const base = getHistoryBase();
       if (!base) return;
 
-      // Throttle a nivel de red: como máximo 1 escritura cada 30s por reproducción.
-      // Se fuerza al completar, al hacer seek y al salir de la página.
+      // Throttle a nivel de red: como máximo 1 escritura cada 60s por reproducción.
+      // `isCompleted` solo salta el throttle la PRIMERA vez (antes escribía en cada
+      // tick a partir del 70%, saturando el IO de disco de la base de datos).
       const now = Date.now();
-      if (!force && !isCompleted && now - lastPersistAtRef.current < 30_000) {
+      const completedFirstTime = isCompleted && !completedPersistedRef.current;
+      if (!force && !completedFirstTime && now - lastPersistAtRef.current < 60_000) {
         pendingPersistRef.current = { currentTime, totalDuration, isCompleted };
         return;
       }
+      if (isCompleted) completedPersistedRef.current = true;
       lastPersistAtRef.current = now;
       pendingPersistRef.current = null;
 

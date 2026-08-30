@@ -50,9 +50,11 @@ export default function StreamGuard({ animeId, episode, children }: Props) {
   // heartbeat
   useEffect(() => {
     if (!sessionId) return;
+    // 60 s: el corte por inactividad es a los 90 s, así reducimos a la mitad
+    // los UPDATE sobre streaming_sessions (IO de disco / WAL).
     const t = window.setInterval(() => {
       heartbeatStream(sessionId).catch(() => {});
-    }, 30_000);
+    }, 60_000);
     return () => window.clearInterval(t);
   }, [sessionId]);
 

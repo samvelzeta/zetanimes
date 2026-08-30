@@ -154,7 +154,21 @@ export async function revokeAllDevices(userId: string): Promise<void> {
   await supabase.rpc("revoke_all_device_sessions", { _user_id: userId });
 }
 
-export async function touchCurrentDevice(userId: string): Promise<void> {
+// Throttle de escrituras: `touch_device_session` hace un UPDATE en cada llamada.
+// Antes se ejecutaba cada 15 s por pestaña, lo que disparaba el IO de disco y el WAL.
+const TOUCH_MIN_INTERVAL_MS = 5 * 60 * 1000;
+const TOUCH_KEY = "zet:device-touch-at";
+
+export async function touchCurrentDevice(userId: string, force = false): Promise<void> {
+  try {
+    if (!force) {
+      const last = Number(localStorage.getItem(TOUCH_KEY) || 0);
+      if (Date.now() - last < TOUCH_MIN_INTERVAL_MS) return;
+    }
+    localStorage.setItem(TOUCH_KEY, String(Date.now()));
+  } catch {
+    /* storage no disponible */
+  }
   const info = getDeviceInfo();
   await supabase.rpc("touch_device_session", {
     _user_id: userId,
