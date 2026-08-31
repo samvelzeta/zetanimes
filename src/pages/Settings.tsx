@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Check, User, Loader2, Lock, Crown } from "lucide-react";
+import { ArrowLeft, Check, User, Loader2, Lock, Crown, Trash2, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfiles } from "@/contexts/ProfilesContext";
 import { updateProfile } from "@/lib/account-profiles";
 import { usePreferences } from "@/contexts/PreferencesContext";
+import { deleteAccount } from "@/lib/delete-account";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const FONT_OPTIONS = [
   { id: "default", name: "Predeterminada", css: "" },
@@ -62,6 +67,30 @@ export default function SettingsPage() {
   // Edit name
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
   const [savingName, setSavingName] = useState(false);
+
+  // Eliminar cuenta (doble confirmación)
+  const [confirmStep1, setConfirmStep1] = useState(false);
+  const [confirmStep2, setConfirmStep2] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const profileName = activeProfile?.name || profile?.display_name || profile?.username || "";
+
+  const handleDeleteAccount = async () => {
+    if (confirmText.trim().toLowerCase() !== profileName.trim().toLowerCase()) {
+      toast.error("El nombre no coincide");
+      return;
+    }
+    setDeleting(true);
+    const res = await deleteAccount(confirmText.trim());
+    setDeleting(false);
+    if (!res.ok) {
+      toast.error(res.error || "No se pudo eliminar la cuenta");
+      return;
+    }
+    toast.success("Cuenta eliminada por completo");
+    setConfirmStep2(false);
+    window.location.replace("/");
+  };
 
   useEffect(() => {
     setDisplayName(activeProfile?.name || profile?.display_name || profile?.username || "");
@@ -329,6 +358,81 @@ export default function SettingsPage() {
             Restaurar predeterminados
           </button>
         </div>
+
+        {/* Zona de peligro */}
+        {user && (
+          <section className="zet-panel p-5 md:p-6 border border-destructive/40">
+            <h2 className="heading-steam text-base font-semibold text-destructive mb-2 flex items-center gap-2">
+              <span className="w-7 h-7 rounded-full bg-destructive/15 flex items-center justify-center">
+                <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+              </span>
+              Zona de peligro
+            </h2>
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+              Al eliminar tu cuenta se borrarán de forma permanente tus perfiles, historial,
+              listas, cosméticos, progreso y toda tu caché (base de datos, KV y navegador).
+              Esta acción no se puede deshacer.
+            </p>
+            <button
+              onClick={() => { setConfirmText(""); setConfirmStep1(true); }}
+              className="w-full md:w-auto px-5 py-3 rounded-xl bg-destructive/15 border border-destructive/50 text-destructive text-xs font-bold uppercase tracking-wider hover:bg-destructive/25 transition-colors flex items-center justify-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Eliminar mi cuenta
+            </button>
+          </section>
+        )}
+
+        {/* Confirmación 1 */}
+        <AlertDialog open={confirmStep1} onOpenChange={setConfirmStep1}>
+          <AlertDialogContent className="max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Deseas eliminar tu cuenta?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se eliminarán tus datos de la base de datos, la caché en la nube y la de tu
+                navegador. No podrás recuperar nada.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => { setConfirmStep1(false); setConfirmText(""); setTimeout(() => setConfirmStep2(true), 80); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Aceptar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Confirmación 2: escribir el nombre del perfil */}
+        <AlertDialog open={confirmStep2} onOpenChange={(o) => { if (!deleting) setConfirmStep2(o); }}>
+          <AlertDialogContent className="max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmación definitiva</AlertDialogTitle>
+              <AlertDialogDescription>
+                Escribe <span className="font-bold text-foreground">{profileName}</span> para
+                confirmar el borrado permanente de tu cuenta.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={profileName}
+              autoFocus
+              className="bg-background/60 border-destructive/50"
+            />
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={deleting || confirmText.trim().toLowerCase() !== profileName.trim().toLowerCase()}
+                onClick={(e) => { e.preventDefault(); handleDeleteAccount(); }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Eliminar definitivamente"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <AdBanner300x250 />
       </div>
