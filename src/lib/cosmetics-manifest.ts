@@ -48,31 +48,34 @@ export async function loadCosmeticsManifest(): Promise<CosmeticsManifest> {
   if (inflight) return inflight;
 
   inflight = (async () => {
-    const cached = await idbGet<CosmeticsManifest>(IDB_KEY);
-    if (cached && (cached.frames?.length || cached.banners?.length)) {
-      memo = cached;
-      // Revalidación silenciosa
-      fetchManifest()
-        .then((fresh) => {
-          if (!fresh.frames.length && !fresh.banners.length) return;
-          memo = fresh;
-          idbSet(IDB_KEY, fresh, TTL);
-        })
-        .catch(() => {});
-      return cached;
-    }
     try {
-      const fresh = await fetchManifest();
-      memo = fresh;
-      idbSet(IDB_KEY, fresh, TTL);
-      return fresh;
-    } catch {
-      memo = { frames: [], banners: [] };
-      return memo;
+      const cached = await idbGet<CosmeticsManifest>(IDB_KEY);
+      if (cached && (cached.frames?.length || cached.banners?.length)) {
+        memo = cached;
+        // Revalidación silenciosa
+        fetchManifest()
+          .then((fresh) => {
+            if (!fresh.frames.length && !fresh.banners.length) return;
+            memo = fresh;
+            idbSet(IDB_KEY, fresh, TTL);
+          })
+          .catch(() => {});
+        return cached;
+      }
+      try {
+        const fresh = await fetchManifest();
+        memo = fresh;
+        idbSet(IDB_KEY, fresh, TTL);
+        return fresh;
+      } catch {
+        memo = { frames: [], banners: [] };
+        return memo;
+      }
     } finally {
       inflight = null;
     }
   })();
+
 
   return inflight;
 }
