@@ -5,6 +5,7 @@ import { Trash2, Plus, Upload, Loader2, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { RARITY_META, type Rarity } from "@/lib/cosmetics";
 import AvatarFrame from "@/components/premium/AvatarFrame";
+import { invalidateCosmeticsManifest } from "@/lib/cosmetics-manifest";
 import { compressFramePng } from "@/lib/image-compress";
 import { uploadCosmeticToR2 } from "@/lib/upload-cosmetic";
 
@@ -30,6 +31,7 @@ export default function AdminFramesManager() {
 
   const load = async () => {
     setLoading(true);
+    await invalidateCosmeticsManifest();
     const { data, error } = await supabase.from("admin_frames" as any).select("*").order("position", { ascending: true });
     if (error) toast.error(error.message);
     setItems((data as any as FrameRow[]) || []);

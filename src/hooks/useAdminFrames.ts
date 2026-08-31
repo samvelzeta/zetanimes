@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { loadCosmeticsManifest } from "@/lib/cosmetics-manifest";
 import { reqFromAdmin, type AvatarFrameDef, type FrameShape, type Rarity } from "@/lib/cosmetics";
 
 // Cache global para que AvatarFrame pueda resolver `admin:<id>` sin hooks.
@@ -11,12 +11,9 @@ export function getAdminFrame(slug: string): AvatarFrameDef | undefined {
 }
 
 async function loadOnce() {
-  const { data } = await supabase
-    .from("admin_frames" as any)
-    .select("id,name,image_url,shape,rarity,requirement_type,requirement_value,active")
-    .eq("active", true)
-    .order("position", { ascending: true });
-  const list: AvatarFrameDef[] = (data as any[] | null || []).map((row) => {
+  // Manifiesto cacheado permanentemente en Cloudflare KV (memoria → IDB → KV → DB).
+  const manifest = await loadCosmeticsManifest();
+  const list: AvatarFrameDef[] = (manifest.frames as any[]).map((row) => {
     const slug = `admin:${row.id}`;
     const def: AvatarFrameDef = {
       slug,
