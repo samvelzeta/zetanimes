@@ -68,7 +68,15 @@ export async function deleteAccount(confirmName: string): Promise<DeleteAccountR
     body: { confirmName },
   });
 
-  const code = (data as any)?.error;
+  let code = (data as any)?.error as string | undefined;
+  // Las respuestas 4xx llegan como FunctionsHttpError: hay que leer el body.
+  if (!code && error) {
+    try {
+      const res = (error as any)?.context;
+      const body = res && typeof res.json === "function" ? await res.json() : null;
+      if (typeof body?.error === "string") code = body.error;
+    } catch { /* noop */ }
+  }
   if (error && !code) return { ok: false, error: "No se pudo eliminar la cuenta" };
   if (code) return { ok: false, error: ERRORS[code] ?? code };
   if (!(data as any)?.ok) return { ok: false, error: "No se pudo eliminar la cuenta" };

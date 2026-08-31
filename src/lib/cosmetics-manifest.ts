@@ -48,6 +48,7 @@ export async function loadCosmeticsManifest(): Promise<CosmeticsManifest> {
   if (inflight) return inflight;
 
   inflight = (async () => {
+   try {
     const cached = await idbGet<CosmeticsManifest>(IDB_KEY);
     if (cached && (cached.frames?.length || cached.banners?.length)) {
       memo = cached;
@@ -62,16 +63,17 @@ export async function loadCosmeticsManifest(): Promise<CosmeticsManifest> {
       return cached;
     }
     try {
-      const fresh = await fetchManifest();
+        const fresh = await fetchManifest();
       memo = fresh;
       idbSet(IDB_KEY, fresh, TTL);
       return fresh;
     } catch {
       memo = { frames: [], banners: [] };
       return memo;
-    } finally {
-      inflight = null;
     }
+   } finally {
+      inflight = null;
+   }
   })();
 
   return inflight;
