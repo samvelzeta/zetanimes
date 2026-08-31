@@ -1,5 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
 import { idbGet, idbSet } from "@/lib/idb-cache";
+import { loadCosmeticsManifest, invalidateCosmeticsManifest } from "@/lib/cosmetics-manifest";
 
 export interface AdminBannerRow {
   id: string;
