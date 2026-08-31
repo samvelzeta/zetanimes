@@ -1,23 +1,20 @@
-import { supabase } from "@/integrations/supabase/client";
-import { loadAdminBanners, warmImages } from "@/lib/admin-banner-cache";
+import { loadCosmeticsManifest } from "@/lib/cosmetics-manifest";
+import { warmImages } from "@/lib/admin-banner-cache";
 
 let preloadPromise: Promise<void> | null = null;
 
 /**
  * Precarga en el caché HTTP del navegador los overlays de marcos y las
- * imágenes de banners activos (ya cacheadas en IndexedDB por 24h).
+ * imágenes de banners activos (manifiesto cacheado en Cloudflare KV).
  * Idempotente: se ejecuta una sola vez por sesión.
  */
 export function preloadAdminCosmetics(): Promise<void> {
   if (preloadPromise) return preloadPromise;
   preloadPromise = (async () => {
     try {
-      const [{ data: frames }, banners] = await Promise.all([
-        supabase.from("admin_frames" as any).select("image_url").eq("active", true),
-        loadAdminBanners(),
-      ]);
-      warmImages(banners);
-      (frames as any[] | null)?.forEach((r) => {
+      const { frames, banners } = await loadCosmeticsManifest();
+      warmImages(banners as any);
+      frames.forEach((r) => {
         if (!r?.image_url) return;
         const img = new Image();
         img.decoding = "async";
