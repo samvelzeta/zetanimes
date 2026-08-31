@@ -23,13 +23,9 @@ function toMap(rows: AdminBannerRow[]) {
 }
 
 async function fetchFromDB(): Promise<AdminBannerRow[]> {
-  const { data, error } = await supabase
-    .from("admin_banners" as any)
-    .select("id,name,image_url,requirement_type,requirement_value,rarity,position")
-    .eq("active", true)
-    .order("position", { ascending: true });
-  if (error) throw error;
-  return (data as any[] | null) ?? [];
+  // Lectura vía manifiesto cacheado permanentemente en Cloudflare KV.
+  const manifest = await loadCosmeticsManifest();
+  return (manifest.banners as unknown as AdminBannerRow[]) ?? [];
 }
 
 /**
