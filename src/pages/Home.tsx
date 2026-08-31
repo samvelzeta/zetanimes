@@ -183,22 +183,27 @@ export default function Home() {
     return () => window.clearTimeout(timeout);
   }, [trending, trendingError, l1]);
 
-  // TV: Hero + Últimos Episodios + Bento + Géneros + Top Ranking.
+  // TV: render progresivo (LazySection) para no montar todo de golpe en hardware lento.
   if (isTV) {
     return (
       <div className="min-h-screen space-y-6">
         <VerticalCarousel items={filterFn(trending?.media)} />
-        <LatestEpisodes />
-        <BentoEpisodes />
-        <GenreList />
-        <TopRanking
-          title="🏆 Top de Animes"
-          animes={rankingList}
-          loading={l4}
-        />
+        <LazySection minHeight={280}>
+          <LatestEpisodes />
+        </LazySection>
+        <LazySection minHeight={400}>
+          <BentoEpisodes />
+        </LazySection>
+        <LazySection minHeight={120}>
+          <GenreList />
+        </LazySection>
+        <LazySection minHeight={500}>
+          <TopRanking title="🏆 Top de Animes" animes={rankingList} loading={l4} />
+        </LazySection>
       </div>
     );
   }
+
 
   // Splash listo cuando la query crítica respondió o falló; nunca debe bloquear la app.
   const initialReady = !!trending || trendingError || !l1 || splashFallbackReady;
