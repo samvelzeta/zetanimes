@@ -3,6 +3,7 @@
 // Invalidación explícita: POST { action: "invalidate" } tras cualquier CRUD admin.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireAdmin } from "../_shared/admin-auth.ts";
 
 const CF_ACCOUNT = Deno.env.get("R2_ACCOUNT_ID") ?? "";
 const CF_TOKEN = Deno.env.get("CLOUDFLARE_API_TOKEN") ?? "";
@@ -101,6 +102,9 @@ Deno.serve(async (req) => {
   }
 
   if (action === "invalidate") {
+    // Sólo admin/owner: evita que cualquiera fuerce reconstrucciones desde la DB.
+    const auth = await requireAdmin(req);
+    if (!auth.ok) return json({ ok: false, error: auth.error }, auth.status);
     mem = null;
     await kvDelete(KV_KEY);
     const fresh = await buildFromDB();

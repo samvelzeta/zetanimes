@@ -2,6 +2,7 @@
 // al navegador. El cliente envía solo { action, anilistId, lang, ep }.
 // El servidor consulta la URL madre vía service_role y llama a la VPS scraper.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { requireAdmin } from "../_shared/admin-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -449,6 +450,13 @@ Deno.serve(async (req) => {
 
     // Purga manual desde el admin cuando se edita/borra un enlace Seeke o slug.
     if (action === "invalidate") {
+      const auth = await requireAdmin(req);
+      if (!auth.ok) {
+        return new Response(JSON.stringify({ ok: false, error: auth.error }), {
+          status: auth.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       invalidateAnime(anilistId);
       await kvDeletePrefix(`stream:${anilistId}:`);
       return new Response(JSON.stringify({ ok: true, invalidated: anilistId }), {
