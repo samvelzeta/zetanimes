@@ -1,5 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
 import { idbGet, idbSet } from "@/lib/idb-cache";
+import { loadCosmeticsManifest, invalidateCosmeticsManifest } from "@/lib/cosmetics-manifest";
 
 export interface AdminBannerRow {
   id: string;
@@ -23,13 +23,9 @@ function toMap(rows: AdminBannerRow[]) {
 }
 
 async function fetchFromDB(): Promise<AdminBannerRow[]> {
-  const { data, error } = await supabase
-    .from("admin_banners" as any)
-    .select("id,name,image_url,requirement_type,requirement_value,rarity,position")
-    .eq("active", true)
-    .order("position", { ascending: true });
-  if (error) throw error;
-  return (data as any[] | null) ?? [];
+  // Lectura vía manifiesto cacheado permanentemente en Cloudflare KV.
+  const manifest = await loadCosmeticsManifest();
+  return (manifest.banners as unknown as AdminBannerRow[]) ?? [];
 }
 
 /**
@@ -107,4 +103,5 @@ export async function invalidateAdminBanners() {
   memo = null;
   inflight = null;
   await idbSet(IDB_KEY, [], 0);
+  await invalidateCosmeticsManifest();
 }
