@@ -78,25 +78,19 @@ export default function TVSidebar() {
       {/* Menu button - always visible, centered vertically */}
       <button
         onClick={() => setOpen((p) => !p)}
-        className="fixed top-1/2 -translate-y-1/2 left-4 z-[100] w-12 h-12 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center hover:bg-primary/70 focus:bg-primary/70 focus:outline-none focus:ring-2 focus:ring-primary"
+        className="fixed top-1/2 -translate-y-1/2 left-4 z-[100] w-12 h-12 rounded-full bg-background border border-border flex items-center justify-center hover:bg-primary/70 focus:bg-primary/70 focus:outline-none focus:ring-2 focus:ring-primary"
         tabIndex={0}
       >
-        {open ? <X className="w-6 h-6 text-white" /> : <Menu className="w-6 h-6 text-white" />}
+        {open ? <X className="w-6 h-6 text-foreground" /> : <Menu className="w-6 h-6 text-foreground" />}
       </button>
 
-      {/* Sidebar overlay */}
+      {/* Sidebar overlay — fondo sólido (sin gradientes ni transparencias: TV lento) */}
       <div
         ref={sidebarRef}
-        className={`fixed top-0 left-0 h-full z-[90] ${open ? "translate-x-0" : "-translate-x-full"}`}
-        style={{ width: "240px", transition: "transform 0.2s ease" }}
+        className={`fixed top-0 left-0 h-full z-[90] bg-background border-r border-border ${open ? "" : "hidden"}`}
+        style={{ width: "240px" }}
       >
-        {/* Netflix-style gradient */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: "linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 60%, rgba(0,0,0,0) 100%)",
-          }}
-        />
+
 
         {/* Nav items centered vertically */}
         <nav className="relative z-10 flex flex-col gap-2 px-6 h-full justify-center">

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import HeaderBar from "@/components/HeaderBar";
@@ -20,6 +21,15 @@ export default function Layout() {
   const isTV = useIsTV();
   // D-Pad spatial navigation activa solo en TV mode (el hook chequea internamente)
   useTVRemote();
+
+  // Modo TV: marca el <html> para desactivar TODAS las animaciones/blur vía CSS.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isTV) root.classList.add("tv-mode");
+    else root.classList.remove("tv-mode");
+    return () => root.classList.remove("tv-mode");
+  }, [isTV]);
+
 
   const hideNav = NO_NAV_PAGES.some((p) => location.pathname.startsWith(p));
   const hideHeader = NO_HEADER_PAGES.some((p) => location.pathname.startsWith(p));
