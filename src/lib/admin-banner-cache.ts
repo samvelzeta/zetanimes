@@ -103,4 +103,5 @@ export async function invalidateAdminBanners() {
   memo = null;
   inflight = null;
   await idbSet(IDB_KEY, [], 0);
+  await invalidateCosmeticsManifest();
 }
