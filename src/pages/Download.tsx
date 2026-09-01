@@ -315,10 +315,13 @@ export default function DownloadPage() {
           ref={videoRef}
           src={BACKGROUND_VIDEO_URL}
           loop
+          autoPlay
+          muted
           playsInline
           preload="auto"
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${videoReady ? "opacity-100" : "opacity-0"}`}
         />
+
 
         <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/70 to-background/95" />
         <div className={`absolute inset-0 transition-all duration-1000 ${videoReady ? "backdrop-blur-[1px]" : "backdrop-blur-[2px]"}`} />
