@@ -123,17 +123,12 @@ export default function DownloadPage() {
     const video = videoRef.current;
     if (!video) return;
 
-    let unmuteTimer: ReturnType<typeof setInterval> | null = null;
     let removed = false;
+    let audioAchieved = false;
 
-    const stopUnmuteWatcher = () => {
-      if (unmuteTimer) {
-        clearInterval(unmuteTimer);
-        unmuteTimer = null;
-      }
-    };
-
-    const ensureAudio = async () => {
+    // Autoplay con sonido: el video SIEMPRE intenta sonar. Nunca arranca muteado.
+    const ensureAudio = async (): Promise<boolean> => {
+      if (audioAchieved || removed) return audioAchieved;
       const v = videoRef.current;
       if (!v) return false;
       try {
@@ -141,69 +136,47 @@ export default function DownloadPage() {
         v.volume = 1;
         await v.play();
         if (!v.muted) {
+          audioAchieved = true;
           setAudioOn(true);
           return true;
         }
-        return false;
-      } catch {
-        return false;
-      }
-    };
-
-    const tryFirstPlay = async () => {
-      const v = videoRef.current;
-      if (!v) return;
-      const ok = await ensureAudio();
-      if (ok) {
-        stopUnmuteWatcher();
-        return;
-      }
-      // Fallback: arranca muteado y reintenta cada 700ms hasta que un gesto del usuario permita audio
-      try {
-        v.muted = true;
-        await v.play();
       } catch {}
-      setAudioOn(false);
-      if (!unmuteTimer) {
-        unmuteTimer = setInterval(async () => {
-          if (removed) return stopUnmuteWatcher();
-          const ok2 = await ensureAudio();
-          if (ok2) stopUnmuteWatcher();
-        }, 700);
-      }
+      return false;
     };
 
-    const onCanPlayThrough = () => {
+    const tryPlayWithSound = () => {
       setVideoReady(true);
-      void tryFirstPlay();
+      void ensureAudio();
     };
 
-    const onUserGesture = async () => {
-      const v = videoRef.current;
-      if (!v) return;
-      if (v.muted) await ensureAudio();
+    // El navegador puede bloquear el sonido inicial; en cuanto el usuario haga
+    // CUALQUIER gesto (toque, click, tecla, scroll), activamos el audio.
+    const onUserGesture = () => {
+      void ensureAudio();
     };
 
-    // Autoplay inmediato: no esperamos a canplaythrough (a veces nunca dispara).
-    video.muted = true;
-    video.play().catch(() => {});
+    // Intento inmediato con sonido apenas carga la página (sin esperar eventos).
+    void ensureAudio();
 
-    const readyEvents = ["loadeddata", "canplay", "canplaythrough", "playing"] as const;
-    readyEvents.forEach((ev) => video.addEventListener(ev, onCanPlayThrough));
-    const gestureEvents: Array<keyof WindowEventMap> = ["pointerdown", "keydown", "touchstart"];
+    const readyEvents = ["loadeddata", "canplay", "canplaythrough"] as const;
+    readyEvents.forEach((ev) => video.addEventListener(ev, tryPlayWithSound));
+    const gestureEvents: Array<keyof WindowEventMap> = [
+      "pointerdown",
+      "pointermove",
+      "keydown",
+      "touchstart",
+      "scroll",
+      "wheel",
+    ];
     gestureEvents.forEach((ev) =>
       window.addEventListener(ev, onUserGesture, { passive: true })
     );
 
-    if (video.readyState >= 2) onCanPlayThrough();
-    else void tryFirstPlay();
-
-
+    if (video.readyState >= 2) tryPlayWithSound();
 
     return () => {
       removed = true;
-      stopUnmuteWatcher();
-      readyEvents.forEach((ev) => video.removeEventListener(ev, onCanPlayThrough));
+      readyEvents.forEach((ev) => video.removeEventListener(ev, tryPlayWithSound));
       gestureEvents.forEach((ev) =>
         window.removeEventListener(ev, onUserGesture)
       );
