@@ -297,7 +297,6 @@ export default function DownloadPage() {
           src={BACKGROUND_VIDEO_URL}
           loop
           autoPlay
-          autoPlay
           playsInline
           preload="auto"
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${videoReady ? "opacity-100" : "opacity-0"}`}
