@@ -184,13 +184,21 @@ export default function DownloadPage() {
       if (v.muted) await ensureAudio();
     };
 
-    video.addEventListener("canplaythrough", onCanPlayThrough);
+    // Autoplay inmediato: no esperamos a canplaythrough (a veces nunca dispara).
+    video.muted = true;
+    video.play().catch(() => {});
+
+    const readyEvents = ["loadeddata", "canplay", "canplaythrough", "playing"] as const;
+    readyEvents.forEach((ev) => video.addEventListener(ev, onCanPlayThrough));
     const gestureEvents: Array<keyof WindowEventMap> = ["pointerdown", "keydown", "touchstart"];
     gestureEvents.forEach((ev) =>
       window.addEventListener(ev, onUserGesture, { passive: true })
     );
 
-    if (video.readyState >= 3) onCanPlayThrough();
+    if (video.readyState >= 2) onCanPlayThrough();
+    else void tryFirstPlay();
+
+
 
     return () => {
       removed = true;
