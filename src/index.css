@@ -1757,15 +1757,27 @@ html.tv-mode *::after {
   text-shadow: none !important;
 }
 
-/* Sin sombras costosas ni transformaciones de hover */
-html.tv-mode *:hover {
+/* Sin transformaciones de hover.
+   OJO: no usar `html.tv-mode *:hover { transform: none }` — eso también anula
+   los `translate` de centrado (-translate-x-1/2) y hace que bloques como los
+   controles del player salten de sitio al pasar el puntero del control mágico. */
+html.tv-mode .hover-scale:hover,
+html.tv-mode .story-link::after,
+html.tv-mode [data-player-control] button:hover,
+html.tv-mode button.hover\:scale-105:hover,
+html.tv-mode a.hover\:scale-105:hover,
+html.tv-mode .hover\:scale-110:hover,
+html.tv-mode .hover\:scale-\[1\.02\]:hover {
   transform: none !important;
 }
 
-html.tv-mode .hover-scale:hover,
-html.tv-mode .story-link::after {
-  transform: none !important;
+/* Sin sombras/glow costosos en el player de TV */
+html.tv-mode [data-player-control] button,
+html.tv-mode [data-player-control] svg {
+  box-shadow: none !important;
+  filter: none !important;
 }
+
 
 /* Fondos sólidos: nada de translúcidos que obliguen a recomponer capas */
 html.tv-mode .tv-solid {

@@ -184,18 +184,26 @@ export default function DownloadPage() {
       if (v.muted) await ensureAudio();
     };
 
-    video.addEventListener("canplaythrough", onCanPlayThrough);
+    // Autoplay inmediato: no esperamos a canplaythrough (a veces nunca dispara).
+    video.muted = true;
+    video.play().catch(() => {});
+
+    const readyEvents = ["loadeddata", "canplay", "canplaythrough", "playing"] as const;
+    readyEvents.forEach((ev) => video.addEventListener(ev, onCanPlayThrough));
     const gestureEvents: Array<keyof WindowEventMap> = ["pointerdown", "keydown", "touchstart"];
     gestureEvents.forEach((ev) =>
       window.addEventListener(ev, onUserGesture, { passive: true })
     );
 
-    if (video.readyState >= 3) onCanPlayThrough();
+    if (video.readyState >= 2) onCanPlayThrough();
+    else void tryFirstPlay();
+
+
 
     return () => {
       removed = true;
       stopUnmuteWatcher();
-      video.removeEventListener("canplaythrough", onCanPlayThrough);
+      readyEvents.forEach((ev) => video.removeEventListener(ev, onCanPlayThrough));
       gestureEvents.forEach((ev) =>
         window.removeEventListener(ev, onUserGesture)
       );
@@ -315,10 +323,13 @@ export default function DownloadPage() {
           ref={videoRef}
           src={BACKGROUND_VIDEO_URL}
           loop
+          autoPlay
+          muted
           playsInline
           preload="auto"
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${videoReady ? "opacity-100" : "opacity-0"}`}
         />
+
 
         <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/70 to-background/95" />
         <div className={`absolute inset-0 transition-all duration-1000 ${videoReady ? "backdrop-blur-[1px]" : "backdrop-blur-[2px]"}`} />

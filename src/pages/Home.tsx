@@ -156,7 +156,7 @@ export default function Home() {
     queryKey: ["thisSeason"],
     queryFn: () => getThisSeason(1, isTV ? 10 : 15),
     staleTime: 1000 * 60 * 30,
-    enabled: !isTV && enableSeason,
+    enabled: enableSeason,
   });
 
   const wk = weekSeed();
@@ -167,15 +167,16 @@ export default function Home() {
     queryKey: ["genre-action", actionPage],
     queryFn: () => getByGenre("Action", actionPage, isTV ? 20 : 30),
     staleTime: 1000 * 60 * 60 * 6,
-    enabled: !isTV && enableAction,
+    enabled: enableAction,
   });
 
   const { data: fantasyAnimes, isLoading: lFantasy } = useQuery({
     queryKey: ["genre-fantasy", fantasyPage],
-    queryFn: () => getByGenre("Fantasy", fantasyPage, 30),
+    queryFn: () => getByGenre("Fantasy", fantasyPage, isTV ? 20 : 30),
     staleTime: 1000 * 60 * 60 * 6,
-    enabled: !isTV && enableFantasy,
+    enabled: enableFantasy,
   });
+
 
   useEffect(() => {
     if (trending || trendingError || !l1) return;
@@ -197,12 +198,38 @@ export default function Home() {
         <LazySection minHeight={120}>
           <GenreList />
         </LazySection>
+        <LazySection minHeight={400}>
+          <BentoEpisodes skip={5} hideHero title="⚡ Más Episodios Recientes" />
+        </LazySection>
+        <LazySection minHeight={300}>
+          <ActionTrigger onMount={() => setEnableAction(true)} />
+          <HorizontalList
+            title="⚔️ Acción"
+            animes={weeklyShuffle(skipOverusedSometimes(filterFn(actionAnimes?.media))).slice(0, 15)}
+            loading={lAction}
+            linkTo="/directory?genre=Action"
+          />
+        </LazySection>
+        <LazySection minHeight={300}>
+          <ActionTrigger onMount={() => setEnableFantasy(true)} />
+          <HorizontalList
+            title="✨ Fantasía"
+            animes={weeklyShuffle(skipOverusedSometimes(filterFn(fantasyAnimes?.media))).slice(0, 15)}
+            loading={lFantasy}
+            linkTo="/directory?genre=Fantasy"
+          />
+        </LazySection>
         <LazySection minHeight={500}>
           <TopRanking title="🏆 Top de Animes" animes={rankingList} loading={l4} />
+        </LazySection>
+        <LazySection minHeight={300}>
+          <ActionTrigger onMount={() => setEnableSeason(true)} />
+          <HorizontalList title="🌸 Temporada Actual" animes={filterFn(season?.media)} loading={l5} showStatus />
         </LazySection>
       </div>
     );
   }
+
 
 
   // Splash listo cuando la query crítica respondió o falló; nunca debe bloquear la app.
