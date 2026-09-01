@@ -203,7 +203,7 @@ export default function DownloadPage() {
     return () => {
       removed = true;
       stopUnmuteWatcher();
-      video.removeEventListener("canplaythrough", onCanPlayThrough);
+      readyEvents.forEach((ev) => video.removeEventListener(ev, onCanPlayThrough));
       gestureEvents.forEach((ev) =>
         window.removeEventListener(ev, onUserGesture)
       );
