@@ -156,7 +156,7 @@ export default function Home() {
     queryKey: ["thisSeason"],
     queryFn: () => getThisSeason(1, isTV ? 10 : 15),
     staleTime: 1000 * 60 * 30,
-    enabled: !isTV && enableSeason,
+    enabled: enableSeason,
   });
 
   const wk = weekSeed();
@@ -167,15 +167,16 @@ export default function Home() {
     queryKey: ["genre-action", actionPage],
     queryFn: () => getByGenre("Action", actionPage, isTV ? 20 : 30),
     staleTime: 1000 * 60 * 60 * 6,
-    enabled: !isTV && enableAction,
+    enabled: enableAction,
   });
 
   const { data: fantasyAnimes, isLoading: lFantasy } = useQuery({
     queryKey: ["genre-fantasy", fantasyPage],
-    queryFn: () => getByGenre("Fantasy", fantasyPage, 30),
+    queryFn: () => getByGenre("Fantasy", fantasyPage, isTV ? 20 : 30),
     staleTime: 1000 * 60 * 60 * 6,
-    enabled: !isTV && enableFantasy,
+    enabled: enableFantasy,
   });
+
 
   useEffect(() => {
     if (trending || trendingError || !l1) return;
