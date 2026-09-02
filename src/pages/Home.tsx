@@ -238,7 +238,7 @@ export default function Home() {
         </LazySection>
         <LazySection minHeight={300}>
           <ActionTrigger onMount={() => setEnableSeason(true)} />
-          <HorizontalList title="🌸 Temporada Actual" animes={filterFn(season?.media)} loading={l5} showStatus />
+          <HorizontalList title="🌸 Temporada Actual" animes={filterFnOrFill(season?.media)} loading={l5} showStatus />
         </LazySection>
       </div>
     );
@@ -309,7 +309,7 @@ export default function Home() {
 
               <div className="border-t border-border/40 pt-2">
                 <LazySection minHeight={300}>
-                  <HorizontalList title="✨ Descubre" animes={weeklyShuffle(skipOverusedSometimes(filterFn(popular?.media))).slice(0, 15)} loading={l2} linkTo="/directory" />
+                  <HorizontalList title="✨ Descubre" animes={weeklyShuffle(skipOverusedSometimes(filterFnOrFill(popular?.media))).slice(0, 15)} loading={l2} linkTo="/directory" />
                 </LazySection>
               </div>
             </div>
@@ -362,7 +362,7 @@ export default function Home() {
           <div className="relative mt-4 py-6 bg-gradient-to-r from-background via-secondary/30 to-background border-y border-border/40">
             <LazySection minHeight={300}>
               <ActionTrigger onMount={() => setEnableSeason(true)} />
-              <HorizontalList title="🌸 Temporada Actual" animes={filterFn(season?.media)} loading={l5} showStatus />
+              <HorizontalList title="🌸 Temporada Actual" animes={filterFnOrFill(season?.media)} loading={l5} showStatus />
             </LazySection>
           </div>
 
