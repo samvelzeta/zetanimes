@@ -360,19 +360,20 @@ export async function getThisSeason(page = 1, perPage = 20): Promise<PageResult>
   const now = new Date();
   const month = now.getMonth();
   const year = now.getFullYear();
+  // Temporadas AniList: Winter=ene-mar, Spring=abr-jun, Summer=jul-sep, Fall=oct-dic
   const seasons = [
     "WINTER",
     "WINTER",
-    "SPRING",
-    "SPRING",
-    "SPRING",
-    "SUMMER",
-    "SUMMER",
-    "SUMMER",
-    "FALL",
-    "FALL",
-    "FALL",
     "WINTER",
+    "SPRING",
+    "SPRING",
+    "SPRING",
+    "SUMMER",
+    "SUMMER",
+    "SUMMER",
+    "FALL",
+    "FALL",
+    "FALL",
   ];
   const season = seasons[month];
   return withJikanFallback(
