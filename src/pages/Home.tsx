@@ -110,6 +110,20 @@ export default function Home() {
     return filterHomeVisible(noHidden, approvedSet, seekeSet, reserveHiddenSet);
   };
 
+  // Variante con relleno: si el filtro estricto deja la sección casi vacía
+  // (típico en Temporada Actual, donde casi nada está aprobado aún), se
+  // completan con el resto de la lista (sin ocultos ni no-estrenados) para
+  // que la sección nunca desaparezca.
+  const filterFnOrFill = (list: any[] | undefined, min = 8) => {
+    const all = (list || []).filter(
+      (a) => !hiddenSet.has(a.id) && a.status !== "NOT_YET_RELEASED" && a.status !== "CANCELLED"
+    );
+    const primary = filterHomeVisible(all, approvedSet, seekeSet, reserveHiddenSet);
+    if (primary.length >= min) return primary;
+    const ids = new Set(primary.map((a) => a.id));
+    return [...primary, ...all.filter((a) => !ids.has(a.id))];
+  };
+
   // Above-the-fold: cargar inmediato (HeroBanner + Trending)
   const { data: trending, isLoading: l1, isError: trendingError } = useQuery({
     queryKey: ["trending"],
@@ -224,7 +238,7 @@ export default function Home() {
         </LazySection>
         <LazySection minHeight={300}>
           <ActionTrigger onMount={() => setEnableSeason(true)} />
-          <HorizontalList title="🌸 Temporada Actual" animes={filterFn(season?.media)} loading={l5} showStatus />
+          <HorizontalList title="🌸 Temporada Actual" animes={filterFnOrFill(season?.media)} loading={l5} showStatus />
         </LazySection>
       </div>
     );
@@ -295,7 +309,7 @@ export default function Home() {
 
               <div className="border-t border-border/40 pt-2">
                 <LazySection minHeight={300}>
-                  <HorizontalList title="✨ Descubre" animes={weeklyShuffle(skipOverusedSometimes(filterFn(popular?.media))).slice(0, 15)} loading={l2} linkTo="/directory" />
+                  <HorizontalList title="✨ Descubre" animes={weeklyShuffle(skipOverusedSometimes(filterFnOrFill(popular?.media))).slice(0, 15)} loading={l2} linkTo="/directory" />
                 </LazySection>
               </div>
             </div>
@@ -348,7 +362,7 @@ export default function Home() {
           <div className="relative mt-4 py-6 bg-gradient-to-r from-background via-secondary/30 to-background border-y border-border/40">
             <LazySection minHeight={300}>
               <ActionTrigger onMount={() => setEnableSeason(true)} />
-              <HorizontalList title="🌸 Temporada Actual" animes={filterFn(season?.media)} loading={l5} showStatus />
+              <HorizontalList title="🌸 Temporada Actual" animes={filterFnOrFill(season?.media)} loading={l5} showStatus />
             </LazySection>
           </div>
 
