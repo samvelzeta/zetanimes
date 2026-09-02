@@ -110,6 +110,20 @@ export default function Home() {
     return filterHomeVisible(noHidden, approvedSet, seekeSet, reserveHiddenSet);
   };
 
+  // Variante con relleno: si el filtro estricto deja la sección casi vacía
+  // (típico en Temporada Actual, donde casi nada está aprobado aún), se
+  // completan con el resto de la lista (sin ocultos ni no-estrenados) para
+  // que la sección nunca desaparezca.
+  const filterFnOrFill = (list: any[] | undefined, min = 8) => {
+    const all = (list || []).filter(
+      (a) => !hiddenSet.has(a.id) && a.status !== "NOT_YET_RELEASED" && a.status !== "CANCELLED"
+    );
+    const primary = filterHomeVisible(all, approvedSet, seekeSet, reserveHiddenSet);
+    if (primary.length >= min) return primary;
+    const ids = new Set(primary.map((a) => a.id));
+    return [...primary, ...all.filter((a) => !ids.has(a.id))];
+  };
+
   // Above-the-fold: cargar inmediato (HeroBanner + Trending)
   const { data: trending, isLoading: l1, isError: trendingError } = useQuery({
     queryKey: ["trending"],
