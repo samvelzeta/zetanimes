@@ -62,6 +62,12 @@ async function getAiringStatus(
 ): Promise<string> {
   const hit = statusCache.get(anilistId);
   if (hit && Date.now() - hit.at < 3_600_000) return hit.value;
+  // KV compartido: evita que cada instancia fría consulte la base de datos.
+  const kvStatus = await kvGet<{ status: string }>(`stream:${anilistId}:status`);
+  if (kvStatus?.status) {
+    statusCache.set(anilistId, { at: Date.now(), value: kvStatus.status });
+    return kvStatus.status;
+  }
   let status = "UNKNOWN";
   try {
     const { data } = await supabase
@@ -72,6 +78,7 @@ async function getAiringStatus(
     if ((data as any)?.airing_status) status = String((data as any).airing_status).toUpperCase();
   } catch { /* usa UNKNOWN */ }
   statusCache.set(anilistId, { at: Date.now(), value: status });
+  await kvPut(`stream:${anilistId}:status`, { status }, 6 * 3600);
   return status;
 }
 function isReleasing(status: string) {

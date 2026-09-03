@@ -11,8 +11,8 @@ const CF_KV_NS = Deno.env.get("CLOUDFLARE_KV_NAMESPACE_ID") ?? "";
 const KV_ON = Boolean(CF_ACCOUNT && CF_TOKEN && CF_KV_NS);
 const KV_BASE = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_KV_NS}`;
 const KV_KEY = "manifest:visibility:v1";
-const KV_TTL = 900; // 15 min
-const MEM_TTL = 120_000; // 2 min por instancia
+const KV_TTL = 21600; // 6 h (se anula manualmente en cada CRUD/rotación de reserva)
+const MEM_TTL = 600_000; // 10 min por instancia
 
 let mem: { at: number; data: unknown } | null = null;
 

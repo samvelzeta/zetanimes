@@ -28,7 +28,7 @@ export interface VisibilitySets {
 }
 
 const IDB_KEY = "visibility_manifest_v1";
-const IDB_TTL = 10 * 60 * 1000;
+const IDB_TTL = 60 * 60 * 1000; // 1 h — se purga al invalidar tras cualquier CRUD
 
 let mem: VisibilitySets | null = null;
 let inflight: Promise<VisibilitySets> | null = null;
