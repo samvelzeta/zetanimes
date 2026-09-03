@@ -48,6 +48,12 @@ type CacheEntry<T> = { at: number; value: T };
 const episodeCache = new Map<string, CacheEntry<any>>();
 const latestCache = new Map<string, CacheEntry<number | null>>();
 
+// Caché del ENLACE MADRE (config de la DB, no el enlace resuelto). Este dato sólo
+// cambia cuando el admin edita/borra en el panel → TTL muy largo y purga manual.
+const MASTER_TTL_RELEASING_MS = 24 * 60 * 60_000;      // 24 h
+const MASTER_TTL_FINISHED_MS = 30 * 24 * 60 * 60_000;  // 30 días
+const masterCache = new Map<string, CacheEntry<any>>();
+
 // Caché del estado de emisión (para decidir el TTL) — 1 h.
 const statusCache = new Map<number, CacheEntry<string>>();
 async function getAiringStatus(
