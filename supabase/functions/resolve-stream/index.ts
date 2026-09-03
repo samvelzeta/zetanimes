@@ -575,6 +575,7 @@ Deno.serve(async (req) => {
     const releasing = isReleasing(await getAiringStatus(supabase, anilistId));
     const episodeTtl = releasing ? EPISODE_TTL_RELEASING_MS : EPISODE_TTL_FINISHED_MS;
     const latestTtl = releasing ? LATEST_TTL_RELEASING_MS : LATEST_TTL_FINISHED_MS;
+    const masterTtl = releasing ? MASTER_TTL_RELEASING_MS : MASTER_TTL_FINISHED_MS;
 
     if (action === "latest") {
       const latestKey = `${anilistId}|${lang}`;
@@ -592,7 +593,7 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      const master = await resolveMasterForLatest(supabase, anilistId, lang);
+      const master = await getMasterForLatestCached(supabase, anilistId, lang, masterTtl);
       if (!master) {
         return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -630,7 +631,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const master = await resolveMasterUrl(supabase, anilistId, lang, ep, variant);
+    const master = await getMasterCached(supabase, anilistId, lang, ep, variant, masterTtl);
     if (!master) {
       // Fallback por slug: si no hay Seeke configurado pero el anime tiene slug,
       // llamamos a zetapi de Cloudflare directamente para resolver los servidores.
