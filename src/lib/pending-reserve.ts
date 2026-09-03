@@ -130,6 +130,7 @@ export async function upsertPendingReserveFromAnime(
     .upsert(rows, { onConflict: "anilist_id" });
 
   if (error) return { success: false, count: 0, error: error.message };
+  invalidateVisibility().catch(() => {});
   return { success: true, count: rows.length };
 }
 
@@ -138,4 +139,7 @@ export async function markReserveConsumed(anilistId: number): Promise<void> {
     .from("pending_anime_reserve")
     .update({ reserve_state: "consumed", consumed_at: new Date().toISOString() })
     .eq("anilist_id", anilistId);
+  // El home se sirve del manifiesto cacheado en KV: al rotar la reserva hay que
+  // anularlo para que los animes nuevos aparezcan sin volver a consultar la DB.
+  invalidateVisibility().catch(() => {});
 }

@@ -48,6 +48,12 @@ type CacheEntry<T> = { at: number; value: T };
 const episodeCache = new Map<string, CacheEntry<any>>();
 const latestCache = new Map<string, CacheEntry<number | null>>();
 
+// Caché del ENLACE MADRE (config de la DB, no el enlace resuelto). Este dato sólo
+// cambia cuando el admin edita/borra en el panel → TTL muy largo y purga manual.
+const MASTER_TTL_RELEASING_MS = 24 * 60 * 60_000;      // 24 h
+const MASTER_TTL_FINISHED_MS = 30 * 24 * 60 * 60_000;  // 30 días
+const masterCache = new Map<string, CacheEntry<any>>();
+
 // Caché del estado de emisión (para decidir el TTL) — 1 h.
 const statusCache = new Map<number, CacheEntry<string>>();
 async function getAiringStatus(
@@ -56,6 +62,12 @@ async function getAiringStatus(
 ): Promise<string> {
   const hit = statusCache.get(anilistId);
   if (hit && Date.now() - hit.at < 3_600_000) return hit.value;
+  // KV compartido: evita que cada instancia fría consulte la base de datos.
+  const kvStatus = await kvGet<{ status: string }>(`stream:${anilistId}:status`);
+  if (kvStatus?.status) {
+    statusCache.set(anilistId, { at: Date.now(), value: kvStatus.status });
+    return kvStatus.status;
+  }
   let status = "UNKNOWN";
   try {
     const { data } = await supabase
@@ -66,6 +78,7 @@ async function getAiringStatus(
     if ((data as any)?.airing_status) status = String((data as any).airing_status).toUpperCase();
   } catch { /* usa UNKNOWN */ }
   statusCache.set(anilistId, { at: Date.now(), value: status });
+  await kvPut(`stream:${anilistId}:status`, { status }, 6 * 3600);
   return status;
 }
 function isReleasing(status: string) {
@@ -79,6 +92,9 @@ function invalidateAnime(anilistId: number) {
   }
   for (const k of [...latestCache.keys()]) {
     if (k.startsWith(`${anilistId}|`)) latestCache.delete(k);
+  }
+  for (const k of [...masterCache.keys()]) {
+    if (k.startsWith(`${anilistId}|`)) masterCache.delete(k);
   }
   statusCache.delete(anilistId);
 }
@@ -290,6 +306,105 @@ async function resolveMasterForLatest(
   return null;
 }
 
+/**
+ * Enlace madre con caché de 3 niveles: memoria del edge → Cloudflare KV → base de datos.
+ * Sólo consulta Postgres la primera vez; el resto de usuarios lo leen de KV.
+ */
+async function getMasterCached(
+  supabase: ReturnType<typeof createClient>,
+  anilistId: number,
+  lang: string,
+  ep: number,
+  variant: number,
+  ttlMs: number,
+): Promise<{ url: string; sourceEp: number } | null> {
+  const memKey = `${anilistId}|master|${lang}|${ep}|v${variant}`;
+  const hit = cacheGet<any>(masterCache, memKey, ttlMs);
+  if (hit) return hit.none ? null : hit;
+
+  const kvKey = `stream:${anilistId}:master:${lang}:${ep}:v${variant}`;
+  const kv = await kvGet<any>(kvKey);
+  if (kv) {
+    cacheSet(masterCache, memKey, kv);
+    return kv.none ? null : kv;
+  }
+
+  const fresh = await resolveMasterUrl(supabase, anilistId, lang, ep, variant);
+  const value = fresh ?? { none: true };
+  cacheSet(masterCache, memKey, value);
+  await kvPut(kvKey, value, ttlMs / 1000);
+  return fresh;
+}
+
+type LatestMasterCache = { url: string; sourceEp: number; block?: { from: number; to: number; offset: number } } | { none: true };
+
+async function getMasterForLatestCached(
+  supabase: ReturnType<typeof createClient>,
+  anilistId: number,
+  lang: string,
+  ttlMs: number,
+): Promise<{ url: string; sourceEp: number; translate?: (n: number) => number } | null> {
+  const memKey = `${anilistId}|masterlatest|${lang}`;
+  const rebuild = (v: LatestMasterCache) => {
+    if ((v as any).none) return null;
+    const c = v as Exclude<LatestMasterCache, { none: true }>;
+    return {
+      url: c.url,
+      sourceEp: c.sourceEp,
+      translate: c.block
+        ? (vpsLatest: number) =>
+            Math.min(c.block!.to, Math.max(0, vpsLatest + c.block!.from - 1 - c.block!.offset))
+        : undefined,
+    };
+  };
+
+  const hit = cacheGet<LatestMasterCache>(masterCache, memKey, ttlMs);
+  if (hit) return rebuild(hit);
+
+  const kvKey = `stream:${anilistId}:masterlatest:${lang}`;
+  const kv = await kvGet<LatestMasterCache>(kvKey);
+  if (kv) {
+    cacheSet(masterCache, memKey, kv);
+    return rebuild(kv);
+  }
+
+  // Consulta real a la base de datos (sólo la primera vez o tras invalidación).
+  const { data: base } = await supabase
+    .from("video_cache")
+    .select("sources")
+    .eq("anilist_id", anilistId)
+    .eq("lang", lang)
+    .eq("episode", 0)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+  const seekeArr = (base?.[0] as any)?.sources?.seeke;
+  let value: LatestMasterCache = { none: true };
+  if (Array.isArray(seekeArr) && seekeArr[0]) {
+    value = { url: String(seekeArr[0]), sourceEp: 1 };
+  } else {
+    const { data: blocks } = await supabase
+      .from("video_cache_blocks")
+      .select("seeke_base_url, episode_from, episode_to, source_episode_offset")
+      .eq("anilist_id", anilistId)
+      .eq("lang", lang)
+      .order("block_index", { ascending: false })
+      .limit(1);
+    const last = (blocks as any[])?.[0];
+    if (last?.seeke_base_url) {
+      const offset = Number(last.source_episode_offset || 0);
+      const relTop = Number(last.episode_to) - Number(last.episode_from) + 1;
+      value = {
+        url: String(last.seeke_base_url),
+        sourceEp: Math.max(1, relTop + offset),
+        block: { from: Number(last.episode_from), to: Number(last.episode_to), offset },
+      };
+    }
+  }
+  cacheSet(masterCache, memKey, value);
+  await kvPut(kvKey, value, ttlMs / 1000);
+  return rebuild(value);
+}
+
 async function callScraper(
   supabase: ReturnType<typeof createClient>,
   masterUrl: string,
@@ -467,6 +582,7 @@ Deno.serve(async (req) => {
     const releasing = isReleasing(await getAiringStatus(supabase, anilistId));
     const episodeTtl = releasing ? EPISODE_TTL_RELEASING_MS : EPISODE_TTL_FINISHED_MS;
     const latestTtl = releasing ? LATEST_TTL_RELEASING_MS : LATEST_TTL_FINISHED_MS;
+    const masterTtl = releasing ? MASTER_TTL_RELEASING_MS : MASTER_TTL_FINISHED_MS;
 
     if (action === "latest") {
       const latestKey = `${anilistId}|${lang}`;
@@ -484,7 +600,7 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      const master = await resolveMasterForLatest(supabase, anilistId, lang);
+      const master = await getMasterForLatestCached(supabase, anilistId, lang, masterTtl);
       if (!master) {
         return new Response(JSON.stringify({ ok: false, error: "no_master_configured" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -522,7 +638,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const master = await resolveMasterUrl(supabase, anilistId, lang, ep, variant);
+    const master = await getMasterCached(supabase, anilistId, lang, ep, variant, masterTtl);
     if (!master) {
       // Fallback por slug: si no hay Seeke configurado pero el anime tiene slug,
       // llamamos a zetapi de Cloudflare directamente para resolver los servidores.
