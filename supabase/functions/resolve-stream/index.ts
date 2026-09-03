@@ -86,6 +86,9 @@ function invalidateAnime(anilistId: number) {
   for (const k of [...latestCache.keys()]) {
     if (k.startsWith(`${anilistId}|`)) latestCache.delete(k);
   }
+  for (const k of [...masterCache.keys()]) {
+    if (k.startsWith(`${anilistId}|`)) masterCache.delete(k);
+  }
   statusCache.delete(anilistId);
 }
 
