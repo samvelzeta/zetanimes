@@ -130,6 +130,7 @@ export async function upsertPendingReserveFromAnime(
     .upsert(rows, { onConflict: "anilist_id" });
 
   if (error) return { success: false, count: 0, error: error.message };
+  invalidateVisibility().catch(() => {});
   return { success: true, count: rows.length };
 }
 
