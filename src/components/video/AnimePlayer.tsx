@@ -129,6 +129,24 @@ function getPreferredSubtitle(subtitles: PlayerSubtitle[]) {
   return subtitles.find((sub) => getSubtitleLanguage(sub).code === "es") || subtitles[0] || null;
 }
 
+// Limpia etiquetas de idioma (🇯🇵 JP / 🌎 LAT) del nombre mostrado en el selector.
+function cleanServerName(name?: string) {
+  return (name || "Servidor")
+    .replace(/[•·]?\s*(?:🇯🇵|🌎)\s*(?:JP|LAT)\s*$/u, "")
+    .replace(/\s*[•·]\s*$/, "")
+    .trim() || "Servidor";
+}
+
+// Prioridad por dominio del enlace: zilla > magi/desu > animed23 > mega > resto.
+function hostPriority(url: string) {
+  const u = url.toLowerCase();
+  if (u.includes("zilla-networks") || u.includes("zilla")) return 0;
+  if (u.includes("magi") || u.includes("desu")) return 1;
+  if (u.includes("animed23")) return 2;
+  if (u.includes("mega.")) return 3;
+  return 4;
+}
+
 function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   const classified: ClassifiedSource[] = [];
   for (const s of sources) {
@@ -149,10 +167,13 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
       classified.push({ type: "embed", url, name: s.name });
     }
   }
-  // Sort: HLS first, then mp4, then embed
+  // Orden: seeke → hls → embed/html → mp4 (mp4 al final: casi nunca reproduce).
+  // Dentro del mismo tipo manda la prioridad de dominio (zilla, magi/desu, animed23, mega).
   classified.sort((a, b) => {
-    const order: Record<SourceType, number> = { seeke: 0, hls: 1, mp4: 2, embed: 3, html: 3 };
-    return order[a.type] - order[b.type];
+    const order: Record<SourceType, number> = { seeke: 0, hls: 1, embed: 2, html: 2, mp4: 5 };
+    const byType = order[a.type] - order[b.type];
+    if (byType !== 0) return byType;
+    return hostPriority(a.url) - hostPriority(b.url);
   });
   return classified;
 }
@@ -933,14 +954,14 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
     <div className="absolute top-2 left-2 z-20">
       <button onClick={(e) => { e.stopPropagation(); setShowServerPicker(!showServerPicker); }}
         className="px-3 py-1.5 rounded-lg bg-black/70 text-white text-xs flex items-center gap-1 hover:bg-black/90 transition">
-        <Server className="w-3 h-3" /> {currentSource?.name || "Servidor"}
+        <Server className="w-3 h-3" /> {cleanServerName(currentSource?.name)}
       </button>
       {showServerPicker && (
         <div className="absolute left-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[200px] overflow-y-auto">
           {classified.map((s, i) => (
             <button key={i} onClick={(e) => { e.stopPropagation(); selectServer(i); }}
               className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
-              <span>{s.name}</span>
+              <span>{cleanServerName(s.name)}</span>
               {s.type !== "seeke" && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.type === "hls" ? "bg-green-500/20 text-green-400" : s.type === "mp4" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"}`}>
                   {s.type.toUpperCase()}
@@ -963,7 +984,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
             className="absolute inset-0 block w-full h-full border-0"
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write"
             allowFullScreen
-            referrerPolicy="no-referrer"
+            referrerPolicy="origin"
             sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms allow-downloads allow-pointer-lock allow-storage-access-by-user-activation"
             title={title || `Reproductor ${currentSource.name}`}
           />
