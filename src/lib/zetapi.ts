@@ -42,20 +42,28 @@ export interface ZetSearchResult {
   url: string;
 }
 
+// Orden pedido: zilla → magi/desu → animed23 → mega → resto. mp4 al final.
 const SERVER_PRIORITY = [
+  "zilla", "magi", "desu", "animed23", "mega",
   "filemoon", "streamwish", "sw", "vidhide", "stape",
   "yourupload", "okru", "doodstream", "streamtape",
-  "fembed", "mega", "netu", "maru",
+  "fembed", "netu", "maru",
 ];
 
+function serverRank(s: ZetServer): number {
+  const hay = `${s?.name || ""} ${s?.embed || ""} ${(s as any)?.url || ""}`.toLowerCase();
+  const idx = SERVER_PRIORITY.findIndex((p) => hay.includes(p));
+  // Los .mp4 directos casi nunca reproducen: se mandan al final.
+  if (hay.includes(".mp4")) return 98;
+  return idx === -1 ? 90 : idx;
+}
+
 export function sortServersByPriority(servers: ZetServer[]): ZetServer[] {
-  return (servers || []).filter((s) => s && s.embed).sort((a, b) => {
-    const aName = (a?.name || "").toLowerCase();
-    const bName = (b?.name || "").toLowerCase();
-    const aIdx = SERVER_PRIORITY.findIndex((p) => aName.includes(p));
-    const bIdx = SERVER_PRIORITY.findIndex((p) => bName.includes(p));
-    return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx);
-  });
+  return (servers || [])
+    .filter((s) => s && s.embed)
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => (serverRank(a.s) - serverRank(b.s)) || (a.i - b.i))
+    .map(({ s }) => s);
 }
 
 // Proxy authenticated requests through edge function (hides API key)
