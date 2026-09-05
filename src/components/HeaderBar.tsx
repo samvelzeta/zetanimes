@@ -225,9 +225,9 @@ export default function HeaderBar() {
                 <button
                   onClick={() => setShowNotifs(false)}
                   aria-label="Cerrar notificaciones"
-                  className="w-5 h-5 rounded-full bg-[#ff3b30] shadow-[0_0_6px_rgba(255,59,48,0.45)] flex items-center justify-center hover:scale-110 transition-transform"
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white/50 hover:text-[#ff3b30] hover:shadow-[0_0_10px_rgba(255,59,48,0.55)] transition-all duration-200"
                 >
-                  <span className="sr-only">Cerrar</span>
+                  <X className="w-3.5 h-3.5" strokeWidth={2} />
                 </button>
               </div>
               <div className="h-px mt-3" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)" }} />
@@ -285,9 +285,9 @@ export default function HeaderBar() {
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissNotif(n.id); }}
                         aria-label="Descartar"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white/30 hover:text-white/90"
+                        className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#ff3b30] shadow-[0_0_8px_rgba(255,59,48,0.8),0_0_14px_rgba(255,59,48,0.5)] hover:shadow-[0_0_12px_rgba(255,59,48,1),0_0_20px_rgba(255,59,48,0.7)] transition-shadow duration-200"
                       >
-                        <X className="w-3 h-3" strokeWidth={1.5} />
+                        <span className="sr-only">Descartar</span>
                       </button>
                     </div>
                   );
