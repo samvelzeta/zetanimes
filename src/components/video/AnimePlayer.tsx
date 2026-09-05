@@ -137,14 +137,13 @@ function cleanServerName(name?: string) {
     .trim() || "Servidor";
 }
 
-// Prioridad por dominio del enlace: zilla > magi/desu > animed23 > mega > resto.
+// Prioridad por dominio del enlace: magi/desu > animed23 > mega > resto.
 function hostPriority(url: string) {
   const u = url.toLowerCase();
-  if (u.includes("zilla-networks") || u.includes("zilla")) return 0;
-  if (u.includes("magi") || u.includes("desu")) return 1;
-  if (u.includes("animed23")) return 2;
-  if (u.includes("mega.")) return 3;
-  return 4;
+  if (u.includes("magi") || u.includes("desu")) return 0;
+  if (u.includes("animed23")) return 1;
+  if (u.includes("mega.")) return 2;
+  return 3;
 }
 
 function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
@@ -984,7 +983,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
             className="absolute inset-0 block w-full h-full border-0"
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write"
             allowFullScreen
-            referrerPolicy="origin"
+            referrerPolicy="no-referrer"
             sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms allow-downloads allow-pointer-lock allow-storage-access-by-user-activation"
             title={title || `Reproductor ${currentSource.name}`}
           />

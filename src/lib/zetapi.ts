@@ -42,12 +42,12 @@ export interface ZetSearchResult {
   url: string;
 }
 
-// Orden pedido: zilla → magi/desu → animed23 → mega → resto. mp4 al final.
+// Orden pedido: magi/desu → animed23 → mega → resto. mp4 al final.
 const SERVER_PRIORITY = [
-  "zilla", "magi", "desu", "animed23", "mega",
+  "magi", "desu", "animed23", "mega",
   "filemoon", "streamwish", "sw", "vidhide", "stape",
   "yourupload", "okru", "doodstream", "streamtape",
-  "fembed", "netu", "maru",
+  "fembed", "netu", "maru", "zilla",
 ];
 
 function serverRank(s: ZetServer): number {
