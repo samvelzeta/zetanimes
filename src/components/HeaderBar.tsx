@@ -108,6 +108,21 @@ export default function HeaderBar() {
     setLastSeenId(profile?.last_seen_notification_id || null);
   }, [profile]);
 
+  useEffect(() => {
+    setShowNotifs(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!showNotifs) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-notifications-panel]') || target.closest('[data-notifications-toggle]')) return;
+      setShowNotifs(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifs]);
+
   const lastSeenIndex = lastSeenId ? notifications.findIndex((n) => n.id === lastSeenId) : -1;
   const unread = notifications.filter((n, index) => !dismissed.has(n.id) && (lastSeenIndex === -1 || index < lastSeenIndex));
   const hasUnread = unread.length > 0;
@@ -198,7 +213,7 @@ export default function HeaderBar() {
         {user && <XPChip />}
         <div className="relative">
         {user ? (
-        <button onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur flex items-center justify-center hover:bg-muted transition relative">
+        <button data-notifications-toggle onClick={handleToggleNotifs} className="w-8 h-8 rounded-full bg-secondary/80 backdrop-blur flex items-center justify-center hover:bg-muted transition relative">
           <Bell className="w-4 h-4 text-foreground" />
           {hasUnread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
         </button>
