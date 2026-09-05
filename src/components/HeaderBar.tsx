@@ -108,6 +108,21 @@ export default function HeaderBar() {
     setLastSeenId(profile?.last_seen_notification_id || null);
   }, [profile]);
 
+  useEffect(() => {
+    setShowNotifs(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!showNotifs) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-notifications-panel]') || target.closest('[data-notifications-toggle]')) return;
+      setShowNotifs(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifs]);
+
   const lastSeenIndex = lastSeenId ? notifications.findIndex((n) => n.id === lastSeenId) : -1;
   const unread = notifications.filter((n, index) => !dismissed.has(n.id) && (lastSeenIndex === -1 || index < lastSeenIndex));
   const hasUnread = unread.length > 0;
