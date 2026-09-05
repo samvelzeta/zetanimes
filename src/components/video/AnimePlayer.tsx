@@ -983,7 +983,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
             className="absolute inset-0 block w-full h-full border-0"
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write"
             allowFullScreen
-            referrerPolicy="origin"
+            referrerPolicy="no-referrer"
             sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms allow-downloads allow-pointer-lock allow-storage-access-by-user-activation"
             title={title || `Reproductor ${currentSource.name}`}
           />
