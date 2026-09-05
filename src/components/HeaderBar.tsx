@@ -225,9 +225,9 @@ export default function HeaderBar() {
                 <button
                   onClick={() => setShowNotifs(false)}
                   aria-label="Cerrar notificaciones"
-                  className="w-5 h-5 rounded-full bg-[#ff3b30] shadow-[0_0_6px_rgba(255,59,48,0.45)] flex items-center justify-center hover:scale-110 transition-transform"
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white/50 hover:text-[#ff3b30] hover:shadow-[0_0_10px_rgba(255,59,48,0.55)] transition-all duration-200"
                 >
-                  <span className="sr-only">Cerrar</span>
+                  <X className="w-3.5 h-3.5" strokeWidth={2} />
                 </button>
               </div>
               <div className="h-px mt-3" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)" }} />
