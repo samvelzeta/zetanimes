@@ -222,7 +222,13 @@ export default function HeaderBar() {
             <div className="px-4 pt-4 pb-2 sticky top-0 z-10" style={{ background: "linear-gradient(180deg, rgba(28,24,36,0.95), rgba(23,20,29,0.75))", backdropFilter: "blur(20px)" }}>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold text-white/60 uppercase tracking-[0.25em]">Panel de estado</span>
-                <button onClick={() => setShowNotifs(false)} className="text-white/30 hover:text-white/90 transition"><X className="w-3.5 h-3.5" strokeWidth={1.5} /></button>
+                <button
+                  onClick={() => setShowNotifs(false)}
+                  aria-label="Cerrar notificaciones"
+                  className="w-5 h-5 rounded-full bg-[#ff3b30] shadow-[0_0_6px_rgba(255,59,48,0.45)] flex items-center justify-center hover:scale-110 transition-transform"
+                >
+                  <span className="sr-only">Cerrar</span>
+                </button>
               </div>
               <div className="h-px mt-3" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)" }} />
             </div>
