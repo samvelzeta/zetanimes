@@ -137,14 +137,13 @@ function cleanServerName(name?: string) {
     .trim() || "Servidor";
 }
 
-// Prioridad por dominio del enlace: zilla > magi/desu > animed23 > mega > resto.
+// Prioridad por dominio del enlace: magi/desu > animed23 > mega > resto.
 function hostPriority(url: string) {
   const u = url.toLowerCase();
-  if (u.includes("zilla-networks") || u.includes("zilla")) return 0;
-  if (u.includes("magi") || u.includes("desu")) return 1;
-  if (u.includes("animed23")) return 2;
-  if (u.includes("mega.")) return 3;
-  return 4;
+  if (u.includes("magi") || u.includes("desu")) return 0;
+  if (u.includes("animed23")) return 1;
+  if (u.includes("mega.")) return 2;
+  return 3;
 }
 
 function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
