@@ -146,12 +146,25 @@ function hostPriority(url: string) {
   return 3;
 }
 
+// Solo es un archivo MP4 directo si la RUTA termina en .mp4 (no vale que el
+// dominio contenga "mp4", como mp4upload.com → ese es un embed normal).
+function isDirectMp4(url: string) {
+  try {
+    return /\.mp4$/i.test(new URL(url).pathname);
+  } catch {
+    return /\.mp4(\?|#|$)/i.test(url);
+  }
+}
+
 function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   const classified: ClassifiedSource[] = [];
+  const seen = new Set<string>();
   for (const s of sources) {
     const rawUrl = s.embed || s.url || "";
     const url = rawUrl.trim();
     if (!url) continue;
+    if (seen.has(url)) continue;
+    seen.add(url);
 
     // Use API-provided type if available
     if (/<iframe|<video/i.test(url)) {
@@ -160,7 +173,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
       classified.push({ type: "seeke", url, name: s.name, episode: s.episode, variant: s.variant });
     } else if (s.type === "hls" || url.includes(".m3u8")) {
       classified.push({ type: "hls", url, name: s.name });
-    } else if (url.includes(".mp4")) {
+    } else if (isDirectMp4(url)) {
       classified.push({ type: "mp4", url, name: s.name });
     } else {
       classified.push({ type: "embed", url, name: s.name });
@@ -176,6 +189,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   });
   return classified;
 }
+
 
 function extractEmbedSrc(html: string): string | null {
   if (typeof window === "undefined") return null;
