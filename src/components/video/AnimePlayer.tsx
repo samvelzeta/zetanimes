@@ -988,11 +988,11 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
         <Server className="w-3 h-3" /> {cleanServerName(currentSource?.name)}
       </button>
       {showServerPicker && (
-        <div className="absolute left-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[200px] overflow-y-auto">
+        <div className="absolute left-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[60vh] overflow-y-auto overscroll-contain">
           {classified.map((s, i) => (
             <button key={i} onClick={(e) => { e.stopPropagation(); selectServer(i); }}
               className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
-              <span>{cleanServerName(s.name)}</span>
+              <span>{serverLabels[i] || cleanServerName(s.name)}</span>
               {s.type !== "seeke" && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.type === "hls" ? "bg-green-500/20 text-green-400" : s.type === "mp4" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"}`}>
                   {s.type.toUpperCase()}
@@ -1129,7 +1129,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
                 <Server className="w-3 h-3" /> Pro
               </button>
               {showServerPicker && (
-                <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[200px] overflow-y-auto">
+                <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[60vh] overflow-y-auto overscroll-contain">
                   {classified.map((s, i) => (
                     <button key={i} onClick={() => selectServer(i)}
                       className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
