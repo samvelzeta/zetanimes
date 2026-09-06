@@ -41,9 +41,14 @@ type PlayerSourceItem = { name: string; embed: string; type?: string; episode?: 
 let didResetSeekeRuntimeCache = false;
 
 function appendUniqueSource(list: PlayerSourceItem[], source: PlayerSourceItem) {
-  if (!source.embed || list.some((item) => item.embed === source.embed)) return;
-  list.push(source);
+  const embed = (source.embed || "").trim();
+  if (!embed) return;
+  // Dedup por URL normalizada (evita perder servidores válidos que solo
+  // difieren en espacios/saltos de línea devueltos por la API).
+  if (list.some((item) => item.embed.trim() === embed)) return;
+  list.push({ ...source, embed });
 }
+
 
 function sourcePriority(source: PlayerSourceItem) {
   const originOrder: Record<PlayerSourceItem["origin"], number> = { seeke: 0, db: 1, hls: 2, api: 3 };

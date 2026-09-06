@@ -146,12 +146,25 @@ function hostPriority(url: string) {
   return 3;
 }
 
+// Solo es un archivo MP4 directo si la RUTA termina en .mp4 (no vale que el
+// dominio contenga "mp4", como mp4upload.com → ese es un embed normal).
+function isDirectMp4(url: string) {
+  try {
+    return /\.mp4$/i.test(new URL(url).pathname);
+  } catch {
+    return /\.mp4(\?|#|$)/i.test(url);
+  }
+}
+
 function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   const classified: ClassifiedSource[] = [];
+  const seen = new Set<string>();
   for (const s of sources) {
     const rawUrl = s.embed || s.url || "";
     const url = rawUrl.trim();
     if (!url) continue;
+    if (seen.has(url)) continue;
+    seen.add(url);
 
     // Use API-provided type if available
     if (/<iframe|<video/i.test(url)) {
@@ -160,7 +173,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
       classified.push({ type: "seeke", url, name: s.name, episode: s.episode, variant: s.variant });
     } else if (s.type === "hls" || url.includes(".m3u8")) {
       classified.push({ type: "hls", url, name: s.name });
-    } else if (url.includes(".mp4")) {
+    } else if (isDirectMp4(url)) {
       classified.push({ type: "mp4", url, name: s.name });
     } else {
       classified.push({ type: "embed", url, name: s.name });
@@ -176,6 +189,7 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
   });
   return classified;
 }
+
 
 function extractEmbedSrc(html: string): string | null {
   if (typeof window === "undefined") return null;
@@ -196,6 +210,24 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const classified = useMemo(() => classifySources(sources), [sourcesKey]);
+  // Etiquetas únicas: si dos servidores comparten nombre (p.ej. dos "Mega"),
+  // se numeran para que se vean TODOS y ninguno parezca repetido/perdido.
+  const serverLabels = useMemo(() => {
+    const counts = new Map<string, number>();
+    classified.forEach((s) => {
+      const n = cleanServerName(s.name);
+      counts.set(n, (counts.get(n) || 0) + 1);
+    });
+    const used = new Map<string, number>();
+    return classified.map((s) => {
+      const n = cleanServerName(s.name);
+      if ((counts.get(n) || 0) < 2) return n;
+      const i = (used.get(n) || 0) + 1;
+      used.set(n, i);
+      return `${n} ${i}`;
+    });
+  }, [classified]);
+
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -956,11 +988,11 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
         <Server className="w-3 h-3" /> {cleanServerName(currentSource?.name)}
       </button>
       {showServerPicker && (
-        <div className="absolute left-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[200px] overflow-y-auto">
+        <div className="absolute left-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[60vh] overflow-y-auto overscroll-contain">
           {classified.map((s, i) => (
             <button key={i} onClick={(e) => { e.stopPropagation(); selectServer(i); }}
               className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
-              <span>{cleanServerName(s.name)}</span>
+              <span>{serverLabels[i] || cleanServerName(s.name)}</span>
               {s.type !== "seeke" && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.type === "hls" ? "bg-green-500/20 text-green-400" : s.type === "mp4" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"}`}>
                   {s.type.toUpperCase()}
@@ -1097,7 +1129,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
                 <Server className="w-3 h-3" /> Pro
               </button>
               {showServerPicker && (
-                <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[200px] overflow-y-auto">
+                <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[60vh] overflow-y-auto overscroll-contain">
                   {classified.map((s, i) => (
                     <button key={i} onClick={() => selectServer(i)}
                       className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
