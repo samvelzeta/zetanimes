@@ -210,6 +210,24 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const classified = useMemo(() => classifySources(sources), [sourcesKey]);
+  // Etiquetas únicas: si dos servidores comparten nombre (p.ej. dos "Mega"),
+  // se numeran para que se vean TODOS y ninguno parezca repetido/perdido.
+  const serverLabels = useMemo(() => {
+    const counts = new Map<string, number>();
+    classified.forEach((s) => {
+      const n = cleanServerName(s.name);
+      counts.set(n, (counts.get(n) || 0) + 1);
+    });
+    const used = new Map<string, number>();
+    return classified.map((s) => {
+      const n = cleanServerName(s.name);
+      if ((counts.get(n) || 0) < 2) return n;
+      const i = (used.get(n) || 0) + 1;
+      used.set(n, i);
+      return `${n} ${i}`;
+    });
+  }, [classified]);
+
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
