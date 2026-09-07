@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { siteUrl } from "@/lib/site-url";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -264,7 +265,7 @@ function RegisterForm({
       password,
       options: {
         data: { username, display_name: username },
-        emailRedirectTo: `${window.location.origin}/verified`,
+        emailRedirectTo: siteUrl("/verified"),
       },
     });
     setLoading(false);
