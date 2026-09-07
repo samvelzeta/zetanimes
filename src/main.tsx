@@ -27,6 +27,9 @@ import { preventWebViewReload } from "./lib/webview";
 import { initFont } from "./pages/Settings";
 import { installApkForceChrome } from "./lib/apk-force-chrome";
 import { isWebView } from "./lib/webview";
+import { redirectToCanonicalDomain } from "./lib/canonical-redirect";
+
+redirectToCanonicalDomain();
 
 initAccentColor();
 initFont();

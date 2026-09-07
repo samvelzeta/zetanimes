@@ -7,6 +7,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
+import { adsBannerScript } from "@/config/ads";
 import { isApkWebView, openExternalChrome } from "@/lib/apk-intent";
 
 
@@ -42,7 +43,7 @@ export default function AdsterraBanner({ adKey, width, height, uid }: Props) {
       <script type="text/javascript">
         atOptions = { 'key':'${adKey}','format':'iframe','height':${height},'width':${width},'params':{} };
       </script>
-      <script type="text/javascript" src="https://www.highperformanceformat.com/${adKey}/invoke.js"></script>
+      <script type="text/javascript" src="${adsBannerScript(adKey)}"></script>
     </body></html>`;
 
     const iframe = document.createElement("iframe");

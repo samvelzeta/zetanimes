@@ -1,3 +1,5 @@
+import { getAdsConfig } from "@/config/ads";
+
 let adDomainsPrimed = false;
 
 export function hasStoredAuthSession(): boolean {
@@ -25,11 +27,13 @@ export function primeAdDomains() {
   if (adDomainsPrimed || typeof document === "undefined") return;
   adDomainsPrimed = true;
 
+  const { adsterraBannerHost: bannerHost, adsterraNativeHost: nativeHost } = getAdsConfig();
+
   const links: Array<{ rel: string; href: string; crossOrigin?: string }> = [
-    { rel: "dns-prefetch", href: "//www.highperformanceformat.com" },
-    { rel: "preconnect", href: "https://www.highperformanceformat.com", crossOrigin: "anonymous" },
-    { rel: "dns-prefetch", href: "//pl29176506.profitablecpmratenetwork.com" },
-    { rel: "preconnect", href: "https://pl29176506.profitablecpmratenetwork.com", crossOrigin: "anonymous" },
+    { rel: "dns-prefetch", href: bannerHost.replace(/^https?:/, "") },
+    { rel: "preconnect", href: bannerHost, crossOrigin: "anonymous" },
+    { rel: "dns-prefetch", href: nativeHost.replace(/^https?:/, "") },
+    { rel: "preconnect", href: nativeHost, crossOrigin: "anonymous" },
   ];
 
   links.forEach(({ rel, href, crossOrigin }) => {

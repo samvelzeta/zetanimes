@@ -1,3 +1,4 @@
+import { adKey, adsBannerScript } from "@/config/ads";
 // Detector de Adblock combinando dos heurísticas:
 // 1) Bait DOM: elemento con clases que los filtros (EasyList) ocultan/quitan.
 // 2) Fetch a un script "señuelo" en un dominio de ads (Adsterra). Si lo bloquea
@@ -30,7 +31,7 @@ export async function detectAdblock(): Promise<boolean> {
   // Fetch a un script de Adsterra. uBlock/AdGuard lo bloquean (net::ERR_BLOCKED_BY_CLIENT).
   try {
     await fetch(
-      "https://www.highperformanceformat.com/1d178d24c436e987f0076c89491f7ba5/invoke.js",
+      adsBannerScript(adKey("728x90")),
       { method: "HEAD", mode: "no-cors", cache: "no-store" }
     );
     return false;

@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { adKey, getAdsConfig } from "@/config/ads";
 import AdsterraBanner from "./AdsterraBanner";
 import { isApkWebView, openExternalChrome } from "@/lib/apk-intent";
 
@@ -118,15 +119,15 @@ export default function AdOverlayGate({
           if (!isApkWebView()) return;
           e.preventDefault();
           e.stopPropagation();
-          const sponsor = "https://www.highperformanceformat.com/";
+          const sponsor = `${getAdsConfig().adsterraBannerHost}/`;
           openExternalChrome(sponsor);
         }}
       >
         {!isPremium && (() => {
           const rotation = [
-            { key: "b411f21fa26a4e8427eb13433959b4e8", w: 300, h: 250 },
-            { key: "ab525e23c9a041206c6d3096e5581274", w: 160, h: 300 },
-            { key: "1d178d24c436e987f0076c89491f7ba5", w: 728, h: 90 },
+            { key: adKey("300x250"), w: 300, h: 250 },
+            { key: adKey("160x300"), w: 160, h: 300 },
+            { key: adKey("728x90"), w: 728, h: 90 },
           ];
           let h = 0;
           for (let i = 0; i < episodeKey.length; i++) h = (h * 31 + episodeKey.charCodeAt(i)) >>> 0;

@@ -6,6 +6,7 @@
 // Solo se monta cuando el usuario es premium. Para usuarios gratis no hace nada
 // (ellos siguen viendo los banners normales en cada sección).
 import { useEffect, useRef } from "react";
+import { adKey, adsBannerScript } from "@/config/ads";
 import { useAuth } from "@/contexts/AuthContext";
 import { primeAdDomains } from "@/lib/ad-boot";
 
@@ -14,11 +15,11 @@ const ROTATION_MS = 20_000;
 // Pool de creatividades Adsterra (key + tamaño). Cualquier tamaño funciona porque
 // vive dentro de un contenedor 0×0 oculto: solo importa que el script corra.
 const POOL: Array<{ key: string; w: number; h: number }> = [
-  { key: "b411f21fa26a4e8427eb13433959b4e8", w: 300, h: 250 },
-  { key: "ab525e23c9a041206c6d3096e5581274", w: 160, h: 300 },
-  { key: "1d178d24c436e987f0076c89491f7ba5", w: 728, h: 90 },
-  { key: "8672e32915f1e9d41edf058deec91989", w: 468, h: 60 },
-  { key: "d4813a34656155529b56e4655b81cbdb", w: 160, h: 600 },
+  { key: adKey("300x250"), w: 300, h: 250 },
+  { key: adKey("160x300"), w: 160, h: 300 },
+  { key: adKey("728x90"), w: 728, h: 90 },
+  { key: adKey("468x60"), w: 468, h: 60 },
+  { key: adKey("160x600"), w: 160, h: 600 },
 ];
 
 function buildAdHtml(adKey: string, w: number, h: number): string {
@@ -28,7 +29,7 @@ function buildAdHtml(adKey: string, w: number, h: number): string {
     <script type="text/javascript">
       atOptions = { 'key':'${adKey}','format':'iframe','height':${h},'width':${w},'params':{} };
     </script>
-    <script type="text/javascript" src="https://www.highperformanceformat.com/${adKey}/invoke.js"></script>
+    <script type="text/javascript" src="${adsBannerScript(adKey)}"></script>
   </body></html>`;
 }
 
