@@ -5,6 +5,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
+import { adKey, adsBannerScript } from "@/config/ads";
 
 export type AdBannerSize =
   | "728x90"   // leaderboard
@@ -14,11 +15,11 @@ export type AdBannerSize =
   | "160x300"; // half skyscraper
 
 const KEYS: Record<AdBannerSize, { key: string; w: number; h: number }> = {
-  "728x90":  { key: "1d178d24c436e987f0076c89491f7ba5", w: 728, h: 90 },
-  "468x60":  { key: "8672e32915f1e9d41edf058deec91989", w: 468, h: 60 },
-  "300x250": { key: "b411f21fa26a4e8427eb13433959b4e8", w: 300, h: 250 },
-  "160x600": { key: "d4813a34656155529b56e4655b81cbdb", w: 160, h: 600 },
-  "160x300": { key: "ab525e23c9a041206c6d3096e5581274", w: 160, h: 300 },
+  "728x90":  { key: adKey("728x90"), w: 728, h: 90 },
+  "468x60":  { key: adKey("468x60"), w: 468, h: 60 },
+  "300x250": { key: adKey("300x250"), w: 300, h: 250 },
+  "160x600": { key: adKey("160x600"), w: 160, h: 600 },
+  "160x300": { key: adKey("160x300"), w: 160, h: 300 },
 };
 
 interface Props {
@@ -51,7 +52,7 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
         <script type="text/javascript">
           atOptions = { 'key':'${cfg.key}', 'format':'iframe', 'height':${cfg.h}, 'width':${cfg.w}, 'params':{} };
         </script>
-        <script type="text/javascript" src="https://www.highperformanceformat.com/${cfg.key}/invoke.js"></script>
+        <script type="text/javascript" src="${adsBannerScript(cfg.key)}"></script>
       </body></html>
     `;
 

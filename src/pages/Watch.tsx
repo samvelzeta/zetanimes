@@ -1,3 +1,4 @@
+import { adKey as adKeyFor } from "@/config/ads";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1083,7 +1084,7 @@ export default function Watch() {
 
 
         <AdsterraBanner
-          adKey="b411f21fa26a4e8427eb13433959b4e8"
+          adKey={adKeyFor("300x250")}
           width={300}
           height={250}
           uid="watch-ep-300x250"
@@ -1092,7 +1093,7 @@ export default function Watch() {
 
       <div className="px-4 mt-6">
         <AdsterraBanner
-          adKey="b411f21fa26a4e8427eb13433959b4e8"
+          adKey={adKeyFor("300x250")}
           width={320}
           height={50}
           uid="watch-bottom-320x50"

@@ -10,15 +10,9 @@ import { useEffect, useRef, useState } from "react";
 import { X, Loader2, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { openExternalChrome } from "@/lib/apk-intent";
+import { getAdsConfig } from "@/config/ads";
 
-const VAST_POOL: string[] = [
-  "https://vast.yomeno.xyz/vast?spot_id=1496604",
-  "https://vast.yomeno.xyz/vast?spot_id=1496607",
-  "https://vast.yomeno.xyz/vast?spot_id=1496606",
-  "https://vast.yomeno.xyz/vast?spot_id=1496608",
-  "https://vast.yomeno.xyz/vast?spot_id=1496609",
-  "https://vast.yomeno.xyz/vast?spot_id=1496610",
-];
+const VAST_POOL: string[] = getAdsConfig().vastPool;
 
 const TOGGLE_KEY = "zet:vast-next-show";
 const LAST_EP_KEY = "zet:vast-last-ep";

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
+import { getAdsConfig, adsNativeScript } from "@/config/ads";
 
 /**
  * Native banner Adsterra estilo "card" (mismo tamaño que AnimeCard).
@@ -14,8 +15,8 @@ interface Props {
   size?: "small" | "default" | "large";
 }
 
-const NATIVE_KEY = "f22e36f62a5acf07d25a8dd129e84655";
-const NATIVE_SCRIPT = `https://pl29176506.profitablecpmratenetwork.com/${NATIVE_KEY}/invoke.js`;
+const NATIVE_KEY = getAdsConfig().nativeKey;
+const NATIVE_SCRIPT = adsNativeScript(NATIVE_KEY);
 
 export default function AdCard({ size = "default" }: Props) {
   const { isPremium, loading } = useAuth();
