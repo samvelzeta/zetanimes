@@ -61,37 +61,55 @@ export default function HeaderBar() {
 
   useEffect(() => {
     if (!user) { setNotifications([]); return; }
+    let alive = true;
+    const cacheKey = `${NOTIF_CACHE_KEY}:${user.id}`;
     const fetchNotifs = async () => {
-      // Caché local 5 min: realtime mantiene la lista al día, así evitamos
-      // una consulta a la base de datos en cada carga de página.
-      const cached = await idbGet<Notification[]>(NOTIF_CACHE_KEY);
-      if (cached) {
-        setNotifications(cached);
-        return;
-      }
-      const { data } = await supabase.from("notifications").select("*").eq("active", true).order("created_at", { ascending: false }).limit(20);
-      if (data) {
+      // Caché local: se muestra al instante, pero SIEMPRE revalidamos contra
+      // la base de datos para que las notificaciones lleguen en cualquier
+      // dominio (preview de Lovable, dominio propio, APK).
+      const cached = await idbGet<Notification[]>(cacheKey);
+      if (cached && alive) setNotifications(cached);
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("active", true)
+        .or(`target_user_id.is.null,target_user_id.eq.${user.id}`)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (data && alive) {
         setNotifications(data as Notification[]);
-        idbSet(NOTIF_CACHE_KEY, data as Notification[], NOTIF_CACHE_TTL).catch(() => {});
+        idbSet(cacheKey, data as Notification[], NOTIF_CACHE_TTL).catch(() => {});
       }
     };
     fetchNotifs();
+    const onVisible = () => { if (document.visibilityState === "visible") fetchNotifs(); };
+    document.addEventListener("visibilitychange", onVisible);
 
-    const channel = supabase.channel("notifications-realtime").on(
+    const channel = supabase.channel(`notifications-realtime-${user.id}`).on(
       "postgres_changes",
-      { event: "INSERT", schema: "public", table: "notifications" },
+      { event: "*", schema: "public", table: "notifications" },
       (payload) => {
-        const n = payload.new as Notification;
-        if (n.target_user_id && n.target_user_id !== user?.id) return;
+        const n = (payload.new ?? payload.old) as Notification & { active?: boolean };
+        if (!n) return;
+        if (n.target_user_id && n.target_user_id !== user.id) return;
         setNotifications((prev) => {
-          const next = [n, ...prev];
-          idbSet(NOTIF_CACHE_KEY, next, NOTIF_CACHE_TTL).catch(() => {});
+          let next = prev.filter((p) => p.id !== n.id);
+          if (payload.eventType !== "DELETE" && (payload.new as any)?.active !== false) {
+            next = [n, ...next].sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+          }
+          idbSet(cacheKey, next, NOTIF_CACHE_TTL).catch(() => {});
           return next;
         });
       }
     ).subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", onVisible);
+      supabase.removeChannel(channel);
+    };
   }, [user?.id]);
 
   useEffect(() => {
