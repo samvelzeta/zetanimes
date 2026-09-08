@@ -64,6 +64,13 @@
       "when": 1788854545447,
       "tag": "0008_enable_notifications_realtime",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788854687429,
+      "tag": "0009_align_cosmetic_entitlements",
+      "breakpoints": true
     }
   ]
 }
