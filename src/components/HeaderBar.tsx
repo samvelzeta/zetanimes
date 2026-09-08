@@ -78,10 +78,11 @@ export default function HeaderBar() {
     if (!user) { setNotifications([]); return; }
     let alive = true;
     const cacheKey = `${NOTIF_CACHE_KEY}:${user.id}`;
-    idbGet<Notification[]>(cacheKey).then((cached) => {
+    (async () => {
+      const cached = await idbGet<Notification[]>(cacheKey);
       if (cached && alive) setNotifications(cached);
-    });
-    refreshNotifications();
+      if (alive) await refreshNotifications();
+    })();
     const refreshIfVisible = () => {
       if (document.visibilityState === "visible" && navigator.onLine) refreshNotifications();
     };
