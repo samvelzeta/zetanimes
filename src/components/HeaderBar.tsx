@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfiles } from "@/contexts/ProfilesContext";
-import { Bell, X, Users, Sparkles, Search } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Bell, Sparkles, Search } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { idbGet, idbSet } from "@/lib/idb-cache";
@@ -33,6 +33,21 @@ export default function HeaderBar() {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
+  const refreshNotifications = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("active", true)
+      .or(`target_user_id.is.null,target_user_id.eq.${user.id}`)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error || !data) return;
+    const next = data as Notification[];
+    setNotifications(next);
+    idbSet(`${NOTIF_CACHE_KEY}:${user.id}`, next, NOTIF_CACHE_TTL).catch(() => {});
+  }, [user?.id]);
+
   const pageTitle = location.pathname.startsWith("/directory")
     ? "Directorio de Zen"
     : location.pathname.startsWith("/recent")
@@ -63,27 +78,21 @@ export default function HeaderBar() {
     if (!user) { setNotifications([]); return; }
     let alive = true;
     const cacheKey = `${NOTIF_CACHE_KEY}:${user.id}`;
-    const fetchNotifs = async () => {
-      // Caché local: se muestra al instante, pero SIEMPRE revalidamos contra
-      // la base de datos para que las notificaciones lleguen en cualquier
-      // dominio (preview de Lovable, dominio propio, APK).
+    (async () => {
       const cached = await idbGet<Notification[]>(cacheKey);
       if (cached && alive) setNotifications(cached);
-      const { data } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("active", true)
-        .or(`target_user_id.is.null,target_user_id.eq.${user.id}`)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (data && alive) {
-        setNotifications(data as Notification[]);
-        idbSet(cacheKey, data as Notification[], NOTIF_CACHE_TTL).catch(() => {});
-      }
+      if (alive) await refreshNotifications();
+    })();
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) refreshNotifications();
     };
-    fetchNotifs();
-    const onVisible = () => { if (document.visibilityState === "visible") fetchNotifs(); };
+    const interval = window.setInterval(refreshIfVisible, 60 * 1000);
+    const onVisible = () => refreshIfVisible();
+    const onFocus = () => refreshIfVisible();
+    const onOnline = () => refreshNotifications();
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("online", onOnline);
 
     const channel = supabase.channel(`notifications-realtime-${user.id}`).on(
       "postgres_changes",
@@ -103,14 +112,19 @@ export default function HeaderBar() {
           return next;
         });
       }
-    ).subscribe();
+    ).subscribe((status) => {
+      if (status === "SUBSCRIBED") refreshNotifications();
+    });
 
     return () => {
       alive = false;
+      window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("online", onOnline);
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, refreshNotifications]);
 
   useEffect(() => {
     if (user) {
@@ -319,7 +333,7 @@ export default function HeaderBar() {
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissNotif(n.id); }}
                         aria-label="Descartar"
-                        className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#ff3b30] shadow-[0_0_6px_rgba(255,59,48,0.75),0_0_10px_rgba(255,59,48,0.45)] hover:shadow-[0_0_10px_rgba(255,59,48,1),0_0_16px_rgba(255,59,48,0.65)] transition-shadow duration-200"
+                        className="absolute top-2 right-2 w-[7px] h-[7px] rounded-full bg-[#ff3b30] shadow-[0_0_6px_rgba(255,59,48,0.75),0_0_10px_rgba(255,59,48,0.45)] hover:shadow-[0_0_10px_rgba(255,59,48,1),0_0_16px_rgba(255,59,48,0.65)] transition-shadow duration-200"
                       >
                         <span className="sr-only">Descartar</span>
                       </button>
