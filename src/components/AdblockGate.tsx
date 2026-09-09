@@ -127,14 +127,6 @@ export default function AdblockGate() {
       style={{ zIndex: z, pointerEvents: "auto" }}
     >
       <div className="max-w-md w-full bg-card border border-border rounded-2xl p-6 shadow-2xl text-center relative">
-        <button
-          onClick={snooze}
-          aria-label="Recordar más tarde"
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-secondary/60 hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
         <div className="mx-auto w-16 h-16 rounded-full bg-destructive/15 flex items-center justify-center mb-4">
           <ShieldAlert className="w-8 h-8 text-destructive" />
         </div>
