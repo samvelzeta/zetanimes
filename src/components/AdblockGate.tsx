@@ -52,20 +52,12 @@ export default function AdblockGate() {
       setAdblockActive(isBlocking);
       if (!isBlocking) {
         toast.success("¡Anuncios desbloqueados! Gracias 🧡");
-        try { localStorage.removeItem(SNOOZE_KEY); } catch { /* noop */ }
-        setDismissedUntil(0);
       } else {
         toast.error("Aún detectamos el bloqueador. Intenta de nuevo.");
       }
     } finally {
       setChecking(false);
     }
-  };
-
-  const snooze = () => {
-    const until = Date.now() + REMIND_MS;
-    try { localStorage.setItem(SNOOZE_KEY, String(until)); } catch { /* noop */ }
-    setDismissedUntil(until);
   };
 
   useEffect(() => {
