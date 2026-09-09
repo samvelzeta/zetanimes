@@ -1,4 +1,4 @@
-// Modo insistencia (Opción A) v2: recordatorio cada 1 min.
+// Modo estricto: el aviso NO se puede cerrar hasta desactivar el bloqueador.
 // - Fuera del reproductor: modal cerrable superpuesto.
 // - Dentro del reproductor (/watch): NO se muestra aquí. El componente
 //   AdblockPlayerOverlay lo muestra como "anuncio" dentro del player,
@@ -7,15 +7,13 @@
 // z-index no literal 2147483647, MutationObserver + revive.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ShieldAlert, RefreshCw, Crown, X } from "lucide-react";
+import { ShieldAlert, RefreshCw, Crown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { detectAdblock } from "@/lib/adblock-detect";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { isTV } from "@/hooks/useIsTV";
 
-const REMIND_MS = 60 * 1000; // 1 min
-const SNOOZE_KEY = "zet:adblock-snooze-until";
 
 function rndTag(len = 8) {
   const s = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -29,9 +27,6 @@ export default function AdblockGate() {
   const navigate = useNavigate();
   const location = useLocation();
   const [adblockActive, setAdblockActive] = useState(false);
-  const [dismissedUntil, setDismissedUntil] = useState<number>(() => {
-    try { return Number(localStorage.getItem(SNOOZE_KEY) || 0); } catch { return 0; }
-  });
   const [checking, setChecking] = useState(false);
   const [tick, setTick] = useState(0);
   const nodeRef = useRef<HTMLDivElement | null>(null);
@@ -47,7 +42,7 @@ export default function AdblockGate() {
   }), []);
 
   const now = Date.now();
-  const visible = adblockActive && !isPremium && !tvMode && !onWatch && now >= dismissedUntil;
+  const visible = adblockActive && !isPremium && !tvMode && !onWatch;
 
   const runCheck = async () => {
     setChecking(true);
@@ -57,20 +52,12 @@ export default function AdblockGate() {
       setAdblockActive(isBlocking);
       if (!isBlocking) {
         toast.success("¡Anuncios desbloqueados! Gracias 🧡");
-        try { localStorage.removeItem(SNOOZE_KEY); } catch { /* noop */ }
-        setDismissedUntil(0);
       } else {
         toast.error("Aún detectamos el bloqueador. Intenta de nuevo.");
       }
     } finally {
       setChecking(false);
     }
-  };
-
-  const snooze = () => {
-    const until = Date.now() + REMIND_MS;
-    try { localStorage.setItem(SNOOZE_KEY, String(until)); } catch { /* noop */ }
-    setDismissedUntil(until);
   };
 
   useEffect(() => {
@@ -96,14 +83,6 @@ export default function AdblockGate() {
       document.removeEventListener("visibilitychange", onFocus);
     };
   }, [loading, isPremium, tvMode]);
-
-  useEffect(() => {
-    if (!dismissedUntil) return;
-    const remaining = dismissedUntil - Date.now();
-    if (remaining <= 0) { setDismissedUntil(0); return; }
-    const t = window.setTimeout(() => setDismissedUntil(0), remaining + 100);
-    return () => clearTimeout(t);
-  }, [dismissedUntil]);
 
   useEffect(() => {
     if (!visible) return;
@@ -148,14 +127,6 @@ export default function AdblockGate() {
       style={{ zIndex: z, pointerEvents: "auto" }}
     >
       <div className="max-w-md w-full bg-card border border-border rounded-2xl p-6 shadow-2xl text-center relative">
-        <button
-          onClick={snooze}
-          aria-label="Recordar más tarde"
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-secondary/60 hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
         <div className="mx-auto w-16 h-16 rounded-full bg-destructive/15 flex items-center justify-center mb-4">
           <ShieldAlert className="w-8 h-8 text-destructive" />
         </div>
@@ -183,13 +154,6 @@ export default function AdblockGate() {
             <Crown className="w-4 h-4 mr-2" />
             Hazte Premium (sin anuncios)
           </Button>
-          <button
-            type="button"
-            onClick={snooze}
-            className="text-xs text-muted-foreground/70 hover:text-muted-foreground underline underline-offset-2 mt-1"
-          >
-            Continuar de todas formas (te recordaré en 1 min)
-          </button>
         </div>
 
         <p className="text-[10px] text-muted-foreground/60 mt-4">
