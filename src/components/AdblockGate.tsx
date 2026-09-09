@@ -85,14 +85,6 @@ export default function AdblockGate() {
   }, [loading, isPremium, tvMode]);
 
   useEffect(() => {
-    if (!dismissedUntil) return;
-    const remaining = dismissedUntil - Date.now();
-    if (remaining <= 0) { setDismissedUntil(0); return; }
-    const t = window.setTimeout(() => setDismissedUntil(0), remaining + 100);
-    return () => clearTimeout(t);
-  }, [dismissedUntil]);
-
-  useEffect(() => {
     if (!visible) return;
     const parent = nodeRef.current?.parentElement || document.body;
     const obs = new MutationObserver(() => {
@@ -170,13 +162,6 @@ export default function AdblockGate() {
             <Crown className="w-4 h-4 mr-2" />
             Hazte Premium (sin anuncios)
           </Button>
-          <button
-            type="button"
-            onClick={snooze}
-            className="text-xs text-muted-foreground/70 hover:text-muted-foreground underline underline-offset-2 mt-1"
-          >
-            Continuar de todas formas (te recordaré en 1 min)
-          </button>
         </div>
 
         <p className="text-[10px] text-muted-foreground/60 mt-4">
