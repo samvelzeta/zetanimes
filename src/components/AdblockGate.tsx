@@ -1,4 +1,4 @@
-// Modo insistencia (Opción A) v2: recordatorio cada 1 min.
+// Modo estricto: el aviso NO se puede cerrar hasta desactivar el bloqueador.
 // - Fuera del reproductor: modal cerrable superpuesto.
 // - Dentro del reproductor (/watch): NO se muestra aquí. El componente
 //   AdblockPlayerOverlay lo muestra como "anuncio" dentro del player,
@@ -7,15 +7,13 @@
 // z-index no literal 2147483647, MutationObserver + revive.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ShieldAlert, RefreshCw, Crown, X } from "lucide-react";
+import { ShieldAlert, RefreshCw, Crown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { detectAdblock } from "@/lib/adblock-detect";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { isTV } from "@/hooks/useIsTV";
 
-const REMIND_MS = 60 * 1000; // 1 min
-const SNOOZE_KEY = "zet:adblock-snooze-until";
 
 function rndTag(len = 8) {
   const s = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -29,9 +27,6 @@ export default function AdblockGate() {
   const navigate = useNavigate();
   const location = useLocation();
   const [adblockActive, setAdblockActive] = useState(false);
-  const [dismissedUntil, setDismissedUntil] = useState<number>(() => {
-    try { return Number(localStorage.getItem(SNOOZE_KEY) || 0); } catch { return 0; }
-  });
   const [checking, setChecking] = useState(false);
   const [tick, setTick] = useState(0);
   const nodeRef = useRef<HTMLDivElement | null>(null);
@@ -47,7 +42,7 @@ export default function AdblockGate() {
   }), []);
 
   const now = Date.now();
-  const visible = adblockActive && !isPremium && !tvMode && !onWatch && now >= dismissedUntil;
+  const visible = adblockActive && !isPremium && !tvMode && !onWatch;
 
   const runCheck = async () => {
     setChecking(true);
