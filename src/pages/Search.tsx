@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
+import { getApprovedAnimeIds } from "@/lib/approved-animes";
+
 
 const SUGGESTIONS = [
   "Naruto",
@@ -118,7 +120,8 @@ export default function SearchPage() {
   });
   const hiddenSet = useMemo(() => new Set(hiddenIds || []), [hiddenIds]);
 
-  // Los títulos marcados isAdult solo son visibles en búsqueda si ya tienen enlace madre Seeke guardado.
+  // Los títulos marcados isAdult solo son visibles en búsqueda si ya fueron
+  // habilitados por el admin: con enlace madre Seeke o aprobados por slug.
   const { data: seekeIds } = useQuery({
     queryKey: ["search-seeke-master-ids"],
     queryFn: async () => Array.from(await getAnimeIdsWithSeekeMaster()),
@@ -126,9 +129,19 @@ export default function SearchPage() {
   });
   const seekeSet = useMemo(() => new Set<number>(seekeIds || []), [seekeIds]);
 
+  const { data: approvedIds } = useQuery({
+    queryKey: ["search-approved-ids"],
+    queryFn: async () => Array.from(await getApprovedAnimeIds()),
+    staleTime: 1000 * 60 * 5,
+  });
+  const approvedSet = useMemo(() => new Set<number>(approvedIds || []), [approvedIds]);
+
   const allAnimes = (data?.media || []).filter(
-    (a) => !hiddenSet.has(a.id) && (!(a as any).isAdult || seekeSet.has(a.id)),
+    (a) =>
+      !hiddenSet.has(a.id) &&
+      (!(a as any).isAdult || seekeSet.has(a.id) || approvedSet.has(a.id)),
   );
+
   const animes = useMemo(() => {
     const filter = FILTERS.find((f) => f.key === activeFilter);
     if (!filter) return allAnimes;
