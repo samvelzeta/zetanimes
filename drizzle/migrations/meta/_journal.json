@@ -71,6 +71,13 @@
       "when": 1788854687429,
       "tag": "0009_align_cosmetic_entitlements",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789077207895,
+      "tag": "0010_add_public_approved_anime_search_catalog",
+      "breakpoints": true
     }
   ]
 }

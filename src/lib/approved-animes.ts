@@ -44,6 +44,7 @@ export async function approveAnime(anilistId: number, notes?: string): Promise<{
   if (error) return { success: false, error: error.message };
   memCache?.add(anilistId);
   invalidateVisibility().catch(() => {});
+  import("@/lib/approved-search-catalog").then(({ clearApprovedSearchCatalogCache }) => clearApprovedSearchCatalogCache()).catch(() => {});
   notify();
   return { success: true };
 }
@@ -56,6 +57,7 @@ export async function unapproveAnime(anilistId: number): Promise<{ success: bool
   if (error) return { success: false, error: error.message };
   memCache?.delete(anilistId);
   invalidateVisibility().catch(() => {});
+  import("@/lib/approved-search-catalog").then(({ clearApprovedSearchCatalogCache }) => clearApprovedSearchCatalogCache()).catch(() => {});
   notify();
   return { success: true };
 }
