@@ -1890,6 +1890,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_approved_anime_search_catalog: {
+        Args: never
+        Returns: {
+          anilist_id: number
+          cover_image: string
+          slug: string
+          title: string
+        }[]
+      }
       list_dubbed_anime_ids: {
         Args: never
         Returns: {
