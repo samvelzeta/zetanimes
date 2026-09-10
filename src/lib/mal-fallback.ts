@@ -117,7 +117,11 @@ function jikanToAniListMedia(item: any): AniListMedia {
     startDate: parseYearMonthDay(item.aired?.from),
     nextAiringEpisode: null,
     isFallback: true,
-  };
+    isAdult:
+      item?.rating === "Rx - Hentai" ||
+      /hentai/i.test(String(item?.rating || "")) ||
+      jikanGenres(item).some((g: string) => /hentai/i.test(g)),
+  } as AniListMedia;
 
 }
 
