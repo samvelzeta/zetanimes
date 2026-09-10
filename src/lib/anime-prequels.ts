@@ -110,6 +110,7 @@ export async function getSideStories(anilistId: number): Promise<PrequelNode[]> 
 /** Invalida la caché tras guardar/editar enlaces madre en admin. */
 export function clearSeekeMasterCache() {
   invalidateVisibility().catch(() => {});
+  import("@/lib/approved-search-catalog").then(({ clearApprovedSearchCatalogCache }) => clearApprovedSearchCatalogCache()).catch(() => {});
 }
 
 export async function getAnimeIdsWithSeekeMaster(): Promise<Set<number>> {

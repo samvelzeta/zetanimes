@@ -18,6 +18,7 @@ import {
 import { getHiddenAnimeIds } from "@/lib/hidden-animes";
 import { getAnimeIdsWithSeekeMaster } from "@/lib/anime-prequels";
 import { getApprovedAnimeIds } from "@/lib/approved-animes";
+import { searchApprovedAnimeCatalog } from "@/lib/approved-search-catalog";
 
 
 const SUGGESTIONS = [
@@ -99,9 +100,16 @@ export default function SearchPage() {
     return () => clearTimeout(t);
   }, [query, setSearchParams]);
 
-  const { data, isFetching } = useQuery({
+  const { data, isFetching: isRemoteFetching } = useQuery({
     queryKey: ["search-instant", debouncedQuery],
     queryFn: () => searchAnime(debouncedQuery, 1, 18, [], { includeAdult: true }),
+    enabled: debouncedQuery.trim().length >= 2,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: approvedCatalogMatches, isFetching: isCatalogFetching } = useQuery({
+    queryKey: ["approved-search-catalog", debouncedQuery],
+    queryFn: () => searchApprovedAnimeCatalog(debouncedQuery, 18),
     enabled: debouncedQuery.trim().length >= 2,
     staleTime: 5 * 60 * 1000,
   });
@@ -136,11 +144,22 @@ export default function SearchPage() {
   });
   const approvedSet = useMemo(() => new Set<number>(approvedIds || []), [approvedIds]);
 
-  const allAnimes = (data?.media || []).filter(
+  const combinedResults = useMemo(() => {
+    const byId = new Map<number, (typeof data.media)[number]>();
+    for (const anime of data?.media || []) byId.set(anime.id, anime);
+    for (const anime of approvedCatalogMatches || []) {
+      if (!byId.has(anime.id)) byId.set(anime.id, anime);
+    }
+    return Array.from(byId.values());
+  }, [data?.media, approvedCatalogMatches]);
+
+  const allAnimes = combinedResults.filter(
     (a) =>
       !hiddenSet.has(a.id) &&
       (!(a as any).isAdult || seekeSet.has(a.id) || approvedSet.has(a.id)),
   );
+
+  const isFetching = isRemoteFetching || isCatalogFetching;
 
   const animes = useMemo(() => {
     const filter = FILTERS.find((f) => f.key === activeFilter);

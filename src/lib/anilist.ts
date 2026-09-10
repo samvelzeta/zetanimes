@@ -437,8 +437,9 @@ export async function searchAnime(
     }
   }
 
-  // Un solo variant en tiempo real: menos disparos = menos 429 = búsqueda estable.
-  const variants = [cleanTerm];
+  // Variantes breves permiten recuperar títulos escritos sin espacios o con
+  // errores pequeños. Se limitan para no disparar demasiadas peticiones.
+  const variants = buildLooseSearchVariants(cleanTerm, 4);
   const seen = new Map<number, AniListMedia>();
   let firstPageInfo: PageResult["pageInfo"] | null = null;
   let anilistFailed = false;
@@ -454,15 +455,18 @@ export async function searchAnime(
 
   if (anilistFailed || seen.size < Math.min(perPage, 12)) {
     try {
-      const jikanQuery = variants[0] || normalizeSearchText(cleanTerm);
       const { jikanSearch: searchJikan, processJikanPage } = await import("./mal-fallback");
-      const jikanPage = await searchJikan(jikanQuery, page, Math.min(Math.max(perPage, 12), 25), genres[0]);
-      // Combinamos resultados de Jikan con los de AniList (si los hay), evitando duplicados.
-      for (const media of jikanPage.media) {
-        if (!seen.has(media.id)) seen.set(media.id, media);
+      let lastJikanPage: PageResult | null = null;
+      for (const variant of variants.slice(0, 3)) {
+        const jikanPage = await searchJikan(variant || normalizeSearchText(cleanTerm), page, Math.min(Math.max(perPage, 12), 25), genres[0]);
+        lastJikanPage = jikanPage;
+        for (const media of jikanPage.media) {
+          if (!seen.has(media.id)) seen.set(media.id, media);
+        }
+        if (seen.size >= perPage) break;
       }
-      if (anilistFailed) {
-        return processJikanPage(jikanPage, options);
+      if (anilistFailed && lastJikanPage && seen.size === lastJikanPage.media.length) {
+        return processJikanPage({ ...lastJikanPage, media: Array.from(seen.values()) }, options);
       }
     } catch {
       // Si el fallback falla, se conserva lo encontrado con AniList.
