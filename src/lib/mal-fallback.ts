@@ -117,7 +117,11 @@ function jikanToAniListMedia(item: any): AniListMedia {
     startDate: parseYearMonthDay(item.aired?.from),
     nextAiringEpisode: null,
     isFallback: true,
-  };
+    isAdult:
+      item?.rating === "Rx - Hentai" ||
+      /hentai/i.test(String(item?.rating || "")) ||
+      jikanGenres(item).some((g: string) => /hentai/i.test(g)),
+  } as AniListMedia;
 
 }
 
@@ -247,11 +251,15 @@ export async function jikanSearch(
   q: string,
   page = 1,
   perPage = 20,
-  genre?: string
+  genre?: string,
+  includeAdult = false
 ): Promise<PageResult> {
   const genreParam = genre ? `&genres=${encodeURIComponent(genre)}` : "";
+  // Con includeAdult desactivamos el filtro seguro de Jikan: los +18 se filtran
+  // luego en cliente según aprobación del admin.
+  const sfwParam = includeAdult ? "" : "&sfw=true";
   const data = await jikanGet(
-    `/anime?q=${encodeURIComponent(q || "")}&page=${page}&limit=${perPage}&sfw=true${genreParam}`,
+    `/anime?q=${encodeURIComponent(q || "")}&page=${page}&limit=${perPage}${sfwParam}${genreParam}`,
     8000
   );
   const items = Array.isArray(data) ? data : data?.data || [];

@@ -27,9 +27,19 @@ async function loadApprovedSearchCatalog(): Promise<ApprovedSearchRow[]> {
       return cached;
     }
 
-    const { data, error } = await supabase.rpc("list_approved_anime_search_catalog");
-    if (error) throw error;
-    const rows = (data || []) as ApprovedSearchRow[];
+    // PostgREST corta a 1000 filas por respuesta: paginamos para no perder
+    // animes aprobados que quedaban fuera del primer bloque.
+    const rows: ApprovedSearchRow[] = [];
+    const PAGE = 1000;
+    for (let from = 0; from < 20000; from += PAGE) {
+      const { data, error } = await supabase
+        .rpc("list_approved_anime_search_catalog")
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      const chunk = (data || []) as ApprovedSearchRow[];
+      rows.push(...chunk);
+      if (chunk.length < PAGE) break;
+    }
     memoryCatalog = rows;
     await idbSet(CACHE_KEY, rows, CACHE_TTL);
     return rows;
