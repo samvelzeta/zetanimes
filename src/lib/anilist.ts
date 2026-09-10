@@ -433,7 +433,7 @@ export async function searchAnime(
     } catch (err) {
       console.warn("[anilist/search] AniList falló, fallback a Jikan", err);
       const { jikanSearch, processJikanPage } = await import("./mal-fallback");
-      return processJikanPage(await jikanSearch(cleanTerm, page, perPage, genres[0]), options);
+      return processJikanPage(await jikanSearch(cleanTerm, page, perPage, genres[0], options?.includeAdult), options);
     }
   }
 
@@ -458,7 +458,7 @@ export async function searchAnime(
       const { jikanSearch: searchJikan, processJikanPage } = await import("./mal-fallback");
       let lastJikanPage: PageResult | null = null;
       for (const variant of variants.slice(0, 3)) {
-        const jikanPage = await searchJikan(variant || normalizeSearchText(cleanTerm), page, Math.min(Math.max(perPage, 12), 25), genres[0]);
+        const jikanPage = await searchJikan(variant || normalizeSearchText(cleanTerm), page, Math.min(Math.max(perPage, 12), 25), genres[0], options?.includeAdult);
         lastJikanPage = jikanPage;
         for (const media of jikanPage.media) {
           if (!seen.has(media.id)) seen.set(media.id, media);
