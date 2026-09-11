@@ -78,6 +78,13 @@
       "when": 1789077207895,
       "tag": "0010_add_public_approved_anime_search_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789086343388,
+      "tag": "0011_protect_profile_subscription_columns",
+      "breakpoints": true
     }
   ]
 }
