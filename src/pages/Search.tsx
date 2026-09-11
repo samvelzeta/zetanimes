@@ -108,7 +108,8 @@ export default function SearchPage() {
   });
 
   const { data: approvedCatalogMatches, isFetching: isCatalogFetching } = useQuery({
-    queryKey: ["approved-search-catalog", debouncedQuery],
+    // v2 evita reutilizar respuestas vacías del catálogo antiguo en PWA/Hostinger.
+    queryKey: ["approved-search-catalog-v2", debouncedQuery],
     queryFn: () => searchApprovedAnimeCatalog(debouncedQuery, 18),
     enabled: debouncedQuery.trim().length >= 2,
     staleTime: 5 * 60 * 1000,
@@ -153,10 +154,17 @@ export default function SearchPage() {
     return Array.from(byId.values());
   }, [data?.media, approvedCatalogMatches]);
 
+  // Si el catálogo público aprobado ya devolvió el título, esa coincidencia
+  // también sirve como autorización aunque el manifiesto local siga antiguo.
+  const approvedCatalogIds = useMemo(
+    () => new Set((approvedCatalogMatches || []).map((anime) => anime.id)),
+    [approvedCatalogMatches],
+  );
+
   const allAnimes = combinedResults.filter(
     (a) =>
       !hiddenSet.has(a.id) &&
-      (!(a as any).isAdult || seekeSet.has(a.id) || approvedSet.has(a.id)),
+      (!(a as any).isAdult || seekeSet.has(a.id) || approvedSet.has(a.id) || approvedCatalogIds.has(a.id)),
   );
 
   const isFetching = isRemoteFetching || isCatalogFetching;
