@@ -108,7 +108,8 @@ export default function SearchPage() {
   });
 
   const { data: approvedCatalogMatches, isFetching: isCatalogFetching } = useQuery({
-    queryKey: ["approved-search-catalog", debouncedQuery],
+    // v2 evita reutilizar respuestas vacías del catálogo antiguo en PWA/Hostinger.
+    queryKey: ["approved-search-catalog-v2", debouncedQuery],
     queryFn: () => searchApprovedAnimeCatalog(debouncedQuery, 18),
     enabled: debouncedQuery.trim().length >= 2,
     staleTime: 5 * 60 * 1000,

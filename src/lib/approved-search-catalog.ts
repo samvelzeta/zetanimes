@@ -3,7 +3,10 @@ import { idbDelete, idbGet, idbSet } from "@/lib/idb-cache";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
 import type { AniListMedia } from "@/lib/anilist";
 
-const CACHE_KEY = "approved-anime-search-catalog-v1";
+// v2 invalida catálogos vacíos guardados antes de que el RPC público incluyera
+// aprobaciones por slug/Seeke. Es importante para instalaciones PWA y clones.
+const CACHE_KEY = "approved-anime-search-catalog-v2";
+const LEGACY_CACHE_KEY = "approved-anime-search-catalog-v1";
 const CACHE_TTL = 5 * 60 * 1000;
 
 type ApprovedSearchRow = {
@@ -21,8 +24,9 @@ async function loadApprovedSearchCatalog(): Promise<ApprovedSearchRow[]> {
   if (inflight) return inflight;
 
   inflight = (async () => {
+    idbDelete(LEGACY_CACHE_KEY).catch(() => {});
     const cached = await idbGet<ApprovedSearchRow[]>(CACHE_KEY);
-    if (cached) {
+    if (cached?.length) {
       memoryCatalog = cached;
       return cached;
     }
@@ -56,6 +60,7 @@ export function clearApprovedSearchCatalogCache() {
   memoryCatalog = null;
   inflight = null;
   idbDelete(CACHE_KEY).catch(() => {});
+  idbDelete(LEGACY_CACHE_KEY).catch(() => {});
 }
 
 export async function searchApprovedAnimeCatalog(query: string, limit = 18): Promise<AniListMedia[]> {
