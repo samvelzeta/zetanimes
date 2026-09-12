@@ -69,7 +69,7 @@ export async function searchApprovedAnimeCatalog(query: string, limit = 18): Pro
   if (compact.length < 2) return [];
 
   const rows = await loadApprovedSearchCatalog();
-  return rows
+  const matches = rows
     .map((row) => {
       const score = fuzzyTextScore(query, [row.title, row.slug?.replace(/-/g, " ")]);
       return { row, score };
