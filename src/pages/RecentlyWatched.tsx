@@ -155,7 +155,41 @@ export default function RecentlyWatched() {
     }, 900);
   };
 
-  const grouped = useMemo(() => groupHistory(history), [history]);
+  // Portadas faltantes (historial antiguo guardado sin imagen): se piden a AniList,
+  // que sirve las imágenes gratis. Nunca se guardan en la base de datos.
+  const [coverFix, setCoverFix] = useState<Record<number, string>>({});
+  const missingCoverIds = useMemo(
+    () => Array.from(new Set(history.filter((h) => !h.anime_cover).map((h) => h.anime_id))),
+    [history]
+  );
+  useEffect(() => {
+    const pending = missingCoverIds.filter((id) => !coverFix[id]);
+    if (!pending.length) return;
+    let cancelled = false;
+    import("@/lib/anilist")
+      .then((m) => m.getAnimesByIds(pending))
+      .then((meta) => {
+        if (cancelled || !meta.size) return;
+        const next: Record<number, string> = {};
+        meta.forEach((media, id) => {
+          const url = media.coverImage?.extraLarge || media.coverImage?.large || "";
+          if (url) next[id] = url;
+        });
+        if (Object.keys(next).length) setCoverFix((prev) => ({ ...prev, ...next }));
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [missingCoverIds]);
+
+  const grouped = useMemo(
+    () =>
+      groupHistory(history).map((g) => ({
+        ...g,
+        anime_cover: g.anime_cover || coverFix[g.anime_id] || null,
+      })),
+    [history, coverFix]
+  );
   const hero = grouped[0] || null;
   const rest = grouped.slice(1);
   const topWatched = useMemo(
