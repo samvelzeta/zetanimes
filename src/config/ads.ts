@@ -23,6 +23,7 @@ export type AdsConfig = {
     "300x250": string;
     "160x600": string;
     "160x300": string;
+    "320x50": string;
   };
   /** Clave del banner nativo (tarjetas dentro de los carruseles) */
   nativeKey: string;
@@ -31,16 +32,17 @@ export type AdsConfig = {
 };
 
 const DEFAULTS: AdsConfig = {
-  adsterraBannerHost: "https://www.highperformanceformat.com",
-  adsterraNativeHost: "https://pl29176506.profitablecpmratenetwork.com",
+  adsterraBannerHost: "https://www.highrevenueformat.com",
+  adsterraNativeHost: "https://pl31283085.profitableratecpmnetwork.com",
   banners: {
-    "728x90": "1d178d24c436e987f0076c89491f7ba5",
-    "468x60": "8672e32915f1e9d41edf058deec91989",
-    "300x250": "b411f21fa26a4e8427eb13433959b4e8",
-    "160x600": "d4813a34656155529b56e4655b81cbdb",
-    "160x300": "ab525e23c9a041206c6d3096e5581274",
+    "728x90": "eebb19fcf28c2907bf6e9e7c31cd7790",
+    "468x60": "e7c89c10abea8be0ca7ba73eb567b59b",
+    "300x250": "a24e5ed09cc43dbd1d28fd3dacc6d8d9",
+    "160x600": "206a77b367bee5bdf0baaa360f8813ea",
+    "160x300": "618901f4115f0cd2c0fccf606542ce2c",
+    "320x50": "77756600bf28ba3f4c24b79865c14ec7",
   },
-  nativeKey: "f22e36f62a5acf07d25a8dd129e84655",
+  nativeKey: "a4634fe6810bcceab4700c8b656fb61d",
   vastPool: [
     "https://vast.yomeno.xyz/vast?spot_id=1496604",
     "https://vast.yomeno.xyz/vast?spot_id=1496607",
@@ -91,6 +93,7 @@ export function getAdsConfig(): AdsConfig {
       "300x250": pick(rb["300x250"], env.VITE_ADS_KEY_300x250, DEFAULTS.banners["300x250"]),
       "160x600": pick(rb["160x600"], env.VITE_ADS_KEY_160x600, DEFAULTS.banners["160x600"]),
       "160x300": pick(rb["160x300"], env.VITE_ADS_KEY_160x300, DEFAULTS.banners["160x300"]),
+      "320x50": pick(rb["320x50"], env.VITE_ADS_KEY_320x50, DEFAULTS.banners["320x50"]),
     },
     nativeKey: pick(r.nativeKey, env.VITE_ADS_NATIVE_KEY, DEFAULTS.nativeKey),
     vastPool: pickList(r.vastPool, env.VITE_ADS_VAST_POOL, DEFAULTS.vastPool),
