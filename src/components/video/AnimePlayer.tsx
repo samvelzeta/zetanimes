@@ -567,6 +567,15 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
       const isFull = !!active && !!target && (active === target || active.contains(target) || target.contains(active));
       setIsFullscreen(isFull);
       onFullscreenChange?.(isFull);
+      // Algunos navegadores de escritorio pausan/congelan el <video> al mover el
+      // elemento a la capa de pantalla completa. Reanudamos si estaba reproduciendo.
+      if (wasPlayingRef.current) {
+        const video = videoRef.current;
+        if (video && video.paused) {
+          window.setTimeout(() => { video.play().catch(() => undefined); }, 60);
+          window.setTimeout(() => { if (video.paused) video.play().catch(() => undefined); }, 400);
+        }
+      }
       const orientation = screen.orientation as ScreenOrientation & {
         lock?: (orientation: string) => Promise<void>;
         unlock?: () => void;
