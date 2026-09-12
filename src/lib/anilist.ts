@@ -528,6 +528,45 @@ export async function getAnimeById(id: number): Promise<AniListMedia> {
   return withStatus;
 }
 
+/**
+ * Portadas/metadatos por lote de IDs de AniList.
+ * Se usa para rellenar imágenes que faltan (búsqueda aprobada, historial…)
+ * sin castigar la base de datos: AniList sirve las imágenes gratis.
+ */
+export async function getAnimesByIds(ids: number[]): Promise<Map<number, AniListMedia>> {
+  const unique = Array.from(new Set(ids.filter((id) => Number.isFinite(id) && id > 0)));
+  const out = new Map<number, AniListMedia>();
+  if (!unique.length) return out;
+
+  const CHUNK = 30;
+  const chunks: number[][] = [];
+  for (let i = 0; i < unique.length; i += CHUNK) chunks.push(unique.slice(i, i + CHUNK));
+
+  await Promise.all(
+    chunks.map(async (chunk) => {
+      try {
+        const media = await withIdbCache<AniListMedia[]>(
+          `anime-batch:${chunk.join(",")}`,
+          async () => {
+            const data = await queryAniList(
+              `${MEDIA_FRAGMENT} query($ids:[Int]){Page(page:1,perPage:50){media(id_in:$ids,type:ANIME){...MediaFields}}}`,
+              { ids: chunk },
+              7000,
+            );
+            return (data?.Page?.media || []) as AniListMedia[];
+          },
+          24 * 60 * 60 * 1000,
+        );
+        media.forEach((m) => { if (m?.id) out.set(m.id, m); });
+      } catch {
+        // AniList caído: dejamos los datos locales tal cual.
+      }
+    }),
+  );
+
+  return out;
+}
+
 export async function getByGenre(genre: string, page = 1, perPage = 20): Promise<PageResult> {
   return withJikanFallback(
     "genre",

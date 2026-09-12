@@ -12,7 +12,8 @@ export type AdBannerSize =
   | "468x60"   // banner
   | "300x250" // medium rectangle
   | "160x600" // wide skyscraper
-  | "160x300"; // half skyscraper
+  | "160x300" // half skyscraper
+  | "320x50"; // mobile banner
 
 const KEYS: Record<AdBannerSize, { key: string; w: number; h: number }> = {
   "728x90":  { key: adKey("728x90"), w: 728, h: 90 },
@@ -20,6 +21,7 @@ const KEYS: Record<AdBannerSize, { key: string; w: number; h: number }> = {
   "300x250": { key: adKey("300x250"), w: 300, h: 250 },
   "160x600": { key: adKey("160x600"), w: 160, h: 600 },
   "160x300": { key: adKey("160x300"), w: 160, h: 300 },
+  "320x50":  { key: adKey("320x50"), w: 320, h: 50 },
 };
 
 interface Props {

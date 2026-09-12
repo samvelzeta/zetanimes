@@ -69,7 +69,7 @@ export async function searchApprovedAnimeCatalog(query: string, limit = 18): Pro
   if (compact.length < 2) return [];
 
   const rows = await loadApprovedSearchCatalog();
-  return rows
+  const matches = rows
     .map((row) => {
       const score = fuzzyTextScore(query, [row.title, row.slug?.replace(/-/g, " ")]);
       return { row, score };
@@ -93,5 +93,32 @@ export async function searchApprovedAnimeCatalog(query: string, limit = 18): Pro
       seasonYear: null,
       format: "TV",
       nextAiringEpisode: null,
-    }));
+    })) as AniListMedia[];
+
+  if (!matches.length) return matches;
+
+  // Rellena portada/título reales desde AniList (imágenes gratuitas de su CDN).
+  // Si AniList falla, se conserva lo que ya teníamos guardado.
+  try {
+    const { getAnimesByIds } = await import("@/lib/anilist");
+    const meta = await getAnimesByIds(matches.map((m) => m.id));
+    return matches.map((m) => {
+      const full = meta.get(m.id);
+      if (!full) return m;
+      return {
+        ...full,
+        title: {
+          ...full.title,
+          romaji: full.title?.romaji || m.title.romaji,
+        },
+        coverImage: {
+          extraLarge: full.coverImage?.extraLarge || full.coverImage?.large || m.coverImage.extraLarge,
+          large: full.coverImage?.large || full.coverImage?.extraLarge || m.coverImage.large,
+          color: full.coverImage?.color ?? null,
+        },
+      };
+    });
+  } catch {
+    return matches;
+  }
 }

@@ -7,20 +7,21 @@
    ───────────────────────────────────────────────────────────── */
 window.__ZET_ADS__ = {
   // Dominios de los scripts (normalmente no se tocan)
-  adsterraBannerHost: "https://www.highperformanceformat.com",
-  adsterraNativeHost: "https://pl29176506.profitablecpmratenetwork.com",
+  adsterraBannerHost: "https://www.highrevenueformat.com",
+  adsterraNativeHost: "https://pl31283085.profitableratecpmnetwork.com",
 
   // Claves de banner Adsterra por tamaño
   banners: {
-    "728x90": "1d178d24c436e987f0076c89491f7ba5",
-    "468x60": "8672e32915f1e9d41edf058deec91989",
-    "300x250": "b411f21fa26a4e8427eb13433959b4e8",
-    "160x600": "d4813a34656155529b56e4655b81cbdb",
-    "160x300": "ab525e23c9a041206c6d3096e5581274",
+    "728x90": "eebb19fcf28c2907bf6e9e7c31cd7790",
+    "468x60": "e7c89c10abea8be0ca7ba73eb567b59b",
+    "300x250": "a24e5ed09cc43dbd1d28fd3dacc6d8d9",
+    "160x600": "206a77b367bee5bdf0baaa360f8813ea",
+    "160x300": "618901f4115f0cd2c0fccf606542ce2c",
+    "320x50": "77756600bf28ba3f4c24b79865c14ec7",
   },
 
   // Banner nativo (tarjetas dentro de los carruseles)
-  nativeKey: "f22e36f62a5acf07d25a8dd129e84655",
+  nativeKey: "a4634fe6810bcceab4700c8b656fb61d",
 
   // Anuncios de video VAST (Clickadilla). Puedes añadir o quitar spots.
   vastPool: [
