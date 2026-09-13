@@ -31,6 +31,11 @@ export type AdsConfig = {
   vastPool: string[];
 };
 
+// ── URLs VAST de Clickadilla (edítalas aquí o en public/ads.config.js) ──
+// PRIMARY: se intenta primero (timeout 3s). FALLBACK: solo si la primera falla.
+export const PRIMARY_VAST_URL = "https://vast.yomeno.xyz/vast?spot_id=1496610";
+export const FALLBACK_VAST_URL = "https://vast.yomeno.xyz/vast?spot_id=1496609";
+
 const DEFAULTS: AdsConfig = {
   adsterraBannerHost: "https://www.highrevenueformat.com",
   adsterraNativeHost: "https://pl31283085.profitableratecpmnetwork.com",
@@ -43,13 +48,11 @@ const DEFAULTS: AdsConfig = {
     "320x50": "77756600bf28ba3f4c24b79865c14ec7",
   },
   nativeKey: "a4634fe6810bcceab4700c8b656fb61d",
+  // Waterfall VAST de Clickadilla: [0] = PRIMARY, [1] = FALLBACK.
+  // Solo 2 spots y siempre en cascada (nunca simultáneos) para no invalidar impresiones.
   vastPool: [
-    "https://vast.yomeno.xyz/vast?spot_id=1496604",
-    "https://vast.yomeno.xyz/vast?spot_id=1496607",
-    "https://vast.yomeno.xyz/vast?spot_id=1496606",
-    "https://vast.yomeno.xyz/vast?spot_id=1496608",
-    "https://vast.yomeno.xyz/vast?spot_id=1496609",
-    "https://vast.yomeno.xyz/vast?spot_id=1496610",
+    PRIMARY_VAST_URL,
+    FALLBACK_VAST_URL,
   ],
 };
 

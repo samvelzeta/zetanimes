@@ -23,13 +23,11 @@ window.__ZET_ADS__ = {
   // Banner nativo (tarjetas dentro de los carruseles)
   nativeKey: "a4634fe6810bcceab4700c8b656fb61d",
 
-  // Anuncios de video VAST (Clickadilla). Puedes añadir o quitar spots.
+  // Anuncios de video VAST (Clickadilla) — waterfall de 2 niveles:
+  // [0] = PRIMARY (se intenta primero), [1] = FALLBACK (solo si el primero falla).
+  // No añadas más spots: se ejecutan en cascada, nunca simultáneos.
   vastPool: [
-    "https://vast.yomeno.xyz/vast?spot_id=1496604",
-    "https://vast.yomeno.xyz/vast?spot_id=1496607",
-    "https://vast.yomeno.xyz/vast?spot_id=1496606",
-    "https://vast.yomeno.xyz/vast?spot_id=1496608",
-    "https://vast.yomeno.xyz/vast?spot_id=1496609",
     "https://vast.yomeno.xyz/vast?spot_id=1496610",
+    "https://vast.yomeno.xyz/vast?spot_id=1496609",
   ],
 };
