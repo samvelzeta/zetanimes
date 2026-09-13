@@ -1,6 +1,6 @@
 // Overlay de anuncio VAST (video) sobre el reproductor nativo.
-// - Rotación aleatoria + waterfall entre VAST_POOL.
-// - Timeout duro para no dejar pantalla negra > pocos segundos.
+// - Waterfall de 2 niveles: PRIMARY_VAST_URL → FALLBACK_VAST_URL (nunca en paralelo).
+// - Timeout de 3s por nivel; si ambos fallan, el anime reproduce normal.
 // - Auto-cierre a los 15s (o al terminar el anuncio).
 // - X diminuta arriba-derecha (intencional para favorecer clic al anuncio).
 // - Click en el video → abre ClickThrough en pestaña nueva / Chrome externo (APK).

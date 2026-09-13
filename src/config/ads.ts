@@ -43,13 +43,11 @@ const DEFAULTS: AdsConfig = {
     "320x50": "77756600bf28ba3f4c24b79865c14ec7",
   },
   nativeKey: "a4634fe6810bcceab4700c8b656fb61d",
+  // Waterfall VAST de Clickadilla: [0] = PRIMARY, [1] = FALLBACK.
+  // Solo 2 spots y siempre en cascada (nunca simultáneos) para no invalidar impresiones.
   vastPool: [
-    "https://vast.yomeno.xyz/vast?spot_id=1496604",
-    "https://vast.yomeno.xyz/vast?spot_id=1496607",
-    "https://vast.yomeno.xyz/vast?spot_id=1496606",
-    "https://vast.yomeno.xyz/vast?spot_id=1496608",
-    "https://vast.yomeno.xyz/vast?spot_id=1496609",
-    "https://vast.yomeno.xyz/vast?spot_id=1496610",
+    PRIMARY_VAST_URL,
+    FALLBACK_VAST_URL,
   ],
 };
 
