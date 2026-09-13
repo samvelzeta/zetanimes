@@ -214,15 +214,10 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
     const lastEp = localStorage.getItem(LAST_EP_KEY);
     if (lastEp === episodeKey) return;
 
-    const lastSeenRaw = localStorage.getItem(LAST_SEEN_KEY);
-    const lastSeen = lastSeenRaw ? parseInt(lastSeenRaw, 10) : 0;
-    const now = Date.now();
-    const inactive = !lastSeen || now - lastSeen > INACTIVITY_MS;
-    localStorage.setItem(LAST_SEEN_KEY, String(now));
-
+    // Alternancia estricta: un capítulo con anuncio, el siguiente sin anuncio,
+    // y así sucesivamente con todos los animes (1 sí, 1 no, 1 sí...).
     const nextShow = localStorage.getItem(TOGGLE_KEY);
-    const shouldShow = inactive || nextShow !== "false";
-    if (!shouldShow) {
+    if (nextShow === "false") {
       // Turno "sin anuncio": consumimos el toggle y marcamos episodio como visto
       // para no volver a evaluar en este mismo ep.
       localStorage.setItem(TOGGLE_KEY, "true");
