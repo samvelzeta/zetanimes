@@ -539,9 +539,9 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
     };
     const onPlay = () => { wasPlayingRef.current = true; setPlaying(true); };
     const onPause = () => {
-      // No marcamos "pausado por el usuario" durante la transición a pantalla
-      // completa: el navegador puede emitir un pause espurio al mover el video.
-      if (!document.fullscreenElement) wasPlayingRef.current = false;
+      // Ignoramos el pause espurio que algunos navegadores emiten mientras el
+      // video se mueve a la capa de pantalla completa.
+      if (Date.now() - fsChangeAtRef.current > 1200) wasPlayingRef.current = false;
       setPlaying(false);
     };
     const onSeek = () => {
