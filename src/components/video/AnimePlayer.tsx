@@ -202,6 +202,8 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
   const videoRef = useRef<HTMLVideoElement>(null);
   /** Último estado real de reproducción (para reanudar tras entrar/salir de pantalla completa). */
   const wasPlayingRef = useRef(false);
+  /** Marca temporal del último cambio de pantalla completa. */
+  const fsChangeAtRef = useRef(0);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const epScrollRef = useRef<HTMLDivElement>(null);
