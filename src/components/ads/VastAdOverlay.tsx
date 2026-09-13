@@ -16,8 +16,6 @@ const VAST_POOL: string[] = getAdsConfig().vastPool;
 
 const TOGGLE_KEY = "zet:vast-next-show";
 const LAST_EP_KEY = "zet:vast-last-ep";
-const LAST_SEEN_KEY = "zet:vast-last-seen";
-const INACTIVITY_MS = 30 * 60 * 1000;
 // Waterfall de 2 niveles: PRIMARY (3s) → FALLBACK (3s). Nunca en paralelo,
 // para no saturar la red ni invalidar impresiones (fill rate $0).
 const VAST_PRIMARY_TIMEOUT_MS = 3000;
