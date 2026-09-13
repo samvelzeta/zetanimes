@@ -18,8 +18,10 @@ const TOGGLE_KEY = "zet:vast-next-show";
 const LAST_EP_KEY = "zet:vast-last-ep";
 const LAST_SEEN_KEY = "zet:vast-last-seen";
 const INACTIVITY_MS = 30 * 60 * 1000;
-const VAST_PRIMARY_TIMEOUT_MS = 2500;
-const VAST_FALLBACK_TIMEOUT_MS = 2000;
+// Waterfall de 2 niveles: PRIMARY (3s) → FALLBACK (3s). Nunca en paralelo,
+// para no saturar la red ni invalidar impresiones (fill rate $0).
+const VAST_PRIMARY_TIMEOUT_MS = 3000;
+const VAST_FALLBACK_TIMEOUT_MS = 3000;
 // Cada "segundo" del contador dura un poco más para que el usuario perciba
 // la espera completa antes de poder cerrar (15 ticks * 1100ms ≈ 16.5s).
 const TICK_MS = 1100;
@@ -171,21 +173,29 @@ async function resolveVastCreative(
   };
 }
 
+// Waterfall estricto y secuencial: intenta PRIMARY; si no devuelve creativo
+// (XML vacío, error, timeout o contenido filtrado), pasa a FALLBACK.
+// Si ambos fallan devuelve null y el anime se reproduce normal, sin errores.
 async function resolveFromPool(pool: string[]): Promise<VastCreative | null> {
-  if (pool.length === 0) return null;
-  const first = pool[Math.floor(Math.random() * pool.length)];
-  try {
-    const c = await resolveVastCreative(first, VAST_PRIMARY_TIMEOUT_MS);
-    if (c) return c;
-  } catch { /* fallback */ }
-  const rest = pool.filter((x) => x !== first);
-  if (rest.length === 0) return null;
-  const second = rest[Math.floor(Math.random() * rest.length)];
-  try {
-    return await resolveVastCreative(second, VAST_FALLBACK_TIMEOUT_MS);
-  } catch {
-    return null;
+  const primary = pool[0];
+  const fallback = pool[1];
+  if (!primary && !fallback) return null;
+
+  if (primary) {
+    try {
+      const c = await resolveVastCreative(primary, VAST_PRIMARY_TIMEOUT_MS);
+      if (c) return c;
+    } catch { /* la red no sirvió: seguimos al fallback */ }
   }
+
+  if (fallback && fallback !== primary) {
+    try {
+      const c = await resolveVastCreative(fallback, VAST_FALLBACK_TIMEOUT_MS);
+      if (c) return c;
+    } catch { /* sin anuncio: reproducir anime normal */ }
+  }
+
+  return null;
 }
 
 export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed }: Props) {
