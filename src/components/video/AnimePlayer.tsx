@@ -200,6 +200,10 @@ function extractEmbedSrc(html: string): string | null {
 
 export default function AnimePlayer({ sources, anilistId, lang, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, episodeSlots, currentVariant = 1, episodeThumbnails, subtitles = EMPTY_PLAYER_SUBTITLES, fullscreenContainerRef, onControlsVisibilityChange, onEpisodeListToggle, onFullscreenChange, canSwitchLang = false, onLangChange }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  /** Último estado real de reproducción (para reanudar tras entrar/salir de pantalla completa). */
+  const wasPlayingRef = useRef(false);
+  /** Marca temporal del último cambio de pantalla completa. */
+  const fsChangeAtRef = useRef(0);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const epScrollRef = useRef<HTMLDivElement>(null);
@@ -535,8 +539,13 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
         }
       }
     };
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
+    const onPlay = () => { wasPlayingRef.current = true; setPlaying(true); };
+    const onPause = () => {
+      // Ignoramos el pause espurio que algunos navegadores emiten mientras el
+      // video se mueve a la capa de pantalla completa.
+      if (Date.now() - fsChangeAtRef.current > 1200) wasPlayingRef.current = false;
+      setPlaying(false);
+    };
     const onSeek = () => {
       if (video.duration > 0) onSeeked?.(video.currentTime, video.duration);
     };
@@ -562,6 +571,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
   // Fullscreen: lock landscape on mobile/webview (forzado, ignora bloqueo del sistema)
   useEffect(() => {
     const onFsChange = () => {
+      fsChangeAtRef.current = Date.now();
       const target = getFullscreenTarget();
       const active = document.fullscreenElement;
       const isFull = !!active && !!target && (active === target || active.contains(target) || target.contains(active));
