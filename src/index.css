@@ -231,6 +231,17 @@ body { overflow-x: clip; }
   aspect-ratio: auto !important;
   border-radius: 0 !important;
 }
+/* El <video>/iframe debe ocupar toda la pantalla en fullscreen (si no, en PC
+   quedaba con altura 0 y parecía que el episodio no se reproducía). */
+.zet-player-container:fullscreen [data-player-video="true"] > video,
+.zet-player-container:-webkit-full-screen [data-player-video="true"] > video,
+.zet-player-container:fullscreen [data-player-video="true"] > iframe,
+.zet-player-container:-webkit-full-screen [data-player-video="true"] > iframe {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  object-fit: contain;
+}
 
 /* ============ Glassmorphism header ============ */
 .glass-header {
