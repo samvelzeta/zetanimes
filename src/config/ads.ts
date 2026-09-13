@@ -31,6 +31,11 @@ export type AdsConfig = {
   vastPool: string[];
 };
 
+// ── URLs VAST de Clickadilla (edítalas aquí o en public/ads.config.js) ──
+// PRIMARY: se intenta primero (timeout 3s). FALLBACK: solo si la primera falla.
+export const PRIMARY_VAST_URL = "https://vast.yomeno.xyz/vast?spot_id=1496610";
+export const FALLBACK_VAST_URL = "https://vast.yomeno.xyz/vast?spot_id=1496609";
+
 const DEFAULTS: AdsConfig = {
   adsterraBannerHost: "https://www.highrevenueformat.com",
   adsterraNativeHost: "https://pl31283085.profitableratecpmnetwork.com",
