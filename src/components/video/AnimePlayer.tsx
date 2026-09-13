@@ -571,6 +571,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
   // Fullscreen: lock landscape on mobile/webview (forzado, ignora bloqueo del sistema)
   useEffect(() => {
     const onFsChange = () => {
+      fsChangeAtRef.current = Date.now();
       const target = getFullscreenTarget();
       const active = document.fullscreenElement;
       const isFull = !!active && !!target && (active === target || active.contains(target) || target.contains(active));
