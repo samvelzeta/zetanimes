@@ -200,6 +200,8 @@ function extractEmbedSrc(html: string): string | null {
 
 export default function AnimePlayer({ sources, anilistId, lang, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, episodeSlots, currentVariant = 1, episodeThumbnails, subtitles = EMPTY_PLAYER_SUBTITLES, fullscreenContainerRef, onControlsVisibilityChange, onEpisodeListToggle, onFullscreenChange, canSwitchLang = false, onLangChange }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  /** Último estado real de reproducción (para reanudar tras entrar/salir de pantalla completa). */
+  const wasPlayingRef = useRef(false);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const epScrollRef = useRef<HTMLDivElement>(null);
