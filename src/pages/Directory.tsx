@@ -5,6 +5,7 @@ import {
   getTrending,
   getTopRated,
   getMovies,
+  getMoviesByIds,
   getUpcomingMovies,
   searchAnime,
   type AniListMedia,
@@ -106,6 +107,15 @@ export default function Directory() {
     queryKey: ["directory-seeke-master-ids"],
     queryFn: () => getAnimeIdsWithSeekeMaster(),
     staleTime: 1000 * 60 * 5,
+  });
+
+  // Películas reales del catálogo: se buscan entre TODOS los ids aprobados con
+  // enlace madre Seeke (antes solo se cruzaba con el top-14 de AniList y salía vacío).
+  const approvedMoviesQuery = useQuery({
+    queryKey: ["directory-cinema-approved", seekeMasterSet ? seekeMasterSet.size : 0],
+    queryFn: () => getMoviesByIds(Array.from(seekeMasterSet || []), 24),
+    enabled: !!seekeMasterSet && seekeMasterSet.size > 0,
+    staleTime: 1000 * 60 * 60,
   });
 
   const { data: reserveHiddenIds } = useQuery({
