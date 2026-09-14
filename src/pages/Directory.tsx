@@ -150,7 +150,10 @@ export default function Directory() {
 
   const heroList = (heroData?.media || []).filter((a) => isPublicVisible(a) && (!isMovie(a) || movieHasSeeke(a)));
   const rankingList = (rankingData?.media || []).filter((a) => isPublicVisible(a) && (!isMovie(a) || movieHasSeeke(a)));
-  const cinemaList = (cinemaQuery.data?.media || []).filter((a) => isPublicVisible(a) && movieHasSeeke(a));
+  const approvedMovies = (approvedMoviesQuery.data || []).filter(isPublicVisible);
+  const cinemaFallback = (cinemaQuery.data?.media || []).filter((a) => isPublicVisible(a) && movieHasSeeke(a));
+  const cinemaList = approvedMovies.length > 0 ? approvedMovies : cinemaFallback;
+  const cinemaLoading = cinemaQuery.isLoading || approvedMoviesQuery.isLoading || !seekeMasterSet;
 
   // Reutiliza los mismos datos ya cargados (sin llamadas extra)
   const storyPool = useMemo(
@@ -259,7 +262,7 @@ export default function Directory() {
         </div>
       </div>
 
-      <CinemaAccordion items={cinemaList} loading={cinemaQuery.isLoading} />
+      <CinemaAccordion items={cinemaList} loading={cinemaLoading} />
       <CinemaExtras
         items={cinemaList}
         upcomingItems={(upcomingMoviesQuery.data?.media || []).filter((a) => isPublicVisible(a) && movieHasSeeke(a))}
