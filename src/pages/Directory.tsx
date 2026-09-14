@@ -5,6 +5,7 @@ import {
   getTrending,
   getTopRated,
   getMovies,
+  getMoviesByIds,
   getUpcomingMovies,
   searchAnime,
   type AniListMedia,
@@ -71,9 +72,10 @@ export default function Directory() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Fallback: películas populares de AniList (solo se usan si ninguna aprobada aparece)
   const cinemaQuery = useQuery({
     queryKey: ["directory-cinema"],
-    queryFn: () => getMovies(1, 14, null),
+    queryFn: () => getMovies(1, 30, null),
     staleTime: 1000 * 60 * 15,
   });
 
@@ -105,6 +107,15 @@ export default function Directory() {
     queryKey: ["directory-seeke-master-ids"],
     queryFn: () => getAnimeIdsWithSeekeMaster(),
     staleTime: 1000 * 60 * 5,
+  });
+
+  // Películas reales del catálogo: se buscan entre TODOS los ids aprobados con
+  // enlace madre Seeke (antes solo se cruzaba con el top-14 de AniList y salía vacío).
+  const approvedMoviesQuery = useQuery({
+    queryKey: ["directory-cinema-approved", seekeMasterSet ? seekeMasterSet.size : 0],
+    queryFn: () => getMoviesByIds(Array.from(seekeMasterSet || []), 24),
+    enabled: !!seekeMasterSet && seekeMasterSet.size > 0,
+    staleTime: 1000 * 60 * 60,
   });
 
   const { data: reserveHiddenIds } = useQuery({
@@ -139,7 +150,10 @@ export default function Directory() {
 
   const heroList = (heroData?.media || []).filter((a) => isPublicVisible(a) && (!isMovie(a) || movieHasSeeke(a)));
   const rankingList = (rankingData?.media || []).filter((a) => isPublicVisible(a) && (!isMovie(a) || movieHasSeeke(a)));
-  const cinemaList = (cinemaQuery.data?.media || []).filter((a) => isPublicVisible(a) && movieHasSeeke(a));
+  const approvedMovies = (approvedMoviesQuery.data || []).filter(isPublicVisible);
+  const cinemaFallback = (cinemaQuery.data?.media || []).filter((a) => isPublicVisible(a) && movieHasSeeke(a));
+  const cinemaList = approvedMovies.length > 0 ? approvedMovies : cinemaFallback;
+  const cinemaLoading = cinemaQuery.isLoading || approvedMoviesQuery.isLoading || !seekeMasterSet;
 
   // Reutiliza los mismos datos ya cargados (sin llamadas extra)
   const storyPool = useMemo(
@@ -248,7 +262,7 @@ export default function Directory() {
         </div>
       </div>
 
-      <CinemaAccordion items={cinemaList} loading={cinemaQuery.isLoading} />
+      <CinemaAccordion items={cinemaList} loading={cinemaLoading} />
       <CinemaExtras
         items={cinemaList}
         upcomingItems={(upcomingMoviesQuery.data?.media || []).filter((a) => isPublicVisible(a) && movieHasSeeke(a))}
