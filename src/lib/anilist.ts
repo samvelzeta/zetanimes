@@ -567,6 +567,46 @@ export async function getAnimesByIds(ids: number[]): Promise<Map<number, AniList
   return out;
 }
 
+/**
+ * Películas (format MOVIE) que existen dentro de una lista de ids concreta
+ * (p.ej. los animes aprobados con enlace madre Seeke).
+ * Se consulta por lotes y se ordena por popularidad. Caché 12 h.
+ */
+export async function getMoviesByIds(ids: number[], limit = 24): Promise<AniListMedia[]> {
+  const unique = Array.from(new Set(ids.filter((id) => Number.isFinite(id) && id > 0))).sort((a, b) => a - b);
+  if (!unique.length) return [];
+
+  const CHUNK = 200;
+  const chunks: number[][] = [];
+  for (let i = 0; i < unique.length; i += CHUNK) chunks.push(unique.slice(i, i + CHUNK));
+
+  const found: AniListMedia[] = [];
+  for (const chunk of chunks) {
+    try {
+      const media = await withIdbCache<AniListMedia[]>(
+        `movies-by-ids:${chunk[0]}-${chunk[chunk.length - 1]}:${chunk.length}`,
+        async () => {
+          const data = await queryAniList(
+            `${MEDIA_FRAGMENT} query($ids:[Int]){Page(page:1,perPage:50){media(id_in:$ids,type:ANIME,format:MOVIE,sort:POPULARITY_DESC){...MediaFields}}}`,
+            { ids: chunk },
+            8000,
+          );
+          return (data?.Page?.media || []) as AniListMedia[];
+        },
+        12 * 60 * 60 * 1000,
+      );
+      found.push(...media);
+    } catch {
+      // AniList caído o lote fallido: seguimos con el resto.
+    }
+  }
+
+  return found
+    .filter((m) => m?.id && !(m as any).isAdult)
+    .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
+    .slice(0, limit);
+}
+
 export async function getByGenre(genre: string, page = 1, perPage = 20): Promise<PageResult> {
   return withJikanFallback(
     "genre",
