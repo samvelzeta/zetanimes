@@ -71,9 +71,10 @@ export default function Directory() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // Fallback: películas populares de AniList (solo se usan si ninguna aprobada aparece)
   const cinemaQuery = useQuery({
     queryKey: ["directory-cinema"],
-    queryFn: () => getMovies(1, 14, null),
+    queryFn: () => getMovies(1, 30, null),
     staleTime: 1000 * 60 * 15,
   });
 
