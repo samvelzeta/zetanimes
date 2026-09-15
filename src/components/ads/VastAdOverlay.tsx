@@ -223,7 +223,7 @@ export default function VastAdOverlay({ episodeKey, countdownSecs = 15, onClosed
       if (cancelled) return;
       cancelled = true;
       setLoadingAd(false);
-    }, VAST_PRIMARY_TIMEOUT_MS + VAST_FALLBACK_TIMEOUT_MS + 500);
+    }, VAST_STEP_TIMEOUT_MS * Math.max(1, VAST_POOL.length) + 500);
 
     resolveFromPool(VAST_POOL)
       .then((c) => {
