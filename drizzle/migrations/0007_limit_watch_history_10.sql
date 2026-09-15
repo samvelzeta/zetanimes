@@ -12,7 +12,7 @@ BEGIN
     WHERE user_id = NEW.user_id
       AND coalesce(profile_id::text, 'default') = coalesce(NEW.profile_id::text, 'default')
   ) r
-  WHERE wh.id = r.id AND r.rn > 10;
+  WHERE wh.id = r.id AND r.rn > 60;
   RETURN NULL;
 END;
 $$;
