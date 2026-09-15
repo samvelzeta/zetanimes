@@ -26,7 +26,7 @@ export default function AdCard({ size = "default" }: Props) {
   const canBootAds = shouldBootAdsImmediately(loading, isPremium);
 
   useLayoutEffect(() => {
-    if (!canBootAds || loaded.current || !ref.current) return;
+    if (!NATIVE_KEY || !canBootAds || loaded.current || !ref.current) return;
     loaded.current = true;
     primeAdDomains();
 
@@ -87,7 +87,8 @@ export default function AdCard({ size = "default" }: Props) {
   if (isPremium) {
     return <div style={{ width: 0, height: 0, overflow: "hidden" }} aria-hidden />;
   }
-  if (adFilled === false) return null;
+  // Sin clave nativa configurada (desactivada en ads.config.js) → nada.
+  if (!NATIVE_KEY || adFilled === false) return null;
 
   const sizeClasses = {
     small: "w-28",

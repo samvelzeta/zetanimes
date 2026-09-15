@@ -10,7 +10,11 @@ window.__ZET_ADS__ = {
   adsterraBannerHost: "https://www.highrevenueformat.com",
   adsterraNativeHost: "https://pl31283085.profitableratecpmnetwork.com",
 
-  // Claves de banner Adsterra por tamaño
+  // ── ADSTERRA ──────────────────────────────────────────────
+  // Claves de banner por tamaño.
+  // AÑADIR: pega la 'key' del código de Adsterra en el tamaño que corresponda.
+  // QUITAR: deja el valor vacío ("") y ese anuncio deja de mostrarse
+  //         (no ocupa espacio, la página queda igual de limpia).
   banners: {
     "728x90": "eebb19fcf28c2907bf6e9e7c31cd7790",
     "468x60": "e7c89c10abea8be0ca7ba73eb567b59b",
@@ -20,12 +24,15 @@ window.__ZET_ADS__ = {
     "320x50": "77756600bf28ba3f4c24b79865c14ec7",
   },
 
-  // Banner nativo (tarjetas dentro de los carruseles)
+  // Banner nativo (tarjetas dentro de los carruseles).
+  // Déjalo en "" para quitar por completo las tarjetas de anuncio.
   nativeKey: "a4634fe6810bcceab4700c8b656fb61d",
 
-  // Anuncios de video VAST (Clickadilla) — waterfall de 2 niveles:
-  // [0] = PRIMARY (se intenta primero), [1] = FALLBACK (solo si el primero falla).
-  // No añadas más spots: se ejecutan en cascada, nunca simultáneos.
+  // ── CLICKADILLA / VAST (anuncio de video antes del capítulo) ──
+  // Lista en CASCADA: se prueba el primero; si no devuelve anuncio en 3s,
+  // se prueba el siguiente, y así sucesivamente. Nunca se lanzan a la vez.
+  // AÑADIR: agrega otra línea con la URL del spot (en el orden que prefieras).
+  // QUITAR: borra la línea. Lista vacía [] = sin anuncios de video.
   vastPool: [
     "https://vast.yomeno.xyz/vast?spot_id=1496610",
     "https://vast.yomeno.xyz/vast?spot_id=1496609",

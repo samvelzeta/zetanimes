@@ -97,7 +97,8 @@ export default function AdBannerInline({ size, className = "", hideLabel = false
   // Premium o ad bloqueado/no llenado → 0×0 SIN ocupar espacio (sin márgenes)
   // Devolvemos un nodo 0×0 (no null) para que el wrapper padre no aplique
   // gap/space-y dejando hueco visible.
-  if (isPremium || filled === false) {
+  // Sin clave configurada (el dueño lo desactivó en ads.config.js) → nada.
+  if (isPremium || filled === false || !cfg.key) {
     return <div aria-hidden style={{ width: 0, height: 0, overflow: "hidden", margin: 0, padding: 0 }} />;
   }
 
