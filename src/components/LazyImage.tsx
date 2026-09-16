@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStaticPreference } from "@/contexts/PreferencesContext";
 
@@ -15,38 +15,44 @@ interface Props extends React.ImgHTMLAttributes<HTMLImageElement> {
  * degradamos on-the-fly las imágenes de AniList a variantes más ligeras.
  */
 function toLightSrc(src: string): string {
-  if (!src) return src;
+  if (!src || !src.includes("anilistcdn")) return src;
+  // Solo degradamos si es extraLarge/large. Evitamos tocar medium si ya lo es.
   return src
-    .replace("/original/", "/large/")
+    .replace("/extraLarge/", "/large/")
     .replace("/large/", "/medium/")
-    // Cloudinary/Cloudflare width params comunes (por si se usan en R2/CDN)
-    .replace(/(\/w_)\d+(\/)/g, "$1240$2");
+    .replace(/(\/w_)\d+(\/)/g, "240");
 }
 
-/**
- * <LazyImage /> simplificado:
- * - Carga la imagen de inmediato con `loading="lazy"` nativo del navegador.
- * - Respeta la preferencia global "Modo Ahorro de Datos" degradando la calidad.
- * - Una vez cargada queda fija en el DOM.
- */
 const MAX_RETRIES = 3;
 
-export default function LazyImage({
+/**
+ * <LazyImage /> auditado:
+ * - Soporta forwardRef para evitar warnings en layouts complejos.
+ * - Carga la imagen de inmediato con loading="lazy" nativo.
+ * - Respeta "Modo Ahorro de Datos" degradando calidad.
+ * - Reintentos con cache-buster ante errores 429/5xx de AniList.
+ * - Fallback a MyAnimeList si AniList falla definitivamente.
+ */
+const LazyImage = forwardRef<HTMLImageElement, Props>(({
   src,
   alt,
   keepWhenOffscreen: _ignored,
   placeholderClassName = "",
   className = "",
   ...rest
-}: Props) {
+}, ref) => {
   const [loaded, setLoaded] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
   const [malSrc, setMalSrc] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  const innerRef = useRef<HTMLImageElement>(null);
   const dataSaver = getStaticPreference("dataSaver");
 
-  // Reset cuando cambia la imagen
+  // Exponer el ref interno
+  useImperativeHandle(ref, () => innerRef.current!);
+
+  // Reset cuando cambia la imagen base
   useEffect(() => {
     setLoaded(false);
     setAttempt(0);
@@ -55,22 +61,25 @@ export default function LazyImage({
     return () => { if (timer.current) clearTimeout(timer.current); };
   }, [src]);
 
-  // Intento 0: variante normal. Intento 1+: URL original (por si el downgrade
-  // de "modo ahorro" apunta a un tamaño inexistente) + cache-buster, porque el
-  // CDN de AniList devuelve 429/5xx de forma intermitente.
+  // Manejo de caché: si al montar la imagen ya está cargada, disparar onLoad
+  useEffect(() => {
+    if (innerRef.current?.complete && !loaded) {
+      setLoaded(true);
+      setFailed(false);
+    }
+  }, [finalSrc]);
+
   const baseSrc = attempt === 0 && dataSaver ? toLightSrc(src) : src;
   const retrySrc = attempt > 0 && baseSrc ? `${baseSrc}${baseSrc.includes("?") ? "&" : "?"}r=${attempt}` : baseSrc;
   const finalSrc = malSrc || retrySrc;
 
   const handleError = () => {
     if (malSrc) {
-      // Ya estábamos usando MyAnimeList y también falló.
       setFailed(true);
       setLoaded(true);
       return;
     }
     if (attempt >= MAX_RETRIES) {
-      // Segunda vía: portada equivalente en MyAnimeList (Jikan).
       import("@/lib/mal-fallback")
         .then((m) => m.malImageFromAniListUrl(src))
         .then((url) => {
@@ -87,19 +96,23 @@ export default function LazyImage({
         });
       return;
     }
-    const delay = 400 * Math.pow(2, attempt); // 400ms, 800ms, 1.6s
+    const delay = 400 * Math.pow(2, attempt);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setAttempt((a) => a + 1), delay);
   };
-
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {!loaded && (
         <Skeleton bolt className={`absolute inset-0 bg-secondary rounded-none ${placeholderClassName}`} />
       )}
-      {failed && <div className="absolute inset-0 bg-secondary" aria-hidden />}
+      {failed && !malSrc && (
+        <div className="absolute inset-0 bg-secondary flex items-center justify-center" aria-hidden>
+           <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />
+        </div>
+      )}
       <img
+        ref={innerRef}
         key={malSrc ?? attempt}
         src={finalSrc}
         alt={alt}
@@ -115,5 +128,8 @@ export default function LazyImage({
       />
     </div>
   );
-}
+});
 
+LazyImage.displayName = "LazyImage";
+
+export default LazyImage;

@@ -1,37 +1,35 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
 import { getAdsConfig, adsNativeScript } from "@/config/ads";
 
-/**
- * Native banner Adsterra estilo "card" (mismo tamaño que AnimeCard).
- * - Cada AdCard usa su PROPIO iframe aislado para que el script de Adsterra
- *   pueda renderizarse múltiples veces en la misma página sin colisionar
- *   por el ID del contenedor (problema típico cuando hay varios AdCard).
- * - Premium: render 0×0 (sin scripts).
- * - Free pero ad no carga (adblock/sin inventario): se colapsa.
- */
 interface Props {
   size?: "small" | "default" | "large";
+  className?: string;
 }
 
 const NATIVE_KEY = getAdsConfig().nativeKey;
 const NATIVE_SCRIPT = adsNativeScript(NATIVE_KEY);
 
-export default function AdCard({ size = "default" }: Props) {
+/**
+ * Native banner Adsterra estilo "card" auditado.
+ * - Soporta forwardRef para evitar warnings en layouts complejos.
+ * - Usa iframes aislados para evitar colisiones de IDs.
+ */
+const AdCard = forwardRef<HTMLDivElement, Props>(({ size = "default", className = "" }, ref) => {
   const { isPremium, loading } = useAuth();
-  const ref = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const loaded = useRef(false);
   const [adFilled, setAdFilled] = useState<boolean | null>(null);
   const canBootAds = shouldBootAdsImmediately(loading, isPremium);
 
+  useImperativeHandle(ref, () => containerRef.current!);
+
   useLayoutEffect(() => {
-    if (!NATIVE_KEY || !canBootAds || loaded.current || !ref.current) return;
+    if (!NATIVE_KEY || !canBootAds || loaded.current || !containerRef.current) return;
     loaded.current = true;
     primeAdDomains();
 
-    // HTML aislado dentro de un iframe: cada anuncio se carga de forma
-    // independiente con su propio contenedor, evitando colisión de IDs.
     const html = `
       <!doctype html>
       <html>
@@ -63,9 +61,8 @@ export default function AdCard({ size = "default" }: Props) {
       "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin"
     );
     iframe.srcdoc = html;
-    ref.current.appendChild(iframe);
+    containerRef.current.appendChild(iframe);
 
-    // Reintentos progresivos: 3s, 6s, 10s. Marca failed solo al último.
     const timers: number[] = [];
     const probe = (final: boolean) => {
       try {
@@ -87,7 +84,6 @@ export default function AdCard({ size = "default" }: Props) {
   if (isPremium) {
     return <div style={{ width: 0, height: 0, overflow: "hidden" }} aria-hidden />;
   }
-  // Sin clave nativa configurada (desactivada en ads.config.js) → nada.
   if (!NATIVE_KEY || adFilled === false) return null;
 
   const sizeClasses = {
@@ -97,16 +93,20 @@ export default function AdCard({ size = "default" }: Props) {
   }[size];
 
   return (
-    <div className={`${sizeClasses} flex-shrink-0`}>
+    <div ref={containerRef} className={`${sizeClasses} flex-shrink-0 ${className}`}>
       <div className="aspect-[3/4] rounded-xl overflow-hidden bg-secondary border border-primary/30 relative shadow-lg">
         <div className="absolute top-1 right-1 z-10 px-1.5 py-0.5 rounded bg-black/60 text-[8px] font-bold text-primary uppercase tracking-wider pointer-events-none">
           Ad
         </div>
-        <div ref={ref} className="w-full h-full" />
+        <div className="w-full h-full" />
       </div>
       <p className="mt-2 text-[10px] text-muted-foreground/60 text-center">
         Patrocinado
       </p>
     </div>
   );
-}
+});
+
+AdCard.displayName = "AdCard";
+
+export default AdCard;
