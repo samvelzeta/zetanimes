@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
+import { useEffect, useRef, useState, forwardRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStaticPreference } from "@/contexts/PreferencesContext";
 
@@ -49,8 +49,9 @@ const LazyImage = forwardRef<HTMLImageElement, Props>(({
   const innerRef = useRef<HTMLImageElement>(null);
   const dataSaver = getStaticPreference("dataSaver");
 
-  // Exponer el ref interno
-  useImperativeHandle(ref, () => innerRef.current!);
+  const baseSrc = attempt === 0 && dataSaver ? toLightSrc(src) : src;
+  const retrySrc = attempt > 0 && baseSrc ? `${baseSrc}${baseSrc.includes("?") ? "&" : "?"}r=${attempt}` : baseSrc;
+  const finalSrc = malSrc || retrySrc || "/placeholder.svg";
 
   // Reset cuando cambia la imagen base
   useEffect(() => {
@@ -68,10 +69,6 @@ const LazyImage = forwardRef<HTMLImageElement, Props>(({
       setFailed(false);
     }
   }, [finalSrc]);
-
-  const baseSrc = attempt === 0 && dataSaver ? toLightSrc(src) : src;
-  const retrySrc = attempt > 0 && baseSrc ? `${baseSrc}${baseSrc.includes("?") ? "&" : "?"}r=${attempt}` : baseSrc;
-  const finalSrc = malSrc || retrySrc;
 
   const handleError = () => {
     if (malSrc) {
@@ -112,7 +109,11 @@ const LazyImage = forwardRef<HTMLImageElement, Props>(({
         </div>
       )}
       <img
-        ref={innerRef}
+        ref={(node) => {
+          innerRef.current = node;
+          if (typeof ref === "function") ref(node);
+          else if (ref) ref.current = node;
+        }}
         key={malSrc ?? attempt}
         src={finalSrc}
         alt={alt}

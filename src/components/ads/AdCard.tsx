@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
+import { useLayoutEffect, useRef, useState, forwardRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { primeAdDomains, shouldBootAdsImmediately } from "@/lib/ad-boot";
 import { getAdsConfig, adsNativeScript } from "@/config/ads";
@@ -22,8 +22,6 @@ const AdCard = forwardRef<HTMLDivElement, Props>(({ size = "default", className 
   const loaded = useRef(false);
   const [adFilled, setAdFilled] = useState<boolean | null>(null);
   const canBootAds = shouldBootAdsImmediately(loading, isPremium);
-
-  useImperativeHandle(ref, () => containerRef.current!);
 
   useLayoutEffect(() => {
     if (!NATIVE_KEY || !canBootAds || loaded.current || !containerRef.current) return;
@@ -93,7 +91,14 @@ const AdCard = forwardRef<HTMLDivElement, Props>(({ size = "default", className 
   }[size];
 
   return (
-    <div ref={containerRef} className={`${sizeClasses} flex-shrink-0 ${className}`}>
+    <div
+      ref={(node) => {
+        containerRef.current = node;
+        if (typeof ref === "function") ref(node);
+        else if (ref) ref.current = node;
+      }}
+      className={`${sizeClasses} flex-shrink-0 ${className}`}
+    >
       <div className="aspect-[3/4] rounded-xl overflow-hidden bg-secondary border border-primary/30 relative shadow-lg">
         <div className="absolute top-1 right-1 z-10 px-1.5 py-0.5 rounded bg-black/60 text-[8px] font-bold text-primary uppercase tracking-wider pointer-events-none">
           Ad

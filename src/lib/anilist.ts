@@ -576,7 +576,9 @@ export async function getMoviesByIds(ids: number[], limit = 24): Promise<AniList
   const unique = Array.from(new Set(ids.filter((id) => Number.isFinite(id) && id > 0))).sort((a, b) => a - b);
   if (!unique.length) return [];
 
-  const CHUNK = 200;
+  // AniList limita Page.perPage a 50. Con lotes mayores se perdían hasta 150
+  // ids por petición y Cine podía quedar vacío aunque hubiera películas válidas.
+  const CHUNK = 50;
   const chunks: number[][] = [];
   for (let i = 0; i < unique.length; i += CHUNK) chunks.push(unique.slice(i, i + CHUNK));
 
@@ -596,8 +598,8 @@ export async function getMoviesByIds(ids: number[], limit = 24): Promise<AniList
         12 * 60 * 60 * 1000,
       );
       found.push(...media);
-    } catch {
-      // AniList caído o lote fallido: seguimos con el resto.
+    } catch (error) {
+      console.warn("[anilist/movies-by-ids] lote fallido", chunk[0], error);
     }
   }
 
@@ -605,6 +607,22 @@ export async function getMoviesByIds(ids: number[], limit = 24): Promise<AniList
     .filter((m) => m?.id && !(m as any).isAdult)
     .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0))
     .slice(0, limit);
+}
+
+/** Página variable de finalizados para ampliar la reserva del admin. */
+export async function getRandomFinished(seed = Date.now(), perPage = 40): Promise<PageResult> {
+  const page = 1 + (Math.abs(Math.trunc(seed)) % 100);
+  try {
+    const data = await queryAniList(
+      `${MEDIA_FRAGMENT} query($page:Int,$perPage:Int){Page(page:$page,perPage:$perPage){pageInfo{total currentPage lastPage hasNextPage}media(type:ANIME,status:FINISHED,sort:POPULARITY_DESC){...MediaFields}}}`,
+      { page, perPage },
+      8000,
+    );
+    return processPage(data.Page);
+  } catch (error) {
+    console.warn("[anilist/random-finished] AniList falló", error);
+    return { pageInfo: { total: 0, currentPage: page, lastPage: page, hasNextPage: false }, media: [] };
+  }
 }
 
 export async function getByGenre(genre: string, page = 1, perPage = 20): Promise<PageResult> {

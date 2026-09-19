@@ -111,10 +111,19 @@ export default function Directory() {
 
   // Películas reales del catálogo: se buscan entre TODOS los ids aprobados con
   // enlace madre Seeke (antes solo se cruzaba con el top-14 de AniList y salía vacío).
+  const { data: approvedIds } = useQuery({
+    queryKey: ["directory-approved-ids"],
+    queryFn: async () => Array.from(await import("@/lib/approved-animes").then((m) => m.getApprovedAnimeIds(true))),
+    staleTime: 1000 * 60 * 5,
+  });
+  const approvedMovieIds = useMemo(
+    () => (approvedIds || []).filter((id) => seekeMasterSet?.has(id)),
+    [approvedIds, seekeMasterSet],
+  );
   const approvedMoviesQuery = useQuery({
-    queryKey: ["directory-cinema-approved", seekeMasterSet ? seekeMasterSet.size : 0],
-    queryFn: () => getMoviesByIds(Array.from(seekeMasterSet || []), 24),
-    enabled: !!seekeMasterSet && seekeMasterSet.size > 0,
+    queryKey: ["directory-cinema-approved", approvedMovieIds.join(",")],
+    queryFn: () => getMoviesByIds(approvedMovieIds, 24),
+    enabled: approvedMovieIds.length > 0,
     staleTime: 1000 * 60 * 60,
   });
 
@@ -150,7 +159,9 @@ export default function Directory() {
 
   const heroList = (heroData?.media || []).filter((a) => isPublicVisible(a) && (!isMovie(a) || movieHasSeeke(a)));
   const rankingList = (rankingData?.media || []).filter((a) => isPublicVisible(a) && (!isMovie(a) || movieHasSeeke(a)));
-  const approvedMovies = (approvedMoviesQuery.data || []).filter(isPublicVisible);
+  // Una película aprobada con Seeke ya es pública aunque aún quede una fila
+  // histórica en la reserva de pendientes.
+  const approvedMovies = (approvedMoviesQuery.data || []).filter((a) => !hiddenSet.has(a.id));
   const cinemaFallback = (cinemaQuery.data?.media || []).filter((a) => isPublicVisible(a) && movieHasSeeke(a));
   const cinemaList = approvedMovies.length > 0 ? approvedMovies : cinemaFallback;
   const cinemaLoading = cinemaQuery.isLoading || approvedMoviesQuery.isLoading || !seekeMasterSet;
