@@ -89,7 +89,7 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
         const itemBg = item.bannerImage || item.coverImage?.extraLarge || item.coverImage?.large;
         return (
           <div key={item.id} className={`absolute inset-0 ${isTV ? "" : "transition-opacity duration-700"}`} style={{ opacity: i === 0 ? 1 : 0, zIndex: i === 0 ? 1 : 0 }}>
-            <img src={itemBg} alt="" className="w-full h-full object-cover" />
+            <LazyImage src={itemBg || ""} alt="" className="w-full h-full" />
           </div>
         );
       })}
@@ -146,7 +146,7 @@ function DesktopHero({ animes }: { animes: AniListMedia[] }) {
                 className="w-[100px] h-[130px] rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10 transition-all duration-500 hover:scale-110 hover:ring-primary/50 animate-[hero-thumb-in_0.5s_ease-out_forwards]"
                 style={{ transform: `translateX(${idx * 15}px)`, opacity: 0, animationDelay: `${idx * 0.12}s` }}
               >
-                <img src={img} alt={getTitle(item)} className="w-full h-full object-cover" />
+                <LazyImage src={img || ""} alt={getTitle(item)} className="w-full h-full" />
               </button>
             );
           })}

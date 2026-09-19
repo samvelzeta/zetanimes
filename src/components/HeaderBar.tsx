@@ -10,6 +10,7 @@ const NOTIF_CACHE_KEY = "active_notifications";
 const NOTIF_CACHE_TTL = 5 * 60 * 1000;
 import ProfileSelector from "@/components/profiles/ProfileSelector";
 import { useUserXP, rankColor, rankName } from "@/hooks/useUserXP";
+import LazyImage from "@/components/LazyImage";
 
 interface Notification {
   id: string;
@@ -207,7 +208,7 @@ export default function HeaderBar() {
       <div className="flex items-center gap-3 min-w-0">
         <Link to={user ? "/profile" : "/auth"} className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-primary/30 flex-shrink-0">
           {activeProfile?.avatar_url || profile?.avatar_url ? (
-            <img src={activeProfile?.avatar_url || profile?.avatar_url} alt="" className="w-full h-full object-cover" />
+            <LazyImage src={activeProfile?.avatar_url || profile?.avatar_url || ""} alt="" className="w-full h-full" />
           ) : (
             <div className="w-full h-full flex items-center justify-center" style={{ background: activeProfile?.accent_color || "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))" }}>
               <span className="text-xs font-black text-white">{(activeProfile?.name || profile?.username)?.[0]?.toUpperCase() || "Z"}</span>
@@ -311,7 +312,7 @@ export default function HeaderBar() {
                       />
 
                       {n.image_url && (
-                        <img
+                        <LazyImage
                           src={n.image_url}
                           alt=""
                           className="w-11 h-11 rounded-lg object-cover flex-shrink-0"
