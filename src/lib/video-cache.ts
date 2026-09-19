@@ -319,6 +319,10 @@ export async function saveCachedVideo(params: {
     clearCache(previousSlug, episode, lang, anilist_id);
   }
   broadcastInvalidation({ slug, episode, lang, anilist_id: anilist_id ?? null });
+  if (episode === 0 && (sources.seeke?.length || 0) > 0) {
+    const { invalidateVisibility } = await import("@/lib/visibility-manifest");
+    await invalidateVisibility();
+  }
   return { success: true };
 }
 

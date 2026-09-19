@@ -103,6 +103,40 @@ export async function getSideStories(anilistId: number): Promise<PrequelNode[]> 
   return out;
 }
 
+/** Sigue temporadas posteriores (SEQUEL) y suma historias laterales directas. */
+export async function getFollowingSeasons(anilistId: number, maxDepth = 6): Promise<PrequelNode[]> {
+  const visited = new Set<number>([anilistId]);
+  const out: PrequelNode[] = [];
+  let currentId = anilistId;
+
+  for (let i = 0; i < maxDepth; i++) {
+    const media = await fetchWithRelations(currentId);
+    if (!media) break;
+    const edge = (media.relations?.edges || []).find(
+      (candidate: any) =>
+        candidate.relationType === "SEQUEL" &&
+        candidate.node?.type === "ANIME" &&
+        candidate.node?.format !== "MOVIE" &&
+        candidate.node?.isAdult !== true &&
+        !visited.has(candidate.node.id),
+    );
+    if (!edge) break;
+    const node = edge.node;
+    visited.add(node.id);
+    out.push({
+      id: node.id,
+      title: node.title?.english || node.title?.romaji || `Anime #${node.id}`,
+      cover: node.coverImage?.large || "",
+      episodes: node.episodes ?? null,
+      status: node.status ?? null,
+      format: node.format ?? null,
+    });
+    currentId = node.id;
+  }
+
+  return out;
+}
+
 /**
  * Devuelve el conjunto de anilist_ids que YA tienen enlace madre Seeke
  * (episode=0 y sources.seeke con al menos una URL). Lee todo en un solo query.

@@ -88,8 +88,8 @@ export default function AnimeRoulette({ animes }: Props) {
       {/* Fondo difuminado con el anime seleccionado */}
       {result && (
         <div key={result.id} className="pointer-events-none absolute inset-0 -z-10 animate-fade-in">
-          <img
-            src={result.bannerImage || result.coverImage?.extraLarge || result.coverImage?.large}
+          <LazyImage
+            src={result.bannerImage || result.coverImage?.extraLarge || result.coverImage?.large || ""}
             alt=""
             aria-hidden="true"
             className="w-full h-full object-cover opacity-45 blur-md scale-105"
@@ -111,8 +111,8 @@ export default function AnimeRoulette({ animes }: Props) {
           return (
             <div className="mb-2 flex flex-col items-center animate-[hero-slide-up_0.5s_ease-out_forwards]" style={{ opacity: 0 }}>
               <Link to={`/anime/${result.id}`} className="group text-center">
-                <img
-                  src={result.coverImage?.extraLarge || result.coverImage?.large}
+                <LazyImage
+                  src={result.coverImage?.extraLarge || result.coverImage?.large || ""}
                   alt={getTitle(result)}
                   className="w-32 h-44 rounded-xl object-cover shadow-lg mx-auto animate-[roulette-pulse_2s_ease-in-out_infinite]"
                 />
