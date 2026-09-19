@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovies, getTrending, getPopular, getTopRated, getThisSeason } from "@/lib/anilist";
+import { getRecentlyUpdated, getRecentReleasedMovies, getMovies, getUpcomingMovies, getTrending, getPopular, getTopRated, getThisSeason, getRandomFinished, searchAnime } from "@/lib/anilist";
 import { getApprovedAnimeIds, approveAnime, onApprovedChange } from "@/lib/approved-animes";
 import { saveCachedVideo, getCachedVideo } from "@/lib/video-cache";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import LazyImage from "@/components/LazyImage";
 import { logAdminActivity } from "@/lib/admin-log";
-import { getPrequelChain, getSideStories, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
+import { getPrequelChain, getSideStories, getFollowingSeasons, getAnimeIdsWithSeekeMaster, type PrequelNode } from "@/lib/anime-prequels";
 import { hidePendingAnime, listHiddenPending, unhidePendingAnime } from "@/lib/hidden-pending-animes";
 import { unhideAnime } from "@/lib/hidden-animes";
 import { fuzzyTextScore, normalizeSearchText } from "@/lib/search-utils";
@@ -77,6 +77,7 @@ function slugFromTitle(t: string) {
 export default function PendingApproval() {
   const qc = useQueryClient();
   const [query, setQuery] = useState("");
+  const normalizedQuery = normalizeSearchText(query);
   const [showApproved, setShowApproved] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
   const { data: hiddenList = [], refetch: refetchHidden } = useQuery({
@@ -164,6 +165,22 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 30, refetchInterval: DAILY_MS, refetchIntervalInBackground: false,
   });
 
+  // El buscador del admin consulta AniList de verdad; antes sólo filtraba los
+  // elementos que ya estaban en pantalla y no podía descubrir títulos nuevos.
+  const { data: searched, isFetching: searching } = useQuery({
+    queryKey: ["pending-anilist-search", normalizedQuery],
+    queryFn: () => searchAnime(query, 1, 40),
+    enabled: normalizedQuery.replace(/\s+/g, "").length >= 2,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const [randomSeed, setRandomSeed] = useState(() => Date.now());
+  const { data: randomFinished, refetch: refetchRandom } = useQuery({
+    queryKey: ["pending-random-finished", randomSeed],
+    queryFn: () => getRandomFinished(randomSeed, 40),
+    staleTime: 0,
+  });
+
   // Páginas extra dinámicas: si tras filtrar quedan <15 pendientes, pedimos
   // más páginas de AniList mezclando fuentes variadas (RELEASING, películas,
   // populares, top rated, temporada) para armar una reserva heterogénea que
@@ -212,7 +229,7 @@ export default function PendingApproval() {
   const [refreshing, setRefreshing] = useState(false);
   const discoverableItems = useMemo<AiringItem[]>(() => {
     const map = new Map<number, AiringItem>();
-    for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason]) {
+    for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason, randomFinished, searched]) {
       for (const item of (p?.media || []) as AiringItem[]) {
         if (!item?.id) continue;
         if (item.status === "CANCELLED" || item.status === "NOT_YET_RELEASED") continue;
@@ -225,17 +242,27 @@ export default function PendingApproval() {
       if (!map.has(item.id)) map.set(item.id, item);
     }
     return Array.from(map.values());
-  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason, extraItems]);
+  }, [p1, p2, p3, movies, dirMovies, dirUpcoming, homeTrending, homePopular, homeTop, homeSeason, randomFinished, searched, extraItems]);
 
   async function handleManualRefresh() {
     setRefreshing(true);
     try {
-      await Promise.all([
+      setRandomSeed(Date.now());
+      setExtraPages((count) => Math.min(count + 3, MAX_EXTRA_PAGES));
+      const refreshed = await Promise.all([
         rp1(), rp2(), rp3(), rm(), rdm(), rdu(),
         rht(), rhp(), rhtop(), rhs(), refetchHidden(), refetchSeeke(),
-        extraPages > 0 ? rExtra() : Promise.resolve(),
+        refetchRandom(), extraPages > 0 ? rExtra() : Promise.resolve(),
       ]);
-      const save = await upsertPendingReserveFromAnime(discoverableItems, "manual-refresh", 2000);
+      const freshItems = new Map<number, AiringItem>();
+      discoverableItems.forEach((item) => freshItems.set(item.id, item));
+      refreshed.forEach((result: any) => {
+        const media = result?.data?.media || result?.data || [];
+        if (!Array.isArray(media)) return;
+        media.forEach((item: AiringItem) => { if (item?.id) freshItems.set(item.id, item); });
+      });
+      (searched?.media || []).forEach((item) => freshItems.set(item.id, item as AiringItem));
+      const save = await upsertPendingReserveFromAnime(Array.from(freshItems.values()), "manual-refresh", 2000);
       await Promise.all([refetchReserve(), refetchReserveStats()]);
       toast.success(save.count > 0 ? `Reserva actualizada: ${save.count} candidatos` : "Pendientes actualizado");
     } catch {
@@ -330,7 +357,7 @@ export default function PendingApproval() {
       if (!map.has(row.anilist_id)) map.set(row.anilist_id, reserveToAiring(row));
     }
     // Fuentes "core" — siempre se incluyen (RELEASING + películas próximas/recientes)
-    for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming]) {
+    for (const p of [p1, p2, p3, movies, dirMovies, dirUpcoming, randomFinished, searched]) {
       for (const m of (p?.media || []) as AiringItem[]) {
         // Si ya tiene enlace madre Seeke o bloques → aprobado permanente, no volver a pedirlo
         if (seekeMasterSet?.has(m.id)) continue;
@@ -369,7 +396,7 @@ export default function PendingApproval() {
       }
     }
     return Array.from(map.values());
-  }, [reserveRows, p1, p2, p3, movies, dirMovies, dirUpcoming, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet, trackerMeta, approvedSet, hiddenSet]);
+  }, [reserveRows, p1, p2, p3, movies, dirMovies, dirUpcoming, randomFinished, searched, extraItems, homeTrending, homePopular, homeTop, homeSeason, seekeMasterSet, trackerMeta, approvedSet, hiddenSet]);
 
   // Detecta en AniList los ids que aún no sabemos si son adultos, los marca en
   // `adult_animes` y los borra de la reserva. Todo lo adulto sale del admin.
@@ -439,6 +466,22 @@ export default function PendingApproval() {
     staleTime: 1000 * 60 * 30,
   });
 
+  const { data: followingMap } = useQuery({
+    queryKey: ["approval-following-seasons", pendingCandidateIds.join(",")],
+    enabled: pendingCandidateIds.length > 0,
+    queryFn: async () => {
+      const out = new Map<number, PrequelNode[]>();
+      const CONC = 5;
+      for (let i = 0; i < pendingCandidateIds.length; i += CONC) {
+        const slice = pendingCandidateIds.slice(i, i + CONC);
+        const results = await Promise.all(slice.map((id) => getFollowingSeasons(id).catch(() => [])));
+        slice.forEach((id, idx) => out.set(id, results[idx] || []));
+      }
+      return out;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+
   // Agrupa precuelas y side stories SIN enlace madre Seeke bajo su anime padre.
   // Así el admin ve cada grupo separado en un desplegable en vez de mezclarse.
   const groups = useMemo<PendingGroup[]>(() => {
@@ -485,6 +528,22 @@ export default function PendingApproval() {
           format: s.format ?? null,
         });
       }
+      const following = followingMap?.get(parentId) || [];
+      for (const next of following) {
+        if (blockedAdult.has(next.id)) continue;
+        if (seekeMasterSet.has(next.id) || seen.has(next.id) || mainIds.has(next.id)) continue;
+        seen.add(next.id);
+        claimedAsRelated.add(next.id);
+        list.push({
+          id: next.id,
+          title: { english: next.title, romaji: next.title },
+          coverImage: { large: next.cover, extraLarge: next.cover },
+          status: next.status || "NOT_YET_RELEASED",
+          episodes: next.episodes ?? null,
+          averageScore: null,
+          format: next.format ?? null,
+        });
+      }
       return list;
     };
 
@@ -494,7 +553,7 @@ export default function PendingApproval() {
     }
     // Filtra grupos cuyo main haya sido reclamado como related de otro (no debería pasar, pero por seguridad)
     return result.filter((g) => !claimedAsRelated.has(g.main.id));
-  }, [airingItems, prequelMap, sideMap, seekeMasterSet, blockedAdult]);
+  }, [airingItems, prequelMap, sideMap, followingMap, seekeMasterSet, blockedAdult]);
 
   // Los relacionados (precuelas/side stories) también pasan por el detector de
   // adultos: si alguno es isAdult se marca, se borra de la reserva y desaparece.
@@ -502,13 +561,14 @@ export default function PendingApproval() {
     const ids: number[] = [];
     prequelMap?.forEach((chain) => chain.forEach((p) => ids.push(p.id)));
     sideMap?.forEach((sides) => sides.forEach((s) => ids.push(s.id)));
+    followingMap?.forEach((following) => following.forEach((s) => ids.push(s.id)));
     if (!ids.length) return;
     let cancel = false;
     detectAndFlagAdult(ids)
       .then((set) => { if (!cancel && set.size) setDetectedAdult(new Set(set)); })
       .catch(() => {});
     return () => { cancel = true; };
-  }, [prequelMap, sideMap]);
+  }, [prequelMap, sideMap, followingMap]);
 
   // Auto-aprobar: si el item TIENE enlace madre Seeke y TODAS sus precuelas
   // también → lo mandamos directo a "aprobados" sin que el admin toque nada.
@@ -723,8 +783,8 @@ export default function PendingApproval() {
             className="px-3 py-1.5 rounded-lg text-xs font-bold bg-secondary text-foreground hover:bg-secondary/80 transition disabled:opacity-50 flex items-center gap-1.5"
             title="Buscar nuevos animes y guardarlos en la reserva"
           >
-            {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "🔄"}
-            {refreshing ? "Buscando…" : "Buscar reserva"}
+            {refreshing || searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "🔄"}
+            {refreshing || searching ? "Buscando…" : "Buscar reserva"}
           </button>
         </div>
       </div>
