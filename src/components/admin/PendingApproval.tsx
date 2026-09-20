@@ -238,7 +238,7 @@ export default function PendingApproval() {
     }
     for (const item of (extraItems || []) as AiringItem[]) {
       if (!item?.id) continue;
-      if (item.status === "CANCELLED" || item.status === "NOT_YET_RELEASED") continue;
+      if (item.status === "CANCELLED") continue;
       if (!map.has(item.id)) map.set(item.id, item);
     }
     return Array.from(map.values());
@@ -375,7 +375,7 @@ export default function PendingApproval() {
     for (const p of [homeTrending, homePopular, homeTop, homeSeason]) {
       for (const m of (p?.media || []) as AiringItem[]) {
         if (map.has(m.id)) continue;
-        if (m.status === "NOT_YET_RELEASED" || m.status === "CANCELLED") continue;
+        if (m.status === "CANCELLED") continue;
         if (seekeMasterSet?.has(m.id)) continue; // ya tiene enlace madre → nada que aprobar aquí
         map.set(m.id, m);
       }
