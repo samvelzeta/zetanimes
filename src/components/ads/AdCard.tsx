@@ -64,8 +64,13 @@ const AdCard = forwardRef<HTMLDivElement, Props>(({ size = "default", className 
     const timers: number[] = [];
     const probe = (final: boolean) => {
       try {
-        const body = iframe.contentWindow?.document?.body;
-        const filled = !!body && body.innerHTML.length > 200;
+        const doc = iframe.contentWindow?.document;
+        const slot = doc?.getElementById(`container-${NATIVE_KEY}`);
+        const filled = !!slot && (
+          slot.childElementCount > 0 ||
+          (slot.textContent || "").trim().length > 0 ||
+          slot.querySelector("iframe, img, a, video") !== null
+        );
         if (filled) { setAdFilled(true); return; }
         if (final) setAdFilled(false);
       } catch {
@@ -97,7 +102,11 @@ const AdCard = forwardRef<HTMLDivElement, Props>(({ size = "default", className 
         if (typeof ref === "function") ref(node);
         else if (ref) ref.current = node;
       }}
-      className={`${sizeClasses} flex-shrink-0 ${className}`}
+      className={adFilled === true
+        ? `${sizeClasses} flex-shrink-0 ${className}`
+        : "fixed -left-[10000px] top-0 h-48 w-36 pointer-events-none opacity-0"
+      }
+      aria-hidden={adFilled !== true}
     >
       <div className="aspect-[3/4] rounded-xl overflow-hidden bg-secondary border border-primary/30 relative shadow-lg">
         <div className="absolute top-1 right-1 z-10 px-1.5 py-0.5 rounded bg-black/60 text-[8px] font-bold text-primary uppercase tracking-wider pointer-events-none">
