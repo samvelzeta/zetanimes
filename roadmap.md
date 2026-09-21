@@ -9,4 +9,5 @@
 - [x] Directorio: películas aprobadas con Seeke visibles en Cine
 - [x] Autenticación: registro, cuenta existente y recuperación con dominio público
 - [x] Autenticación: validación real de enlaces de confirmación
-- [ ] Correo: configurar dominio remitente y DNS en Cloudflare (requiere completar la configuración de correo)
+- [x] Correo: usar remitente por defecto de Lovable (sin dominio propio por ahora)
+- [ ] Opcional (tras migrar la base de datos): activar dominio remitente propio y sus DNS. Los enlaces ya apuntan a VITE_PUBLIC_SITE_URL, no hay que tocar código.
