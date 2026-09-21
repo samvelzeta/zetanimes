@@ -7,3 +7,6 @@
 - [x] Pendientes: búsqueda AniList, finalizados aleatorios y temporadas relacionadas
 - [x] Imágenes: reintentos, fallback y referencias compatibles
 - [x] Directorio: películas aprobadas con Seeke visibles en Cine
+- [x] Autenticación: registro, cuenta existente y recuperación con dominio público
+- [x] Autenticación: validación real de enlaces de confirmación
+- [ ] Correo: configurar dominio remitente y DNS en Cloudflare (requiere completar la configuración de correo)
