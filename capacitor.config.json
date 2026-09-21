@@ -4,7 +4,7 @@
   "webDir": ".",
   "bundledWebRuntime": false,
   "server": {
-    "url": "https://zetanimes.lovable.app",
+    "url": "https://zetanimes.top",
     "cleartext": true,
     "androidScheme": "https"
   }

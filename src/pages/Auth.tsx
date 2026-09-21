@@ -115,7 +115,7 @@ export default function AuthPage() {
               </div>
 
               {mode === "login" && <LoginForm onSwitch={setMode} onSuccess={() => navigate("/")} />}
-              {mode === "register" && <RegisterForm onSwitch={setMode} onSuccess={() => navigate("/")} />}
+              {mode === "register" && <RegisterForm onSwitch={setMode} />}
               {mode === "forgot" && <ForgotForm onSwitch={setMode} />}
             </div>
 
@@ -239,10 +239,8 @@ function LoginForm({
 /* ---------------- Register ---------------- */
 function RegisterForm({
   onSwitch,
-  onSuccess,
 }: {
   onSwitch: (m: "login" | "register" | "forgot") => void;
-  onSuccess: () => void;
 }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -260,8 +258,9 @@ function RegisterForm({
     if (!acceptTerms) return toast.error("Debes aceptar los términos y condiciones");
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
+    const normalizedEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
       password,
       options: {
         data: { username, display_name: username },
@@ -269,9 +268,28 @@ function RegisterForm({
       },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("¡Cuenta creada! Revisa tu correo para verificarla.");
-    onSuccess();
+    if (error) {
+      const message = error.message.toLowerCase();
+      if (message.includes("already") || message.includes("registered") || message.includes("exists")) {
+        toast.error("Este correo ya está registrado. Inicia sesión o recupera tu contraseña.");
+      } else if (message.includes("username") || message.includes("duplicate") || message.includes("unique")) {
+        toast.error("Ese nombre de usuario ya está en uso. Elige otro.");
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      toast.error("Este correo ya está registrado. Inicia sesión o recupera tu contraseña.");
+      return;
+    }
+    if (data.session) {
+      toast.success("¡Cuenta creada correctamente!");
+      onSwitch("login");
+      return;
+    }
+    toast.success("Cuenta creada. Revisa tu correo para confirmar tu cuenta.");
+    onSwitch("login");
   };
 
   return (
@@ -345,8 +363,8 @@ function ForgotForm({ onSwitch }: { onSwitch: (m: "login" | "register" | "forgot
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: siteUrl("/reset-password"),
     });
     setLoading(false);
     if (error) return toast.error(error.message);
