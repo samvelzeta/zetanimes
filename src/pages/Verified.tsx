@@ -13,14 +13,55 @@ const DOTS = Array.from({ length: 18 }).map((_, i) => ({
 
 export default function VerifiedPage() {
   const [show, setShow] = useState(false);
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
 
   useEffect(() => {
     document.title = "Correo verificado · zetAnime";
-    // Si el link traía tokens en el hash, Supabase ya creó la sesión.
-    // No queremos dejar al usuario "logueado" en una pestaña aislada: nos despedimos.
-    supabase.auth.signOut().catch(() => {});
-    const t = setTimeout(() => setShow(true), 80);
-    return () => clearTimeout(t);
+    let cancelled = false;
+    const finish = async (ok: boolean) => {
+      if (cancelled) return;
+      if (ok) await supabase.auth.signOut().catch(() => {});
+      if (!cancelled) {
+        setStatus(ok ? "success" : "error");
+        setShow(true);
+      }
+    };
+
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const errorDescription = url.searchParams.get("error_description") || hash.get("error_description");
+        if (errorDescription) return finish(false);
+
+        const code = url.searchParams.get("code");
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          return finish(!error);
+        }
+
+        const tokenHash = url.searchParams.get("token_hash") || hash.get("token_hash");
+        if (tokenHash) {
+          const type = (url.searchParams.get("type") || hash.get("type") || "signup") as "signup";
+          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+          return finish(!error);
+        }
+
+        const accessToken = hash.get("access_token");
+        const refreshToken = hash.get("refresh_token");
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          return finish(!error);
+        }
+
+        const { data, error } = await supabase.auth.getUser();
+        return finish(!error && Boolean(data.user?.email_confirmed_at));
+      } catch {
+        return finish(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, []);
 
   return (
@@ -72,13 +113,13 @@ export default function VerifiedPage() {
         </div>
 
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground mb-3 drop-shadow-lg">
-          ¡Correo <span className="text-primary">verificado</span>!
+          {status === "loading" ? "Validando correo" : status === "success" ? <>¡Correo <span className="text-primary">verificado</span>!</> : "Enlace inválido o vencido"}
         </h1>
         <p className="text-sm text-foreground/85 mb-2 max-w-sm mx-auto">
-          Tu cuenta de <span className="font-bold text-primary">zetAnime</span> quedó activada correctamente.
+          {status === "success" ? <>Tu cuenta de <span className="font-bold text-primary">zetAnime</span> quedó activada correctamente.</> : status === "error" ? "Solicita un nuevo correo de confirmación o vuelve a intentar el registro." : "Estamos comprobando el enlace de confirmación."}
         </p>
         <p className="text-xs text-muted-foreground mb-8">
-          Ya puedes <span className="text-foreground font-semibold">cerrar esta pestaña</span> y volver a la app para iniciar sesión.
+          {status === "success" ? <>Ya puedes <span className="text-foreground font-semibold">cerrar esta pestaña</span> y volver a la app para iniciar sesión.</> : status === "error" ? "El enlace puede haberse utilizado antes o haber expirado." : "No cierres esta pestaña todavía."}
         </p>
 
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/15 border border-primary/40 backdrop-blur-sm">
@@ -86,7 +127,7 @@ export default function VerifiedPage() {
             <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
             <span className="relative rounded-full w-2 h-2 bg-primary" />
           </span>
-          <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Cuenta activa</span>
+          <span className="text-[11px] font-bold text-primary uppercase tracking-wider">{status === "loading" ? "Validando" : status === "success" ? "Cuenta activa" : "Verificación pendiente"}</span>
         </div>
       </div>
     </div>
