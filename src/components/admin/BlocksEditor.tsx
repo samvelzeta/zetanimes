@@ -38,6 +38,14 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [overlapPrompt, setOverlapPrompt] = useState<null | { message: string; retry: () => Promise<void> }>(null);
+  // Confirmación explícita (segunda alerta) para cualquier acción destructiva
+  // sobre enlaces madre de bloque.
+  const [confirmAction, setConfirmAction] = useState<null | {
+    title: string;
+    body: React.ReactNode;
+    actionLabel: string;
+    run: () => void | Promise<void>;
+  }>(null);
 
 
   // ---- MODO NORMAL ----
