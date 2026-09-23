@@ -195,18 +195,48 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
     await persist({ normals: normalEnabled ? normalRows : [], inv: { ...inverse, enabled: true } });
   };
 
-  const disableNormal = async () => {
-    if (!confirm("¿Desactivar todos los bloques normales? Se borrarán al guardar.")) return;
-    setNormalRows([]);
-    setNormalEnabled(false);
-    await persist({ normals: [], inv: inverse.enabled ? inverse : null });
+  const disableNormal = () => {
+    setConfirmAction({
+      title: "¿Desactivar y borrar los bloques normales?",
+      actionLabel: "Desactivar y borrar",
+      body: (
+        <>
+          <span className="block">
+            Se eliminarán de la base de datos los <strong>{normalRows.length}</strong> bloque(s) normales de este anime ({lang}) con sus <strong>enlaces madre Seeke</strong>.
+          </span>
+          <span className="block text-destructive font-bold">
+            Esta acción se aplica de inmediato y no se puede deshacer. Los episodios cubiertos por esos bloques dejarán de reproducirse.
+          </span>
+        </>
+      ),
+      run: async () => {
+        setNormalRows([]);
+        setNormalEnabled(false);
+        await persist({ normals: [], inv: inverse.enabled ? inverse : null });
+      },
+    });
   };
 
-  const disableInverse = async () => {
-    if (!confirm("¿Desactivar el bloque inverso?")) return;
-    const next = { ...inverse, enabled: false };
-    setInverse(next);
-    await persist({ normals: normalEnabled ? normalRows : [], inv: null });
+  const disableInverse = () => {
+    setConfirmAction({
+      title: "¿Desactivar y borrar el bloque inverso?",
+      actionLabel: "Desactivar y borrar",
+      body: (
+        <>
+          <span className="block">
+            Se eliminará el bloque inverso de este anime ({lang}) y su <strong>enlace madre Seeke unificado</strong>.
+          </span>
+          <span className="block font-mono break-all text-amber-500">{inverse.seeke_base_url}</span>
+          <span className="block text-destructive font-bold">
+            Esta acción se aplica de inmediato y no se puede deshacer.
+          </span>
+        </>
+      ),
+      run: async () => {
+        setInverse({ ...inverse, enabled: false });
+        await persist({ normals: normalEnabled ? normalRows : [], inv: null });
+      },
+    });
   };
 
   if (loading) return <div className="flex items-center gap-2 text-xs text-muted-foreground p-3"><Loader2 className="w-3 h-3 animate-spin" /> Cargando bloques...</div>;
