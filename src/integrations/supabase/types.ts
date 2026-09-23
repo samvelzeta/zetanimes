@@ -1730,6 +1730,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_video_blocks: {
+        Args: { _anilist_id: number; _lang: string }
+        Returns: number
+      }
       admin_set_user_subscription: {
         Args: {
           _expires_at?: string

@@ -85,6 +85,13 @@
       "when": 1789086343388,
       "tag": "0011_protect_profile_subscription_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790126093459,
+      "tag": "0012_allow_authorized_block_deletes",
+      "breakpoints": true
     }
   ]
 }
