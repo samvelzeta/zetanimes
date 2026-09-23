@@ -1,18 +1,29 @@
 import { Link } from "react-router-dom";
 
-const R2 = "https://pub-e2479e62bcc84fb097a7117ec086f7e7.r2.dev/genres";
+// Imágenes locales (src/images/sectionGeneros) empaquetadas por Vite y servidas
+// por Cloudflare con hash + cache immutable. Ya no dependen de R2.
+import imgAccion from "@/images/sectionGeneros/accion.webp";
+import imgRomance from "@/images/sectionGeneros/romance.webp";
+import imgFantasia from "@/images/sectionGeneros/fantasia.webp";
+import imgTerror from "@/images/sectionGeneros/terror.webp";
+import imgComedia from "@/images/sectionGeneros/comedia.webp";
+import imgDrama from "@/images/sectionGeneros/drama.webp";
+import imgAventura from "@/images/sectionGeneros/aventura.webp";
+import imgScifi from "@/images/sectionGeneros/scifi.webp";
+import imgDeportes from "@/images/sectionGeneros/deportes.webp";
+import imgMisterio from "@/images/sectionGeneros/misterio.webp";
 
 const GENRES = [
-  { name: "Acción", query: "Action", color: "from-red-600 to-red-900", img: `${R2}/accion.png`, offsetY: 0 },
-  { name: "Romance", query: "Romance", color: "from-pink-500 to-pink-800", img: `${R2}/romance.png`, offsetY: 0 },
-  { name: "Fantasía", query: "Fantasy", color: "from-purple-500 to-purple-800", img: `${R2}/fantasia.png`, offsetY: 0 },
-  { name: "Terror", query: "Horror", color: "from-gray-600 to-gray-900", img: `${R2}/terror.png`, offsetY: 0 },
-  { name: "Comedia", query: "Comedy", color: "from-yellow-500 to-yellow-800", img: `${R2}/comedia.png`, offsetY: 0 },
-  { name: "Drama", query: "Drama", color: "from-blue-500 to-blue-800", img: `${R2}/drama.png`, offsetY: 0 },
-  { name: "Aventura", query: "Adventure", color: "from-green-500 to-green-800", img: `${R2}/aventura.png`, offsetY: 0 },
-  { name: "Sci-Fi", query: "Sci-Fi", color: "from-cyan-500 to-cyan-800", img: `${R2}/scifi.png`, offsetY: 10 },
-  { name: "Deportes", query: "Sports", color: "from-orange-500 to-orange-800", img: `${R2}/deportes.png`, offsetY: 10 },
-  { name: "Misterio", query: "Mystery", color: "from-indigo-500 to-indigo-800", img: `${R2}/misterio.png`, offsetY: 0 },
+  { name: "Acción", query: "Action", color: "from-red-600 to-red-900", img: imgAccion, offsetY: 0 },
+  { name: "Romance", query: "Romance", color: "from-pink-500 to-pink-800", img: imgRomance, offsetY: 0 },
+  { name: "Fantasía", query: "Fantasy", color: "from-purple-500 to-purple-800", img: imgFantasia, offsetY: 0 },
+  { name: "Terror", query: "Horror", color: "from-gray-600 to-gray-900", img: imgTerror, offsetY: 0 },
+  { name: "Comedia", query: "Comedy", color: "from-yellow-500 to-yellow-800", img: imgComedia, offsetY: 0 },
+  { name: "Drama", query: "Drama", color: "from-blue-500 to-blue-800", img: imgDrama, offsetY: 0 },
+  { name: "Aventura", query: "Adventure", color: "from-green-500 to-green-800", img: imgAventura, offsetY: 0 },
+  { name: "Sci-Fi", query: "Sci-Fi", color: "from-cyan-500 to-cyan-800", img: imgScifi, offsetY: 10 },
+  { name: "Deportes", query: "Sports", color: "from-orange-500 to-orange-800", img: imgDeportes, offsetY: 10 },
+  { name: "Misterio", query: "Mystery", color: "from-indigo-500 to-indigo-800", img: imgMisterio, offsetY: 0 },
 ];
 
 export default function GenreList() {
