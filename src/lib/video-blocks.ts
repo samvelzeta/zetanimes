@@ -223,11 +223,7 @@ export async function saveBlocks(
 
   // Borrar todo lo existente para (anilist_id, lang) y reinsertar limpio.
   // Así se eliminan filas obsoletas (bloques que el admin removió) y valores basura tipo "__masked__".
-  const { error: delError } = await supabase
-    .from("video_cache_blocks" as any)
-    .delete()
-    .eq("anilist_id", anilistId)
-    .eq("lang", lang);
+  const { error: delError } = await deleteBlocksAuthorized(anilistId, lang);
   if (delError) { invalidateBlocksCache(anilistId, lang); return { success: false, error: delError.message }; }
   const { error: insError } = await supabase
     .from("video_cache_blocks" as any)
