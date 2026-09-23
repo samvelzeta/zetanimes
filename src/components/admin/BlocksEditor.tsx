@@ -107,7 +107,28 @@ export default function BlocksEditor({ anilistId, slug, lang }: Props) {
     setNormalRows(normalRows.map((r, i) => i === idx ? { ...r, ...patch } : r));
   };
   const removeNormalRow = (idx: number) => {
-    setNormalRows(normalRows.filter((_, i) => i !== idx));
+    const row = normalRows[idx];
+    const isSaved = !!row?.seeke_base_url?.trim();
+    if (!isSaved) {
+      setNormalRows(normalRows.filter((_, i) => i !== idx));
+      return;
+    }
+    setConfirmAction({
+      title: `¿Quitar el bloque ${idx + 1}?`,
+      actionLabel: "Quitar bloque",
+      body: (
+        <>
+          <span className="block">
+            Se quitará el bloque <strong>{row.block_label || `#${idx + 1}`}</strong> (caps {row.episode_from}–{row.episode_to}) y su <strong>enlace madre Seeke</strong>.
+          </span>
+          <span className="block font-mono break-all text-amber-500">{row.seeke_base_url}</span>
+          <span className="block text-destructive font-bold">
+            El cambio se aplica en la base de datos cuando pulses "Guardar normal". Los episodios de ese rango dejarán de reproducirse hasta que pongas otro enlace.
+          </span>
+        </>
+      ),
+      run: () => setNormalRows(normalRows.filter((_, i) => i !== idx)),
+    });
   };
 
   // Construye el payload combinado y guarda
