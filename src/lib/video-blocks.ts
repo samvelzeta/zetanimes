@@ -146,6 +146,23 @@ export function buildEpisodeSlots(
 }
 
 /**
+ * Borrado AUTORIZADO de bloques: pasa por la función `admin_delete_video_blocks`,
+ * que verifica rol admin/owner en el servidor y es la única vía permitida para
+ * eliminar enlaces madre de bloque (un trigger bloquea cualquier otro borrado).
+ */
+export async function deleteBlocksAuthorized(
+  anilistId: number,
+  lang: string
+): Promise<{ deleted: number; error?: { message: string } }> {
+  const { data, error } = await supabase.rpc("admin_delete_video_blocks" as any, {
+    _anilist_id: anilistId,
+    _lang: lang,
+  });
+  if (error) return { deleted: 0, error: { message: error.message } };
+  return { deleted: Number(data ?? 0) };
+}
+
+/**
  * Reemplaza COMPLETAMENTE los bloques de (anilistId, lang) con los provistos.
  * Solo admin/owner por RLS.
  */
