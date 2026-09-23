@@ -159,11 +159,7 @@ export async function saveBlocks(
 ): Promise<{ success: boolean; error?: string; overlap?: { a: number; b: number } }> {
   // Payload vacío = desactivar por completo: borrar todas las filas de (anilist_id, lang).
   if (!blocks.length) {
-    const { error: delAllError } = await supabase
-      .from("video_cache_blocks" as any)
-      .delete()
-      .eq("anilist_id", anilistId)
-      .eq("lang", lang);
+    const { error: delAllError } = await deleteBlocksAuthorized(anilistId, lang);
     invalidateBlocksCache(anilistId, lang);
     if (delAllError) return { success: false, error: delAllError.message };
     return { success: true };
