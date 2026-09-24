@@ -39,6 +39,8 @@ interface Props {
   autoplay?: boolean;
   initialTime?: number;
   showServerPicker?: boolean;
+  activeServerIndex?: number;
+  onServerChange?: (index: number) => void;
   episodeKey?: string;
   canPrev?: boolean;
   canNext?: boolean;
@@ -137,15 +139,6 @@ function cleanServerName(name?: string) {
     .trim() || "Servidor";
 }
 
-// Prioridad por dominio del enlace: magi/desu > animed23 > mega > resto.
-function hostPriority(url: string) {
-  const u = url.toLowerCase();
-  if (u.includes("magi") || u.includes("desu")) return 0;
-  if (u.includes("animed23")) return 1;
-  if (u.includes("mega.")) return 2;
-  return 3;
-}
-
 // Solo es un archivo MP4 directo si la RUTA termina en .mp4 (no vale que el
 // dominio contenga "mp4", como mp4upload.com → ese es un embed normal).
 function isDirectMp4(url: string) {
@@ -179,14 +172,8 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
       classified.push({ type: "embed", url, name: s.name });
     }
   }
-  // Orden: seeke → hls → embed/html → mp4 (mp4 al final: casi nunca reproduce).
-  // Dentro del mismo tipo manda la prioridad de dominio (zilla, magi/desu, animed23, mega).
-  classified.sort((a, b) => {
-    const order: Record<SourceType, number> = { seeke: 0, hls: 1, embed: 2, html: 2, mp4: 5 };
-    const byType = order[a.type] - order[b.type];
-    if (byType !== 0) return byType;
-    return hostPriority(a.url) - hostPriority(b.url);
-  });
+  // Mantener exactamente el orden recibido: el selector inferior y el menú
+  // superior deben apuntar siempre al mismo índice de servidor.
   return classified;
 }
 
@@ -198,7 +185,7 @@ function extractEmbedSrc(html: string): string | null {
   return iframeSrc || null;
 }
 
-export default function AnimePlayer({ sources, anilistId, lang, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, episodeSlots, currentVariant = 1, episodeThumbnails, subtitles = EMPTY_PLAYER_SUBTITLES, fullscreenContainerRef, onControlsVisibilityChange, onEpisodeListToggle, onFullscreenChange, canSwitchLang = false, onLangChange }: Props) {
+export default function AnimePlayer({ sources, anilistId, lang, title, onProgress, onSeeked, autoplay = true, initialTime, showServerPicker: showServerPickerEnabled = true, activeServerIndex, onServerChange, episodeKey, canPrev, canNext, onPrev, onNext, onAutoNext, autoNextAlreadyTriggered, currentEpisode, totalEpisodes, onSelectEpisode, episodeSlots, currentVariant = 1, episodeThumbnails, subtitles = EMPTY_PLAYER_SUBTITLES, fullscreenContainerRef, onControlsVisibilityChange, onEpisodeListToggle, onFullscreenChange, canSwitchLang = false, onLangChange }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   /** Último estado real de reproducción (para reanudar tras entrar/salir de pantalla completa). */
   const wasPlayingRef = useRef(false);
@@ -281,7 +268,8 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
   const inWebView = isWebView();
 
   useEffect(() => {
-    setCurrentIdx(0);
+    const nextIndex = activeServerIndex != null && activeServerIndex < classified.length ? activeServerIndex : 0;
+    setCurrentIdx(nextIndex);
     setError(false);
     setLoading(true);
     hasRestoredTime.current = false;
@@ -290,7 +278,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
     setAutoNextVisible(false);
     setAutoNextSeconds(15);
     if (autoNextTimer.current) clearInterval(autoNextTimer.current);
-  }, [classified]);
+  }, [classified, activeServerIndex]);
 
   // Apply playback speed
   useEffect(() => {
@@ -335,14 +323,16 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
   // Auto-fallback to next server on error
   const tryNext = useCallback(() => {
     if (currentIdx + 1 < classified.length) {
-      setCurrentIdx((i) => i + 1);
+      const nextIndex = currentIdx + 1;
+      setCurrentIdx(nextIndex);
+      onServerChange?.(nextIndex);
       setError(false);
       setLoading(true);
     } else {
       setError(true);
       setLoading(false);
     }
-  }, [currentIdx, classified.length]);
+  }, [currentIdx, classified.length, onServerChange]);
 
   const restoreTime = useCallback(() => {
     const video = videoRef.current;
@@ -987,6 +977,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
 
   const selectServer = (idx: number) => {
     setCurrentIdx(idx);
+    onServerChange?.(idx);
     setError(false);
     setLoading(true);
     setShowServerPicker(false);
@@ -1007,7 +998,7 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
         <Server className="w-3 h-3" /> {cleanServerName(currentSource?.name)}
       </button>
       {showServerPicker && (
-        <div className="absolute left-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[60vh] overflow-y-auto overscroll-contain">
+        <div className="absolute left-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-40 overflow-y-auto overscroll-contain scrollbar-thin">
           {classified.map((s, i) => (
             <button key={i} onClick={(e) => { e.stopPropagation(); selectServer(i); }}
               className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
@@ -1138,21 +1129,21 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
           showControls || !playing ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
         }`}
       >
-        {/* Top bar with server picker — nombre se muestra como "Pro" */}
+        {/* Top bar with server picker */}
         <div data-player-control="true" className="pointer-events-auto absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between">
           <p className="text-xs text-white font-medium truncate flex-1 mr-2">{title}</p>
           {showServerPickerEnabled && classified.length > 1 && (
             <div className="relative">
-              <button onClick={() => setShowServerPicker(!showServerPicker)}
+              <button onClick={(e) => { e.stopPropagation(); setShowServerPicker(!showServerPicker); }}
                 className="px-2 py-1 rounded bg-black/50 text-white text-[10px] flex items-center gap-1 hover:bg-black/80 transition">
-                <Server className="w-3 h-3" /> Pro
+                <Server className="w-3 h-3" /> {serverLabels[currentIdx] || cleanServerName(currentSource?.name)}
               </button>
               {showServerPicker && (
-                <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-[60vh] overflow-y-auto overscroll-contain">
+                <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-40 overflow-y-auto overscroll-contain scrollbar-thin">
                   {classified.map((s, i) => (
-                    <button key={i} onClick={() => selectServer(i)}
+                    <button key={i} onClick={(e) => { e.stopPropagation(); selectServer(i); }}
                       className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
-                      <span>Pro {i + 1}</span>
+                      <span>{serverLabels[i] || cleanServerName(s.name)}</span>
                       {s.type !== "seeke" && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.type === "hls" ? "bg-green-500/20 text-green-400" : s.type === "mp4" ? "bg-blue-500/20 text-blue-400" : "bg-yellow-500/20 text-yellow-400"}`}>
                           {s.type.toUpperCase()}
