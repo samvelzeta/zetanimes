@@ -181,14 +181,8 @@ function classifySources(sources: PlayerSource[]): ClassifiedSource[] {
       classified.push({ type: "embed", url, name: s.name });
     }
   }
-  // Orden: seeke → hls → embed/html → mp4 (mp4 al final: casi nunca reproduce).
-  // Dentro del mismo tipo manda la prioridad de dominio (zilla, magi/desu, animed23, mega).
-  classified.sort((a, b) => {
-    const order: Record<SourceType, number> = { seeke: 0, hls: 1, embed: 2, html: 2, mp4: 5 };
-    const byType = order[a.type] - order[b.type];
-    if (byType !== 0) return byType;
-    return hostPriority(a.url) - hostPriority(b.url);
-  });
+  // Mantener exactamente el orden recibido: el selector inferior y el menú
+  // superior deben apuntar siempre al mismo índice de servidor.
   return classified;
 }
 
@@ -1149,14 +1143,14 @@ export default function AnimePlayer({ sources, anilistId, lang, title, onProgres
           <p className="text-xs text-white font-medium truncate flex-1 mr-2">{title}</p>
           {showServerPickerEnabled && classified.length > 1 && (
             <div className="relative">
-              <button onClick={() => setShowServerPicker(!showServerPicker)}
+              <button onClick={(e) => { e.stopPropagation(); setShowServerPicker(!showServerPicker); }}
                 className="px-2 py-1 rounded bg-black/50 text-white text-[10px] flex items-center gap-1 hover:bg-black/80 transition">
                 <Server className="w-3 h-3" /> {serverLabels[currentIdx] || cleanServerName(currentSource?.name)}
               </button>
               {showServerPicker && (
                 <div className="absolute right-0 top-full mt-1 bg-black/90 backdrop-blur rounded-lg p-2 min-w-[160px] z-30 max-h-40 overflow-y-auto overscroll-contain scrollbar-thin">
                   {classified.map((s, i) => (
-                    <button key={i} onClick={() => selectServer(i)}
+                    <button key={i} onClick={(e) => { e.stopPropagation(); selectServer(i); }}
                       className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between gap-2 ${i === currentIdx ? "bg-primary text-primary-foreground" : "text-white hover:bg-white/10"}`}>
                       <span>{serverLabels[i] || cleanServerName(s.name)}</span>
                       {s.type !== "seeke" && (
