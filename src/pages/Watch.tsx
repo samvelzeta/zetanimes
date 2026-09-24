@@ -492,11 +492,11 @@ export default function Watch() {
         return aRank - bRank || sourcePriority(a) - sourcePriority(b);
       });
     }
-    return activeSourceIdx > 0 && activeSourceIdx < pool.length
-      ? [pool[activeSourceIdx], ...pool.filter((_, i) => i !== activeSourceIdx)]
-      : pool;
-  }, [activeSourceIdx, rawSources, shouldShowLanguageControls, lang, dbLangAvailability]);
-  const activeLang = sortedSources[0]?.lang || lang;
+    return pool;
+  }, [rawSources, shouldShowLanguageControls, lang, dbLangAvailability]);
+  const activeSourceCount = sortedSources.length;
+  const safeActiveSourceIdx = activeSourceCount > 0 ? Math.min(activeSourceIdx, activeSourceCount - 1) : 0;
+  const activeLang = sortedSources[safeActiveSourceIdx]?.lang || lang;
   // Subtítulos softsub vienen del API (modo japonés). Usar el del idioma activo.
   const activeSubtitles = useMemo(() => {
     const src = activeLang === lang ? serverData : oppositeServerData;
@@ -915,6 +915,8 @@ export default function Watch() {
                 onSeeked={isEpisodeSwitching ? undefined : handleSeeked}
                 initialTime={initialTime}
                 showServerPicker={shouldShowServerControl}
+                activeServerIndex={safeActiveSourceIdx}
+                onServerChange={setActiveSourceIdx}
                 episodeKey={displayedAutoNextKey}
                 canPrev={!!prevSlot}
                 canNext={!!nextSlot && (nextSlot.ep <= maxEpisodeForLang)}
@@ -1032,10 +1034,10 @@ export default function Watch() {
         {shouldShowServerControl && (
           <div className="mb-3">
             <button
-              onClick={() => setActiveSourceIdx((i) => (i + 1) % Math.max(1, rawSources.length))}
+              onClick={() => setActiveSourceIdx((i) => (i + 1) % Math.max(1, activeSourceCount))}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary border border-border text-foreground hover:border-primary hover:text-primary transition-all"
             >
-              Servidor: {Math.min(activeSourceIdx + 1, rawSources.length)}/{rawSources.length}
+              Servidor: {safeActiveSourceIdx + 1}/{activeSourceCount}
             </button>
           </div>
         )}
