@@ -139,15 +139,6 @@ function cleanServerName(name?: string) {
     .trim() || "Servidor";
 }
 
-// Prioridad por dominio del enlace: magi/desu > animed23 > mega > resto.
-function hostPriority(url: string) {
-  const u = url.toLowerCase();
-  if (u.includes("magi") || u.includes("desu")) return 0;
-  if (u.includes("animed23")) return 1;
-  if (u.includes("mega.")) return 2;
-  return 3;
-}
-
 // Solo es un archivo MP4 directo si la RUTA termina en .mp4 (no vale que el
 // dominio contenga "mp4", como mp4upload.com → ese es un embed normal).
 function isDirectMp4(url: string) {
